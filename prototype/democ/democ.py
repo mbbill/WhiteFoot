@@ -13,9 +13,64 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'checker'))
 from checker import check_program, CheckError
 
-TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*|[0-9]+_i32|[0-9]+'
+TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*'
+                 r'|[0-9]+_(?:i8|i16|i32|i64|u8|u16|u32|u64)|[0-9]+'
                  r'|[a-z][a-z0-9_]*(?:\.[a-z]+)?|[A-Z][A-Za-z0-9]*'
                  r'|->|=>|&uniq|&|[(){}<>:;,=\[\]]')
+
+# ---- integer type family: width, signedness, range, LLVM type ----
+INT_LLTY = {"i8": "i8", "i16": "i16", "i32": "i32", "i64": "i64",
+            "u8": "i8", "u16": "i16", "u32": "i32", "u64": "i64"}
+INT_WIDTH = {"i8": 8, "i16": 16, "i32": 32, "i64": 64,
+             "u8": 8, "u16": 16, "u32": 32, "u64": 64}
+INT_MAX = {"i8": 127, "i16": 32767, "i32": 2147483647,
+           "i64": 9223372036854775807, "u8": 255, "u16": 65535,
+           "u32": 4294967295, "u64": 18446744073709551615}
+INT_MIN = {"i8": -128, "i16": -32768, "i32": -2147483648,
+           "i64": -9223372036854775808}
+INT_SUFFIXES = set(INT_LLTY)
+LIT_RE = re.compile(r'([0-9]+)_([iu](?:8|16|32|64))')
+
+def _is_signed(suf):
+    return suf in INT_SUFFIXES and suf[0] == "i"
+
+def _llty(name):
+    """LLVM type for a democ type name; non-int named types are i32 tags."""
+    return INT_LLTY.get(name, "i32")
+
+# ---- op-name resolution over democ's integer subset [OP-1/2/6/7/8, DIAG-1] ----
+# ops with a result/amount mode axis -> the modes democ lowers; dotless ops carry
+# no mode. An illegal op name surfaces as a spec rejection with its rule id.
+_MODE_OPS = {"iadd": {"wrap", "trap", "checked"}, "isub": {"wrap", "trap", "checked"},
+             "imul": {"wrap", "trap", "checked"}, "idiv": {"trap", "checked"},
+             "irem": {"trap", "checked"}, "ishl": {"wrap", "trap"},
+             "ishr": {"wrap", "trap"}}
+_DOTLESS_OPS = {"iand", "ior", "ixor", "irotl", "irotr",
+                "ieq", "ine", "ilt", "ile", "igt", "ige", "cvt", "reinterpret"}
+_KNOWN_OP_BASES = set(_MODE_OPS) | _DOTLESS_OPS
+
+def _resolve_op(op, tyargs):
+    base, _, mode = op.partition(".")
+    if base == "cvt":                                  # [OP-6] cvt<T,T> is not an operation
+        if len(tyargs) == 2 and tyargs[0] == tyargs[1]:
+            raise CheckError("OP-6", f"cvt<{tyargs[0]}, {tyargs[1]}> is not an operation; "
+                             "cvt is defined only for distinct numeric pairs")
+        return
+    if base in _DOTLESS_OPS:
+        if mode:                                       # [OP-8] bitwise/rotate are dotless-total
+            raise CheckError("OP-8", f"'{op}' is dotless-total and carries no mode suffix "
+                             "(the amount is taken modulo width; there is no out-of-range edge)")
+        return
+    if base in _MODE_OPS:
+        if mode and mode not in _MODE_OPS[base]:
+            if base in ("idiv", "irem"):               # [OP-2] div/rem carry no wrap mode
+                raise CheckError("OP-2", f"'{op}': division and remainder carry no wrap mode "
+                                 "(no sound modular semantics for a zero divisor); the axis is {trap, checked}")
+            raise CheckError("OP-8", f"'{op}': mode '{mode}' is not on this op's mode axis")
+        return
+    if any((pre + base) in _KNOWN_OP_BASES for pre in ("i", "f", "b")):
+        raise CheckError("OP-7", f"'{op}' lacks its domain prefix (i/f/b); "
+                         f"'{base}' names no table op")
 
 def _check_form2(src):
     """FORM-2: canonical byte formatting — 2-space indent per block level, spaces (not
@@ -81,14 +136,15 @@ def parse_expr(p):
         uniq = p.eat() == '&uniq'; r = p.eat()[1:]
         return {"e": "borrow", "uniq": uniq, "region": r, "place": parse_place(p)}
     if t == 'unit': p.eat(); return {"e": "unit"}
-    if re.fullmatch(r'[0-9]+_i32', t):                 # suffixed integer literal
-        p.eat(); digits = t.split('_')[0]
+    m = LIT_RE.fullmatch(t)
+    if m:                                              # suffixed integer literal [FORM-5]
+        p.eat(); digits, suf = m.group(1), m.group(2)
         if len(digits) > 1 and digits[0] == '0':       # FORM-7: leading-zero form is illegal (0 is its own form)
             raise CheckError("FORM-7", f"leading-zero integer literal '{t}' is illegal; the single digit 0 is its own form")
         v = int(digits)
-        if v > 2147483647:                             # FORM-7: literal exceeds its suffix type's range
-            raise CheckError("FORM-7", f"integer literal '{t}' is out of range for i32 (max 2147483647)")
-        return {"e": "lit", "v": v}
+        if v > INT_MAX[suf]:                           # FORM-7: literal exceeds its suffix type's range
+            raise CheckError("FORM-7", f"integer literal '{t}' is out of range for {suf} (max {INT_MAX[suf]})")
+        return {"e": "lit", "v": v, "ty": suf}
     if re.fullmatch(r'[0-9]+', t):                     # FORM-5: a bare integer lacks its mandatory type suffix
         raise CheckError("FORM-5", f"integer literal '{t}' must carry its mandatory type suffix (e.g. {t}_i32)")
     if is_typeid(t):                                   # construct K(field: atom, ...) [GRAM-8]
@@ -104,7 +160,8 @@ def parse_expr(p):
             raise CheckError("FORM-3", f"'{op}' is not a legal OPNAME; the mode suffix is a closed word set {{wrap,trap,checked,strict}}")
         p.eat('<'); tyargs = [parse_type(p)]
         while p.peek() == ',': p.eat(); tyargs.append(parse_type(p))
-        p.eat('>'); p.eat('(')
+        p.eat('>'); _resolve_op(op, tyargs)             # [OP-1/2/6/7/8] op-name resolution
+        p.eat('(')
         args = [parse_atom(p)]                          # [GRAM-9] operands are atoms, not nested calls
         while p.peek() == ',': p.eat(); args.append(parse_atom(p))
         p.eat(')'); return {"e": "op", "op": op, "args": args, "tyargs": tyargs}
@@ -235,7 +292,7 @@ def tplace(pl):
     return node
 def texpr(e):
     k = e["e"]
-    if k == "lit": return {"kind": "lit", "ty": {"kind": "prim", "name": "i32"}}
+    if k == "lit": return {"kind": "lit", "ty": {"kind": "prim", "name": e["ty"]}}
     if k == "unit": return {"kind": "lit", "ty": {"kind": "unit"}}
     if k == "place": return {"kind": "use", "place": tplace(e["p"])}
     if k == "borrow": return {"kind": "borrow", "region": e["region"], "uniq": e["uniq"],
@@ -291,78 +348,164 @@ def build_prog(enums, fns):
     return prog
 
 # ---- LLVM IR ----
+INT_LL = {"i8", "i16", "i32", "i64"}            # the LLVM integer types democ emits
+
 class Gen:
-    def __init__(g, f, enums, alias=True):
+    def __init__(g, f, enums, alias=True, fnret=None, decls=None):
         g.f = f; g.enums = enums; g.alias = alias
+        g.fnret = fnret or {}          # fn name -> LLVM return type (for cross-fn calls)
+        g.decls = decls if decls is not None else set()   # extra intrinsic declares used
         g.n = 0; g.lines = []; g.env = {}; g.traps = False; g.term = False
-        g.loopstk = []; g.give_slot = None
+        g.loopstk = []; g.give_slot = None; g.give_ty = "i32"
     def tmp(g): g.n += 1; return f"%t{g.n}"
     def lbl(g): g.n += 1; return f"L{g.n}"
     def emit(g, s): g.lines.append(s)
+    def ovf_decl(g, verb, signed, w):              # {sadd,uadd,...}.with.overflow.iW
+        pfx = "s" if signed else "u"
+        if w != "i32" or pfx != "s":               # sadd/ssub/smul.i32 are in the fixed header
+            g.decls.add(f"declare {{{w}, i1}} @llvm.{pfx}{verb}.with.overflow.{w}({w}, {w})")
+        return f"{pfx}{verb}"
     def vtag(g, name):
         for en, vs in g.enums.items():
             for i, (vn, _) in enumerate(vs):
                 if vn == name: return i
         return None
+    def argty(g, x):                               # LLVM type prefix for a call argument
+        if x["k"] in INT_LL: return x["k"]
+        if x["k"] in ("ptr", "slot"): return "ptr"
+        return x["k"]
     def expr(g, e):
         k = e["e"]
-        if k == "lit": return {"k": "i32", "v": str(e["v"])}
+        if k == "lit":
+            return {"k": _llty(e["ty"]), "v": str(e["v"]), "signed": _is_signed(e["ty"])}
         if k == "unit": return {"k": "unit"}
         if k == "place":
             v = g.env[e["p"]["base"]]
             if v["k"] in ("ptr", "slot"):
-                t = g.tmp(); g.emit(f"  {t} = load i32, ptr {v['v']}"); return {"k": "i32", "v": t}
+                ty = v.get("ty", "i32")
+                t = g.tmp(); g.emit(f"  {t} = load {ty}, ptr {v['v']}")
+                return {"k": ty, "v": t, "signed": v.get("signed", True)}
             return v
         if k == "borrow":                              # &'r p / &uniq 'r p -> pointer to place
             src = g.env[e["place"]["base"]]
             if src["k"] in ("slot", "ptr"):
-                return {"k": "ptr", "v": src["v"]}
-            slot = g.tmp(); g.emit(f"  {slot} = alloca i32")   # spill own SSA to make addressable
-            g.emit(f"  store i32 {src['v']}, ptr {slot}")
-            return {"k": "ptr", "v": slot}
+                return {"k": "ptr", "v": src["v"], "ty": src.get("ty", "i32"),
+                        "signed": src.get("signed", True)}
+            ty = src["k"] if src["k"] in INT_LL else "i32"
+            slot = g.tmp(); g.emit(f"  {slot} = alloca {ty}")   # spill own SSA to make addressable
+            g.emit(f"  store {ty} {src['v']}, ptr {slot}")
+            return {"k": "ptr", "v": slot, "ty": ty, "signed": src.get("signed", True)}
         if k == "construct":
             n = e["n"]; flds = e["fields"]
             if n == "True": return {"k": "i1", "v": "true"}
             if n == "False": return {"k": "i1", "v": "false"}
-            if n == "Ok": a = g.expr(flds[0]["atom"]); return {"k": "pair", "tag": "false", "val": a["v"]}
-            if n == "Err": return {"k": "pair", "tag": "true", "val": "0"}
-            return {"k": "i32", "v": str(g.vtag(n))}
+            if n == "Ok":
+                a = g.expr(flds[0]["atom"])
+                return {"k": "pair", "tag": "false", "val": a["v"],
+                        "vty": a["k"] if a["k"] in INT_LL else "i32",
+                        "vsigned": a.get("signed", True)}
+            if n == "Err": return {"k": "pair", "tag": "true", "val": "0", "vty": "i32", "vsigned": True}
+            return {"k": "i32", "v": str(g.vtag(n)), "signed": True}
         if k == "ucall":
             args = [g.expr(a) for a in e["args"]]
-            t = g.tmp()
-            g.emit(f"  {t} = call i32 @{e['n']}({', '.join('i32 ' + a['v'] for a in args)})")
-            return {"k": "i32", "v": t}
+            ret = g.fnret.get(e["n"], "i32")
+            argll = ', '.join(f"{g.argty(x)} {x['v']}" for x in args)
+            if ret == "void":
+                g.emit(f"  call void @{e['n']}({argll})"); return {"k": "unit"}
+            t = g.tmp(); g.emit(f"  {t} = call {ret} @{e['n']}({argll})")
+            return {"k": ret, "v": t, "signed": True}
+        return g.op(e)
+    def op(g, e):
         a = [g.expr(x) for x in e["args"]]
-        op = e["op"]
-        ARITH = {"iadd": ("add", "sadd"), "isub": ("sub", "ssub"), "imul": ("mul", "smul")}
-        base, mode = (op.split('.') + [None])[:2]
-        if base in ARITH and mode == "wrap":
-            t = g.tmp(); g.emit(f"  {t} = {ARITH[base][0]} i32 {a[0]['v']}, {a[1]['v']}"); return {"k": "i32", "v": t}
-        if base in ARITH and mode in ("trap", "checked"):
+        op = e["op"]; base, _, mode = op.partition(".")
+        ty = e.get("tyargs") or ["i32"]
+        w = _llty(ty[0]); signed = _is_signed(ty[0])
+        VERB = {"iadd": "add", "isub": "sub", "imul": "mul"}
+        if base in VERB:                               # add/sub/mul: result-overflow axis
+            if mode == "wrap":
+                t = g.tmp(); g.emit(f"  {t} = {VERB[base]} {w} {a[0]['v']}, {a[1]['v']}")
+                return {"k": w, "v": t, "signed": signed}
             g.traps = g.traps or mode == "trap"
-            iv = ARITH[base][1]
-            p_ = g.tmp(); g.emit(f"  {p_} = call {{i32, i1}} @llvm.{iv}.with.overflow.i32(i32 {a[0]['v']}, i32 {a[1]['v']})")
-            v = g.tmp(); g.emit(f"  {v} = extractvalue {{i32, i1}} {p_}, 0")
-            o = g.tmp(); g.emit(f"  {o} = extractvalue {{i32, i1}} {p_}, 1")
-            if mode == "checked": return {"k": "pair", "tag": o, "val": v}
+            iv = g.ovf_decl(VERB[base], signed, w)
+            p_ = g.tmp(); g.emit(f"  {p_} = call {{{w}, i1}} @llvm.{iv}.with.overflow.{w}({w} {a[0]['v']}, {w} {a[1]['v']})")
+            v = g.tmp(); g.emit(f"  {v} = extractvalue {{{w}, i1}} {p_}, 0")
+            o = g.tmp(); g.emit(f"  {o} = extractvalue {{{w}, i1}} {p_}, 1")
+            if mode == "checked": return {"k": "pair", "tag": o, "val": v, "vty": w, "vsigned": signed}
             l = g.lbl(); g.emit(f"  br i1 {o}, label %trap, label %{l}"); g.emit(f"{l}:")
-            return {"k": "i32", "v": v}
-        if op == "__dead_iadd.checked":
-            p_ = g.tmp(); g.emit(f"  {p_} = call {{i32, i1}} @llvm.sadd.with.overflow.i32(i32 {a[0]['v']}, i32 {a[1]['v']})")
-            v = g.tmp(); g.emit(f"  {v} = extractvalue {{i32, i1}} {p_}, 0")
-            o = g.tmp(); g.emit(f"  {o} = extractvalue {{i32, i1}} {p_}, 1")
-            return {"k": "pair", "tag": o, "val": v}
-        if op == "__dead_iadd.trap":
-            g.traps = True
-            p_ = g.tmp(); g.emit(f"  {p_} = call {{i32, i1}} @llvm.sadd.with.overflow.i32(i32 {a[0]['v']}, i32 {a[1]['v']})")
-            v = g.tmp(); g.emit(f"  {v} = extractvalue {{i32, i1}} {p_}, 0")
-            o = g.tmp(); g.emit(f"  {o} = extractvalue {{i32, i1}} {p_}, 1")
-            l = g.lbl(); g.emit(f"  br i1 {o}, label %trap, label %{l}"); g.emit(f"{l}:")
-            return {"k": "i32", "v": v}
-        cmps = {"ieq": "eq", "ine": "ne", "ilt": "slt", "ile": "sle", "igt": "sgt", "ige": "sge"}
-        if op in cmps:
-            t = g.tmp(); g.emit(f"  {t} = icmp {cmps[op]} i32 {a[0]['v']}, {a[1]['v']}"); return {"k": "i1", "v": t}
+            return {"k": w, "v": v, "signed": signed}
+        if base in ("idiv", "irem"):                   # trap on zero divisor + signed MIN/-1 [OP-2]
+            verb = (("sdiv" if signed else "udiv") if base == "idiv"
+                    else ("srem" if signed else "urem"))
+            dz = g.tmp(); g.emit(f"  {dz} = icmp eq {w} {a[1]['v']}, 0")
+            if mode == "trap":
+                g.traps = True
+                l = g.lbl(); g.emit(f"  br i1 {dz}, label %trap, label %{l}"); g.emit(f"{l}:")
+                if signed:
+                    mn = g.tmp(); g.emit(f"  {mn} = icmp eq {w} {a[0]['v']}, {INT_MIN[ty[0]]}")
+                    m1 = g.tmp(); g.emit(f"  {m1} = icmp eq {w} {a[1]['v']}, -1")
+                    ov = g.tmp(); g.emit(f"  {ov} = and i1 {mn}, {m1}")
+                    l2 = g.lbl(); g.emit(f"  br i1 {ov}, label %trap, label %{l2}"); g.emit(f"{l2}:")
+                q = g.tmp(); g.emit(f"  {q} = {verb} {w} {a[0]['v']}, {a[1]['v']}")
+                return {"k": w, "v": q, "signed": signed}
+            err = dz                                   # checked: divert to Err; safe divisor avoids poison
+            if signed:
+                mn = g.tmp(); g.emit(f"  {mn} = icmp eq {w} {a[0]['v']}, {INT_MIN[ty[0]]}")
+                m1 = g.tmp(); g.emit(f"  {m1} = icmp eq {w} {a[1]['v']}, -1")
+                ov = g.tmp(); g.emit(f"  {ov} = and i1 {mn}, {m1}")
+                err = g.tmp(); g.emit(f"  {err} = or i1 {dz}, {ov}")
+            sb = g.tmp(); g.emit(f"  {sb} = select i1 {err}, {w} 1, {w} {a[1]['v']}")
+            q = g.tmp(); g.emit(f"  {q} = {verb} {w} {a[0]['v']}, {sb}")
+            return {"k": "pair", "tag": err, "val": q, "vty": w, "vsigned": signed}
+        BIT = {"iand": "and", "ior": "or", "ixor": "xor"}
+        if base in BIT:                                # bitwise: total [OP-8]
+            t = g.tmp(); g.emit(f"  {t} = {BIT[base]} {w} {a[0]['v']}, {a[1]['v']}")
+            return {"k": w, "v": t, "signed": signed}
+        if base in ("ishl", "ishr"):                   # logical/arith shift; amount out-of-range axis
+            amt = a[1]['v']
+            if mode == "trap":
+                g.traps = True
+                oor = g.tmp(); g.emit(f"  {oor} = icmp uge {w} {amt}, {INT_WIDTH[ty[0]]}")
+                l = g.lbl(); g.emit(f"  br i1 {oor}, label %trap, label %{l}"); g.emit(f"{l}:")
+            else:                                      # wrap: mask amount to width-1 [OP-8]
+                mk = g.tmp(); g.emit(f"  {mk} = and {w} {amt}, {INT_WIDTH[ty[0]] - 1}"); amt = mk
+            instr = "shl" if base == "ishl" else ("ashr" if signed else "lshr")
+            t = g.tmp(); g.emit(f"  {t} = {instr} {w} {a[0]['v']}, {amt}")
+            return {"k": w, "v": t, "signed": signed}
+        if base in ("irotl", "irotr"):                 # rotates: dotless-total via fshl/fshr [OP-8]
+            fn = "fshl" if base == "irotl" else "fshr"
+            g.decls.add(f"declare {w} @llvm.{fn}.{w}({w}, {w}, {w})")
+            t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{fn}.{w}({w} {a[0]['v']}, {w} {a[0]['v']}, {w} {a[1]['v']})")
+            return {"k": w, "v": t, "signed": signed}
+        CMP_S = {"ieq": "eq", "ine": "ne", "ilt": "slt", "ile": "sle", "igt": "sgt", "ige": "sge"}
+        CMP_U = {"ieq": "eq", "ine": "ne", "ilt": "ult", "ile": "ule", "igt": "ugt", "ige": "uge"}
+        if base in CMP_S:                              # sign-correct integer comparison
+            pred = (CMP_S if signed else CMP_U)[base]
+            t = g.tmp(); g.emit(f"  {t} = icmp {pred} {w} {a[0]['v']}, {a[1]['v']}")
+            return {"k": "i1", "v": t}
+        if base == "cvt":                              # exact-or-Result [OP-6]
+            return g.cvt(ty[0], ty[1], a[0])
+        if base == "reinterpret":                      # same-width int<->int resign = no-op [OP-8]
+            return {"k": _llty(ty[1]), "v": a[0]["v"], "signed": _is_signed(ty[1])}
         raise SystemExit(f"demo: op {op} not in subset")
+    def cvt(g, src, dst, a):
+        ws, wd = INT_WIDTH[src], INT_WIDTH[dst]
+        ls, ld = _llty(src), _llty(dst)
+        ss, sd = _is_signed(src), _is_signed(dst)
+        x = a["v"]
+        if wd > ws and (not ss or sd):                 # total (value-preserving) widening -> Dst, no Result
+            t = g.tmp(); g.emit(f"  {t} = {'sext' if ss else 'zext'} {ls} {x} to {ld}")
+            return {"k": ld, "v": t, "signed": sd}
+        if wd < ws:                                    # narrowing candidate
+            y = g.tmp(); g.emit(f"  {y} = trunc {ls} {x} to {ld}")
+        elif wd == ws:                                 # same-width sign change: bit-identical candidate
+            y = x
+        else:                                          # widening non-total (iN->uM): sign-extend candidate
+            y = g.tmp(); g.emit(f"  {y} = {'sext' if ss else 'zext'} {ls} {x} to {ld}")
+        W = f"i{2 * max(ws, wd)}"                       # exact round-trip test in a headroom-safe width
+        xe = g.tmp(); g.emit(f"  {xe} = {'sext' if ss else 'zext'} {ls} {x} to {W}")
+        ye = g.tmp(); g.emit(f"  {ye} = {'sext' if sd else 'zext'} {ld} {y} to {W}")
+        err = g.tmp(); g.emit(f"  {err} = icmp ne {W} {xe}, {ye}")
+        return {"k": "pair", "tag": err, "val": y, "vty": ld, "vsigned": sd}
     def stmts(g, body):
         for s in body:
             if g.term: break
@@ -370,30 +513,33 @@ class Gen:
             if k == "doc": continue
             if k == "let":
                 if "match" in s:                       # value-match with give [GIVE-1]
-                    slot = g.tmp(); g.emit(f"  {slot} = alloca i32")
-                    prev = g.give_slot; g.give_slot = slot
+                    gty = _llty(s["ty"]); gsigned = _is_signed(s["ty"])
+                    slot = g.tmp(); g.emit(f"  {slot} = alloca {gty}")
+                    prev, prevt = g.give_slot, g.give_ty
+                    g.give_slot = slot; g.give_ty = gty
                     g.gen_match(s["match"])
-                    g.give_slot = prev
-                    g.env[s["n"]] = {"k": "slot", "v": slot}
+                    g.give_slot, g.give_ty = prev, prevt
+                    g.env[s["n"]] = {"k": "slot", "v": slot, "ty": gty, "signed": gsigned}
                     continue
                 v = g.expr(s["e"])
-                if v["k"] == "i32":
-                    slot = g.tmp(); g.emit(f"  {slot} = alloca i32")
-                    g.emit(f"  store i32 {v['v']}, ptr {slot}")
-                    g.env[s["n"]] = {"k": "slot", "v": slot}
+                if v["k"] in INT_LL:
+                    slot = g.tmp(); g.emit(f"  {slot} = alloca {v['k']}")
+                    g.emit(f"  store {v['k']} {v['v']}, ptr {slot}")
+                    g.env[s["n"]] = {"k": "slot", "v": slot, "ty": v["k"],
+                                     "signed": v.get("signed", True)}
                 else: g.env[s["n"]] = v
             elif k == "give":
                 v = g.expr(s["e"])
-                g.emit(f"  store i32 {v['v']}, ptr {g.give_slot}")
+                g.emit(f"  store {g.give_ty} {v['v']}, ptr {g.give_slot}")
             elif k == "set":
                 v = g.expr(s["e"]); tgt = g.env[s["p"]["base"]]
                 assert tgt["k"] in ("ptr", "slot"), "set target must be param ptr or own local"
-                g.emit(f"  store i32 {v['v']}, ptr {tgt['v']}")
+                g.emit(f"  store {tgt.get('ty', 'i32')} {v['v']}, ptr {tgt['v']}")
             elif k == "return":
                 v = g.expr(s["e"])
                 if g.f["name"] == "main": g.emit("  ret i32 0")
                 elif v["k"] == "unit": g.emit("  ret void")
-                else: g.emit(f"  ret i32 {v['v']}")
+                else: g.emit(f"  ret {g.rllty} {v['v']}")
                 g.term = True
             elif k == "region": g.stmts(s["body"])
             elif k == "loop":
@@ -442,7 +588,10 @@ class Gen:
                 l = lo if a["v"] == "Ok" else le
                 g.emit(f"{l}:"); g.term = False
                 if a["b"]:
-                    g.env[a["b"][0]["name"]] = {"k": "i32", "v": sc["val"] if a["v"] == "Ok" else "0"}
+                    g.env[a["b"][0]["name"]] = ({"k": sc.get("vty", "i32"), "v": sc["val"],
+                                                 "signed": sc.get("vsigned", True)}
+                                                if a["v"] == "Ok" else
+                                                {"k": "i32", "v": "0", "signed": True})
                 g.stmts(a["body"])
                 if not g.term: g.emit(f"  br label %{done}"); any_open = True
         else:
@@ -460,12 +609,17 @@ class Gen:
     def run(g):
         ps = []
         for q in g.f["params"]:
+            pll = _llty(q["ty"]); psigned = _is_signed(q["ty"])
             if q["mode"]["kind"] == "own":
-                ps.append(f"i32 %{q['name']}"); g.env[q["name"]] = {"k": "i32", "v": f"%{q['name']}"}
+                ps.append(f"{pll} %{q['name']}")
+                g.env[q["name"]] = {"k": pll, "v": f"%{q['name']}", "signed": psigned}
             else:
                 at = (" noalias" + ("" if q["mode"]["uniq"] else " readonly")) if g.alias else ""
-                ps.append(f"ptr{at} %{q['name']}"); g.env[q["name"]] = {"k": "ptr", "v": f"%{q['name']}"}
-        rt = "i32" if (g.f["rty"] != "unit" or g.f["name"] == "main") else "void"
+                ps.append(f"ptr{at} %{q['name']}")
+                g.env[q["name"]] = {"k": "ptr", "v": f"%{q['name']}", "ty": pll, "signed": psigned}
+        rt = ("i32" if g.f["name"] == "main"
+              else ("void" if g.f["rty"] == "unit" else _llty(g.f["rty"])))
+        g.rllty = rt
         g.emit(f"define {rt} @{g.f['name']}({', '.join(ps)}) {{")
         g.emit("entry:")
         g.stmts(g.f["body"])
@@ -478,9 +632,16 @@ class Gen:
 def compile_program(src, alias=True):
     enums, fns = parse_program(src)
     check_program(build_prog(enums, fns))
-    ir = [f"declare {{i32, i1}} @llvm.{n}.with.overflow.i32(i32, i32)" for n in ("sadd","ssub","smul")] + ["declare void @llvm.trap()", ""]
-    for f in fns: ir.append(Gen(f, enums, alias).run())
-    return "\n".join(ir)
+    fnret = {f["name"]: ("i32" if f["name"] == "main"
+                         else ("void" if f["rty"] == "unit" else _llty(f["rty"])))
+             for f in fns}
+    decls = set()
+    bodies = [Gen(f, enums, alias, fnret, decls).run() for f in fns]
+    # fixed header (sadd/ssub/smul.i32 + trap emitted unconditionally for byte-stable i32 output);
+    # any other intrinsic used by width/sign-generic codegen is appended, sorted for determinism.
+    hdr = ([f"declare {{i32, i1}} @llvm.{n}.with.overflow.i32(i32, i32)" for n in ("sadd", "ssub", "smul")]
+           + ["declare void @llvm.trap()"] + sorted(decls) + [""])
+    return "\n".join(hdr + bodies)
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith('-')]
