@@ -17,7 +17,10 @@ TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*|[0-9]+_i32|[0-9]+'
                  r'|[a-z][a-z0-9_]*(?:\.[a-z]+)?|[A-Z][A-Za-z0-9]*'
                  r'|->|=>|&uniq|&|[(){}<>:;,=\[\]]')
 
-def toks(src): return TOK.findall(src)
+def toks(src):
+    if re.search(r'//|/\*', re.sub(r'"[^"]*"', '', src)):   # FORM-4: comments do not exist
+        raise CheckError("FORM-4", "comments do not exist; documentation rides the doc field of a declaration")
+    return TOK.findall(src)
 
 class P:
     def __init__(s, t): s.t = t; s.i = 0
@@ -57,29 +60,50 @@ def parse_expr(p):
         uniq = p.eat() == '&uniq'; r = p.eat()[1:]
         return {"e": "borrow", "uniq": uniq, "region": r, "place": parse_place(p)}
     if t == 'unit': p.eat(); return {"e": "unit"}
-    if re.fullmatch(r'[0-9]+_i32', t): p.eat(); return {"e": "lit", "v": int(t.split('_')[0])}
+    if re.fullmatch(r'[0-9]+_i32', t):                 # suffixed integer literal
+        p.eat(); digits = t.split('_')[0]
+        if len(digits) > 1 and digits[0] == '0':       # FORM-7: leading-zero form is illegal (0 is its own form)
+            raise CheckError("FORM-7", f"leading-zero integer literal '{t}' is illegal; the single digit 0 is its own form")
+        v = int(digits)
+        if v > 2147483647:                             # FORM-7: literal exceeds its suffix type's range
+            raise CheckError("FORM-7", f"integer literal '{t}' is out of range for i32 (max 2147483647)")
+        return {"e": "lit", "v": v}
+    if re.fullmatch(r'[0-9]+', t):                     # FORM-5: a bare integer lacks its mandatory type suffix
+        raise CheckError("FORM-5", f"integer literal '{t}' must carry its mandatory type suffix (e.g. {t}_i32)")
     if is_typeid(t):                                   # construct K(field: atom, ...) [GRAM-8]
         n = p.eat(); p.eat('('); fields = []
         while p.peek() != ')':
-            fname = p.eat(); p.eat(':'); atom = parse_expr(p)
+            fname = p.eat(); p.eat(':'); atom = parse_atom(p)
             fields.append({"name": fname, "atom": atom})
             if p.peek() == ',': p.eat()
         p.eat(')'); return {"e": "construct", "n": n, "fields": fields}
-    if '.' in t or p.peek(1) == '<':                   # OPNAME<ty>(atoms); positional [GRAM-11]
-        op = p.eat(); p.eat('<'); tyargs = [parse_type(p)]
+    if '.' in t or p.peek(1) == '<':                   # OPNAME<ty>(atoms)
+        op = p.eat()
+        if '.' in op and op.split('.', 1)[1] not in ("wrap", "trap", "checked", "strict"):
+            raise CheckError("FORM-3", f"'{op}' is not a legal OPNAME; the mode suffix is a closed word set {{wrap,trap,checked,strict}}")
+        p.eat('<'); tyargs = [parse_type(p)]
         while p.peek() == ',': p.eat(); tyargs.append(parse_type(p))
         p.eat('>'); p.eat('(')
-        args = [parse_expr(p)]
-        while p.peek() == ',': p.eat(); args.append(parse_expr(p))
+        args = [parse_atom(p)]                          # [GRAM-9] operands are atoms, not nested calls
+        while p.peek() == ',': p.eat(); args.append(parse_atom(p))
         p.eat(')'); return {"e": "op", "op": op, "args": args, "tyargs": tyargs}
     if p.peek(1) == '(' and t not in ('deref', 'index'):   # user call f(param: atom, ...) [GRAM-11]
         n = p.eat(); p.eat('('); args = []; argnames = []
         while p.peek() != ')':
-            pname = p.eat(); p.eat(':'); atom = parse_expr(p)
+            pname = p.eat()
+            if p.peek() != ':':                        # [GRAM-11] call args are named (param: atom), never positional
+                raise CheckError("GRAM-11", "a user-fn call must name its arguments (param: atom) in declared order; positional args are illegal")
+            p.eat(':'); atom = parse_atom(p)
             argnames.append(pname); args.append(atom)
             if p.peek() == ',': p.eat()
         p.eat(')'); return {"e": "ucall", "n": n, "args": args, "argnames": argnames}
     return {"e": "place", "p": parse_place(p)}
+
+def parse_atom(p):                                     # [GRAM-9] atom := literal | place | borrow | deref | construct
+    e = parse_expr(p)
+    if e["e"] in ("op", "ucall"):                      # a call in an atom position does not derive (three-address/ANF)
+        raise CheckError("GRAM-9", "a call in an atom position does not derive (three-address form); bind it with a preceding let")
+    return e
 
 def parse_match(p):
     p.eat('match'); scrut = parse_expr(p); p.eat('{'); arms = []
@@ -125,13 +149,19 @@ def parse_stmt(p):
         return {"s": "check", "e": e, "msg": msg.strip('"')}
     if t == 'match':
         return parse_match(p)
-    e = parse_expr(p); p.eat(';'); return {"s": "expr", "e": e}
+    e = parse_expr(p)
+    if p.peek() != ';':                                # [FORM-1] an unknown construct is a hard error
+        raise CheckError("FORM-1", f"unknown construct: expected ';' to end the statement, got {p.peek()!r}")
+    p.eat(';'); return {"s": "expr", "e": e}
 
 def parse_program(src):
     p = P(toks(src)); enums = {}; fns = []
     while p.peek():
         if p.peek() == 'enum':
-            p.eat(); name = p.eat(); p.eat('{'); vs = []
+            p.eat(); name = p.eat()
+            if not is_typeid(name):                    # [FORM-3] an enum name is a TYPEID ([A-Z]...)
+                raise CheckError("FORM-3", f"enum name must be a TYPEID ([A-Z]...), got '{name}'")
+            p.eat('{'); vs = []
             while p.peek() != '}':
                 vn = p.eat(); p.eat('('); fields = []      # vfield := IDENT ":" type
                 while p.peek() != ')':
@@ -141,7 +171,10 @@ def parse_program(src):
                 p.eat(')'); p.eat(';'); vs.append((vn, fields))
             p.eat('}'); enums[name] = vs
         else:
-            p.eat('fn'); name = p.eat(); regions = []
+            p.eat('fn'); name = p.eat()
+            if not re.fullmatch(r'[a-z][a-z0-9_]*', name):   # [FORM-3] a fn name is an IDENT ([a-z][a-z0-9_]*)
+                raise CheckError("FORM-3", f"fn name must be an IDENT ([a-z][a-z0-9_]*), got '{name}'")
+            regions = []
             if p.peek() == '[':
                 p.eat()
                 while p.peek() != ']':
