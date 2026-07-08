@@ -27,6 +27,19 @@ for line in spec.splitlines():
         rid = line.split(']')[0][1:]
         if rid not in ('OWN-4',):   # OWN-4 'only if' phrasing reviewed as total rule
             fail.append(f"META-3 smell (review; total-rule rewording?): {rid}: ...{line[:90]}")
+# D1 guard: the FORM-3 OPNAME lexer class must not swallow a field-access place [GRAM-5]
+_m = re.search(r'OPNAME `([^`]+)`', spec)
+if _m:
+    try:
+        _opn = re.compile('^(?:' + _m.group(1) + ')$')
+        for _s in ('s.field', 'p.x', 'result.count', 'node.left'):
+            if _opn.match(_s):
+                fail.append(f"D1: FORM-3 OPNAME swallows field-access place {_s!r} (GRAM-5 collision)")
+        for _op in ('iadd.wrap', 'isub.trap', 'imul.checked', 'fadd.strict'):
+            if not _opn.match(_op):
+                fail.append(f"D1: FORM-3 OPNAME fails to lex operation {_op!r}")
+    except re.error as _e:
+        fail.append(f"D1: FORM-3 OPNAME pattern uncompilable: {_e}")
 print(f"spec-ci: {SPEC.name} — {len(set(defined))} rules; ledger rows checked against {LEDGER.name}")
 if fail:
     print("VIOLATIONS:"); [print(' -', f) for f in fail]; sys.exit(1)

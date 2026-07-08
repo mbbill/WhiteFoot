@@ -1,6 +1,6 @@
-# Kernel Specification v0.4
+# Kernel Specification v0.5
 
-Status: DRAFT v0.4.1 (2026-07-07). DIAG-3 field schemas added (closes the audit-flagged R4-load-bearing deferral). GRAM-4 scrutinee widened to expr, resolving the GRAM-4/EX-1 contradiction found by M1 construction (bind-then-match rejected: per R3/W1 it taxes the sole conditional idiom with a mechanical temporary at every use); OWN-13 gains the owned-temporary clause. v0.3.1 added ERR-3 propagation (closed the R4-load-bearing deferral). v0.3 was the ledger-fix revision of v0.2 (META-6 derivation discipline; OP-2 ineg.wrap added with corrected rationale scope; FORM-6/FN-6/FN-7 derivation rationales recorded). v0.2 was the lexicon revision of v0.1 (owner rulings: borrow-mode rename mut->uniq; lexicon policy LEX-1). v0.1 was the revision of v0 under the round-1 spec critique (63 findings, 37 missing rules; all blocking and major findings addressed or explicitly deferred with recorded deltas). Section 5 (ownership) is PROVISIONAL: its rules must be reconciled against a formalized minimal calculus (Featherweight Rust / Oxide / Austral class) before ratification, per the D1a gate. Section 9 (effects) is gated on region/effect exemplar carding before ratification.
+Status: DRAFT v0.5 (2026-07-07; Tier-0 errata). Fixed 11 internal self-contradictions (D1-D11): EX-1 is now parse/reprint/check-derivable; FORM-3 OPNAME tightened to a closed mode-suffix set with a GRAM-5 callee production (resolving the OPNAME/field-access collision); FORM-2 byte-format completed; FORM-7 (numeric-literal well-formedness), TYPE-7 (explicit deref typing), and OP-6 (cvt exact-or-Result, 29 total pairs, no rounding) added; DivError replaces DivideByZero; integer literals carry an inline sign (iK::MIN now writable); STRING pinned to ASCII-printable; the dead const-param gparam removed; META-1/META-4 dedup. Prior: DRAFT v0.4.1 (2026-07-07). DIAG-3 field schemas added (closes the audit-flagged R4-load-bearing deferral). GRAM-4 scrutinee widened to expr, resolving the GRAM-4/EX-1 contradiction found by M1 construction (bind-then-match rejected: per R3/W1 it taxes the sole conditional idiom with a mechanical temporary at every use); OWN-13 gains the owned-temporary clause. v0.3.1 added ERR-3 propagation (closed the R4-load-bearing deferral). v0.3 was the ledger-fix revision of v0.2 (META-6 derivation discipline; OP-2 ineg.wrap added with corrected rationale scope; FORM-6/FN-6/FN-7 derivation rationales recorded). v0.2 was the lexicon revision of v0.1 (owner rulings: borrow-mode rename mut->uniq; lexicon policy LEX-1). v0.1 was the revision of v0 under the round-1 spec critique (63 findings, 37 missing rules; all blocking and major findings addressed or explicitly deferred with recorded deltas). Section 5 (ownership) is PROVISIONAL: its rules must be reconciled against a formalized minimal calculus (Featherweight Rust / Oxide / Austral class) before ratification, per the D1a gate. Section 9 (effects) is gated on region/effect exemplar carding before ratification.
 
 Rule IDs are stable; diagnostics cite rule IDs. Sections marked DEFERRED record obligations with spec deltas per META-5, not normative content.
 
@@ -20,15 +20,17 @@ R3-PROVISIONAL REGISTER (constitution audit 2026-07-05; these forms were minimal
 
 [FORM-1] There is exactly one spelling per semantic construct and one legal byte-level formatting. Non-canonical input is a hard error; the toolchain never auto-formats. Unknown constructs are hard errors (conservative extension).
 
-[FORM-2] Formatting, exhaustively: UTF-8; LF endings; file ends with exactly one LF; indentation exactly two spaces per `{` nesting level (match arms are one level inside `match`); exactly one space between adjacent tokens except: no space after `(` `<` or before `)` `>` `,` `;` `.`; one space after `,` and `:`; no space around `.` in places; no line wrapping (a statement is one line); declarations separated by exactly one blank line; no trailing whitespace.
+[FORM-2] Formatting, exhaustively: UTF-8; LF endings; file ends with exactly one LF; indentation exactly two spaces per `{` nesting level (match arms are one level inside `match`); exactly one space between adjacent tokens except: no space after `(` `<` `&` or before `)` `>` `,` `;` `.` `:` `(` `<`; one space after `,` and `:`; no space around `.` in places; no line wrapping (a statement is one line); declarations separated by exactly one blank line; no trailing whitespace.
 
-[FORM-3] Lexical classes: IDENT `[a-z][a-z0-9_]*`; TYPEID `[A-Z][A-Za-z0-9]*`; REGIONID `'[a-z][a-z0-9_]*` (apostrophe-prefixed, the only region spelling); LABEL `@[a-z][a-z0-9_]*`; OPNAME `[a-z][a-z0-9_]*\.[a-z]+` (single token, e.g. `iadd.wrap`).
+[FORM-3] Lexical classes: IDENT `[a-z][a-z0-9_]*`; TYPEID `[A-Z][A-Za-z0-9]*`; REGIONID `'[a-z][a-z0-9_]*` (apostrophe-prefixed, the only region spelling); LABEL `@[a-z][a-z0-9_]*`; OPNAME `[a-z][a-z0-9_]*\.(wrap|trap|checked|strict)` (single token; the base is an IDENT and the mode suffix is a closed word set, so an OPNAME can never maximal-munch a field-access place `p.field` [GRAM-5]; e.g. `iadd.checked`).
 
 [FORM-4] There are no comments. Documentation is the `doc` field of declarations [GRAM-3]. Provenance lives in toolchain records.
 
-[FORM-5] Literals, exhaustively: integers `[0-9]+_TYPE` (decimal only, mandatory suffix, e.g. `42_i32`); floats `[0-9]+\.[0-9]+_TYPE` (e.g. `1.5_f64`); `unit`; STRING `"..."` with escapes `\\ \" \n` only, one canonical escape per character (a string value has one spelling). STRING appears only in `doc` and `check` messages. There are no boolean literals: `Bool` is a prelude enum (§15).
+[FORM-5] Literals, exhaustively: integers `-?[0-9]+_TYPE` (decimal only, mandatory suffix; a leading `-` is legal for signed TYPE, and the signed value must lie in TYPE's range [FORM-7]; e.g. `42_i32`, `-2147483648_i32`); floats `[0-9]+\.[0-9]+_TYPE` (e.g. `1.5_f64`); `unit`; STRING `"..."` whose interior is a sequence of items, each one raw ASCII-printable byte in U+0020..U+007E other than `"` and `\`, or one of exactly three escapes `\\ \" \n`; no other byte is legal, and each character has exactly one spelling (the escape where one is defined, the raw byte otherwise). STRING appears only in `doc` and `check` messages; non-ASCII diagnostic text is DEFERRED. There are no boolean literals: `Bool` is a prelude enum (§15).
 
 [FORM-6] The token `unit` names the unit type in type position and the unit value in expression position; the grammar positions are disjoint productions, so resolution is production-local, not contextual. The lowercase spelling follows the primitive-type convention (TYPE-1: primitives are lowercase keywords, not TYPEIDs); the single-token value spelling is the R3 one-spelling choice for the type's sole inhabitant.
+
+[FORM-7] Numeric-literal well-formedness (R4 check-reject). An integer literal `-?d_T` is legal where its signed value lies in the closed range of T (signed `[-2^(K-1), 2^(K-1)-1]`, unsigned `[0, 2^K-1]`) and it has no leading zeros: the single digit `0` is its own form, a leading `-` is legal for signed T, and `-0` is written `0`. A float literal is legal where its round-to-nearest-even value in T is finite. An out-of-range integer, a leading-zero integer, or a float that rounds to a non-finite value is a hard error at check time [SCOPE-2]; a literal never denotes a wrapped, truncated, saturated, or undefined value. The canonical decimal spelling of a float value is gated on the FORM-1 reject-vs-canonicalize decision and DEFERRED.
 
 [LEX-1] Lexicon policy: surface names label checked invariants, stated in this document self-containedly. Names are never borrowed from backend IR vocabulary (e.g. `noalias`), which names lowering consequences, not source invariants; and a name is borrowed from another language's convention only where a divergence census shows the semantics genuinely match. Ruling of record: the exclusive borrow mode is `uniq` (uniqueness-type lineage), not `mut` (Rust divergence: exclusivity is the invariant; mutation is only its permission, and the name breaks under future interior-mutability capabilities). DEFERRED with recorded delta: the two-axis mode vocabulary (exclusivity x write-permission, adding frozen/exclusive-read and capability-gated shared-write).
 
@@ -54,7 +56,7 @@ conform_decl := "conform" type ":" TYPEID targs? "{" doc? fn_bind* "}"
 fn_bind      := IDENT "=" IDENT ";"
 doc          := "doc" STRING ";"
 generics     := "<" gparam ("," gparam)* ">"
-gparam       := TYPEID (":" TYPEID)? | "const" IDENT ":" type
+gparam       := TYPEID (":" TYPEID)?
 region_params:= "[" REGIONID ("," REGIONID)* "]"
 param_list   := param ("," param)*
 param        := IDENT ":" mode type
@@ -98,7 +100,8 @@ binder_list := IDENT ("," IDENT)*
 
 ```
 expr      := literal | "move" place | place | call | construct | borrow_expr
-call      := IDENT targs? "(" arg_list? ")"
+call      := callee targs? "(" arg_list? ")"
+callee    := IDENT | OPNAME
 construct := TYPEID targs? "(" arg_list? ")"       # struct: fields in declared
                                                    # order; enum: variant payload
 borrow_expr := "&" REGIONID place | "&uniq" REGIONID place
@@ -121,13 +124,15 @@ psuffix   := "." IDENT
 
 [TYPE-3] Nameability: every constructible type/mode/effect has a canonical, finite, writable name requiring no compiler execution.
 
-[TYPE-4] There are no implicit conversions. Representation changes are explicit ops: `cvt<Src, Dst>(x)` is total where value-preserving for all inputs, and returns `Result<Dst, NarrowError>` otherwise (per the operation table, §7).
+[TYPE-4] There are no implicit conversions. Representation change is the single explicit op `cvt<Src, Dst>(x)`. Totality is decided by value-preservation, not bit-width: `cvt` returns `own Dst` where every value of Src is exactly representable in Dst, and `own Result<Dst, NarrowError>` for every other distinct numeric pair; it never rounds, truncates, or saturates. The exact partition and per-value semantics are [OP-6]. Deliberate rounding is a separate DEFERRED float-round op family, never `cvt`.
 
 [TYPE-5] No inference across statements: every `let` states its full mode and type; call sites state all type/region/const arguments explicitly; argument types match declared parameter types exactly.
 
 [TYPE-6] Name binding: declaration-before-use; a live name may not be shadowed or redeclared (one uniform rule for values, regions, labels); IDENT, REGIONID, and LABEL are disjoint namespaces; `break`'s LABEL must name a lexically enclosing loop.
 
-[CONST-1] v0 constant expressions are integer literals only. The closed constant-expression sublanguage is DEFERRED (recorded delta: +1 section when added).
+[TYPE-7] Reading through a reference is explicit. `deref(place)` where place has type `&'r T`, `&uniq 'r T`, `box<T>`, or `arena<'r, T>` denotes a place of referent type T [GRAM-5]; a use of that place copies it when T is copy and requires `move` when T is affine [OWN-1]. A borrow-mode or box/arena binding used where a value of its referent type T is expected is a type error [TYPE-5], with the mechanical fix `deref(.)`. There is no implicit read-through-borrow [TYPE-4, META-2].
+
+[CONST-1] v0 constant expressions are integer literals only. The closed constant-expression sublanguage is DEFERRED (recorded delta: +1 section when added). Const-generic PARAMETERS are also DEFERRED (recorded delta: -1 gparam alternative removed [GRAM-2]; +const-param wiring through `const` and `targ` when the sublanguage lands); v0 has no const-generic capability, and `array<T, N>` uses a literal N only [GRAM-3].
 
 ## 5. Ownership, regions, borrows (PROVISIONAL pending formal-calculus reconciliation)
 
@@ -177,7 +182,7 @@ psuffix   := "." IDENT
 | `iadd.trap` `isub.trap` `imul.trap` | all int T | `(T, T) -> own T` | traps |
 | `iadd.checked` `isub.checked` `imul.checked` | all int T | `(T, T) -> own Result<T, Overflow>` | pure |
 | `idiv.trap` `irem.trap` | all int T | `(T, T) -> own T` | traps |
-| `idiv.checked` `irem.checked` | all int T | `(T, T) -> own Result<T, DivideByZero>` | pure |
+| `idiv.checked` `irem.checked` | all int T | `(T, T) -> own Result<T, DivError>` | pure |
 | `ineg.wrap` | signed int T | `(T) -> own T` | pure |
 | `ineg.trap` | signed int T | `(T) -> own T` | traps |
 | `ineg.checked` | signed int T | `(T) -> own Result<T, Overflow>` | pure |
@@ -186,20 +191,24 @@ psuffix   := "." IDENT
 | `feq` `flt` `fle` | f32 f64 | `(T, T) -> own Bool` | pure |
 | `band` `bor` `bxor` | Bool | `(Bool, Bool) -> own Bool` | pure |
 | `bnot` | Bool | `(Bool) -> own Bool` | pure |
-| `cvt` | widening int/float pairs | `(Src) -> own Dst` | pure |
-| `cvt` | narrowing pairs | `(Src) -> own Result<Dst, NarrowError>` | pure |
+| `cvt` | value-preserving pairs [OP-6] | `(Src) -> own Dst` | pure |
+| `cvt` | all other distinct numeric pairs [OP-6] | `(Src) -> own Result<Dst, NarrowError>` | pure |
 | `len` | `slice<'r, T>`, `array<T, N>` | `-> own u64` | pure |
 | `slice_of` | `array<T, N>` | `&'r place -> own slice<'r, T>` (a borrow of the whole array place) | pure |
 | `box_new` | any T | `(own T) -> own box<T>` | allocates(heap) |
 | `arena_new` | any T | `(own T) -> own arena<'r, T>` | allocates(arena 'r) |
 
-[OP-2] There are no wrap modes for division/remainder because no sound modular semantics exists for divisor-zero; this is table data, not an exception clause. (Negation has a wrap mode: two's-complement wrapping negation is sound modular arithmetic — ledger fix 2026-07-07.)
+An operation name is an OPNAME (dotted, closed mode-suffix, e.g. `iadd.checked`) or a dotless IDENT (`ieq ine ilt ile igt ige feq flt fle band bor bxor bnot cvt len slice_of box_new arena_new`); both are consumed by `call` [GRAM-5] and resolved by name lookup: an OPNAME callee names its table op, and an IDENT callee names its table op where this table defines that spelling and a program `fn_decl` otherwise; a callee in neither is a hard error [DIAG-1]. The dotless operation IDENTs above and the mode-words `wrap` `trap` `checked` `strict` are RESERVED: no `fn_decl`, field, param, binder, or region binds them, which keeps op-vs-fn resolution context-free [META-2] and keeps a field-access place `p.field` from lexing as an OPNAME [FORM-3].
+
+[OP-2] There are no wrap modes for division/remainder because no sound modular semantics exists for divisor-zero; this is table data, not an exception clause. (Negation has a wrap mode: two's-complement wrapping negation is sound modular arithmetic — ledger fix 2026-07-07.) Integer division and remainder have two checkable failures: a zero divisor for all int T, and, for signed T, the single signed-overflow case `iK::MIN / -1` (LLVM sdiv/srem are UB on both); `.trap` traps on either, and `.checked` returns `Err(DivideByZero())` for a zero divisor and `Err(DivOverflow())` for signed `iK::MIN / -1`, else `Ok`. DivOverflow is statically unreachable for unsigned T; the uniform `DivError` type is retained for regularity. Both classifications are table-fixed [ERR-4].
 
 [OP-3] v0 defines only `.strict` float modes (IEEE 754, no reassociation, no contraction); each node names its mode. Approximation/fast-math modes are an OPEN numeric-semantics question, not a decided layer.
 
 [OP-4] `index<T>(p, i)` reads/writes are bounds-checked in all build modes when unproven; out-of-bounds traps [SCOPE-4]. "Proof" means deterministic-checker or verified-proof-artifact discharge; a solver may only promote performance-ledger facts and never licenses check elision.
 
 [OP-5] `check e else trap "msg";` is a runtime check in all build modes, never elided. A passed check creates the checked fact on the dominated path (stated-and-checked channel); the fuller stated-and-checked vocabulary (loop invariants, ranges) is DEFERRED with its delta.
+
+[OP-6] cvt partition and semantics (cross-reference TYPE-4). `cvt<Src, Dst>` is defined for every ordered pair of distinct numeric primitives; `cvt<T, T>` is not an operation. cvt is EXACT: it yields `Ok(y)` when the Src value is exactly representable in Dst (y the unique such Dst value) and `Err(NarrowError())` otherwise, and it never rounds, truncates, or saturates. A non-integral float-to-int, an out-of-range value, a value not exactly representable in a narrower float, and any NaN or infinity targeting an integer all yield `Err`; for float-to-float, an infinity maps to the same infinity and NaN maps to the target canonical quiet NaN (value-preserving). A pair is TOTAL — signature `(Src) -> own Dst`, no Result — where every Src value is exactly representable in Dst; the total pairs are exactly these 29: `iN->iM` and `uN->uM` for N<M; `uN->iM` for N<M; `{i8,i16,u8,u16}->f32`; `{i8,i16,i32,u8,u16,u32}->f64`; `f32->f64`. Every other distinct numeric pair returns `(Src) -> own Result<Dst, NarrowError>`.
 
 ## 8. Functions, generics, contracts
 
@@ -281,7 +290,7 @@ enum Result<T, E> { Ok(T); Err(E); }
 
 enum Overflow { Overflow(); }
 
-enum DivideByZero { DivideByZero(); }
+enum DivError { DivideByZero(); DivOverflow(); }
 
 enum NarrowError { NarrowError(); }
 ```
@@ -317,7 +326,7 @@ fn main() -> own unit traps {
   let a: own i32 = 40_i32;
   region 'r {
     let p: &'r i32 = &'r a;
-    let s: own Result<i32, Overflow> = iadd.checked<i32>(p, 2_i32);
+    let s: own Result<i32, Overflow> = iadd.checked<i32>(deref(p), 2_i32);
     match s {
       Ok(v) => {
         check ieq<i32>(v, 42_i32) else trap "arithmetic drift";
@@ -333,7 +342,7 @@ fn main() -> own unit traps {
 
 ## 17. Spec meta-rules (CI-checked)
 
-[META-1] One spelling per construct; productions map 1:1 to core-tree nodes.
+[META-1] Spec-CI enforces the regularity invariants defined elsewhere: one spelling per construct [FORM-1] and a 1:1 production-to-core-tree-node mapping [GRAM-1]. Its unique machine-checked content is that no rule ID is defined twice and every cross-reference resolves [META-4, META-6].
 [META-2] No context-dependent spellings or rule variants: no rule's meaning depends on surrounding context; defaulting rules do not exist.
 [META-3] No rule carries an exception clause; conditional structure is expressed as total positive rules or table data.
 [META-4] Every normative fact is stated once; other mentions are rule-ID cross-references.
