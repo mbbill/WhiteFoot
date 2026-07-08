@@ -13,3 +13,5 @@ __pycache__/
 # conformance: artifacts from running democ directly on a case (the runner uses a tempdir)
 conformance/cases/*.ll
 conformance/cases/*.s
+conformance/cases/*
+!conformance/cases/*.xl
