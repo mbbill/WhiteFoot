@@ -17,7 +17,28 @@ TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*|[0-9]+_i32|[0-9]+'
                  r'|[a-z][a-z0-9_]*(?:\.[a-z]+)?|[A-Z][A-Za-z0-9]*'
                  r'|->|=>|&uniq|&|[(){}<>:;,=\[\]]')
 
+def _check_form2(src):
+    """FORM-2: canonical byte formatting — 2-space indent per block level, spaces (not
+    tabs), exactly one space after ':'. Raises on the first violation [DIAG-1]."""
+    depth = 0
+    for i, line in enumerate(src.split("\n"), 1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        lead = line[:len(line) - len(line.lstrip())]
+        if "\t" in lead:
+            raise CheckError("FORM-2", f"line {i}: indentation must be spaces, not tabs")
+        nostr = re.sub(r'"[^"]*"', '""', line)             # brace/colon count ignores string bytes
+        exp = 2 * (depth - 1) if stripped.startswith("}") else 2 * depth
+        if len(lead) != exp:
+            raise CheckError("FORM-2",
+                f"line {i}: indent {len(lead)} != canonical {exp} (two spaces per block level)")
+        if re.search(r':(?!\s)', nostr) or re.search(r':  ', nostr):
+            raise CheckError("FORM-2", f"line {i}: exactly one space required after ':'")
+        depth += nostr.count("{") - nostr.count("}")
+
 def toks(src):
+    _check_form2(src)                                       # FORM-2: canonical byte formatting
     if re.search(r'//|/\*', re.sub(r'"[^"]*"', '', src)):   # FORM-4: comments do not exist
         raise CheckError("FORM-4", "comments do not exist; documentation rides the doc field of a declaration")
     return TOK.findall(src)
