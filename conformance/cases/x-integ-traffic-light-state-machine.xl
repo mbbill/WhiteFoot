@@ -1,0 +1,52 @@
+enum Light { Red(); Green(); Yellow(); }
+
+fn main () -> own unit traps {
+  doc "A traffic-light state machine advanced by value-matches: each match moves the own state and gives its own successor, so after three transitions the light returns to Red [OWN-13, GIVE-1, OP-1, SCOPE-3].";
+  let s0: own Light = Red();
+  let s1: own Light = match s0 {
+    Red() => {
+      give Green();
+    }
+    Green() => {
+      give Yellow();
+    }
+    Yellow() => {
+      give Red();
+    }
+  }
+  let s2: own Light = match s1 {
+    Red() => {
+      give Green();
+    }
+    Green() => {
+      give Yellow();
+    }
+    Yellow() => {
+      give Red();
+    }
+  }
+  let s3: own Light = match s2 {
+    Red() => {
+      give Green();
+    }
+    Green() => {
+      give Yellow();
+    }
+    Yellow() => {
+      give Red();
+    }
+  }
+  let code: own i32 = match s3 {
+    Red() => {
+      give 0_i32;
+    }
+    Green() => {
+      give 1_i32;
+    }
+    Yellow() => {
+      give 2_i32;
+    }
+  }
+  check ieq<i32>(code, 0_i32) else trap "cycle did not return to Red";
+  return unit;
+}

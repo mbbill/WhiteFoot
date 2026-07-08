@@ -1,0 +1,10 @@
+fn takesint (n: own i32) -> own i32 pure {
+  doc "Parameter n is an own i32 [FN-1].";
+  return n;
+}
+
+fn main () -> own unit pure {
+  doc "Caller passes a Bool where the signature declares i32 [FN-1].";
+  let r: own i32 = takesint(n: True());
+  return unit;
+}

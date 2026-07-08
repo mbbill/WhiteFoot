@@ -1,0 +1,23 @@
+enum Sign { Neg(); Zero(); Pos(); }
+enum Wrap { W(inner: Sign); N(); }
+
+fn main () -> own unit pure {
+  doc "OWN-1: an affine payload binder is consumed by one inner match; a second inner match of it is a use-after-consume.";
+  let w: own Wrap = W(inner: Pos());
+  match w {
+    W(inner: s) => {
+      match s {
+        Neg() => { }
+        Zero() => { }
+        Pos() => { }
+      }
+      match s {
+        Neg() => { }
+        Zero() => { }
+        Pos() => { }
+      }
+    }
+    N() => { }
+  }
+  return unit;
+}

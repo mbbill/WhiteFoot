@@ -1,0 +1,16 @@
+enum Sign { Neg(); Zero(); Pos(); }
+enum Wrap { W(inner: Sign); N(); }
+
+fn main () -> own unit pure {
+  doc "OWN-1/OWN-13: matching an own composite moves the whole binding (partial move kills it); a second match of the moved binding is a use of a dead binding.";
+  let w: own Wrap = W(inner: Pos());
+  match w {
+    W(inner: s) => { }
+    N() => { }
+  }
+  match w {
+    W(inner: s) => { }
+    N() => { }
+  }
+  return unit;
+}
