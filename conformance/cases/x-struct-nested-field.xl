@@ -1,0 +1,16 @@
+struct Inner {
+  v: i32;
+}
+
+struct Outer {
+  inner: Inner;
+  k: i32;
+}
+
+fn main () -> own unit traps {
+  doc "TYPE-2: a nested struct field (a struct-typed field); read the inner field through the outer.";
+  let o: own Outer = Outer(inner: Inner(v: 10_i32), k: 5_i32);
+  let s: own i32 = iadd.trap<i32>(o.inner.v, o.k);
+  check ieq<i32>(s, 15_i32) else trap "nested field drift";
+  return unit;
+}

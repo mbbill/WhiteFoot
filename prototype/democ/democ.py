@@ -15,7 +15,7 @@ from checker import check_program, CheckError
 
 TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*'
                  r'|[0-9]+_(?:i8|i16|i32|i64|u8|u16|u32|u64)|[0-9]+'
-                 r'|[a-z][a-z0-9_]*(?:\.[a-z]+)?|[A-Z][A-Za-z0-9]*'
+                 r'|[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*|[A-Z][A-Za-z0-9]*'
                  r'|->|=>|&uniq|&|[(){}<>:;,=\[\]]')
 
 # ---- integer type family: width, signedness, range, LLVM type ----
@@ -128,7 +128,9 @@ def parse_place(p):
         p.eat(); p.eat('('); inner = parse_place(p); p.eat(')')
         inner["deref"] = inner.get("deref", 0) + 1
         return inner
-    return {"base": p.eat(), "path": [], "deref": 0}
+    # a field path rides the identifier token: `base.f.g` tokenizes as one word [GRAM-5 psuffix]
+    parts = p.eat().split('.')
+    return {"base": parts[0], "path": parts[1:], "deref": 0}
 
 def parse_expr(p):
     t = p.peek()
@@ -154,8 +156,8 @@ def parse_expr(p):
             fields.append({"name": fname, "atom": atom})
             if p.peek() == ',': p.eat()
         p.eat(')'); return {"e": "construct", "n": n, "fields": fields}
-    if '.' in t or p.peek(1) == '<':                   # OPNAME<ty>(atoms)
-        op = p.eat()
+    if p.peek(1) == '<':                               # OPNAME<ty>(atoms) — every table op takes targs;
+        op = p.eat()                                   # a dotted place token (base.field) never does
         if '.' in op and op.split('.', 1)[1] not in ("wrap", "trap", "checked", "strict"):
             raise CheckError("FORM-3", f"'{op}' is not a legal OPNAME; the mode suffix is a closed word set {{wrap,trap,checked,strict}}")
         p.eat('<'); tyargs = [parse_type(p)]
@@ -233,9 +235,22 @@ def parse_stmt(p):
     p.eat(';'); return {"s": "expr", "e": e}
 
 def parse_program(src):
-    p = P(toks(src)); enums = {}; fns = []
+    p = P(toks(src)); structs = {}; enums = {}; fns = []
     while p.peek():
-        if p.peek() == 'enum':
+        if p.peek() == 'struct':
+            p.eat(); name = p.eat()
+            if not is_typeid(name):                    # [FORM-3] a struct name is a TYPEID ([A-Z]...)
+                raise CheckError("FORM-3", f"struct name must be a TYPEID ([A-Z]...), got '{name}'")
+            if p.peek() == '<':                        # region-generic / generic aggregates: later step
+                raise SystemExit("democ: generic/region-parameterized structs are not in the subset yet")
+            p.eat('{'); fields = []                    # field := IDENT ":" type ";" (declared order)
+            while p.peek() != '}':
+                if p.peek() == 'doc':                  # doc? rides the front of the body [GRAM-2]
+                    p.eat(); p.eat(); p.eat(';'); continue
+                fname = p.eat(); p.eat(':'); fty = parse_type(p); p.eat(';')
+                fields.append({"name": fname, "ty": fty})
+            p.eat('}'); structs[name] = fields
+        elif p.peek() == 'enum':
             p.eat(); name = p.eat()
             if not is_typeid(name):                    # [FORM-3] an enum name is a TYPEID ([A-Z]...)
                 raise CheckError("FORM-3", f"enum name must be a TYPEID ([A-Z]...), got '{name}'")
@@ -272,7 +287,7 @@ def parse_program(src):
             p.eat('}')
             fns.append({"name": name, "regions": regions, "params": params,
                         "rmode": rmode, "rty": rty, "effects": eff, "body": body})
-    return enums, fns
+    return structs, enums, fns
 
 # ---- v0.6 type-layer mapping: democ parse tree -> check_program `prog` dict ----
 PRIM_SET = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
@@ -328,10 +343,12 @@ def tstmt(s):
     raise SystemExit(f"democ: cannot map stmt {k}")
 def tstmts(body):
     return [x for x in (tstmt(s) for s in body) if x is not None]
-def build_prog(enums, fns):
+def build_prog(structs, enums, fns):
     if len([f for f in fns if f["name"] == "main"]) > 1:   # FN-7: at most one main
         raise CheckError("FN-7", "at most one fn main")
     prog = {"structs": {}, "enums": {}, "fns": {}}
+    for sn, flds in structs.items():                       # struct field types -> the type layer [TYPE-2]
+        prog["structs"][sn] = [{"name": f["name"], "ty": ttype(f["ty"])} for f in flds]
     for en, vs in enums.items():
         prog["enums"][en] = [{"variant": vn,
             "fields": [{"name": f["name"], "ty": ttype(f["ty"])} for f in flds]}
@@ -350,13 +367,47 @@ def build_prog(enums, fns):
 # ---- LLVM IR ----
 INT_LL = {"i8", "i16", "i32", "i64"}            # the LLVM integer types democ emits
 
+def _field_ll(tyname, structs):
+    """LLVM type for a struct field: int width, i1 for Bool, %Sub for a nested struct,
+    i32 for an enum tag (the democ enum representation)."""
+    if tyname in INT_LLTY: return INT_LLTY[tyname]
+    if tyname == "Bool": return "i1"
+    if tyname in structs: return "%" + tyname
+    return "i32"                                # user enum / prelude tag-only: i32 tag
+
 class Gen:
-    def __init__(g, f, enums, alias=True, fnret=None, decls=None):
-        g.f = f; g.enums = enums; g.alias = alias
+    def __init__(g, f, enums, structs=None, alias=True, fnret=None, decls=None):
+        g.f = f; g.enums = enums; g.structs = structs or {}; g.alias = alias
         g.fnret = fnret or {}          # fn name -> LLVM return type (for cross-fn calls)
         g.decls = decls if decls is not None else set()   # extra intrinsic declares used
         g.n = 0; g.lines = []; g.env = {}; g.traps = False; g.term = False
         g.loopstk = []; g.give_slot = None; g.give_ty = "i32"
+        g.prologue = []                # entry-block setup (own struct params spilled to a slot)
+    def llty(g, name):                             # struct-aware LLVM type name
+        return ("%" + name) if name in g.structs else _llty(name)
+    def field_info(g, sname, fname):               # (index, LLVM type, signed, sub-struct-or-None)
+        for i, fld in enumerate(g.structs[sname]):
+            if fld["name"] == fname:
+                ty = fld["ty"]
+                return (i, _field_ll(ty, g.structs), _is_signed(ty),
+                        ty if ty in g.structs else None)
+        raise SystemExit(f"democ: struct {sname} has no field {fname}")
+    def place_addr(g, pl):
+        """GEP a field-path place to a pointer; returns (ptr, elem_llty, signed, sub-struct)."""
+        v = g.env[pl["base"]]
+        assert v.get("st"), f"field access on non-struct place {pl['base']}"
+        ptr, cur, llty, signed, sub = v["v"], v["st"], "%" + v["st"], True, v["st"]
+        for fname in pl["path"]:
+            idx, llty, signed, sub = g.field_info(cur, fname)
+            t = g.tmp()
+            g.emit(f"  {t} = getelementptr %{cur}, ptr {ptr}, i32 0, i32 {idx}")
+            ptr = t; cur = sub
+        return ptr, llty, signed, sub
+    def load_struct(g, x):                         # materialize an SSA aggregate from a struct value
+        if x.get("slot"):
+            t = g.tmp(); g.emit(f"  {t} = load %{x['st']}, ptr {x['v']}")
+            return t
+        return x["v"]
     def tmp(g): g.n += 1; return f"%t{g.n}"
     def lbl(g): g.n += 1; return f"L{g.n}"
     def emit(g, s): g.lines.append(s)
@@ -373,6 +424,7 @@ class Gen:
     def argty(g, x):                               # LLVM type prefix for a call argument
         if x["k"] in INT_LL: return x["k"]
         if x["k"] in ("ptr", "slot"): return "ptr"
+        if x["k"] == "struct": return "%" + x["st"]
         return x["k"]
     def expr(g, e):
         k = e["e"]
@@ -380,7 +432,16 @@ class Gen:
             return {"k": _llty(e["ty"]), "v": str(e["v"]), "signed": _is_signed(e["ty"])}
         if k == "unit": return {"k": "unit"}
         if k == "place":
-            v = g.env[e["p"]["base"]]
+            pl = e["p"]
+            if pl.get("path"):                         # struct field read: GEP + load [TYPE-5]
+                ptr, fll, fsigned, sub = g.place_addr(pl)
+                if sub is not None:                    # leaf field is itself a struct
+                    return {"k": "struct", "v": ptr, "st": sub, "slot": True}
+                t = g.tmp(); g.emit(f"  {t} = load {fll}, ptr {ptr}")
+                return {"k": fll, "v": t, "signed": fsigned}
+            v = g.env[pl["base"]]
+            if v["k"] == "struct":                     # whole-struct use stays an addressable slot
+                return v
             if v["k"] in ("ptr", "slot"):
                 ty = v.get("ty", "i32")
                 t = g.tmp(); g.emit(f"  {t} = load {ty}, ptr {v['v']}")
@@ -405,14 +466,30 @@ class Gen:
                         "vty": a["k"] if a["k"] in INT_LL else "i32",
                         "vsigned": a.get("signed", True)}
             if n == "Err": return {"k": "pair", "tag": "true", "val": "0", "vty": "i32", "vsigned": True}
+            if n in g.structs:                         # struct construct: alloca + store each field [GRAM-8]
+                slot = g.tmp(); g.emit(f"  {slot} = alloca %{n}")
+                for fld in flds:
+                    fv = g.expr(fld["atom"])
+                    idx, fll, _fs, sub = g.field_info(n, fld["name"])
+                    fp = g.tmp()
+                    g.emit(f"  {fp} = getelementptr %{n}, ptr {slot}, i32 0, i32 {idx}")
+                    if fv["k"] == "struct":            # nested struct field: store the aggregate
+                        g.emit(f"  store %{sub} {g.load_struct(fv)}, ptr {fp}")
+                    else:
+                        g.emit(f"  store {fll} {fv['v']}, ptr {fp}")
+                return {"k": "struct", "v": slot, "st": n, "slot": True}
             return {"k": "i32", "v": str(g.vtag(n)), "signed": True}
         if k == "ucall":
             args = [g.expr(a) for a in e["args"]]
+            args = [({"k": "struct", "st": x["st"], "v": g.load_struct(x)}   # pass structs by value
+                     if x["k"] == "struct" else x) for x in args]
             ret = g.fnret.get(e["n"], "i32")
             argll = ', '.join(f"{g.argty(x)} {x['v']}" for x in args)
             if ret == "void":
                 g.emit(f"  call void @{e['n']}({argll})"); return {"k": "unit"}
             t = g.tmp(); g.emit(f"  {t} = call {ret} @{e['n']}({argll})")
+            if ret.startswith("%"):                    # struct return: an SSA aggregate value
+                return {"k": "struct", "v": t, "st": ret[1:], "slot": False}
             return {"k": ret, "v": t, "signed": True}
         return g.op(e)
     def op(g, e):
@@ -527,18 +604,35 @@ class Gen:
                     g.emit(f"  store {v['k']} {v['v']}, ptr {slot}")
                     g.env[s["n"]] = {"k": "slot", "v": slot, "ty": v["k"],
                                      "signed": v.get("signed", True)}
+                elif v["k"] == "struct":               # a struct binding is an addressable own local
+                    if v.get("slot"):                  # construct already made the slot -> reuse it
+                        g.env[s["n"]] = v
+                    else:                              # call result (aggregate) -> spill to a slot
+                        slot = g.tmp(); g.emit(f"  {slot} = alloca %{v['st']}")
+                        g.emit(f"  store %{v['st']} {v['v']}, ptr {slot}")
+                        g.env[s["n"]] = {"k": "struct", "v": slot, "st": v["st"], "slot": True}
                 else: g.env[s["n"]] = v
             elif k == "give":
                 v = g.expr(s["e"])
                 g.emit(f"  store {g.give_ty} {v['v']}, ptr {g.give_slot}")
             elif k == "set":
-                v = g.expr(s["e"]); tgt = g.env[s["p"]["base"]]
-                assert tgt["k"] in ("ptr", "slot"), "set target must be param ptr or own local"
-                g.emit(f"  store {tgt.get('ty', 'i32')} {v['v']}, ptr {tgt['v']}")
+                pl = s["p"]
+                if pl.get("path"):                     # set struct field: GEP + store [TYPE-5]
+                    v = g.expr(s["e"])
+                    ptr, fll, _fs, sub = g.place_addr(pl)
+                    if v["k"] == "struct":
+                        g.emit(f"  store %{sub} {g.load_struct(v)}, ptr {ptr}")
+                    else:
+                        g.emit(f"  store {fll} {v['v']}, ptr {ptr}")
+                else:
+                    v = g.expr(s["e"]); tgt = g.env[pl["base"]]
+                    assert tgt["k"] in ("ptr", "slot"), "set target must be param ptr or own local"
+                    g.emit(f"  store {tgt.get('ty', 'i32')} {v['v']}, ptr {tgt['v']}")
             elif k == "return":
                 v = g.expr(s["e"])
                 if g.f["name"] == "main": g.emit("  ret i32 0")
                 elif v["k"] == "unit": g.emit("  ret void")
+                elif v["k"] == "struct": g.emit(f"  ret {g.rllty} {g.load_struct(v)}")
                 else: g.emit(f"  ret {g.rllty} {v['v']}")
                 g.term = True
             elif k == "region": g.stmts(s["body"])
@@ -609,19 +703,29 @@ class Gen:
     def run(g):
         ps = []
         for q in g.f["params"]:
-            pll = _llty(q["ty"]); psigned = _is_signed(q["ty"])
+            if q["mode"]["kind"] == "own" and q["ty"] in g.structs:
+                s = q["ty"]; ps.append(f"%{s} %{q['name']}")   # own struct param passed by value
+                slot = g.tmp()                                 # spill to a slot for field access
+                g.prologue.append(f"  {slot} = alloca %{s}")
+                g.prologue.append(f"  store %{s} %{q['name']}, ptr {slot}")
+                g.env[q["name"]] = {"k": "struct", "v": slot, "st": s, "slot": True}
+                continue
+            pll = g.llty(q["ty"]); psigned = _is_signed(q["ty"])
             if q["mode"]["kind"] == "own":
                 ps.append(f"{pll} %{q['name']}")
                 g.env[q["name"]] = {"k": pll, "v": f"%{q['name']}", "signed": psigned}
             else:
                 at = (" noalias" + ("" if q["mode"]["uniq"] else " readonly")) if g.alias else ""
                 ps.append(f"ptr{at} %{q['name']}")
-                g.env[q["name"]] = {"k": "ptr", "v": f"%{q['name']}", "ty": pll, "signed": psigned}
+                st = q["ty"] if q["ty"] in g.structs else None
+                g.env[q["name"]] = {"k": "ptr", "v": f"%{q['name']}", "ty": pll,
+                                    "signed": psigned, "st": st}
         rt = ("i32" if g.f["name"] == "main"
-              else ("void" if g.f["rty"] == "unit" else _llty(g.f["rty"])))
+              else ("void" if g.f["rty"] == "unit" else g.llty(g.f["rty"])))
         g.rllty = rt
         g.emit(f"define {rt} @{g.f['name']}({', '.join(ps)}) {{")
         g.emit("entry:")
+        for line in g.prologue: g.emit(line)
         g.stmts(g.f["body"])
         if not g.term:
             g.emit("  ret i32 0" if g.f["name"] == "main" else ("  ret void" if rt == "void" else "  unreachable"))
@@ -630,16 +734,23 @@ class Gen:
         return "\n".join(g.lines) + "\n"
 
 def compile_program(src, alias=True):
-    enums, fns = parse_program(src)
-    check_program(build_prog(enums, fns))
-    fnret = {f["name"]: ("i32" if f["name"] == "main"
-                         else ("void" if f["rty"] == "unit" else _llty(f["rty"])))
-             for f in fns}
+    structs, enums, fns = parse_program(src)
+    check_program(build_prog(structs, enums, fns))
+    def _ret(f):
+        if f["name"] == "main": return "i32"
+        if f["rty"] == "unit": return "void"
+        return ("%" + f["rty"]) if f["rty"] in structs else _llty(f["rty"])
+    fnret = {f["name"]: _ret(f) for f in fns}
     decls = set()
-    bodies = [Gen(f, enums, alias, fnret, decls).run() for f in fns]
+    bodies = [Gen(f, enums, structs, alias, fnret, decls).run() for f in fns]
+    # named aggregate type per used struct, emitted once (only when structs exist -> byte-stable
+    # i32/enum output). fields lower to their per-width int / i1 / nested-%T / i32-tag types [TYPE-2].
+    styp = [f"%{n} = type {{ " + ", ".join(_field_ll(fl["ty"], structs) for fl in flds) + " }"
+            if flds else f"%{n} = type {{}}" for n, flds in structs.items()]
     # fixed header (sadd/ssub/smul.i32 + trap emitted unconditionally for byte-stable i32 output);
     # any other intrinsic used by width/sign-generic codegen is appended, sorted for determinism.
-    hdr = ([f"declare {{i32, i1}} @llvm.{n}.with.overflow.i32(i32, i32)" for n in ("sadd", "ssub", "smul")]
+    hdr = (styp
+           + [f"declare {{i32, i1}} @llvm.{n}.with.overflow.i32(i32, i32)" for n in ("sadd", "ssub", "smul")]
            + ["declare void @llvm.trap()"] + sorted(decls) + [""])
     return "\n".join(hdr + bodies)
 
