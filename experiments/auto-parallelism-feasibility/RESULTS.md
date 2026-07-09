@@ -102,7 +102,7 @@ Grounding: XL-specific x-factors and the "scatter is the lone structural win, no
 # Prior-art surveys (primary evidence, verbatim)
 
 
-## result
+## Prior-art survey: dpj-effects (Deterministic Parallel Java + effect-system lineage)
 
 # Survey Cluster: region-parallel-langs — AUTO vs MANUAL parallelism
 
@@ -189,7 +189,7 @@ And the broader ground truth on true auto-parallelization: it has failed for dec
 
 So XL's durable, honest advantage over Rust is **not** "the compiler discovers parallelism sequential code never asked for." It is the *narrower, defensible* claim: **once the programmer expresses parallel structure (a parallel loop / task), XL's effect+region types make it safe and deterministic-by-default with far less ceremony than Rust's `Send`/`Sync`/`Arc<Mutex>`/channel dance** — i.e., XL competes with *rayon-plus-guaranteed-determinism*, not with a mythical auto-parallelizer. If XL markets automation-of-decomposition, it walks straight into DPJ's grave. Its live shot is: pervasive, ceremony-free, *deterministic* parallelism on *explicitly-expressed* parallel structure — and it must still solve the granularity/cost trap with a runtime scheduler (à la Cilk/rayon work-stealing), because the type system will not solve it. Confidence: high.
 
-## result
+## Prior-art survey: rust-parallelism (rayon, threads, async)
 
 # rust-parallelism cluster — survey for XL's "write sequential, get safe automatic parallelism" ambition
 
@@ -280,7 +280,7 @@ There is **no established auto-parallelizing Rust compiler**. Research notes own
 
 Confidence: High on rayon mechanics/ergonomics/adoption, async framing, and the DPJ mechanism + annotation-burden framing. Moderate-high on the SPAA 11/60/29% split (from abstract, not re-verified in PDF body). Moderate on DPJ's precise cause-of-death and "~zero adoption" (inferred from absence of production use; no cited retrospective found).
 
-## result
+## Prior-art survey: data-parallel-autovec (Futhark, ISPC, Halide, polyhedral)
 
 # SURVEY CLUSTER: data-parallel-autovec — evidence and verdict for XL
 
@@ -411,7 +411,7 @@ Overall confidence: **high** on the structural lesson and per-system adoption ve
 
 Sources: [Polly docs](https://polly.llvm.org/docs/UsingPollyWithClang.html) · [Polly reductions, arXiv:1505.07716](https://arxiv.org/pdf/1505.07716) · [Limits of Dependence Analysis, CPC'15](https://users.cs.northwestern.edu/~simonec/files/Research/papers/HELIX_CPC_2015.pdf) · [Futhark PLDI'17](https://futhark-lang.org/publications/pldi17.pdf) · [Futhark book, practical matters](https://futhark-book.readthedocs.io/en/latest/practical-matters.html) · [DPH status report](https://www.cs.cmu.edu/~damp/finalPapers/chakravarty.pdf) · [DPH HaskellWiki](https://wiki.haskell.org/GHC/Data_Parallel_Haskell) · [ISPC InPar'12](https://pharr.org/matt/assets/ispc.pdf) · [Halide CACM'18](https://andrew.adams.pub/halide_cacm.pdf) · [Halide auto-scheduler 2019](https://halide-lang.org/papers/halide_autoscheduler_2019.pdf) · [Halide auto-scheduler, Mullapudi 2016](http://graphics.cs.cmu.edu/projects/halidesched/mullapudi16_halidesched.pdf) · [Automatic parallelization, Wikipedia](https://en.wikipedia.org/wiki/Automatic_parallelization)
 
-## result
+## Prior-art survey: dpj-effects (Deterministic Parallel Java + effect-system lineage)
 
 I have enough grounded material. Returning the survey.
 
