@@ -729,6 +729,8 @@ class Gen:
             v = g.env[pl["base"]]
             if v["k"] in ("struct", "enum"):           # whole aggregate use stays an addressable slot
                 return v
+            if v["k"] == "ptr" and v.get("st"):        # bare struct-borrow use: the value IS the reference [TYPE-7]
+                return v
             if v["k"] in ("ptr", "slot"):
                 if v.get("en"):                        # &'r E: reading/deref yields the enum aggregate
                     return {"k": "enum", "v": v["v"], "en": v["en"], "slot": True}

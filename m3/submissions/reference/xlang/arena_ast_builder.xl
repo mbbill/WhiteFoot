@@ -1,0 +1,53 @@
+struct Ast {
+  tag: buffer<u64>;
+  a: buffer<u64>;
+  b: buffer<u64>;
+  cnt: u64;
+}
+
+fn push ['r] (s: &uniq 'r Ast, t: own u64, x: own u64, y: own u64) -> own u64 reads('r), writes('r), traps {
+  doc "append-only node pool (STOR-1 shape C: indices only grow, no recycling, bulk drop)";
+  let c: own u64 = deref(s).cnt;
+  set index<u64>(deref(s).tag, c) = t;
+  set index<u64>(deref(s).a, c) = x;
+  set index<u64>(deref(s).b, c) = y;
+  set deref(s).cnt = iadd.trap<u64>(c, 1_u64);
+  return c;
+}
+
+fn eval ['r] (s: &'r Ast, i: own u64) -> own u64 reads('r), traps {
+  let t: own u64 = index<u64>(deref(s).tag, i);
+  match ieq<u64>(t, 0_u64) {
+    True() => {
+      let v: own u64 = index<u64>(deref(s).a, i);
+      return v;
+    }
+    False() => {
+    }
+  }
+  let l: own u64 = index<u64>(deref(s).a, i);
+  let r: own u64 = index<u64>(deref(s).b, i);
+  let lv: own u64 = eval(s: s, i: l);
+  let rv: own u64 = eval(s: s, i: r);
+  return iadd.trap<u64>(lv, rv);
+}
+
+fn main () -> own unit allocates(heap), traps {
+  let cap: own u64 = 16_u64;
+  let bt: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let ba: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let bb: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let ast: own Ast = Ast(tag: move bt, a: move ba, b: move bb, cnt: 0_u64);
+  region 'r {
+    let n0: own u64 = push(s: &uniq 'r ast, t: 0_u64, x: 1_u64, y: 0_u64);
+    let n1: own u64 = push(s: &uniq 'r ast, t: 0_u64, x: 2_u64, y: 0_u64);
+    let n2: own u64 = push(s: &uniq 'r ast, t: 1_u64, x: n0, y: n1);
+    let n3: own u64 = push(s: &uniq 'r ast, t: 0_u64, x: 3_u64, y: 0_u64);
+    let n4: own u64 = push(s: &uniq 'r ast, t: 0_u64, x: 4_u64, y: 0_u64);
+    let n5: own u64 = push(s: &uniq 'r ast, t: 1_u64, x: n3, y: n4);
+    let n6: own u64 = push(s: &uniq 'r ast, t: 1_u64, x: n2, y: n5);
+    let result: own u64 = eval(s: &'r ast, i: n6);
+    check ieq<u64>(result, 10_u64) else trap "eval drift";
+  }
+  return unit;
+}

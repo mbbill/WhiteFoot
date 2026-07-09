@@ -4,6 +4,6 @@
 {"id": "value_match_result", "kind": "binary", "prompt": "prompts/value_match_result.md", "runs": 3, "timeout_sec": 5, "expected": {"exit": 0}}
 {"id": "noalias_add", "kind": "ffi_accumulate", "prompt": "prompts/noalias_add.md", "driver_c": "experiments/codegen-vs-rust-c/kb/driver.c", "niter": 1000000000, "runs": 7, "timeout_sec": 10, "expected": {"stdout": "3000000001"}}
 {"id": "checked_integer_parser", "kind": "binary", "prompt": "prompts/checked_integer_parser.md", "runs": 3, "timeout_sec": 5, "expected": {"stdout": "ok"}, "expected_xlang": {"exit": 0}}
-{"id": "arena_ast_builder", "kind": "binary", "prompt": "prompts/arena_ast_builder.md", "runs": 3, "timeout_sec": 5, "expected": {"stdout": "ok"}, "pending_languages": {"xlang": "xlang/democ lacks pool/handle or arena-backed AST construction needed by compiler/PLAN.md subset S"}, "expected_xlang": {"exit": 0}}
+{"id": "arena_ast_builder", "kind": "binary", "prompt": "prompts/arena_ast_builder.md", "runs": 3, "timeout_sec": 5, "expected": {"stdout": "ok"}, "expected_xlang": {"exit": 0}}
 {"id": "buffer_index_kernel", "kind": "binary", "prompt": "prompts/buffer_index_kernel.md", "runs": 5, "timeout_sec": 5, "expected": {"stdout": "ok"}, "expected_xlang": {"exit": 0}}
 {"id": "error_propagation_chain", "kind": "binary", "prompt": "prompts/error_propagation_chain.md", "runs": 3, "timeout_sec": 5, "expected": {"stdout": "ok"}, "expected_xlang": {"exit": 0}}

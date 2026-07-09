@@ -14,7 +14,7 @@ python3 m3/harness/score.py /private/tmp/xlang-m3-reference.jsonl
 | suite | language | runnable | passed | pending | current meaning |
 |---|---:|---:|---:|---:|---|
 | reference | Rust | 7 | 7 | 0 | Rust can express and pass every current task prompt. |
-| reference | xlang | 6 | 6 | 1 | xlang passes six of seven minimum-sprint tasks; only the arena task is unexpressed. |
+| reference | xlang | 7 | 7 | 0 | xlang passes every current task prompt (arena via the STOR-1 shape-C append-only pool, pending owner ratification). |
 
 The six runnable xlang tasks are:
 
@@ -25,9 +25,9 @@ The six runnable xlang tasks are:
 - `buffer_index_kernel` (unblocked 2026-07-09: buffer_new/index/len; OOB path shown as a bounds-guarded branch; the executed-trap variant is conformance case op4-trap-index-oob)
 - `error_propagation_chain` (unblocked 2026-07-09: try/ERR-3, same-E enforced)
 
-The one xlang-pending task is:
-
-- `arena_ast_builder`: current democ lacks the `pool<T>`/`handle<T>` or arena-backed AST shape required by `compiler/PLAN.md`. Note STOR-1 explicitly rejects untyped index-pool recycling; the xlang shape needs an owner ruling before implementation.
+- `arena_ast_builder` (unblocked 2026-07-09: append-only struct-of-arrays pool —
+  STOR-1 shape C in `optimizer-language-research/notes/stor1-ruling-request.md`;
+  no recycling so no UAF class; owner ratification of the shape still requested)
 
 Verification-semantics note: Rust references print `ok` and are checked on stdout;
 xlang has no print surface in the kernel subset, so xlang references are checked on
@@ -42,7 +42,7 @@ The current evidence is **not** sufficient for a continue/stop decision.
 
 Two independent blockers remain:
 
-1. **Language/toolchain surface blocker (mostly cleared 2026-07-09)**: xlang now runs six of the seven tasks, including all four previously-blocked minimum-sprint tasks except `arena_ast_builder` (which awaits the STOR-1 pool ruling).
+1. **Language/toolchain surface blocker: CLEARED 2026-07-09** — xlang runs all seven tasks (arena via STOR-1 shape C, ruling memo filed).
 2. **Model evidence blocker**: no weak/middle/strong generated submissions have been run yet. This is now the dominant blocker.
 
 The strict scorer makes this explicit:
