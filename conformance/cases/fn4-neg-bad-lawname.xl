@@ -3,6 +3,6 @@ contract BadLaw {
   law distributive(combine, combine);
 }
 
-fn main () -> own unit traps {
+fn main () -> own unit pure {
   return unit;
 }

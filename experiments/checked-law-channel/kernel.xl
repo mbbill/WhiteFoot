@@ -1,0 +1,42 @@
+contract SatMonoid {
+  doc "Unsigned saturating addition: associative, commutative, identity 0 [FN-4].";
+  fn combine (x: own u64, y: own u64) -> own u64 pure;
+  law associative(combine);
+  law commutative(combine);
+  law identity(combine, 0_u64);
+}
+
+fn satadd (x: own u64, y: own u64) -> own u64 pure {
+  return iadd.sat<u64>(x, y);
+}
+
+conform u64 : SatMonoid {
+  combine = satadd;
+}
+
+fn reduce (b: own buffer<u64>) -> own u64 traps {
+  doc "The obvious reduction shape: sequential fold with the user op.";
+  let m: own u64 = len<u64>(b);
+  let acc: own u64 = 0_u64;
+  let i: own u64 = 0_u64;
+  loop @l {
+    match ige<u64>(i, m) {
+      True() => {
+        break @l;
+      }
+      False() => {
+      }
+    }
+    let x: own u64 = index<u64>(b, i);
+    set acc = satadd(x: acc, y: x);
+    set i = iadd.trap<u64>(i, 1_u64);
+  }
+  return acc;
+}
+
+fn main () -> own unit allocates(heap), traps {
+  let b: own buffer<u64> = buffer_new<u64>(1000_u64, 3_u64);
+  let r: own u64 = reduce(b: move b);
+  check ieq<u64>(r, 3000_u64) else trap "reduce drift";
+  return unit;
+}

@@ -26,3 +26,16 @@ nvec = ns_.count("add.2d") + ns_.count(".2d,")
 print(f"soa kernel vector adds with facts={fvec} without={nvec}")
 assert fvec > 0 and nvec == 0, "PERF REGRESSION: scoped-alias vectorization changed"
 print("OK: scoped-alias (F003) vectorization intact")
+
+# Third pin [FN-4 channel]: checked-law reassociation. The proved-law reduction
+# must be rewritten to 4 independent accumulators (>= 8 sat-add sites in the
+# facts IR); the control keeps the single serial op. Guards the 3.3x delta
+# measured in experiments/checked-law-channel/.
+sys.path.insert(0, ".")
+import democ as _d
+_src = Path("examples/sat_reduce.xl").read_text()
+_f = _d.compile_program(_src).count("uadd.sat")
+_n = _d.compile_program(_src, alias=False).count("uadd.sat")
+print(f"sat-reduce uadd.sat sites with facts={_f} without={_n}")
+assert _f >= 8 and _n <= 3, "PERF REGRESSION: checked-law reassociation changed"
+print("OK: checked-law (FN-4) reassociation intact")

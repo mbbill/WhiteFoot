@@ -8,7 +8,7 @@ user-fn call args f(param: atom), give value-match, check-else-trap, region
 stmts, doc fields, cross-fn calls, runnable main.
 Temporary tool (owner ruling): endgame is a self-hosted compiler.
 """
-import re, sys, subprocess
+import re, sys, subprocess, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'checker'))
 from checker import check_program, CheckError, PRELUDE_ENUMS
@@ -71,11 +71,11 @@ def _size_align(tyname, structs):
 # ---- op-name resolution over democ's integer subset [OP-1/2/6/7/8, DIAG-1] ----
 # ops with a result/amount mode axis -> the modes democ lowers; dotless ops carry
 # no mode. An illegal op name surfaces as a spec rejection with its rule id.
-_MODE_OPS = {"iadd": {"wrap", "trap", "checked"}, "isub": {"wrap", "trap", "checked"},
-             "imul": {"wrap", "trap", "checked"}, "idiv": {"trap", "checked"},
+_MODE_OPS = {"iadd": {"wrap", "trap", "checked", "sat"}, "isub": {"wrap", "trap", "checked", "sat"},
+             "imul": {"wrap", "trap", "checked", "sat"}, "idiv": {"trap", "checked"},
              "irem": {"trap", "checked"}, "ishl": {"wrap", "trap"},
              "ishr": {"wrap", "trap"}}
-_DOTLESS_OPS = {"buffer_new", "len", "iand", "ior", "ixor", "irotl", "irotr",
+_DOTLESS_OPS = {"buffer_new", "len", "imin", "imax", "iand", "ior", "ixor", "irotl", "irotr",
                 "ieq", "ine", "ilt", "ile", "igt", "ige", "cvt", "reinterpret"}
 _KNOWN_OP_BASES = set(_MODE_OPS) | _DOTLESS_OPS
 
@@ -216,8 +216,8 @@ def parse_expr(p):
         return {"e": "place", "p": parse_place(p)}
     if p.peek(1) == '<':                               # OPNAME<ty>(atoms) — every table op takes targs;
         op = p.eat()                                   # a dotted place token (base.field) never does
-        if '.' in op and op.split('.', 1)[1] not in ("wrap", "trap", "checked", "strict"):
-            raise CheckError("FORM-3", f"'{op}' is not a legal OPNAME; the mode suffix is a closed word set {{wrap,trap,checked,strict}}")
+        if '.' in op and op.split('.', 1)[1] not in ("wrap", "trap", "checked", "sat", "strict"):
+            raise CheckError("FORM-3", f"'{op}' is not a legal OPNAME; the mode suffix is a closed word set {{wrap,trap,checked,sat,strict}}")
         p.eat('<'); tyargs = [parse_type(p)]
         while p.peek() == ',': p.eat(); tyargs.append(parse_type(p))
         p.eat('>'); _resolve_op(op, tyargs)             # [OP-1/2/6/7/8] op-name resolution
@@ -296,9 +296,48 @@ def parse_stmt(p):
     p.eat(';'); return {"s": "expr", "e": e}
 
 def parse_program(src):
-    p = P(toks(src)); structs = {}; enums = {}; fns = []
+    p = P(toks(src)); structs = {}; enums = {}; fns = []; contracts = {}; conforms = []
     while p.peek():
-        if p.peek() == 'struct':
+        if p.peek() == 'contract':                     # contract TYPEID { fn sigs; laws } [FN-3/FN-4]
+            p.eat(); name = p.eat()
+            if not is_typeid(name):
+                raise CheckError("FORM-3", f"contract name must be a TYPEID ([A-Z]...), got '{name}'")
+            p.eat('{'); cfns = {}; laws = []
+            while p.peek() != '}':
+                if p.peek() == 'doc':
+                    p.eat(); p.eat(); p.eat(';'); continue
+                if p.peek() == 'law':                  # law LAWNAME(f) | law identity(f, atom) [FN-4]
+                    p.eat(); lawname = p.eat()
+                    if lawname not in ("associative", "commutative", "identity"):
+                        raise CheckError("FN-4", f"'{lawname}' is not a LAWNAME; the table is closed: associative, commutative, identity")
+                    p.eat('('); target = p.eat(); ident = None
+                    if lawname == "identity":
+                        p.eat(','); ident = parse_atom(p)
+                    p.eat(')'); p.eat(';')
+                    if target not in cfns:
+                        raise CheckError("FN-4", f"law {lawname}({target}) names no fn declared in contract {name}")
+                    laws.append({"law": lawname, "fn": target, "e": ident})
+                    continue
+                p.eat('fn'); fname = p.eat(); p.eat('(')
+                sig_params = []
+                while p.peek() != ')':
+                    pn = p.eat(); p.eat(':'); m = parse_mode(p); ty = parse_type(p)
+                    sig_params.append({"name": pn, "mode": m, "ty": ty})
+                    if p.peek() == ',': p.eat()
+                p.eat(')'); p.eat('->'); rm = parse_mode(p); rt = parse_type(p)
+                eff = []
+                while p.peek() != ';': eff.append(p.eat())
+                p.eat(';')
+                cfns[fname] = {"params": sig_params, "rmode": rm, "rty": rt, "effects": eff}
+            p.eat('}'); contracts[name] = {"fns": cfns, "laws": laws}
+        elif p.peek() == 'conform':                    # conform ty : Contract { member = fn; } [FN-3]
+            p.eat(); ty = parse_type(p); p.eat(':'); cname = p.eat()
+            p.eat('{'); binds = {}
+            while p.peek() != '}':
+                member = p.eat(); p.eat('='); target = p.eat(); p.eat(';')
+                binds[member] = target
+            p.eat('}'); conforms.append({"ty": ty, "contract": cname, "binds": binds})
+        elif p.peek() == 'struct':
             p.eat(); name = p.eat()
             if not is_typeid(name):                    # [FORM-3] a struct name is a TYPEID ([A-Z]...)
                 raise CheckError("FORM-3", f"struct name must be a TYPEID ([A-Z]...), got '{name}'")
@@ -348,7 +387,7 @@ def parse_program(src):
             p.eat('}')
             fns.append({"name": name, "regions": regions, "params": params,
                         "rmode": rmode, "rty": rty, "effects": eff, "body": body})
-    return structs, enums, fns
+    return structs, enums, fns, contracts, conforms
 
 # ---- v0.6 type-layer mapping: democ parse tree -> check_program `prog` dict ----
 PRIM_SET = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
@@ -837,6 +876,12 @@ class Gen:
             if mode == "wrap":
                 t = g.tmp(); g.emit(f"  {t} = {VERB[base]} {w} {a[0]['v']}, {a[1]['v']}")
                 return {"k": w, "v": t, "signed": signed}
+            if mode == "sat":                          # clamp to T's range [OP-8]
+                if base == "imul": raise SystemExit("demo: imul.sat (widen+clamp) not in subset")
+                iv = ("s" if signed else "u") + VERB[base]
+                g.decls.add(f"declare {w} @llvm.{iv}.sat.{w}({w}, {w})")
+                t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{iv}.sat.{w}({w} {a[0]['v']}, {w} {a[1]['v']})")
+                return {"k": w, "v": t, "signed": signed}
             g.traps = g.traps or mode == "trap"
             iv = g.ovf_decl(VERB[base], signed, w)
             p_ = g.tmp(); g.emit(f"  {p_} = call {{{w}, i1}} @llvm.{iv}.with.overflow.{w}({w} {a[0]['v']}, {w} {a[1]['v']})")
@@ -1190,9 +1235,187 @@ class Gen:
         g.emit("}")
         return "\n".join(g.lines) + "\n"
 
+# ---- [FN-4] checked-law channel: static discharge + reduction reassociation ----
+# A stated law becomes an optimizer-usable fact ONLY when discharged. The demo's
+# static prover accepts exactly one shape: the bound fn's body is a single table
+# op whose law is OP-8 table data. Anything else is a hard reject (OWN-8 posture).
+_LAW_TABLE = {
+    # op -> (associative-for, commutative-for, identity value); "u" = unsigned T only
+    "iadd.wrap": ("all", "all", 0), "imul.wrap": ("all", "all", 1),
+    "iand": ("all", "all", None), "ior": ("all", "all", 0), "ixor": ("all", "all", 0),
+    "imin": ("all", "all", None), "imax": ("u", "u", 0),
+    "iadd.sat": ("u", "all", 0),   # signed sat-add is NOT associative: (MAX+1)+(-1) != MAX+(1+(-1))
+}
+
+def _single_op_body(f):
+    """(opname, T) if f's body is exactly `return op<T>(param0, param1);`, else None."""
+    body = [s for s in f["body"] if s.get("s") != "doc"]
+    if len(body) != 1 or body[0].get("s") != "return": return None
+    e = body[0]["e"]
+    if e.get("e") != "op" or len(e.get("args", [])) != 2: return None
+    ps = [q["name"] for q in f["params"]]
+    if len(ps) != 2: return None
+    for a, want in zip(e["args"], ps):
+        if a.get("e") != "place" or a["p"]["base"] != want or a["p"].get("path") or a["p"].get("deref"):
+            return None
+    return e["op"], (e.get("tyargs") or ["i32"])[0]
+
+def discharge_laws(contracts, conforms, fns):
+    """Validate FN-3 bindings and statically discharge FN-4 laws.
+    Returns {fn_name: {"op", "T", "laws": set, "identity": lit-expr}}."""
+    fbyn = {f["name"]: f for f in fns}
+    proved = {}
+    for cf in conforms:
+        c = contracts.get(cf["contract"])
+        if c is None:
+            raise CheckError("FN-3", f"conform names unknown contract {cf['contract']}")
+        for member, sig in c["fns"].items():
+            if member not in cf["binds"]:
+                raise CheckError("FN-3", f"conform {cf['ty']}: {cf['contract']} does not bind member {member}")
+            target = cf["binds"][member]
+            f = fbyn.get(target)
+            if f is None:
+                raise CheckError("FN-3", f"conform binds {member} = {target}, but no fn {target} exists")
+            if ([(q["ty"]) for q in f["params"]], f["rty"]) != ([(q["ty"]) for q in sig["params"]], sig["rty"]):
+                raise CheckError("FN-3", f"conform member {member} = {target}: signature does not match the contract")
+        for law in c["laws"]:
+            target = cf["binds"][law["fn"]]
+            f = fbyn[target]
+            ot = _single_op_body(f)
+            if ot is None:
+                raise CheckError("FN-4", f"law {law['law']}({law['fn']}) is stated but not discharged: "
+                                 f"{target}'s body is not a single table op (the demo's only static-proof shape)")
+            opname, T = ot
+            row = _LAW_TABLE.get(opname)
+            unsigned = not _is_signed(T)
+            def _holds(scope): return scope == "all" or (scope == "u" and unsigned)
+            if law["law"] == "associative":
+                if row is None or not _holds(row[0]):
+                    raise CheckError("FN-4", f"law associative({law['fn']}) REFUTED for {opname}<{T}>: "
+                                     "not in the checked associativity table for this signedness")
+            elif law["law"] == "commutative":
+                if row is None or not _holds(row[1]):
+                    raise CheckError("FN-4", f"law commutative({law['fn']}) REFUTED for {opname}<{T}>")
+            else:                                      # identity(f, e)
+                e = law["e"]
+                if row is None or row[2] is None or e.get("e") != "lit" \
+                        or e["ty"] != T or e["v"] != row[2]:
+                    raise CheckError("FN-4", f"law identity({law['fn']}, ...) is stated but not discharged "
+                                     f"for {opname}<{T}>")
+            d = proved.setdefault(target, {"op": opname, "T": T, "laws": set(), "identity": None})
+            d["laws"].add(law["law"])
+            if law["law"] == "identity": d["identity"] = law["e"]
+    return proved
+
+def _mkop(op, T, args): return {"e": "op", "op": op, "args": args, "tyargs": [T]}
+def _pl(name): return {"e": "place", "p": {"base": name, "path": [], "deref": 0}}
+def _lit(v, T): return {"e": "lit", "v": v, "ty": T}
+def _let(n, e): return {"s": "let", "n": n, "m": None, "ty": "u64", "e": e}
+def _set(n, e): return {"s": "set", "p": {"base": n, "path": [], "deref": 0}, "e": e}
+
+def _reduction_shape(st, proved):
+    """Match democ's canonical reduction loop; return (i, m, acc, elem_let, f) or None.
+    loop @l { match ige<u64>(i, m) {True=>{break}, False=>{}};
+              let x: T = index<T>(buf, i); set acc = f(acc, x); set i = i + 1 }"""
+    if st.get("s") != "loop": return None
+    b = [s for s in st["body"] if s.get("s") != "doc"]
+    if len(b) != 4 or b[0].get("s") != "match": return None
+    sc = b[0]["scrut"]
+    if sc.get("e") != "op" or sc["op"] != "ige" or (sc.get("tyargs") or [None])[0] != "u64": return None
+    if any(a.get("e") != "place" or a["p"].get("path") or a["p"].get("deref") for a in sc["args"]): return None
+    iv, mv = sc["args"][0]["p"]["base"], sc["args"][1]["p"]["base"]
+    arms = {a["v"]: a for a in b[0]["arms"]}
+    if set(arms) != {"True", "False"} or arms["False"]["body"]: return None
+    tb = [s for s in arms["True"]["body"] if s.get("s") != "doc"]
+    if len(tb) != 1 or tb[0].get("s") != "break": return None
+    if b[1].get("s") != "let" or "e" not in b[1]: return None
+    le = b[1]["e"]
+    if le.get("e") != "place" or not le["p"].get("index"): return None
+    ix = le["p"]["index"]
+    if ix["atom"].get("e") != "place" or ix["atom"]["p"]["base"] != iv: return None
+    xn = b[1]["n"]
+    if b[2].get("s") != "set" or b[2]["p"]["base"] is None or b[2]["p"].get("path"): return None
+    accn = b[2]["p"]["base"]
+    ce = b[2]["e"]
+    if ce.get("e") != "ucall" or len(ce["args"]) != 2: return None
+    a0, a1 = ce["args"]
+    if not (a0.get("e") == "place" and a0["p"]["base"] == accn
+            and a1.get("e") == "place" and a1["p"]["base"] == xn): return None
+    fn = ce["n"]
+    d = proved.get(fn)
+    if d is None or not {"associative", "commutative", "identity"} <= d["laws"]: return None
+    if b[3].get("s") != "set" or b[3]["p"]["base"] != iv: return None
+    inc = b[3]["e"]
+    if inc.get("e") != "op" or inc["op"].split(".")[0] != "iadd": return None
+    if not (inc["args"][0].get("e") == "place" and inc["args"][0]["p"]["base"] == iv
+            and inc["args"][1].get("e") == "lit" and inc["args"][1]["v"] == 1): return None
+    return iv, mv, accn, b[1], d
+
+def reassociate_reductions(fns, proved):
+    """[FN-4 consumer] rewrite proved-law reduction loops into 4 independent
+    accumulators (block-interleaved: licensed by associative+commutative) seeded
+    with the proved identity, then combine; the original loop remains as the
+    scalar tail. Purely a codegen-level transform: runs after check_program."""
+    if not proved: return
+    n = [0]
+    def walk(body):
+        out = []
+        for st in body:
+            for key in ("body",):
+                if key in st and isinstance(st[key], list): st[key] = walk(st[key])
+            if st.get("s") == "match":
+                for a in st["arms"]: a["body"] = walk(a["body"])
+            hit = _reduction_shape(st, proved)
+            if hit is None:
+                out.append(st); continue
+            iv, mv, accn, elem_let, d = hit
+            op, T, ident = d["op"], d["T"], d["identity"]
+            u = f"ra{n[0]}"; n[0] += 1
+            xs, accs = [f"{u}x{k}" for k in range(4)], [f"{u}a{k}" for k in range(4)]
+            iks = [f"{u}i{k}" for k in range(1, 4)]
+            def elem_at(iname, xname):                 # let x_k = index<T>(buf, i_k)
+                e2 = {"e": "place", "p": json.loads(json.dumps(elem_let["e"]["p"]))}
+                e2["p"]["index"]["atom"] = _pl(iname)
+                return {"s": "let", "n": xname, "m": None, "ty": T, "e": e2}
+            wide = {"s": "loop", "l": f"@{u}", "body": [
+                {"s": "match", "scrut": _mkop("ige", "u64", [_pl(iv), _pl(f"{u}lim")]),
+                 "arms": [{"v": "True", "b": [], "body": [{"s": "break", "l": f"@{u}"}]},
+                          {"v": "False", "b": [], "body": []}]},
+                elem_at(iv, xs[0]), _set(accs[0], _mkop(op, T, [_pl(accs[0]), _pl(xs[0])])),
+                _let(iks[0], _mkop("iadd.wrap", "u64", [_pl(iv), _lit(1, "u64")])),
+                elem_at(iks[0], xs[1]), _set(accs[1], _mkop(op, T, [_pl(accs[1]), _pl(xs[1])])),
+                _let(iks[1], _mkop("iadd.wrap", "u64", [_pl(iv), _lit(2, "u64")])),
+                elem_at(iks[1], xs[2]), _set(accs[2], _mkop(op, T, [_pl(accs[2]), _pl(xs[2])])),
+                _let(iks[2], _mkop("iadd.wrap", "u64", [_pl(iv), _lit(3, "u64")])),
+                elem_at(iks[2], xs[3]), _set(accs[3], _mkop(op, T, [_pl(accs[3]), _pl(xs[3])])),
+                _set(iv, _mkop("iadd.wrap", "u64", [_pl(iv), _lit(4, "u64")])),
+            ]}
+            guard = {"s": "match", "scrut": _mkop("ilt", "u64", [_pl(iv), _pl(mv)]), "arms": [
+                {"v": "True", "b": [], "body": [
+                    _let(f"{u}rem", _mkop("isub.wrap", "u64", [_pl(mv), _pl(iv)])),
+                    {"s": "match", "scrut": _mkop("ige", "u64", [_pl(f"{u}rem"), _lit(4, "u64")]),
+                     "arms": [{"v": "True", "b": [], "body": [
+                         _let(f"{u}lim", _mkop("isub.wrap", "u64", [_pl(mv), _lit(3, "u64")])),
+                         *[{"s": "let", "n": a, "m": None, "ty": T, "e": dict(ident)} for a in accs],
+                         wide,
+                         _let(f"{u}c0", _mkop(op, T, [_pl(accs[0]), _pl(accs[1])])),
+                         _let(f"{u}c1", _mkop(op, T, [_pl(accs[2]), _pl(accs[3])])),
+                         _let(f"{u}c", _mkop(op, T, [_pl(f"{u}c0"), _pl(f"{u}c1")])),
+                         _set(accn, _mkop(op, T, [_pl(accn), _pl(f"{u}c")])),
+                     ]}, {"v": "False", "b": [], "body": []}]},
+                ]},
+                {"v": "False", "b": [], "body": []}]}
+            out.append(guard)
+            out.append(st)                             # original loop = scalar tail
+        return out
+    for f in fns:
+        f["body"] = walk(f["body"])
+
 def compile_program(src, alias=True):
-    structs, enums, fns = parse_program(src)
+    structs, enums, fns, contracts, conforms = parse_program(src)
     check_program(build_prog(structs, enums, fns))
+    proved = discharge_laws(contracts, conforms, fns)
+    if alias: reassociate_reductions(fns, proved)      # [FN-4] facts channel; --no-facts is the control
     payenums = {en for en, vs in enums.items() if _enum_payw(vs) > 0}
     def _ret(f):
         if f["name"] == "main": return "i32"
