@@ -26,8 +26,8 @@ The four xlang-pending tasks are:
 
 - `checked_integer_parser`: current democ lacks byte-string values, buffers/slices, and enough library surface for a realistic byte parser.
 - `arena_ast_builder`: current democ lacks the `pool<T>`/`handle<T>` or arena-backed AST shape required by `compiler/PLAN.md`.
-- `buffer_index_kernel`: current democ lacks `buffer_new`, `index`, and `len`, matching the OP-4/OP-9 conformance skips.
-- `error_propagation_chain`: current democ lacks `try`/ERR-3 propagation.
+- `buffer_index_kernel`: UNBLOCKED 2026-07-09 — buffer_new/index/len landed (conformance op4/op9 cases green).
+- `error_propagation_chain`: UNBLOCKED 2026-07-09 — try/ERR-3 landed (same-E enforced; conformance err3 cases green).
 
 ## Decision Readiness
 

@@ -106,6 +106,14 @@ class Checker:
 
     def check_stmt(self, s):
         k = s["kind"]
+        if k == "try":                                 # [ERR-3] flow: consumes operand
+            ex = s["expr"]
+            if isinstance(ex, dict) and ex.get("kind") == "use":
+                ex = {"kind": "move", "place": ex["place"]}
+            self.check_expr(ex)
+            self.ctx.bindings[s["name"]] = Binding(s["name"], {"kind": "own"},
+                                                   self.ctx.depth())
+            return
         if k == "let":
             # v0.6: a `let` may be initialized by a value-match [GIVE-1]
             if s["init"].get("kind") == "match":
@@ -397,6 +405,10 @@ def check_fn(fn: dict):
 PRIMS = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
 NAMED_BOOL = {"kind": "named", "name": "Bool"}
 NAMED_RESULT = {"kind": "named", "name": "Result"}
+
+def _res_of(T, err):
+    return {"kind": "named", "name": "Result",
+            "args": [T, {"kind": "named", "name": err}]}
 ANY = {"kind": "any"}
 
 # Prelude enums [PRE-1]: Option/Result payloads are named; generic payloads are
@@ -423,7 +435,12 @@ def _ty_eq(a, b) -> bool:
         return False
     k = a["kind"]
     if k == "prim" or k == "named":
-        return a["name"] == b["name"]
+        if a["name"] != b["name"]:
+            return False
+        aa, ba = a.get("args"), b.get("args")
+        if aa is None or ba is None:                   # erased side: name-compat [ERR-3 leniency]
+            return True
+        return len(aa) == len(ba) and all(_ty_eq(x, y) for x, y in zip(aa, ba))
     if k == "unit":
         return True
     if k in ("box", "buffer"):
@@ -469,12 +486,13 @@ def op_type(callee: str, tyargs):
                "fadd", "fsub", "fmul", "fdiv"}
     if base in bin_int:
         if mode == "checked":
-            return ([("val", T), ("val", T)], ("val", NAMED_RESULT))
+            err = "DivError" if base in ("idiv", "irem") else "Overflow"
+            return ([("val", T), ("val", T)], ("val", _res_of(T, err)))
         return ([("val", T), ("val", T)], ("val", T))
     un_int = {"ineg", "iabs", "inot"}
     if base in un_int:
         if mode == "checked":
-            return ([("val", T)], ("val", NAMED_RESULT))
+            return ([("val", T)], ("val", _res_of(T, "Overflow")))
         return ([("val", T)], ("val", T))
     if base in {"band", "bor", "bxor"}:
         return ([("val", NAMED_BOOL), ("val", NAMED_BOOL)], ("val", NAMED_BOOL))
@@ -551,7 +569,11 @@ class TypeChecker:
             de = self.expr_desc(s["expr"])
             self.expect_value(de, d["ty"], "set")
         elif k == "return":
-            d = self.expr_desc(s["expr"])
+            ex = s["expr"]
+            if (self.fn["rmode"]["kind"] == "own" and isinstance(ex, dict)
+                    and ex.get("kind") == "use"):
+                ex = {"kind": "move", "place": ex["place"]}   # return consumes [OWN-1/FR T-Move]
+            d = self.expr_desc(ex)
             self.expect_mode_ty(d, self.fn["rmode"], self.fn["rty"], "return")
         elif k == "give":
             if not self.deliver:
@@ -559,6 +581,36 @@ class TypeChecker:
             mode, ty = self.deliver[-1]
             d = self.expr_desc(s["expr"])
             self.expect_mode_ty(d, mode, ty, "give")
+        elif k == "try":                               # [ERR-3] let x: own T = try e;
+            if s["name"] in self.env:
+                raise CheckError("TYPE-6",
+                    f"redeclaration of live name '{s['name']}' (no shadowing)")
+            ex = s["expr"]
+            if isinstance(ex, dict) and ex.get("kind") == "use":
+                ex = {"kind": "move", "place": ex["place"]}   # try consumes its Result
+            d = self.expr_desc(ex)
+            dt = d["ty"]
+            if not (dt.get("kind") == "named" and dt.get("name") == "Result"):
+                raise CheckError("ERR-3",
+                    f"try operand must be a Result, got {_ty_str(dt)}")
+            args = dt.get("args")
+            if args is None:
+                raise CheckError("ERR-3",
+                    "try operand's Result payload types are unknown (erased); "
+                    "same-error-type propagation cannot be verified")
+            okT, errT = args
+            self.expect_value({"cat": "val", "ty": okT}, s["ty"], f"try {s['name']}")
+            rt = self.fn["rty"]
+            if not (isinstance(rt, dict) and rt.get("kind") == "named"
+                    and rt.get("name") == "Result" and rt.get("args") is not None):
+                raise CheckError("ERR-3",
+                    "try requires the enclosing fn to return Result<U, E> with "
+                    "known payload types")
+            if not _ty_eq(errT, rt["args"][1]) or rt["args"][1].get("kind") == "any":
+                raise CheckError("ERR-3",
+                    f"try error type {_ty_str(errT)} != enclosing fn error type "
+                    f"{_ty_str(rt['args'][1])} (same E required; no conversions)")
+            self.env[s["name"]] = (s["mode"], okT)
         elif k == "expr":
             self.expr_desc(s["expr"])
         elif k == "check":

@@ -133,6 +133,8 @@ def parse_type(p):
         p.eat('>')
     if base == 'buffer' and inner:                     # retain the element type [TYPE-2]
         return f"buffer<{inner[0]}>"
+    if base == 'Result' and len(inner) == 2:           # retain payload types [ERR-3]
+        return f"Result<{inner[0]},{inner[1]}>"
     return base
 
 def parse_place(p):
@@ -224,6 +226,9 @@ def parse_stmt(p):
         p.eat(); n = p.eat(); p.eat(':'); m = parse_mode(p); ty = parse_type(p); p.eat('=')
         if p.peek() == 'match':                        # value-match initializer [GIVE-1]
             return {"s": "let", "n": n, "m": m, "ty": ty, "match": parse_match(p)}
+        if p.peek() == 'try':                          # try-propagation [ERR-3]
+            p.eat(); e = parse_expr(p); p.eat(';')
+            return {"s": "try", "n": n, "m": m, "ty": ty, "e": e}
         e = parse_expr(p); p.eat(';')
         return {"s": "let", "n": n, "m": m, "ty": ty, "e": e}
     if t == 'give':
@@ -315,6 +320,9 @@ def ttype(base):
     if base == "unit": return {"kind": "unit"}
     if base.startswith("buffer<"):
         return {"kind": "buffer", "elem": {"kind": "prim", "name": _buf_elem(base)}}
+    if base.startswith("Result<"):
+        ok, err = base[7:-1].split(",", 1)
+        return {"kind": "named", "name": "Result", "args": [ttype(ok), ttype(err)]}
     if base in ("box", "buffer"): return {"kind": base, "elem": {"kind": "any"}}
     if base in ("slice", "arena"): return {"kind": base, "region": None, "elem": {"kind": "any"}}
     if base == "array": return {"kind": "array", "elem": {"kind": "any"}, "n": None}
@@ -362,6 +370,9 @@ def tstmt(s):
     if k == "loop": return {"kind": "loop", "label": s["l"], "body": tstmts(s["body"])}
     if k == "break": return {"kind": "break"}
     if k == "check": return {"kind": "check", "expr": texpr(s["e"])}
+    if k == "try":
+        return {"kind": "try", "name": s["n"], "mode": s["m"], "ty": ttype(s["ty"]),
+                "expr": texpr(s["e"])}
     if k == "match": return tmatch(s)
     if k == "give": return {"kind": "give", "expr": texpr(s["e"])}
     if k == "expr": return {"kind": "expr", "expr": texpr(s["e"])}
@@ -473,10 +484,17 @@ class Gen:
             _reg(en, [vn for vn, _ in vs])
     def llty(g, name):                             # struct/enum-aware LLVM type name
         if _buf_elem(name): return "{ptr, i64}"
-        return ("%" + name) if (name in g.structs or name in g.payenums) else _llty(name)
+        name = name.split("<")[0]                      # Result<T,E> lowers by base name
+        if name in g.structs or name in g.payenums or name in ("Result", "Option"):
+            return "%" + name
+        return _llty(name)
     def enum_payll(g, en):                         # LLVM type of the payload word of enum en
+        if en not in g.enums:                          # prelude Result/Option: word-erased payload
+            return "i64"
         return "i" + str(_enum_payw(g.enums[en]))
     def variant_field_ll(g, en, variant):          # (LLVM type, signed) of a variant's payload field
+        if en not in g.enums:                          # prelude: word-erased i64 payloads
+            return "i64", True
         for vn, flds in g.enums[en]:
             if vn == variant and flds:
                 return _field_ll(flds[0]["ty"], g.structs), _is_signed(flds[0]["ty"])
@@ -487,6 +505,20 @@ class Gen:
         op = "zext" if int(dst_ll[1:]) > int(src_ll[1:]) else "trunc"
         t = g.tmp(); g.emit(f"  {t} = {op} {src_ll} {val} to {dst_ll}")
         return t
+    def pack_enumv(g, x):                          # SSA enumv -> %E aggregate value
+        en = x["en"]; pw = g.enum_payll(en)
+        tag = x["tag"]
+        if x.get("tty") and x["tty"] != "i32":
+            t = g.tmp(); g.emit(f"  {t} = zext {x['tty']} {tag} to i32"); tag = t
+        pay = x["pay"]; pty = x.get("pty", "i32")
+        if pty != pw:
+            t = g.tmp()
+            verb = "zext" if int(pw[1:]) > int(pty[1:]) else "trunc"
+            g.emit(f"  {t} = {verb} {pty} {pay} to {pw}"); pay = t
+        a0 = g.tmp(); g.emit(f"  {a0} = insertvalue %{en} undef, i32 {tag}, 0")
+        a1 = g.tmp(); g.emit(f"  {a1} = insertvalue %{en} {a0}, {pw} {pay}, 1")
+        return a1
+
     def load_enum(g, x):                           # materialize an SSA aggregate from an enum value
         if x.get("slot"):
             t = g.tmp(); g.emit(f"  {t} = load %{x['en']}, ptr {x['v']}")
@@ -654,10 +686,12 @@ class Gen:
                 bl = g.tmp(); g.emit(f"  {bl} = extractvalue {{ptr, i64}} {t}, 1")
                 return {"k": "buffer", "ptr": bp, "len": bl,
                         "ell": _llty(el), "esigned": _is_signed(el)}
-            if ret.startswith("%"):                    # aggregate return: an SSA aggregate value
+            if ret.startswith("%"):                    # aggregate return: spill to a slot
                 nm = ret[1:]
-                if nm in g.payenums:
-                    return {"k": "enum", "v": t, "en": nm, "slot": False}
+                if nm in g.payenums or nm in ("Result", "Option"):
+                    sl = g.tmp(); g.emit(f"  {sl} = alloca %{nm}")
+                    g.emit(f"  store %{nm} {t}, ptr {sl}")
+                    return {"k": "enum", "v": sl, "en": nm, "slot": True}
                 return {"k": "struct", "v": t, "st": nm, "slot": False}
             return {"k": ret, "v": t, "signed": True}
         return g.op(e)
@@ -823,6 +857,13 @@ class Gen:
             elif k == "give":
                 v = g.expr(s["e"])
                 g.emit(f"  store {g.give_ty} {v['v']}, ptr {g.give_slot}")
+            elif k == "try":                           # [ERR-3] -> match{Ok bind; Err re-return}
+                g.stmts([{"s": "match", "scrut": s["e"], "arms": [
+                    {"v": "Ok", "b": [{"field": "value", "name": s["n"]}], "body": []},
+                    {"v": "Err", "b": [{"field": "error", "name": f"__terr_{g.n}"}],
+                     "body": [{"s": "return", "e": {"e": "construct", "n": "Err",
+                        "fields": [{"name": "error", "atom": {"e": "place",
+                        "p": {"base": f"__terr_{g.n}", "path": [], "deref": 0}}}]}}]}]}])
             elif k == "set":
                 pl = s["p"]
                 if pl.get("index"):                    # bounds-checked element write [OP-4]
@@ -850,6 +891,7 @@ class Gen:
                 elif v["k"] == "unit": g.emit("  ret void")
                 elif v["k"] == "struct": g.emit(f"  ret {g.rllty} {g.load_struct(v)}")
                 elif v["k"] == "enum": g.emit(f"  ret {g.rllty} {g.load_enum(v)}")
+                elif v["k"] == "enumv": g.emit(f"  ret {g.rllty} {g.pack_enumv(v)}")
                 else: g.emit(f"  ret {g.rllty} {v['v']}")
                 g.term = True
             elif k == "region": g.stmts(s["body"])
@@ -931,8 +973,9 @@ class Gen:
     def run(g):
         ps = []
         for q in g.f["params"]:
-            if q["mode"]["kind"] == "own" and (q["ty"] in g.structs or q["ty"] in g.payenums):
-                s = q["ty"]; ps.append(f"%{s} %{q['name']}")   # own aggregate param passed by value
+            if q["mode"]["kind"] == "own" and (q["ty"].split("<")[0] in g.structs
+                                               or q["ty"].split("<")[0] in g.payenums):
+                s = q["ty"].split("<")[0]; ps.append(f"%{s} %{q['name']}")   # own aggregate param by value
                 slot = g.tmp()                                 # spill to a slot for field/tag access
                 g.prologue.append(f"  {slot} = alloca %{s}")
                 g.prologue.append(f"  store %{s} %{q['name']}, ptr {slot}")
@@ -997,7 +1040,11 @@ def compile_program(src, alias=True):
     def _ret(f):
         if f["name"] == "main": return "i32"
         if f["rty"] == "unit": return "void"
-        return ("%" + f["rty"]) if (f["rty"] in structs or f["rty"] in payenums) else _llty(f["rty"])
+        if _buf_elem(f["rty"]): return "{ptr, i64}"
+        base = f["rty"].split("<")[0]
+        if base in structs or base in payenums or base in ("Result", "Option"):
+            return "%" + base
+        return _llty(f["rty"])
     fnret = {f["name"]: _ret(f) for f in fns}
     Gen._fnrty = {f["name"]: f["rty"] for f in fns}
     decls = set()
@@ -1012,6 +1059,11 @@ def compile_program(src, alias=True):
     # -> their output is unchanged) [TYPE-2, payload-carrying enums].
     etyp = [f"%{en} = type {{ i32, i{_enum_payw(vs)} }}"
             for en, vs in enums.items() if _enum_payw(vs) > 0]
+    for pen in ("Result", "Option"):                   # prelude payload enums: word-erased i64
+        used = any(f["rty"].split("<")[0] == pen
+                   or any(q["ty"].split("<")[0] == pen for q in f["params"]) for f in fns)
+        if used:
+            etyp.append(f"%{pen} = type {{ i32, i64 }}")
     # fixed header (sadd/ssub/smul.i32 + trap emitted unconditionally for byte-stable i32 output);
     # any other intrinsic used by width/sign-generic codegen is appended, sorted for determinism.
     hdr = (styp + etyp
