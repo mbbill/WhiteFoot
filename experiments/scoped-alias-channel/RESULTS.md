@@ -80,3 +80,16 @@ Generated code (the mechanism, verified in asm):
 `prototype/democ/perf_regress.py` now asserts (in `make check`): the
 soa_kernel facts build carries `!alias.scope` and vectorizes with zero guards;
 the control does neither.
+
+## Addendum: 16-column bail-point probe (2026-07-09)
+
+Falsification attempt on claim 4: at 16 columns (4 written, 12 read) LLVM STILL
+version-vectorizes Rust's obvious shape — guards grow 29 -> 111 and asm
+2132 -> 2836 lines (xlang-facts: 183 lines, 0 guards), but the vectorizer does
+not bail, and times are near-parity at n >= 512 (memory-bound) with only ~1.16x
+xlang advantage at n=64. The versioning budget is far larger than the old
+threshold-8 lore. So: the static-vs-quadratic claim is structurally true
+(guards and code size scale with column count) but does NOT convert into a
+large-n time delta at any width probed. The durable channel-1 deltas remain
+exactly: short-trip performance (guards can't amortize), code size (17x at 8
+cols), and the W1 obvious-shape-is-fast property.

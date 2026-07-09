@@ -1,0 +1,97 @@
+struct Wide {
+  c0: buffer<u64>;
+  c1: buffer<u64>;
+  c2: buffer<u64>;
+  c3: buffer<u64>;
+  c4: buffer<u64>;
+  c5: buffer<u64>;
+  c6: buffer<u64>;
+  c7: buffer<u64>;
+  c8: buffer<u64>;
+  c9: buffer<u64>;
+  c10: buffer<u64>;
+  c11: buffer<u64>;
+  c12: buffer<u64>;
+  c13: buffer<u64>;
+  c14: buffer<u64>;
+  c15: buffer<u64>;
+}
+
+fn kernel ['r] (s: &uniq 'r Wide) -> own unit reads('r), writes('r), traps {
+  let l0: own u64 = len<u64>(deref(s).c0);
+  let l1: own u64 = len<u64>(deref(s).c1);
+  let l2: own u64 = len<u64>(deref(s).c2);
+  let l3: own u64 = len<u64>(deref(s).c3);
+  let l4: own u64 = len<u64>(deref(s).c4);
+  let l5: own u64 = len<u64>(deref(s).c5);
+  let l6: own u64 = len<u64>(deref(s).c6);
+  let l7: own u64 = len<u64>(deref(s).c7);
+  let l8: own u64 = len<u64>(deref(s).c8);
+  let l9: own u64 = len<u64>(deref(s).c9);
+  let l10: own u64 = len<u64>(deref(s).c10);
+  let l11: own u64 = len<u64>(deref(s).c11);
+  let l12: own u64 = len<u64>(deref(s).c12);
+  let l13: own u64 = len<u64>(deref(s).c13);
+  let l14: own u64 = len<u64>(deref(s).c14);
+  let l15: own u64 = len<u64>(deref(s).c15);
+  let m1: own u64 = imin<u64>(l0 , l1);
+  let m2: own u64 = imin<u64>(m1, l2);
+  let m3: own u64 = imin<u64>(m2, l3);
+  let m4: own u64 = imin<u64>(m3, l4);
+  let m5: own u64 = imin<u64>(m4, l5);
+  let m6: own u64 = imin<u64>(m5, l6);
+  let m7: own u64 = imin<u64>(m6, l7);
+  let m8: own u64 = imin<u64>(m7, l8);
+  let m9: own u64 = imin<u64>(m8, l9);
+  let m10: own u64 = imin<u64>(m9, l10);
+  let m11: own u64 = imin<u64>(m10, l11);
+  let m12: own u64 = imin<u64>(m11, l12);
+  let m13: own u64 = imin<u64>(m12, l13);
+  let m14: own u64 = imin<u64>(m13, l14);
+  let m15: own u64 = imin<u64>(m14, l15);
+  let m: own u64 = m15;
+  let i: own u64 = 0_u64;
+  loop @l {
+    match ige<u64>(i, m) {
+      True() => {
+        break @l;
+      }
+      False() => {
+      }
+    }
+    let x0: own u64 = index<u64>(deref(s).c0, i);
+    let x0r0: own u64 = index<u64>(deref(s).c4, i);
+    let x0r1: own u64 = index<u64>(deref(s).c5, i);
+    let x0r2: own u64 = index<u64>(deref(s).c6, i);
+    let t0_0: own u64 = iadd.wrap<u64>(x0, x0r0);
+    let t0_1: own u64 = iadd.wrap<u64>(t0_0, x0r1);
+    let t0_2: own u64 = iadd.wrap<u64>(t0_1, x0r2);
+    set index<u64>(deref(s).c0, i) = t0_2;
+    let x1: own u64 = index<u64>(deref(s).c1, i);
+    let x1r0: own u64 = index<u64>(deref(s).c7, i);
+    let x1r1: own u64 = index<u64>(deref(s).c8, i);
+    let x1r2: own u64 = index<u64>(deref(s).c9, i);
+    let t1_0: own u64 = iadd.wrap<u64>(x1, x1r0);
+    let t1_1: own u64 = iadd.wrap<u64>(t1_0, x1r1);
+    let t1_2: own u64 = iadd.wrap<u64>(t1_1, x1r2);
+    set index<u64>(deref(s).c1, i) = t1_2;
+    let x2: own u64 = index<u64>(deref(s).c2, i);
+    let x2r0: own u64 = index<u64>(deref(s).c10, i);
+    let x2r1: own u64 = index<u64>(deref(s).c11, i);
+    let x2r2: own u64 = index<u64>(deref(s).c12, i);
+    let t2_0: own u64 = iadd.wrap<u64>(x2, x2r0);
+    let t2_1: own u64 = iadd.wrap<u64>(t2_0, x2r1);
+    let t2_2: own u64 = iadd.wrap<u64>(t2_1, x2r2);
+    set index<u64>(deref(s).c2, i) = t2_2;
+    let x3: own u64 = index<u64>(deref(s).c3, i);
+    let x3r0: own u64 = index<u64>(deref(s).c13, i);
+    let x3r1: own u64 = index<u64>(deref(s).c14, i);
+    let x3r2: own u64 = index<u64>(deref(s).c15, i);
+    let t3_0: own u64 = iadd.wrap<u64>(x3, x3r0);
+    let t3_1: own u64 = iadd.wrap<u64>(t3_0, x3r1);
+    let t3_2: own u64 = iadd.wrap<u64>(t3_1, x3r2);
+    set index<u64>(deref(s).c3, i) = t3_2;
+    set i = iadd.trap<u64>(i, 1_u64);
+  }
+  return unit;
+}
