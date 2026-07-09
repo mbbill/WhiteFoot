@@ -88,3 +88,19 @@ gated on an owner ruling (STOR-1 rejects untyped slot recycling; the compliant
 shape needs to be decided, not just coded). The next unit of work is Phase C:
 run the weak/middle/strong model sprint on the six runnable tasks under the
 fixed prompt/repair budget, alongside the Phase B channel benchmarks.
+
+## Phase B status (2026-07-09)
+
+All three fact channels are built into democ and measured against real rustc
+with opaque boundaries (details in `optimizer-language-research/implementation/decision-gates.md`):
+
+| channel | delta vs Rust obvious shape | delta vs expert Rust |
+|---|---|---|
+| effect rows -> fn attrs (2) | O(n) -> O(1) at opaque boundaries vs default build | tie vs fat-LTO, at per-file build cost |
+| scoped alias from ownership (1) | 2.0x at n=8, parity >= 32; 17x code size | 1.17x at n=8, parity above |
+| checked-law reassociation (3) | 3.3x (sat-add reduction) | tie — but expert shape is UNCHECKED; false laws are refuted compile-time in xlang |
+
+The R0 condition ">= 1 robust Phase-B delta" is plausibly met (channels 2 and 3).
+The remaining R0 leg is the W1 distributional claim: the Phase C model-tier
+sprint on the six runnable tasks. That requires actual weak/middle/strong model
+API runs — owner infrastructure.

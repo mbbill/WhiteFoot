@@ -1,6 +1,8 @@
 # xlang Decision Sprint
 
-Status: active local scaffold; not decision-ready.
+Status: Phase B COMPLETE (2026-07-09): all three un-Rust-able fact channels built
+and measured with differentiated deltas (see decision-gates.md). Phase C (model-tier
+sprint) is the remaining evidence leg; it needs real weak/middle/strong model runs.
 
 Purpose: decide whether xlang should proceed beyond the research prototype into the
 self-hosting compiler track. This sprint treats the current negative performance
