@@ -17,7 +17,7 @@ TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*|@[a-z][a-z0-9_]*'
                  r'|->'
                  r'|-?[0-9]+_(?:i8|i16|i32|i64|u8|u16|u32|u64)|[0-9]+'
                  r'|[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*|[A-Z][A-Za-z0-9]*'
-                 r'|=>|&uniq|&|[(){}<>:;,=\[\]]'
+                 r'|=>|&uniq|&|[(){}<>:;,=\[\].]'
                  r'|(\S)')                                 # catch-all: unknown byte -> FORM-1
 
 # ---- integer type family: width, signedness, range, LLVM type ----
@@ -48,6 +48,25 @@ def _tybytes(name):
     import re as _re
     m = _re.fullmatch(r'[iuf](\d+)', name)
     return (int(m.group(1)) // 8) if m else 4
+
+def _size_align(tyname, structs):
+    """(size, align) of a pointee for dereferenceable/align param facts; None if unknown.
+    Standard layout: ints by width, Bool 1 byte, buffer {ptr, i64} 16/8, structs padded
+    per-field with tail padding to the max field alignment."""
+    if tyname in INT_LLTY:
+        b = _tybytes(tyname); return (b, b)
+    if tyname == "Bool": return (1, 1)
+    if _buf_elem(tyname): return (16, 8)
+    if tyname in structs:
+        off, mx = 0, 1
+        for fld in structs[tyname]:
+            sa = _size_align(fld["ty"], structs)
+            if sa is None: return None
+            sz, al = sa
+            off = (off + al - 1) // al * al + sz
+            mx = max(mx, al)
+        return ((off + mx - 1) // mx * mx, mx)
+    return None
 
 # ---- op-name resolution over democ's integer subset [OP-1/2/6/7/8, DIAG-1] ----
 # ops with a result/amount mode axis -> the modes democ lowers; dotless ops carry
@@ -149,18 +168,24 @@ def parse_place(p):
     if p.peek() == 'index':                            # index<T>(place, atom) — a place [GRAM-5/OP-4]
         p.eat(); p.eat('<'); elem = parse_type(p); p.eat('>'); p.eat('(')
         inner = parse_place(p); p.eat(','); atom = parse_atom(p); p.eat(')')
-        return {"base": inner["base"], "path": inner["path"], "deref": inner["deref"],
-                "index": {"place": inner, "atom": atom, "elem": elem}}
-    if p.peek() == 'deref':
+        pl = {"base": inner["base"], "path": inner["path"], "deref": inner["deref"],
+              "index": {"place": inner, "atom": atom, "elem": elem}}
+    elif p.peek() == 'deref':
         p.eat(); p.eat('('); inner = parse_place(p); p.eat(')')
         inner["deref"] = inner.get("deref", 0) + 1
-        return inner
-    # a field path rides the identifier token: `base.f.g` tokenizes as one word [GRAM-5 psuffix]
-    parts = p.eat().split('.')
-    return {"base": parts[0], "path": parts[1:], "deref": 0}
+        pl = inner
+    else:
+        # a field path rides the identifier token: `base.f.g` tokenizes as one word [GRAM-5 psuffix]
+        parts = p.eat().split('.')
+        pl = {"base": parts[0], "path": parts[1:], "deref": 0}
+    while p.peek() == '.':                             # psuffix after deref(...)/index<...>(...) [GRAM-5]
+        p.eat('.'); pl.setdefault("post", []).append(p.eat())
+    return pl
 
 def parse_expr(p):
     t = p.peek()
+    if t == 'move':                                    # "move" place — affine consumption [GRAM-5/OWN-1]
+        p.eat(); return {"e": "move", "p": parse_place(p)}
     if t in ('&', '&uniq'):
         uniq = p.eat() == '&uniq'; r = p.eat()[1:]
         return {"e": "borrow", "uniq": uniq, "region": r, "place": parse_place(p)}
@@ -349,12 +374,15 @@ def tplace(pl):
         node = {"kind": "field", "place": node, "name": f}
     for _ in range(pl.get("deref", 0)):
         node = {"kind": "deref", "place": node}
+    for f in pl.get("post", []):                       # psuffix fields applied after the deref [GRAM-5]
+        node = {"kind": "field", "place": node, "name": f}
     return node
 def texpr(e):
     k = e["e"]
     if k == "lit": return {"kind": "lit", "ty": {"kind": "prim", "name": e["ty"]}}
     if k == "unit": return {"kind": "lit", "ty": {"kind": "unit"}}
     if k == "place": return {"kind": "use", "place": tplace(e["p"])}
+    if k == "move": return {"kind": "move", "place": tplace(e["p"])}
     if k == "borrow": return {"kind": "borrow", "region": e["region"], "uniq": e["uniq"],
                               "place": tplace(e["place"])}
     if k == "construct": return {"kind": "construct", "name": e["n"],
@@ -468,16 +496,22 @@ def _field_ll(tyname, structs):
     if tyname in INT_LLTY: return INT_LLTY[tyname]
     if tyname == "Bool": return "i1"
     if tyname in structs: return "%" + tyname
+    if _buf_elem(tyname): return "{ptr, i64}"   # buffer<T> field: {data-pointer, length} pair [TYPE-2]
     return "i32"                                # user enum / prelude tag-only: i32 tag
 
 class Gen:
-    def __init__(g, f, enums, structs=None, alias=True, fnret=None, decls=None, total=frozenset()):
+    def __init__(g, f, enums, structs=None, alias=True, fnret=None, decls=None, total=frozenset(),
+                 mdefs=None, mdctr=None):
         g.f = f; g.enums = enums; g.structs = structs or {}; g.alias = alias
         g.fnret = fnret or {}          # fn name -> LLVM return type (for cross-fn calls)
         g.fnrty = getattr(Gen, "_fnrty", {})
         g.decls = decls if decls is not None else set()   # extra intrinsic declares used
         g.n = 0; g.lines = []; g.env = {}; g.traps = False; g.term = False
         g.loopstk = []
+        g.mdefs = mdefs                # module-level scoped-alias metadata lines [F003 channel]
+        g.mdctr = mdctr                # shared metadata id counter (one numbering per module)
+        g.pmode = {}                   # param name -> 'uniq' | 'shared' | 'own'
+        g.scopes = {}                  # provenance key -> (alias.scope list id, noalias list id)
         g.total = total; g.give_slot = None; g.give_ty = "i32"
         g.prologue = []                # entry-block setup (own struct params spilled to a slot)
         # payload-carrying enums lower to a named aggregate %E = { i32, i<payw> }
@@ -536,24 +570,24 @@ class Gen:
             t = g.tmp(); g.emit(f"  {t} = load %{x['en']}, ptr {x['v']}")
             return t
         return x["v"]
-    def field_info(g, sname, fname):               # (index, LLVM type, signed, sub-struct-or-None)
+    def field_info(g, sname, fname):               # (index, LLVM type, signed, sub-struct-or-None, tyname)
         for i, fld in enumerate(g.structs[sname]):
             if fld["name"] == fname:
                 ty = fld["ty"]
                 return (i, _field_ll(ty, g.structs), _is_signed(ty),
-                        ty if ty in g.structs else None)
+                        ty if ty in g.structs else None, ty)
         raise SystemExit(f"democ: struct {sname} has no field {fname}")
     def place_addr(g, pl):
-        """GEP a field-path place to a pointer; returns (ptr, elem_llty, signed, sub-struct)."""
+        """GEP a field-path place to a pointer; returns (ptr, elem_llty, signed, sub-struct, tyname)."""
         v = g.env[pl["base"]]
         assert v.get("st"), f"field access on non-struct place {pl['base']}"
-        ptr, cur, llty, signed, sub = v["v"], v["st"], "%" + v["st"], True, v["st"]
-        for fname in pl["path"]:
-            idx, llty, signed, sub = g.field_info(cur, fname)
+        ptr, cur, llty, signed, sub, tyn = v["v"], v["st"], "%" + v["st"], True, v["st"], v["st"]
+        for fname in pl.get("path", []) + pl.get("post", []):
+            idx, llty, signed, sub, tyn = g.field_info(cur, fname)
             t = g.tmp()
             g.emit(f"  {t} = getelementptr %{cur}, ptr {ptr}, i32 0, i32 {idx}")
             ptr = t; cur = sub
-        return ptr, llty, signed, sub
+        return ptr, llty, signed, sub, tyn
     def load_struct(g, x):                         # materialize an SSA aggregate from a struct value
         if x.get("slot"):
             t = g.tmp(); g.emit(f"  {t} = load %{x['st']}, ptr {x['v']}")
@@ -562,16 +596,58 @@ class Gen:
     def tmp(g): g.n += 1; return f"%t{g.n}"
     def lbl(g): g.n += 1; return f"L{g.n}"
     def emit(g, s): g.lines.append(s)
+    def scope_key(g, pl):
+        """[F003 channel] provenance class of a place rooted at a borrow/own param, or None.
+        Sound by OWN-1 (affine: distinct live buffer values have disjoint element memory),
+        OWN-2/5 (&uniq excludes every other in-function path to its target for the whole
+        call), and T-A (no reborrow chains: a borrow param's target is caller-disjoint from
+        every other param's). All shared-borrow-rooted accesses share ONE class (two shared
+        params may alias the same target), so no false claim is ever made between them."""
+        mode = g.pmode.get(pl["base"])
+        if mode is None: return None
+        if mode == "shared": return "__shared"
+        return (pl["base"], tuple(pl.get("path", []) + pl.get("post", [])))
+    def scope_suffix(g, pl, hdr=False):
+        """metadata suffix for an access through place pl; hdr=True marks struct-memory
+        (header/scalar-field) accesses, keyed at the root: buffer element memory is a
+        separate primitive-only heap allocation, disjoint from every struct slot."""
+        key = g.scope_key(pl)
+        if key is None: return ""
+        if hdr and key != "__shared": key = (pl["base"], ())
+        pair = g.scopes.get(key)
+        return f", !alias.scope !{pair[0]}, !noalias !{pair[1]}" if pair else ""
+    def load_buffield(g, fp, elname, pl):
+        """load a buffer field's {ptr, len} header (tagged struct-memory access)."""
+        md = g.scope_suffix(pl, hdr=True)
+        pp = g.tmp(); g.emit(f"  {pp} = getelementptr {{ptr, i64}}, ptr {fp}, i32 0, i32 0")
+        bp = g.tmp(); g.emit(f"  {bp} = load ptr, ptr {pp}{md}")
+        lp = g.tmp(); g.emit(f"  {lp} = getelementptr {{ptr, i64}}, ptr {fp}, i32 0, i32 1")
+        bl = g.tmp(); g.emit(f"  {bl} = load i64, ptr {lp}{md}")
+        return {"k": "buffer", "ptr": bp, "len": bl, "ell": _llty(elname),
+                "esigned": _is_signed(elname), "key": g.scope_key(pl)}
     def index_addr(g, pl):
-        """[OP-4] bounds-checked element address of an index place; traps OOB."""
-        buf = g.env[pl["base"]]
-        assert buf.get("k") == "buffer", "index place over a non-buffer binding (democ subset)"
+        """[OP-4] bounds-checked element address of an index place; traps OOB.
+        Returns (ptr, elem_llty, signed, metadata-suffix)."""
+        ipl = pl["index"]["place"]
+        if ipl.get("path") or ipl.get("post"):         # buffer behind a struct field
+            fp, fll, _s, _sub, tyn = g.place_addr(ipl)
+            el = _buf_elem(tyn)
+            assert el, "index place over a non-buffer field (democ subset)"
+            buf = g.load_buffield(fp, el, ipl)
+        else:
+            buf = g.env[ipl["base"]]
+            assert buf.get("k") == "buffer", "index place over a non-buffer binding (democ subset)"
+        md = ""
+        key = buf.get("key") or g.scope_key(ipl)
+        if key is not None:
+            pair = g.scopes.get(key)
+            if pair: md = f", !alias.scope !{pair[0]}, !noalias !{pair[1]}"
         iv = g.expr(pl["index"]["atom"])
         g.traps = True
         c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {buf['len']}")
         l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
         ptr = g.tmp(); g.emit(f"  {ptr} = getelementptr {buf['ell']}, ptr {buf['ptr']}, i64 {iv['v']}")
-        return ptr, buf["ell"], buf["esigned"]
+        return ptr, buf["ell"], buf["esigned"], md
 
     def ovf_decl(g, verb, signed, w):              # {sadd,uadd,...}.with.overflow.iW
         pfx = "s" if signed else "u"
@@ -594,17 +670,22 @@ class Gen:
         if k == "lit":
             return {"k": _llty(e["ty"]), "v": str(e["v"]), "signed": _is_signed(e["ty"])}
         if k == "unit": return {"k": "unit"}
+        if k == "move":                                # move p: value read; the checker did the affine accounting
+            return g.expr({"e": "place", "p": e["p"]})
         if k == "place":
             pl = e["p"]
             if pl.get("index"):                        # bounds-checked element read [OP-4]
-                ptr, ell, sg = g.index_addr(pl)
-                t = g.tmp(); g.emit(f"  {t} = load {ell}, ptr {ptr}")
+                ptr, ell, sg, md = g.index_addr(pl)
+                t = g.tmp(); g.emit(f"  {t} = load {ell}, ptr {ptr}{md}")
                 return {"k": ell, "v": t, "signed": sg}
-            if pl.get("path"):                         # struct field read: GEP + load [TYPE-5]
-                ptr, fll, fsigned, sub = g.place_addr(pl)
+            if pl.get("path") or pl.get("post"):       # struct field read: GEP + load [TYPE-5]
+                ptr, fll, fsigned, sub, tyn = g.place_addr(pl)
                 if sub is not None:                    # leaf field is itself a struct
                     return {"k": "struct", "v": ptr, "st": sub, "slot": True}
-                t = g.tmp(); g.emit(f"  {t} = load {fll}, ptr {ptr}")
+                el = _buf_elem(tyn)
+                if el:                                 # buffer-typed field: load {ptr, len} header
+                    return g.load_buffield(ptr, el, pl)
+                t = g.tmp(); g.emit(f"  {t} = load {fll}, ptr {ptr}{g.scope_suffix(pl, hdr=True)}")
                 return {"k": fll, "v": t, "signed": fsigned}
             v = g.env[pl["base"]]
             if v["k"] in ("struct", "enum"):           # whole aggregate use stays an addressable slot
@@ -620,6 +701,8 @@ class Gen:
             src = g.env[e["place"]["base"]]
             if src["k"] == "enum":                     # borrow of an own enum local: ptr to its slot
                 return {"k": "ptr", "v": src["v"], "ty": "%" + src["en"], "en": src["en"]}
+            if src["k"] == "struct":                   # borrow of an own struct local: ptr to its slot
+                return {"k": "ptr", "v": src["v"], "ty": "%" + src["st"], "st": src["st"]}
             if src["k"] in ("slot", "ptr"):
                 return {"k": "ptr", "v": src["v"], "ty": src.get("ty", "i32"),
                         "signed": src.get("signed", True), "en": src.get("en")}
@@ -667,11 +750,15 @@ class Gen:
                 slot = g.tmp(); g.emit(f"  {slot} = alloca %{n}")
                 for fld in flds:
                     fv = g.expr(fld["atom"])
-                    idx, fll, _fs, sub = g.field_info(n, fld["name"])
+                    idx, fll, _fs, sub, _tyn = g.field_info(n, fld["name"])
                     fp = g.tmp()
                     g.emit(f"  {fp} = getelementptr %{n}, ptr {slot}, i32 0, i32 {idx}")
                     if fv["k"] == "struct":            # nested struct field: store the aggregate
                         g.emit(f"  store %{sub} {g.load_struct(fv)}, ptr {fp}")
+                    elif fv["k"] == "buffer":          # buffer field: pack {ptr, i64} pair
+                        t0 = g.tmp(); g.emit(f"  {t0} = insertvalue {{ptr, i64}} undef, ptr {fv['ptr']}, 0")
+                        t1 = g.tmp(); g.emit(f"  {t1} = insertvalue {{ptr, i64}} {t0}, i64 {fv['len']}, 1")
+                        g.emit(f"  store {{ptr, i64}} {t1}, ptr {fp}")
                     else:
                         g.emit(f"  store {fll} {fv['v']}, ptr {fp}")
                 return {"k": "struct", "v": slot, "st": n, "slot": True}
@@ -804,6 +891,11 @@ class Gen:
             g.decls.add(f"declare {w} @llvm.{fn}.{w}({w}, {w}, {w})")
             t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{fn}.{w}({w} {a[0]['v']}, {w} {a[0]['v']}, {w} {a[1]['v']})")
             return {"k": w, "v": t, "signed": signed}
+        if base in ("imin", "imax"):                   # signedness-parametric min/max [OP-8]
+            iv = ("s" if signed else "u") + base[1:]
+            g.decls.add(f"declare {w} @llvm.{iv}.{w}({w}, {w})")
+            t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{iv}.{w}({w} {a[0]['v']}, {w} {a[1]['v']})")
+            return {"k": w, "v": t, "signed": signed}
         CMP_S = {"ieq": "eq", "ine": "ne", "ilt": "slt", "ile": "sle", "igt": "sgt", "ige": "sge"}
         CMP_U = {"ieq": "eq", "ine": "ne", "ilt": "ult", "ile": "ule", "igt": "ugt", "ige": "uge"}
         if base in CMP_S:                              # sign-correct integer comparison
@@ -885,15 +977,19 @@ class Gen:
                 pl = s["p"]
                 if pl.get("index"):                    # bounds-checked element write [OP-4]
                     v = g.expr(s["e"])
-                    ptr, ell, _sg = g.index_addr(pl)
-                    g.emit(f"  store {ell} {v['v']}, ptr {ptr}")
-                elif pl.get("path"):                   # set struct field: GEP + store [TYPE-5]
+                    ptr, ell, _sg, md = g.index_addr(pl)
+                    g.emit(f"  store {ell} {v['v']}, ptr {ptr}{md}")
+                elif pl.get("path") or pl.get("post"): # set struct field: GEP + store [TYPE-5]
                     v = g.expr(s["e"])
-                    ptr, fll, _fs, sub = g.place_addr(pl)
+                    ptr, fll, _fs, sub, _tyn = g.place_addr(pl)
                     if v["k"] == "struct":
                         g.emit(f"  store %{sub} {g.load_struct(v)}, ptr {ptr}")
+                    elif v["k"] == "buffer":           # replace a buffer field: pack {ptr, i64}
+                        t0 = g.tmp(); g.emit(f"  {t0} = insertvalue {{ptr, i64}} undef, ptr {v['ptr']}, 0")
+                        t1 = g.tmp(); g.emit(f"  {t1} = insertvalue {{ptr, i64}} {t0}, i64 {v['len']}, 1")
+                        g.emit(f"  store {{ptr, i64}} {t1}, ptr {ptr}{g.scope_suffix(pl, hdr=True)}")
                     else:
-                        g.emit(f"  store {fll} {v['v']}, ptr {ptr}")
+                        g.emit(f"  store {fll} {v['v']}, ptr {ptr}{g.scope_suffix(pl, hdr=True)}")
                 else:
                     v = g.expr(s["e"]); tgt = g.env[pl["base"]]
                     assert tgt["k"] in ("ptr", "slot"), "set target must be param ptr or own local"
@@ -987,8 +1083,48 @@ class Gen:
             g.emit(f"{nxt}:"); g.emit("  unreachable")   # exhaustive [ERR-2]
         g.term = not any_open
         if any_open: g.emit(f"{done}:")
+    def md(g, mk):                                 # allocate one module metadata node; mk: id -> text
+        i = g.mdctr[0]; g.mdctr[0] += 1
+        g.mdefs.append(f"!{i} = {mk(i)}"); return i
+    def build_scopes(g):
+        """[F003 channel] one alias scope per provenance class visible at the boundary:
+        each &uniq-struct param root (struct memory) and each of its buffer fields
+        (element memory), each own-buffer param, and ONE class for everything reached
+        through shared borrows. Facts the checker proved (OWN-1 affine disjointness,
+        OWN-2/5 exclusivity, T-A no-reborrow) — rustc has no source channel for these
+        on loaded pointers, and LLVM cannot recover them from an opaque boundary."""
+        eligible = []
+        for q in g.f["params"]:
+            ty0 = q["ty"].split("<")[0]
+            if q["mode"]["kind"] == "ref":
+                st = q["ty"] if q["ty"] in g.structs else None
+                if not q["mode"]["uniq"]:
+                    g.pmode[q["name"]] = "shared"
+                    if st and "__shared" not in eligible: eligible.append("__shared")
+                else:
+                    g.pmode[q["name"]] = "uniq"
+                    if st:
+                        eligible.append((q["name"], ()))
+                        for fld in g.structs[st]:
+                            if _buf_elem(fld["ty"]): eligible.append((q["name"], (fld["name"],)))
+            elif q["mode"]["kind"] == "own" and _buf_elem(q["ty"]):
+                g.pmode[q["name"]] = "own"
+                eligible.append((q["name"], ()))
+        if not g.alias or g.mdefs is None or len(eligible) < 2: return
+        fname = g.f["name"]
+        dom = g.md(lambda i: f'distinct !{{!{i}, !"{fname}"}}')
+        sid = {}
+        for key in eligible:
+            nm = key if key == "__shared" else ".".join((key[0],) + key[1])
+            sid[key] = g.md(lambda i, nm=nm: f'distinct !{{!{i}, !{dom}, !"{fname}.{nm}"}}')
+        for key in eligible:
+            own = g.md(lambda i, k=key: "!{" + f"!{sid[k]}" + "}")
+            others = ", ".join(f"!{sid[k]}" for k in eligible if k != key)
+            noal = g.md(lambda i, o=others: "!{" + o + "}")
+            g.scopes[key] = (own, noal)
     def run(g):
         ps = []
+        g.build_scopes()
         for q in g.f["params"]:
             if q["mode"]["kind"] == "own" and (q["ty"].split("<")[0] in g.structs
                                                or q["ty"].split("<")[0] in g.payenums
@@ -1016,6 +1152,9 @@ class Gen:
                 g.env[q["name"]] = {"k": pll, "v": f"%{q['name']}", "signed": psigned}
             else:
                 at = (" noalias" + ("" if q["mode"]["uniq"] else " readonly")) if g.alias else ""
+                if g.alias:
+                    sa = _size_align(q["ty"], g.structs)   # borrows are always valid+aligned (checker fact)
+                    if sa: at += f" dereferenceable({sa[0]}) align {sa[1]}"
                 ps.append(f"ptr{at} %{q['name']}")
                 st = q["ty"] if q["ty"] in g.structs else None
                 en = q["ty"] if q["ty"] in g.payenums else None
@@ -1067,7 +1206,9 @@ def compile_program(src, alias=True):
     Gen._fnrty = {f["name"]: f["rty"] for f in fns}
     decls = set()
     total = compute_total(fns)
-    bodies = [Gen(f, enums, structs, alias, fnret, decls, total).run() for f in fns]
+    mdefs, mdctr = [], [0]                             # scoped-alias metadata, one numbering per module
+    bodies = [Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr).run() for f in fns]
+    if mdefs: bodies.append("\n".join(mdefs) + "\n")
     # named aggregate type per used struct, emitted once (only when structs exist -> byte-stable
     # i32/enum output). fields lower to their per-width int / i1 / nested-%T / i32-tag types [TYPE-2].
     styp = [f"%{n} = type {{ " + ", ".join(_field_ll(fl["ty"], structs) for fl in flds) + " }"

@@ -1,0 +1,59 @@
+struct Cols {
+  a: buffer<u64>;
+  b: buffer<u64>;
+  c: buffer<u64>;
+  d: buffer<u64>;
+  e: buffer<u64>;
+  f: buffer<u64>;
+  g: buffer<u64>;
+  h: buffer<u64>;
+}
+
+fn kernel ['r] (s: &uniq 'r Cols) -> own unit reads('r), writes('r), traps {
+  doc "struct-of-arrays update: two written columns, six read columns; the obvious shape.";
+  let la: own u64 = len<u64>(deref(s).a);
+  let lb: own u64 = len<u64>(deref(s).b);
+  let lc: own u64 = len<u64>(deref(s).c);
+  let ld: own u64 = len<u64>(deref(s).d);
+  let le: own u64 = len<u64>(deref(s).e);
+  let lf: own u64 = len<u64>(deref(s).f);
+  let lg: own u64 = len<u64>(deref(s).g);
+  let lh: own u64 = len<u64>(deref(s).h);
+  let m1: own u64 = imin<u64>(la, lb);
+  let m2: own u64 = imin<u64>(m1, lc);
+  let m3: own u64 = imin<u64>(m2, ld);
+  let m4: own u64 = imin<u64>(m3, le);
+  let m5: own u64 = imin<u64>(m4, lf);
+  let m6: own u64 = imin<u64>(m5, lg);
+  let m: own u64 = imin<u64>(m6, lh);
+  let i: own u64 = 0_u64;
+  loop @l {
+    match ige<u64>(i, m) {
+      True() => {
+        break @l;
+      }
+      False() => {
+      }
+    }
+    let xa: own u64 = index<u64>(deref(s).a, i);
+    let xc: own u64 = index<u64>(deref(s).c, i);
+    let xd: own u64 = index<u64>(deref(s).d, i);
+    let xe: own u64 = index<u64>(deref(s).e, i);
+    let xf: own u64 = index<u64>(deref(s).f, i);
+    let t1: own u64 = iadd.wrap<u64>(xa, xc);
+    let t2: own u64 = iadd.wrap<u64>(t1, xd);
+    let t3: own u64 = iadd.wrap<u64>(t2, xe);
+    let t4: own u64 = iadd.wrap<u64>(t3, xf);
+    set index<u64>(deref(s).a, i) = t4;
+    let xb: own u64 = index<u64>(deref(s).b, i);
+    let xg: own u64 = index<u64>(deref(s).g, i);
+    let xh: own u64 = index<u64>(deref(s).h, i);
+    let u1: own u64 = iadd.wrap<u64>(xb, xe);
+    let u2: own u64 = iadd.wrap<u64>(u1, xf);
+    let u3: own u64 = iadd.wrap<u64>(u2, xg);
+    let u4: own u64 = iadd.wrap<u64>(u3, xh);
+    set index<u64>(deref(s).b, i) = u4;
+    set i = iadd.trap<u64>(i, 1_u64);
+  }
+  return unit;
+}

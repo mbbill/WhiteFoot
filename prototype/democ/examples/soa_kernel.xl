@@ -1,0 +1,26 @@
+struct Pair {
+  a: buffer<u64>;
+  b: buffer<u64>;
+}
+
+fn kernel ['r] (s: &uniq 'r Pair) -> own unit reads('r), writes('r), traps {
+  let la: own u64 = len<u64>(deref(s).a);
+  let lb: own u64 = len<u64>(deref(s).b);
+  let m: own u64 = imin<u64>(la, lb);
+  let i: own u64 = 0_u64;
+  loop @l {
+    match ige<u64>(i, m) {
+      True() => {
+        break @l;
+      }
+      False() => {
+      }
+    }
+    let x: own u64 = index<u64>(deref(s).a, i);
+    let y: own u64 = index<u64>(deref(s).b, i);
+    let t: own u64 = iadd.wrap<u64>(x, y);
+    set index<u64>(deref(s).a, i) = t;
+    set i = iadd.trap<u64>(i, 1_u64);
+  }
+  return unit;
+}
