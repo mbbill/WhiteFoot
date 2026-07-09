@@ -769,6 +769,10 @@ class Gen:
                 idx = g.venum[n][1]
                 if e["fields"]:                        # Err carries its error payload
                     a = g.expr(e["fields"][0]["atom"])
+                    if a.get("k") in ("enum", "enumv") and a.get("en") not in (None, "Result", "Option") \
+                            and a.get("en") in g.payenums:
+                        raise SystemExit("democ: a payload-carrying enum value inside Err()/Ok() is not in "
+                                         "the subset; use nullary error variants (e.g. BadDigit() not BadDigit(pos: ...))")
                     return {"k": "enumv", "tag": str(idx), "tty": "i32", "pay": a["v"],
                             "pty": a["k"] if a["k"] in INT_LL else "i32",
                             "psigned": a.get("signed", True), "payidx": idx, "en": g.venum[n][0]}
