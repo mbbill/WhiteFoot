@@ -56,3 +56,22 @@ B delta OR C W1 win"); the decision now rests on the B deltas plus the
 frequency/distributional question (how often the channel patterns occur in
 real projects), plus the qualitative W3/determinism case. The trial harness
 and writer's excerpt stay (already built; can run anytime as validation).
+
+## D6 (2026-07-09): Pattern doctrine — the language ships a closed, taught pattern catalog
+
+Owner: design patterns are part of a language's contract with its writers.
+Human languages must let users carry familiar patterns in, or they are
+rejected; xlang has no such constraint (D0a: AI writes, human approves). So
+xlang may make radical restrictions: force a curated SUBSET of design patterns
+for modeling tasks, exactly as it forces one loop form and one conditional
+form at the micro level. Two-fold acceptance test for the catalog:
+(1) COMPLETE — every task must be modelable inside the blessed patterns
+(gaps are findings, to be closed by a new blessed pattern or a recorded
+rejection); (2) EFFICIENT — tasks modeled with the blessed patterns must hit
+the fast paths (the patterns should be exactly the shapes the fact channels
+light up). Corollary: patterns are TAUGHT, not discovered — the teaching pack
+must present the catalog up front so no writer (AI or human) hits a wall
+mid-design discovering that a familiar architecture (e.g. scattered deep
+writes) is unrepresentable. Catalog artifact: PATTERNS.md (normative,
+spec-adjacent). Trigger: owner review of the deep-write discussion — the
+command-buffer idiom must be doctrine, not folklore.

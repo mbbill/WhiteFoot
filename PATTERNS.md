@@ -1,0 +1,98 @@
+# xlang Pattern Doctrine (D6)
+
+Status: seeded 2026-07-09; normative once ratified. The language forces a
+closed pattern vocabulary at the architecture level, exactly as the kernel
+forces one loop form and one conditional at the statement level. The catalog
+must stay COMPLETE (every task modelable — a gap is a finding) and EFFICIENT
+(each pattern names the fact channel or machine property that makes it fast).
+Writers are TAUGHT this catalog up front (teaching pack / writer's excerpt);
+hitting a wall because a familiar architecture is unrepresentable is a
+documentation defect, not a writer error.
+
+Each entry: problem shape -> blessed pattern -> why it is fast here -> what it
+replaces from mainstream languages.
+
+## P1. Command buffer (write intents)
+
+Problem: deep code needs to mutate shared long-lived state (pool, arena,
+world), and no clean exclusive window exists at depth.
+Pattern: deep functions are `pure` or `reads('p)`; they compute and RETURN
+write intents as plain values. Exactly one shallow function holds the single
+`&uniq` and applies the intents. Effect rows make the architecture checkable:
+grep the signatures — one `writes('p)` in the system.
+Fast because: deep code carries `memory(read)`/`memory(none)` attributes
+(channel 2: hoisting, CSE, reordering across calls), and read-only deep code
+is the precondition for the parallel fan-out story (D1).
+Replaces: `Rc<RefCell>` interior mutability, observer mutation, scattered
+in-place writes. Those are unrepresentable here BY DESIGN.
+
+## P2. Struct-of-arrays pool (append-only, index-linked)
+
+Problem: many homogeneous-ish nodes with cross-references (AST, graph, ECS).
+Pattern: one struct of parallel `buffer<T>` columns plus a count; a node is a
+`u64` index; construction appends (`push` through `&uniq`); indices never
+recycle; the whole pool drops at once. Reference:
+`m3/submissions/reference/xlang/arena_ast_builder.xl`.
+Fast because: contiguous per-field columns (cache, vectorization), and the
+borrowed-SoA shape is exactly what channel 1's scoped-alias facts optimize;
+no per-node allocation, headers, or refcounts.
+Replaces: `Rc<RefCell<Node>>` graphs, pointer-linked heap nodes, and Rust's
+Vec-index arena WITH free-lists (STOR-1 rejects recycling: stale indices are
+well-typed UAF).
+
+## P3. Region staircase + static nursery (lifetime shape)
+
+Problem: interleaved lifetimes vs bulk free — arenas leak if everything lives
+in one region.
+Pattern: nest regions by phase (request -> pass -> sub-pass); allocate into
+the innermost region; anything that survives a phase is EXPLICITLY moved out
+(`move`) to the outer owner — escape is visible and checker-verified; truly
+interleaved individual lifetimes use `box`. Effect rows (`allocates('r)` vs
+`allocates(heap)`) make the split auditable per signature.
+Fast because: bulk free is O(1) per phase; affine moves make promotion a
+header copy; no GC, no refcount traffic.
+Replaces: GC nurseries (same insight, zero runtime), `Rc` lifetime webs.
+
+## P4. Linear threading (exclusive access through a call chain)
+
+Problem: a callee chain must transform exclusive state and hand it back.
+Pattern: pass the affine value (or `&uniq`) in, return it (or the derived
+state) out — possession flows like a token; v0 has no reborrowing (T-A), so
+the token never silently forks.
+Fast because: singleton provenance keeps the checker simple and the noalias
+facts unconditional (channel 1's soundness rests on T-A).
+Replaces: Rust's implicit `&mut` reborrow chains, aliased mutable captures.
+
+## P5. Env-struct behavior parameterization (FN-5)
+
+Problem: callbacks / strategy objects / closures.
+Pattern: behavior is a generic over a contract-conforming type; the
+environment is an explicit struct threaded by value or borrow; closed-set
+dispatch is `match`. No function pointers, no dynamic dispatch in the kernel.
+Fast because: every call is direct post-monomorphization — inlining and the
+channel-2 attributes survive; no vtable opacity.
+Replaces: closures capturing mutable environments, trait objects, fn pointers.
+
+## P6. Checked-law reduction (FN-4)
+
+Problem: custom folds/reductions that a compiler cannot legally reorder.
+Pattern: state the algebra (`law associative/commutative/identity`) in a
+contract; conform the op; write the OBVIOUS sequential fold. The compiler
+discharges the law and reassociates for you; a false law is refuted at
+compile time.
+Fast because: channel 3 — 3.3x measured over the serial shape; the transform
+is licensed by a checked fact, not writer folklore.
+Replaces: hand-written multi-accumulator loops resting on unchecked human
+algebra (the signed-sat-add trap).
+
+## Known gaps (findings, not yet patterns)
+
+- In-place mutation interleaved with traversal of the same structure (graph
+  rewriting while walking). Restructure via P1/P2 or reject (OWN-8 posture);
+  relief valves carded: split_uniq disjoint views, checked Cell-for-copy.
+- Shared memo/cache written during logically-read traversals: model as
+  explicit `&uniq` cache parameter (the write is signature-visible) — needs a
+  worked exemplar before it earns a P-number.
+- Long-lived borrows stored in data (self-referential structs): structurally
+  unrepresentable in v0 (structs store values, not borrows); the index pool
+  (P2) is the blessed encoding.
