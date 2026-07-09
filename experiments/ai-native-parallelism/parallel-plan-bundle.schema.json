@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xlang.local/schemas/parallel-plan-bundle.schema.json",
+  "title": "xlang AI-native parallel plan bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "task",
+    "spec",
+    "candidates",
+    "facts",
+    "guards",
+    "selection"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 0
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entry", "language", "source"],
+      "properties": {
+        "entry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "type": "string",
+          "enum": ["xlang", "rust", "pseudo"]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fact"
+      }
+    },
+    "guards": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/guard"
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fallback", "policy"],
+      "properties": {
+        "fallback": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy": {
+          "type": "string",
+          "enum": ["first_verified", "benchmark", "runtime_threshold"]
+        },
+        "benchmark_budget_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "prompt_sha256": {
+          "type": "string"
+        },
+        "repair_turns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "status", "subject"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "pure",
+            "reads",
+            "writes",
+            "disjoint",
+            "injective",
+            "bijective",
+            "bounds",
+            "associative",
+            "commutative",
+            "work_estimate"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["proved_static", "guarded_runtime", "assumed_untrusted"]
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "proves", "cost_class", "source"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proves": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cost_class": {
+          "type": "string",
+          "enum": ["O(1)", "O(n)", "O(n log n)", "unknown"]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "language", "source", "requires", "effects"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["sequential", "simd", "parallel", "tiled", "specialized"]
+        },
+        "language": {
+          "type": "string",
+          "enum": ["xlang", "rust", "pseudo"]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expected_win": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "baseline": {
+              "type": "string"
+            },
+            "speedup_min": {
+              "type": "number",
+              "minimum": 1
+            },
+            "confidence": {
+              "type": "string",
+              "enum": ["low", "medium", "high"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -32,6 +32,35 @@ struct SendPtr(*mut f64);
 unsafe impl Send for SendPtr {}
 unsafe impl Sync for SendPtr {}
 
+fn verify_permutation(perm: &[u32], n: usize) -> bool {
+    if perm.len() != n {
+        return false;
+    }
+    let mut seen = vec![0u8; n];
+    for &p in perm {
+        let d = p as usize;
+        if d >= n || seen[d] != 0 {
+            return false;
+        }
+        seen[d] = 1;
+    }
+    true
+}
+
+fn verify_permutation_stamp(perm: &[u32], n: usize, seen: &mut [u32], stamp: u32) -> bool {
+    if perm.len() != n || seen.len() != n || stamp == 0 {
+        return false;
+    }
+    for &p in perm {
+        let d = p as usize;
+        if d >= n || seen[d] == stamp {
+            return false;
+        }
+        seen[d] = stamp;
+    }
+    true
+}
+
 fn bench<F: FnMut()>(name: &str, reps: usize, mut f: F) -> f64 {
     f(); // warmup
     let mut ts = Vec::with_capacity(reps);
@@ -206,6 +235,88 @@ fn main() {
     });
     verify(&out, "par-scatter");
 
+    // -------- V4 AI-native guarded scatter: verify fact, then dispatch -----
+    // This is the source-bundle version of V3: the AI proposes the direct
+    // scatter plan, but the compiler/runtime must first prove or guard the
+    // bijection fact. This conservative measurement pays the O(n) guard on
+    // every dispatch. A real immutable permutation could cache the proof.
+    let t_guard = bench("V4 guard verify perm", reps, || {
+        let ok = verify_permutation(&perm, n);
+        std::hint::black_box(ok);
+        if !ok {
+            eprintln!("invalid permutation");
+            std::process::exit(1);
+        }
+    });
+
+    let t_guarded_scatter = bench("V4 guarded par-scatter", reps, || {
+        if verify_permutation(&perm, n) {
+            let base = SendPtr(out.as_mut_ptr());
+            (0..n).into_par_iter().for_each(|i| {
+                let base = base;
+                let d = perm[i] as usize;
+                let v = transform(input[i], work);
+                // SAFETY: verify_permutation proved perm is a bijection of 0..n.
+                unsafe {
+                    *base.0.add(d) = v;
+                }
+            });
+        } else {
+            for i in 0..n {
+                out[perm[i] as usize] = transform(input[i], work);
+            }
+        }
+        std::hint::black_box(&out);
+    });
+    verify(&out, "guarded-par-scatter");
+
+    // Reusable verifier state: avoids per-dispatch allocation and memset by
+    // using a monotonically-increasing stamp in a u32 side table. This models a
+    // runtime guard template with scratch storage attached to the proof site.
+    let mut seen_stamps = vec![0u32; n];
+    let mut stamp = 1u32;
+    let t_guard_reuse = bench("V4b guard stamp reuse", reps, || {
+        let ok = verify_permutation_stamp(&perm, n, &mut seen_stamps, stamp);
+        std::hint::black_box(ok);
+        if !ok {
+            eprintln!("invalid permutation");
+            std::process::exit(1);
+        }
+        stamp = stamp.wrapping_add(1);
+        if stamp == 0 {
+            seen_stamps.fill(0);
+            stamp = 1;
+        }
+    });
+
+    let mut seen_stamps = vec![0u32; n];
+    let mut stamp = 1u32;
+    let t_guarded_scatter_reuse = bench("V4b guarded stamp scatter", reps, || {
+        if verify_permutation_stamp(&perm, n, &mut seen_stamps, stamp) {
+            stamp = stamp.wrapping_add(1);
+            if stamp == 0 {
+                seen_stamps.fill(0);
+                stamp = 1;
+            }
+            let base = SendPtr(out.as_mut_ptr());
+            (0..n).into_par_iter().for_each(|i| {
+                let base = base;
+                let d = perm[i] as usize;
+                let v = transform(input[i], work);
+                // SAFETY: verify_permutation_stamp proved perm is a bijection of 0..n.
+                unsafe {
+                    *base.0.add(d) = v;
+                }
+            });
+        } else {
+            for i in 0..n {
+                out[perm[i] as usize] = transform(input[i], work);
+            }
+        }
+        std::hint::black_box(&out);
+    });
+    verify(&out, "guarded-stamp-par-scatter");
+
     let best_safe = t_gather.min(t_own).min(t_base).min(t_bucket);
     println!("\n--- summary (median ms), n={}, work={}, p={} ---", n, work, p);
     println!("V1  baseline seq-scatter   : {:8.3}", t_base);
@@ -214,7 +325,15 @@ fn main() {
     println!("V2c safe range-own scatter : {:8.3}", t_own);
     println!("V2d safe bucketed 2-phase  : {:8.3}", t_bucket);
     println!("V3  xlang par-scatter      : {:8.3}", t_scatter);
+    println!("V4  guard verify perm      : {:8.3}", t_guard);
+    println!("V4  guarded par-scatter    : {:8.3}", t_guarded_scatter);
+    println!("V4b guard stamp reuse      : {:8.3}", t_guard_reuse);
+    println!("V4b guarded stamp scatter  : {:8.3}", t_guarded_scatter_reuse);
     println!("best safe adversary        : {:8.3}", best_safe);
     println!("\nbest-safe / xlang-ceiling  : {:.2}x", best_safe / t_scatter);
+    println!("best-safe / guarded-scatter: {:.2}x", best_safe / t_guarded_scatter);
+    println!("best-safe / guarded-stamp  : {:.2}x", best_safe / t_guarded_scatter_reuse);
+    println!("guarded / xlang-ceiling    : {:.2}x", t_guarded_scatter / t_scatter);
+    println!("guarded-stamp / ceiling    : {:.2}x", t_guarded_scatter_reuse / t_scatter);
     println!("baseline  / xlang-ceiling  : {:.2}x", t_base / t_scatter);
 }

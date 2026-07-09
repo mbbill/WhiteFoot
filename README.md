@@ -92,13 +92,14 @@ The optimizer is only allowed to trust those facts because they can't be violate
 
 A design-and-evidence project with a running prototype, not a finished language.
 
-- **Spec:** [`spec/kernel-spec-v0.4.md`](spec/kernel-spec-v0.4.md). Every rule is traced back to the goals in [`spec/derivation-ledger.md`](spec/derivation-ledger.md); forms not yet validated are flagged as provisional, not hidden.
-- **Ownership core:** formally reconciled to **Featherweight Rust** (a soundness-proven calculus) as a strict, sound subset, and cross-checked by a generative model checker over tens of thousands of random programs with zero soundness violations.
+- **Spec:** [`spec/kernel-spec-v0.6.md`](spec/kernel-spec-v0.6.md). Every rule is traced back to the goals in [`spec/derivation-ledger.md`](spec/derivation-ledger.md); forms not yet validated are flagged as provisional, not hidden.
+- **Ownership core:** reconciled to **Featherweight Rust** (a soundness-proven calculus) for the M0 fragment and cross-checked by a generative model checker over tens of thousands of random programs with zero soundness violations; the v0.6 additive `give`/OWN-13 clause remains tracked in the spec until ratified.
 - **Compiler:** a demo compiler lowers a growing subset to LLVM and reproduces the wins above.
-- **The open bet:** that *weak* models write correct, fast code more reliably here than in mainstream languages is the hypothesis under test — the measurement harness is the next milestone, not a finished result.
+- **Decision gate:** [`DECISION_SPRINT.md`](DECISION_SPRINT.md) defines the bounded M3 validation sprint. The open bet is that *weak* models write correct, fast code more reliably here than in mainstream languages; the measurement harness is the next milestone, not a finished result.
 
 ## Read next
 
 - [`CONSTITUTION.md`](CONSTITUTION.md) — the goal (performance, with the Rust test, above AI-writability) and the rules behind every decision.
-- [`spec/kernel-spec-v0.4.md`](spec/kernel-spec-v0.4.md) — the current kernel spec.
+- [`spec/kernel-spec-v0.6.md`](spec/kernel-spec-v0.6.md) — the current kernel spec.
+- [`DECISION_SPRINT.md`](DECISION_SPRINT.md) — the next decision gate before self-hosting.
 - [`ROADMAP.md`](ROADMAP.md) — where this is going, and [`optimizer-language-research/`](optimizer-language-research/) — the evidence corpus behind it.

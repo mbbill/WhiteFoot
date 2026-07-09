@@ -110,6 +110,17 @@ languages, data-parallel/auto-vectorize, Rust) → adversarial feasibility verdi
 
 Full verdict + the 4 prior-art surveys with citations: `RESULTS.md`; summary: `SUMMARY.md`.
 
+## 4. Active branch — AI-native parallelism (`ai-native-parallelism/`)
+
+**Question under investigation:** if AI authors most code, can the pipeline change from
+`source -> compiler inference -> binary` to `source bundle -> verifier -> measured candidates ->
+binary`? In this framing, the AI emits source plus candidate parallel plans, proof obligations,
+runtime guards, and benchmark hooks; the compiler trusts only facts it can verify or guard.
+
+This is intentionally different from DPJ-style human annotation. The first artifact is a draft
+parallel-plan-bundle schema plus an experiment plan for recasting the known injective-scatter
+structural win as a verified/guarded source bundle.
+
 ---
 
 ## 4. Consolidated conclusion

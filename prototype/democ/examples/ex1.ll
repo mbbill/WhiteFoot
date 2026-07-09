@@ -3,7 +3,7 @@ declare {i32, i1} @llvm.ssub.with.overflow.i32(i32, i32)
 declare {i32, i1} @llvm.smul.with.overflow.i32(i32, i32)
 declare void @llvm.trap()
 
-define i32 @sign_of(i32 %x) {
+define i32 @sign_of(i32 %x) nounwind memory(none) {
 entry:
   %t1 = icmp slt i32 %x, 0
   br i1 %t1, label %L3, label %L4
@@ -18,7 +18,7 @@ L8:
   ret i32 2
 }
 
-define i32 @main() {
+define i32 @main() nounwind memory(inaccessiblemem: write) {
 entry:
   %t1 = alloca i32
   store i32 40, ptr %t1

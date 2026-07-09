@@ -38,6 +38,15 @@ def _llty(name):
     """LLVM type for a democ type name; non-int named types are i32 tags."""
     return INT_LLTY.get(name, "i32")
 
+def _buf_elem(name):
+    return name[7:-1] if isinstance(name, str) and name.startswith("buffer<") else None
+
+def _tybytes(name):
+    """sizeof(T) for buffer_new's OP-9 byte-size computation (monomorphization-time)."""
+    import re as _re
+    m = _re.fullmatch(r'[iuf](\d+)', name)
+    return (int(m.group(1)) // 8) if m else 4
+
 # ---- op-name resolution over democ's integer subset [OP-1/2/6/7/8, DIAG-1] ----
 # ops with a result/amount mode axis -> the modes democ lowers; dotless ops carry
 # no mode. An illegal op name surfaces as a spec rejection with its rule id.
@@ -45,7 +54,7 @@ _MODE_OPS = {"iadd": {"wrap", "trap", "checked"}, "isub": {"wrap", "trap", "chec
              "imul": {"wrap", "trap", "checked"}, "idiv": {"trap", "checked"},
              "irem": {"trap", "checked"}, "ishl": {"wrap", "trap"},
              "ishr": {"wrap", "trap"}}
-_DOTLESS_OPS = {"iand", "ior", "ixor", "irotl", "irotr",
+_DOTLESS_OPS = {"buffer_new", "len", "iand", "ior", "ixor", "irotl", "irotr",
                 "ieq", "ine", "ilt", "ile", "igt", "ige", "cvt", "reinterpret"}
 _KNOWN_OP_BASES = set(_MODE_OPS) | _DOTLESS_OPS
 
@@ -115,15 +124,23 @@ def parse_mode(p):
 
 def parse_type(p):
     base = p.eat()
+    inner = []
     if p.peek() == '<':
         p.eat()
         while p.peek() != '>':
-            parse_type(p)
+            inner.append(parse_type(p))
             if p.peek() == ',': p.eat()
         p.eat('>')
+    if base == 'buffer' and inner:                     # retain the element type [TYPE-2]
+        return f"buffer<{inner[0]}>"
     return base
 
 def parse_place(p):
+    if p.peek() == 'index':                            # index<T>(place, atom) — a place [GRAM-5/OP-4]
+        p.eat(); p.eat('<'); elem = parse_type(p); p.eat('>'); p.eat('(')
+        inner = parse_place(p); p.eat(','); atom = parse_atom(p); p.eat(')')
+        return {"base": inner["base"], "path": inner["path"], "deref": inner["deref"],
+                "index": {"place": inner, "atom": atom, "elem": elem}}
     if p.peek() == 'deref':
         p.eat(); p.eat('('); inner = parse_place(p); p.eat(')')
         inner["deref"] = inner.get("deref", 0) + 1
@@ -156,6 +173,8 @@ def parse_expr(p):
             fields.append({"name": fname, "atom": atom})
             if p.peek() == ',': p.eat()
         p.eat(')'); return {"e": "construct", "n": n, "fields": fields}
+    if t == 'index':                                   # index is a PLACE, its sole home [GRAM-6/OP-4]
+        return {"e": "place", "p": parse_place(p)}
     if p.peek(1) == '<':                               # OPNAME<ty>(atoms) — every table op takes targs;
         op = p.eat()                                   # a dotted place token (base.field) never does
         if '.' in op and op.split('.', 1)[1] not in ("wrap", "trap", "checked", "strict"):
@@ -294,11 +313,17 @@ PRIM_SET = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
 def ttype(base):
     if base in PRIM_SET: return {"kind": "prim", "name": base}
     if base == "unit": return {"kind": "unit"}
+    if base.startswith("buffer<"):
+        return {"kind": "buffer", "elem": {"kind": "prim", "name": _buf_elem(base)}}
     if base in ("box", "buffer"): return {"kind": base, "elem": {"kind": "any"}}
     if base in ("slice", "arena"): return {"kind": base, "region": None, "elem": {"kind": "any"}}
     if base == "array": return {"kind": "array", "elem": {"kind": "any"}, "n": None}
     return {"kind": "named", "name": base}
 def tplace(pl):
+    if pl.get("index"):
+        ix = pl["index"]
+        return {"kind": "index", "place": tplace(ix["place"]),
+                "elem": ttype(ix["elem"]), "atom": texpr(ix["atom"])}
     node = {"kind": "var", "name": pl["base"]}
     for f in pl.get("path", []):
         node = {"kind": "field", "place": node, "name": f}
@@ -364,6 +389,41 @@ def build_prog(structs, enums, fns):
         }
     return prog
 
+
+def _has_loop(body):
+    for s in body:
+        k = s.get("s")
+        if k == "loop": return True
+        if k in ("region",) and _has_loop(s["body"]): return True
+        if k == "match" and any(_has_loop(a["body"]) for a in s["arms"]): return True
+    return False
+
+def _calls(body, out):
+    def ex(e):
+        if not isinstance(e, dict): return
+        if e.get("e") == "ucall": out.add(e["n"])
+        for a in e.get("args", []): ex(a)
+    for s in body:
+        for key in ("e", "expr", "init", "scrut"):
+            if key in s: ex(s[key])
+        if s.get("s") == "region": _calls(s["body"], out)
+        if s.get("s") == "match":
+            for a in s["arms"]: _calls(a["body"], out)
+    return out
+
+def compute_total(fns):
+    total = {}
+    for _ in range(len(fns) + 1):
+        for f in fns:
+            if f["name"] in total: continue
+            if _has_loop(f["body"]): total[f["name"]] = False; continue
+            if f.get("effects") != ["pure"]: total[f["name"]] = False; continue
+            cs = _calls(f["body"], set())
+            if all(total.get(c) is True for c in cs) or not cs:
+                if all(total.get(c, None) is True for c in cs):
+                    total[f["name"]] = True
+    return {k for k, v in total.items() if v}
+
 # ---- LLVM IR ----
 INT_LL = {"i8", "i16", "i32", "i64"}            # the LLVM integer types democ emits
 
@@ -388,12 +448,14 @@ def _field_ll(tyname, structs):
     return "i32"                                # user enum / prelude tag-only: i32 tag
 
 class Gen:
-    def __init__(g, f, enums, structs=None, alias=True, fnret=None, decls=None):
+    def __init__(g, f, enums, structs=None, alias=True, fnret=None, decls=None, total=frozenset()):
         g.f = f; g.enums = enums; g.structs = structs or {}; g.alias = alias
         g.fnret = fnret or {}          # fn name -> LLVM return type (for cross-fn calls)
+        g.fnrty = getattr(Gen, "_fnrty", {})
         g.decls = decls if decls is not None else set()   # extra intrinsic declares used
         g.n = 0; g.lines = []; g.env = {}; g.traps = False; g.term = False
-        g.loopstk = []; g.give_slot = None; g.give_ty = "i32"
+        g.loopstk = []
+        g.total = total; g.give_slot = None; g.give_ty = "i32"
         g.prologue = []                # entry-block setup (own struct params spilled to a slot)
         # payload-carrying enums lower to a named aggregate %E = { i32, i<payw> }
         g.payenums = {en for en, vs in g.enums.items() if _enum_payw(vs) > 0}
@@ -410,6 +472,7 @@ class Gen:
         for en, vs in g.enums.items():
             _reg(en, [vn for vn, _ in vs])
     def llty(g, name):                             # struct/enum-aware LLVM type name
+        if _buf_elem(name): return "{ptr, i64}"
         return ("%" + name) if (name in g.structs or name in g.payenums) else _llty(name)
     def enum_payll(g, en):                         # LLVM type of the payload word of enum en
         return "i" + str(_enum_payw(g.enums[en]))
@@ -455,6 +518,17 @@ class Gen:
     def tmp(g): g.n += 1; return f"%t{g.n}"
     def lbl(g): g.n += 1; return f"L{g.n}"
     def emit(g, s): g.lines.append(s)
+    def index_addr(g, pl):
+        """[OP-4] bounds-checked element address of an index place; traps OOB."""
+        buf = g.env[pl["base"]]
+        assert buf.get("k") == "buffer", "index place over a non-buffer binding (democ subset)"
+        iv = g.expr(pl["index"]["atom"])
+        g.traps = True
+        c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {buf['len']}")
+        l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
+        ptr = g.tmp(); g.emit(f"  {ptr} = getelementptr {buf['ell']}, ptr {buf['ptr']}, i64 {iv['v']}")
+        return ptr, buf["ell"], buf["esigned"]
+
     def ovf_decl(g, verb, signed, w):              # {sadd,uadd,...}.with.overflow.iW
         pfx = "s" if signed else "u"
         if w != "i32" or pfx != "s":               # sadd/ssub/smul.i32 are in the fixed header
@@ -478,6 +552,10 @@ class Gen:
         if k == "unit": return {"k": "unit"}
         if k == "place":
             pl = e["p"]
+            if pl.get("index"):                        # bounds-checked element read [OP-4]
+                ptr, ell, sg = g.index_addr(pl)
+                t = g.tmp(); g.emit(f"  {t} = load {ell}, ptr {ptr}")
+                return {"k": ell, "v": t, "signed": sg}
             if pl.get("path"):                         # struct field read: GEP + load [TYPE-5]
                 ptr, fll, fsigned, sub = g.place_addr(pl)
                 if sub is not None:                    # leaf field is itself a struct
@@ -557,10 +635,25 @@ class Gen:
                 return x
             args = [_passarg(x) for x in args]
             ret = g.fnret.get(e["n"], "i32")
-            argll = ', '.join(f"{g.argty(x)} {x['v']}" for x in args)
+            rstr = g.fnrty.get(e["n"], "")
+            packed = []
+            for x in args:
+                if x.get("k") == "buffer":             # pack {ptr, i64} at the callsite
+                    t0 = g.tmp(); g.emit(f"  {t0} = insertvalue {{ptr, i64}} undef, ptr {x['ptr']}, 0")
+                    t1 = g.tmp(); g.emit(f"  {t1} = insertvalue {{ptr, i64}} {t0}, i64 {x['len']}, 1")
+                    packed.append(f"{{ptr, i64}} {t1}")
+                else:
+                    packed.append(f"{g.argty(x)} {x['v']}")
+            argll = ', '.join(packed)
             if ret == "void":
                 g.emit(f"  call void @{e['n']}({argll})"); return {"k": "unit"}
             t = g.tmp(); g.emit(f"  {t} = call {ret} @{e['n']}({argll})")
+            el = _buf_elem(rstr)
+            if el:                                     # unpack buffer return
+                bp = g.tmp(); g.emit(f"  {bp} = extractvalue {{ptr, i64}} {t}, 0")
+                bl = g.tmp(); g.emit(f"  {bl} = extractvalue {{ptr, i64}} {t}, 1")
+                return {"k": "buffer", "ptr": bp, "len": bl,
+                        "ell": _llty(el), "esigned": _is_signed(el)}
             if ret.startswith("%"):                    # aggregate return: an SSA aggregate value
                 nm = ret[1:]
                 if nm in g.payenums:
@@ -573,6 +666,34 @@ class Gen:
         op = e["op"]; base, _, mode = op.partition(".")
         ty = e.get("tyargs") or ["i32"]
         w = _llty(ty[0]); signed = _is_signed(ty[0])
+        if base == "buffer_new":                       # [OP-9] size-overflow trap, alloc, fill
+            n_, fill = a[0], a[1]
+            esz = _tybytes(ty[0])
+            g.traps = True
+            g.decls.add("declare {i64, i1} @llvm.umul.with.overflow.i64(i64, i64)")
+            g.decls.add("declare ptr @malloc(i64)")
+            pr = g.tmp(); g.emit(f"  {pr} = call {{i64, i1}} @llvm.umul.with.overflow.i64(i64 {n_['v']}, i64 {esz})")
+            by = g.tmp(); g.emit(f"  {by} = extractvalue {{i64, i1}} {pr}, 0")
+            ov = g.tmp(); g.emit(f"  {ov} = extractvalue {{i64, i1}} {pr}, 1")
+            l = g.lbl(); g.emit(f"  br i1 {ov}, label %trap, label %{l}"); g.emit(f"{l}:")
+            buf = g.tmp(); g.emit(f"  {buf} = call ptr @malloc(i64 {by})")
+            # fill loop (alloca counter; mem2reg cleans)
+            cs = g.tmp(); g.emit(f"  {cs} = alloca i64"); g.emit(f"  store i64 0, ptr {cs}")
+            lc, lb, ld = g.lbl(), g.lbl(), g.lbl()
+            g.emit(f"  br label %{lc}"); g.emit(f"{lc}:")
+            cur = g.tmp(); g.emit(f"  {cur} = load i64, ptr {cs}")
+            cc = g.tmp(); g.emit(f"  {cc} = icmp ult i64 {cur}, {n_['v']}")
+            g.emit(f"  br i1 {cc}, label %{lb}, label %{ld}"); g.emit(f"{lb}:")
+            ep = g.tmp(); g.emit(f"  {ep} = getelementptr {w}, ptr {buf}, i64 {cur}")
+            g.emit(f"  store {w} {fill['v']}, ptr {ep}")
+            nx = g.tmp(); g.emit(f"  {nx} = add i64 {cur}, 1")
+            g.emit(f"  store i64 {nx}, ptr {cs}"); g.emit(f"  br label %{lc}")
+            g.emit(f"{ld}:")
+            return {"k": "buffer", "ptr": buf, "len": n_["v"], "ell": w, "esigned": signed}
+        if base == "len":                              # len<T>(b) -> own u64 [OP-1]
+            src = a[0]
+            assert src.get("k") == "buffer", "len over a non-buffer value (democ subset)"
+            return {"k": "i64", "v": src["len"], "signed": False}
         VERB = {"iadd": "add", "isub": "sub", "imul": "mul"}
         if base in VERB:                               # add/sub/mul: result-overflow axis
             if mode == "wrap":
@@ -704,7 +825,11 @@ class Gen:
                 g.emit(f"  store {g.give_ty} {v['v']}, ptr {g.give_slot}")
             elif k == "set":
                 pl = s["p"]
-                if pl.get("path"):                     # set struct field: GEP + store [TYPE-5]
+                if pl.get("index"):                    # bounds-checked element write [OP-4]
+                    v = g.expr(s["e"])
+                    ptr, ell, _sg = g.index_addr(pl)
+                    g.emit(f"  store {ell} {v['v']}, ptr {ptr}")
+                elif pl.get("path"):                   # set struct field: GEP + store [TYPE-5]
                     v = g.expr(s["e"])
                     ptr, fll, _fs, sub = g.place_addr(pl)
                     if v["k"] == "struct":
@@ -717,6 +842,10 @@ class Gen:
                     g.emit(f"  store {tgt.get('ty', 'i32')} {v['v']}, ptr {tgt['v']}")
             elif k == "return":
                 v = g.expr(s["e"])
+                if v.get("k") == "buffer":             # pack {ptr, i64} aggregate return
+                    t0 = g.tmp(); g.emit(f"  {t0} = insertvalue {{ptr, i64}} undef, ptr {v['ptr']}, 0")
+                    t1 = g.tmp(); g.emit(f"  {t1} = insertvalue {{ptr, i64}} {t0}, i64 {v['len']}, 1")
+                    g.emit(f"  ret {{ptr, i64}} {t1}"); g.term = True; continue
                 if g.f["name"] == "main": g.emit("  ret i32 0")
                 elif v["k"] == "unit": g.emit("  ret void")
                 elif v["k"] == "struct": g.emit(f"  ret {g.rllty} {g.load_struct(v)}")
@@ -814,6 +943,14 @@ class Gen:
                 continue
             pll = g.llty(q["ty"]); psigned = _is_signed(q["ty"])
             if q["mode"]["kind"] == "own":
+                el = _buf_elem(q["ty"])
+                if el:                                 # buffer param: {ptr, i64} unpacked
+                    ps.append(f"{{ptr, i64}} %{q['name']}")
+                    bp = g.tmp(); g.prologue.append(f"  {bp} = extractvalue {{ptr, i64}} %{q['name']}, 0")
+                    bl = g.tmp(); g.prologue.append(f"  {bl} = extractvalue {{ptr, i64}} %{q['name']}, 1")
+                    g.env[q["name"]] = {"k": "buffer", "ptr": bp, "len": bl,
+                                        "ell": _llty(el), "esigned": _is_signed(el)}
+                    continue
                 ps.append(f"{pll} %{q['name']}")
                 g.env[q["name"]] = {"k": pll, "v": f"%{q['name']}", "signed": psigned}
             else:
@@ -826,7 +963,24 @@ class Gen:
         rt = ("i32" if g.f["name"] == "main"
               else ("void" if g.f["rty"] == "unit" else g.llty(g.f["rty"])))
         g.rllty = rt
-        g.emit(f"define {rt} @{g.f['name']}({', '.join(ps)}) {{")
+        # [EFF->attrs channel] declared+checked effect rows lower to LLVM
+        # function attributes — facts rustc has no source channel for.
+        attrs = ""
+        if g.alias:
+            eff = g.f.get("effects", [])
+            has = lambda w: w in eff
+            refp = any(q["mode"]["kind"] == "ref" for q in g.f["params"])
+            mem = None
+            if eff == ["pure"]:
+                mem = "memory(argmem: read)" if refp else "memory(none)"
+            elif not has("allocates"):
+                parts = []
+                if has("writes"): parts.append("argmem: readwrite")
+                elif has("reads") or refp: parts.append("argmem: read")
+                if has("traps"): parts.append("inaccessiblemem: write")
+                if parts: mem = f"memory({', '.join(parts)})"
+            attrs = " nounwind" + (" willreturn" if g.f["name"] in g.total else "") + ((" " + mem) if mem else "")
+        g.emit(f"define {rt} @{g.f['name']}({', '.join(ps)}){attrs} {{")
         g.emit("entry:")
         for line in g.prologue: g.emit(line)
         g.stmts(g.f["body"])
@@ -845,8 +999,10 @@ def compile_program(src, alias=True):
         if f["rty"] == "unit": return "void"
         return ("%" + f["rty"]) if (f["rty"] in structs or f["rty"] in payenums) else _llty(f["rty"])
     fnret = {f["name"]: _ret(f) for f in fns}
+    Gen._fnrty = {f["name"]: f["rty"] for f in fns}
     decls = set()
-    bodies = [Gen(f, enums, structs, alias, fnret, decls).run() for f in fns]
+    total = compute_total(fns)
+    bodies = [Gen(f, enums, structs, alias, fnret, decls, total).run() for f in fns]
     # named aggregate type per used struct, emitted once (only when structs exist -> byte-stable
     # i32/enum output). fields lower to their per-width int / i1 / nested-%T / i32-tag types [TYPE-2].
     styp = [f"%{n} = type {{ " + ", ".join(_field_ll(fl["ty"], structs) for fl in flds) + " }"

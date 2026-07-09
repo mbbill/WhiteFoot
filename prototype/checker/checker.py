@@ -480,6 +480,11 @@ def op_type(callee: str, tyargs):
         return ([("val", NAMED_BOOL), ("val", NAMED_BOOL)], ("val", NAMED_BOOL))
     if base == "bnot":
         return ([("val", NAMED_BOOL)], ("val", NAMED_BOOL))
+    if base == "buffer_new":                           # [OP-9] (u64, T) -> buffer<T>
+        return ([("val", {"kind": "prim", "name": "u64"}), ("val", T)],
+                ("val", {"kind": "buffer", "elem": T}))
+    if base == "len":                                  # [OP-1] -> u64 (operand typed leniently)
+        return ([("val", ANY)], ("val", {"kind": "prim", "name": "u64"}))
     return None
 
 
@@ -629,6 +634,8 @@ class TypeChecker:
         if k == "use":                                     # OWN-1: a bare use must be copy
             d = self.place_desc(e["place"])
             if not self._is_copy(d):
+                if getattr(self, "_place_read_operand", False):   # len/slice_of read their
+                    return d                                       # place operand, never consume
                 raise CheckError("OWN-1",
                     f"bare use of affine value of type {_ty_str(d['ty'])}; write move")
             return d
@@ -710,7 +717,13 @@ class TypeChecker:
                 [{"name": n} for n in argnames],
                 [{"name": p["name"]} for p in params], "GRAM-11", f"call {callee}")
             for arg, p in zip(e["args"], params):
-                d = self.expr_desc(arg)
+                if (p["mode"]["kind"] == "own" and isinstance(arg, dict)
+                        and arg.get("kind") == "use"):
+                    # passing to an own param consumes: implicit move-at-call
+                    # [OWN-1/FN-1]; flow-layer kill is a recorded approximation
+                    d = self.expr_desc({"kind": "move", "place": arg["place"]})
+                else:
+                    d = self.expr_desc(arg)
                 self.expect_mode_ty(d, p["mode"], p["ty"],
                                     f"arg {p['name']} of {callee}")
             return self._mode_desc(sig["rmode"], sig["rty"])
@@ -718,19 +731,23 @@ class TypeChecker:
         if e.get("argnames") is not None:
             raise CheckError("GRAM-11",
                 f"table op {callee} takes positional operands, not named")
-        sig = op_type(callee, e.get("tyargs", []))
-        if sig is None:                                # unknown op: lenient
-            for arg in e["args"]:
-                self.expr_desc(arg)
-            return {"cat": "val", "ty": ANY}
-        params, (rcat, rty) = sig
-        if len(e["args"]) != len(params):
-            raise CheckError("GRAM-11",
-                f"op {callee} expects {len(params)} operand(s), got {len(e['args'])}")
-        for arg, (_cat, ty) in zip(e["args"], params):
-            d = self.expr_desc(arg)
-            self.expect_value(d, ty, f"operand of {callee}")
-        return {"cat": rcat, "ty": rty}
+        self._place_read_operand = callee in ("len", "slice_of")
+        try:
+            sig = op_type(callee, e.get("tyargs", []))
+            if sig is None:                            # unknown op: lenient
+                for arg in e["args"]:
+                    self.expr_desc(arg)
+                return {"cat": "val", "ty": ANY}
+            params, (rcat, rty) = sig
+            if len(e["args"]) != len(params):
+                raise CheckError("GRAM-11",
+                    f"op {callee} expects {len(params)} operand(s), got {len(e['args'])}")
+            for arg, (_cat, ty) in zip(e["args"], params):
+                d = self.expr_desc(arg)
+                self.expect_value(d, ty, f"operand of {callee}")
+            return {"cat": rcat, "ty": rty}
+        finally:
+            self._place_read_operand = False
 
     # -- agreement helpers ---------------------------------------------------
     def _mode_desc(self, mode, ty):
@@ -856,7 +873,7 @@ def _exhibits_traps(fn, declared_traps):
         k = e.get("kind")
         if k == "call":
             c = e.get("callee", "")
-            if isinstance(c, str) and (c.endswith(".trap") or declared_traps.get(c)):
+            if isinstance(c, str) and (c.endswith(".trap") or c == "buffer_new" or declared_traps.get(c)):
                 hit[0] = True
             for a in e.get("args", []):
                 expr(a)

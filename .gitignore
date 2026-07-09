@@ -10,6 +10,9 @@ prototype/democ/examples/ex2
 __pycache__/
 *.pyc
 
+# Rust benchmark build output
+target/
+
 # conformance: artifacts from running democ directly on a case (the runner uses a tempdir)
 conformance/cases/*.ll
 conformance/cases/*.s

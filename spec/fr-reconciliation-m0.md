@@ -143,5 +143,15 @@ and the whole set/retype apparatus collapses to singletons. T-A is thereby
 confirmed as sound-by-subsetting: our checker handles a strict subset of FR's
 state space.
 
-**Status: §5 formally reconciled. All obligations OBL-0..3 discharged**
-(OBL-1 at fragment scope). Recommendation to owner: ratify §5.
+**Status for the M0 ownership fragment: §5 core reconciled. All obligations
+OBL-0..3 discharged** (OBL-1 at fragment scope). Recommendation to owner:
+ratify the reconciled core.
+
+## v0.6 additive status note
+
+This memo reconciles the ownership core and the match-arm isolation model that
+existed when the M0 pass was written. `kernel-spec-v0.6.md` adds the `give`
+value-match delivery clause inside OWN-13, including the arm-result region join.
+That clause is intentionally tracked by the live spec as provisional until it
+gets its own proof note/model-check extension. Treat the current state as:
+core reconciled, v0.6 `give`/OWN-13 additive clause pending ratification.

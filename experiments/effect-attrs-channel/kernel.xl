@@ -1,0 +1,24 @@
+fn mix (x: own i64) -> own i64 pure {
+  let a: own i64 = imul.wrap<i64>(x, 2862933555777941757_i64);
+  let b: own i64 = iadd.wrap<i64>(a, 3037000493_i64);
+  let c: own i64 = imul.wrap<i64>(b, b);
+  let d: own i64 = iadd.wrap<i64>(c, b);
+  return d;
+}
+
+fn main () -> own unit traps {
+  let k: own i64 = 42_i64;
+  let acc: own i64 = 0_i64;
+  let i: own i64 = 0_i64;
+  loop @l {
+    match ige<i64>(i, 2000000000_i64) {
+      True() => { break @l; }
+      False() => { }
+    }
+    let m: own i64 = mix(x: k);
+    set acc = iadd.wrap<i64>(acc, m);
+    set i = iadd.wrap<i64>(i, 1_i64);
+  }
+  check ine<i64>(acc, 0_i64) else trap "zero";
+  return unit;
+}

@@ -1,0 +1,128 @@
+{
+  "version": 0,
+  "task": "scatter_permutation",
+  "spec": {
+    "entry": "scatter_spec",
+    "language": "pseudo",
+    "source": "for i in 0..n { out[perm[i]] = transform(input[i]); }"
+  },
+  "facts": [
+    {
+      "id": "f_transform_pure",
+      "kind": "pure",
+      "status": "proved_static",
+      "subject": "transform",
+      "details": {
+        "reason": "transform reads only its argument and has no writes, allocation, or trap edge"
+      }
+    },
+    {
+      "id": "f_perm_bijective",
+      "kind": "bijective",
+      "status": "guarded_runtime",
+      "subject": "perm[0..n) -> 0..n",
+      "details": {
+        "domain": "0..n",
+        "range": "0..n",
+        "guard": "g_verify_perm"
+      }
+    },
+    {
+      "id": "f_scatter_writes_disjoint",
+      "kind": "disjoint",
+      "status": "guarded_runtime",
+      "subject": "out[perm[i]] for each i in 0..n",
+      "details": {
+        "depends_on": "f_perm_bijective"
+      }
+    },
+    {
+      "id": "f_bounds",
+      "kind": "bounds",
+      "status": "guarded_runtime",
+      "subject": "perm[i] < n for each i in 0..n",
+      "details": {
+        "depends_on": "f_perm_bijective"
+      }
+    }
+  ],
+  "guards": [
+    {
+      "id": "g_verify_perm",
+      "proves": [
+        "f_perm_bijective",
+        "f_scatter_writes_disjoint",
+        "f_bounds"
+      ],
+      "cost_class": "O(n)",
+      "source": "allocate seen[n] initialized false; for i in 0..n { let p = perm[i]; if p >= n or seen[p] { return false; } seen[p] = true; } return true;"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "c_seq",
+      "kind": "sequential",
+      "language": "pseudo",
+      "source": "for i in 0..n { out[perm[i]] = transform(input[i]); }",
+      "requires": [],
+      "effects": [
+        "reads(input)",
+        "reads(perm)",
+        "writes(out)"
+      ],
+      "expected_win": {
+        "baseline": "itself",
+        "speedup_min": 1,
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "c_safe_range_owned",
+      "kind": "parallel",
+      "language": "rust",
+      "source": "Parallelize over owned output ranges; each worker scans perm and writes only indices in its owned range.",
+      "requires": [],
+      "effects": [
+        "reads(input)",
+        "reads(perm)",
+        "writes(disjoint out ranges)"
+      ],
+      "expected_win": {
+        "baseline": "c_seq",
+        "speedup_min": 1.5,
+        "confidence": "medium"
+      }
+    },
+    {
+      "id": "c_guarded_direct_scatter",
+      "kind": "parallel",
+      "language": "pseudo",
+      "source": "if g_verify_perm(perm, n) { parallel_for chunks of i { out[perm[i]] = transform(input[i]); } } else { c_seq(); }",
+      "requires": [
+        "f_perm_bijective",
+        "f_scatter_writes_disjoint",
+        "f_bounds"
+      ],
+      "effects": [
+        "reads(input)",
+        "reads(perm)",
+        "writes(disjoint out[perm[i]])"
+      ],
+      "expected_win": {
+        "baseline": "c_safe_range_owned",
+        "speedup_min": 1.2,
+        "confidence": "medium"
+      }
+    }
+  ],
+  "selection": {
+    "fallback": "c_seq",
+    "policy": "runtime_threshold",
+    "benchmark_budget_ms": 50
+  },
+  "producer": {
+    "model": "manual-seed",
+    "prompt_sha256": "",
+    "repair_turns": 0
+  }
+}

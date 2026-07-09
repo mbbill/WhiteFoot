@@ -33,10 +33,10 @@ automatically & non-defeasibly from the borrow modes.
   single-accumulator loops are latency-bound; the eliminated load/store hide under OoO +
   store-to-load forwarding. **Codegen/µop/code-size/energy win, not P-core wall-clock.**
 - *B-add, affine reduction* (`*acc += *addend`): noalias changes **complexity**. Naive C keeps an
-  O(n) vectorized loop behind a runtime alias-check; C-`restrict` and **xlang** collapse it to a
-  single `madd` = **O(1)**. Runtime: naive C **60.88 ms** vs C-restrict **2.75** vs **xlang 2.92**
-  (10⁹ iters) → **≈22× faster, automatic**, where C needs a hand-written/forgettable/unchecked
-  `restrict`. Genuine, measured optimizer-fact win.
+  O(n) vectorized loop behind a runtime alias-check; C-`restrict`, **Rust**, and **xlang** collapse
+  it to a single `madd` = **O(1)**. Runtime: naive C **60.88 ms** vs C-restrict **2.75** vs
+  **xlang 2.92** (10⁹ iters) → **≈22× faster than unannotated C, automatic**. The checked-in Rust
+  additive comparator confirms this is **parity with Rust**, not a Rust-beating result.
 
 ## Honest verdict
 "Optimizer-first" pays off **at exactly the constitution's claimed level, no more**:
