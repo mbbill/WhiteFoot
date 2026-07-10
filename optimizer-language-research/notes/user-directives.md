@@ -116,3 +116,33 @@ ergonomics. The existing ladder (fannkuch -> QOI) is re-aimed as engineering
 rungs toward this target, not ends in themselves. AI-authorship angle revives
 the shelved M3/W1 trial apparatus as the PRODUCTION method (the harness
 becomes the factory, not the experiment).
+
+## D7b (2026-07-10): Headline strategy — fuse an uncontested property onto a felt artifact
+
+Five-lens brainstorm (39 ideas, archived: notes/headline-brainstorm-39-ideas.json)
++ owner-recovered synthesis. Key finding: the skeptic lens splits everything
+into Pile A ("felt swap-in" artifacts — CRC32/base64/inflate/PNG — whose
+"rewritten, safe, fast" story the Rust wave already owns via
+zlib-rs/uutils/rustls) and Pile B (properties Rust structurally cannot express
+— checked constant-time, guaranteed musttail dispatch, checked laws). Strategy:
+FUSION — put a Pile-B property on a Pile-A artifact. The chosen fusion:
+constant-time crypto primitive (ChaCha20, pure ARX = add/rotate/xor on u32 —
+already the xlang op table), AI-written, RFC-8439-vector-verified, with
+timing-safety as a CHECKED TYPE PROPERTY (secret-typed data; branching or
+indexing on a secret is a compile error). Framing requirement (owner-risk
+noted): "AI-written crypto" alone reads as scary to security people — the
+checker-proves-the-properties story must lead (W3/D0a: you don't trust the AI,
+you trust the checker). Claim discipline: research/DSL precedents EXIST (FaCT,
+CT-Wasm, Jasmin — Jasmin is used for real crypto); the honest claim is "first
+general-purpose systems language where timing-safety is a checked type
+property", not "first ever".
+
+Ladder: (1) NOW — CRC32 single-symbol LD_PRELOAD rehearsal ("this AI-written
+function is running inside your git right now"): runtime-generated tables
+avoid the const-array gap; claim is bit-identical + AI-written + parity speed,
+NOT faster (beating zlib-ng needs hw crc32/PMULL ops we don't have — honest).
+(2) NEAR — the ChaCha20 fusion; requires CHANNEL 5 carding: the secret
+effect/type (no secret-dependent branches, no secret-indexed memory — a
+taint-tracking lattice in the checker, derivable from W3+T1; card before
+speccing). (3) BIG — inflate/zlib drop-in, contested by zlib-rs, only worth it
+with the fusion story attached (AI-written + faster-than-the-Rust-rewrite).
