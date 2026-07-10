@@ -90,3 +90,29 @@ canon. Swap-in credibility protocol: bit-identical outputs vs the incumbent +
 fuzz-diff harness (fits the conformance culture). Channel-4's eventual real
 experiment: port the dispatch core of the owner's own engine (Silverfir
 in-place tier), owner referees equivalence.
+
+## D7a (2026-07-10): Headline target — hot-path coreutils, AI-authored
+
+Owner: the QOI-class artifact is technically right but lacks "big news"
+feeling; the target class is "re-implemented X: xx% faster, feature parity,
+no CVE" headlines. Ruling folded with strategy discussion: the Rust-rewrite
+headline is already taken (uutils -> Ubuntu), so xlang's differentiator is the
+AI-authorship story stacked on the safety+speed story: "a language designed so
+AI cannot write the bug classes; the AI wrote your coreutils; they are faster
+than GNU and the memory-corruption CVE class is unrepresentable." Scope
+discipline (the parity trap): full coreutils parity is a multi-year human
+project even for uutils — the honest unit is PER-UTILITY FULL PARITY on the
+hot pipeline utilities first (wc, base64, cksum/sum, tr, cut, uniq, head/tail
+— the byte-compute speed demons), each verified by (a) GNU's own test suite
+for that utility, (b) fuzz-diff vs GNU byte-identical output, (c) LC_ALL=C
+byte-mode parity FIRST with locale parity staged later, honestly labeled.
+Claim discipline: never "no CVE" — "the memory-corruption CVE class is
+unrepresentable"; logic bugs remain possible and the fuzz-diff harness is the
+answer. Language gap list this pins (priority order): (1) const arrays
+(codegen exists in spec, unimplemented) — tables; (2) an I/O frame (D4
+FFI-narrow: read/write/open shims) — the first FFI-frame instance; (3)
+growable-buffer story or chunked-buffer pattern; (4) argv/byte-string
+ergonomics. The existing ladder (fannkuch -> QOI) is re-aimed as engineering
+rungs toward this target, not ends in themselves. AI-authorship angle revives
+the shelved M3/W1 trial apparatus as the PRODUCTION method (the harness
+becomes the factory, not the experiment).
