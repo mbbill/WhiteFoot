@@ -37,7 +37,8 @@ def _is_signed(suf):
     return suf in INT_SUFFIXES and suf[0] == "i"
 
 def _llty(name):
-    """LLVM type for a democ type name; non-int named types are i32 tags."""
+    """LLVM type for a democ type name; Bool is i1; non-int named types are i32 tags."""
+    if name == "Bool": return "i1"
     return INT_LLTY.get(name, "i32")
 
 def _buf_elem(name):
