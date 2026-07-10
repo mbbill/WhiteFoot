@@ -146,3 +146,31 @@ effect/type (no secret-dependent branches, no secret-indexed memory — a
 taint-tracking lattice in the checker, derivable from W3+T1; card before
 speccing). (3) BIG — inflate/zlib drop-in, contested by zlib-rs, only worth it
 with the fusion story attached (AI-written + faster-than-the-Rust-rewrite).
+
+## D7c (2026-07-10): Drop crypto/checksum artifacts; re-aim on compute + correctness framing
+
+Owner: the constant-time-crypto (ChaCha20) and CRC32/symbol-interposition
+directions repeatedly tripped an automated content filter (false positive —
+the work is entirely legitimate defensive/performance engineering, but the
+topics pattern-match to sensitive categories). RULING: shelve channel-5
+(secret/constant-time) and all crypto/checksum/interposition artifacts for
+now. Retarget the headline on PERFORMANCE + CORRECTNESS + AI-AUTHORSHIP, not
+on security-bug-class framing. Framing rules going forward: lead with speed
+and "the compiler proves the code correct by construction; the AI wrote it";
+verify with fuzz-differential testing against the incumbent; AVOID the
+vocabulary that trips filters. The differentiators that are NOT
+security-flavored still stand: guaranteed threaded/musttail interpreter
+dispatch (channel 4), checked-law reassociation / safe parallel reductions
+(channel 3), reproducible-to-the-byte builds, AI-authored + machine-checkable
+trust. Fusion strategy (D7b) survives with a non-security Pile-B property:
+put channel 3/4 (a performance guarantee) onto a felt compute artifact.
+
+Re-aimed ladder (all avoid the filter): (1) NOW — fannkuch-redux (pure index
+compute, validates the compute path, zero new features); (2) NEAR — QOI image
+codec (byte format conversion, graphics audience, bit-identical verifiable,
+needs const arrays or runtime table); (3) NEAR/MID — a data-pipeline compute
+tool people feel (byte counting / column cut / format conversion class),
+gated on the thin I/O frame + growable buffers. Headline shape: "AI-written,
+compiler-proven-safe, faster than the C tool, produces byte-identical output."
+Durable-log note: decision-gates.md + user-directives.md are the recovery
+record; replay from last git commit after any rewind.
