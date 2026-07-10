@@ -313,3 +313,29 @@ IO at most; candidate class: bytecode VM / protocol codec / table-driven
 interpreter, i.e. compiler-adjacent workloads) and measure end-to-end: runtime
 vs rustc -O3, code size, guard/versioned-loop counts, emitted-fact census,
 and audit metrics (what fraction of behavior is signature-determined).
+
+## Owner steer: interpreters are dispatch-bound (2026-07-10)
+
+Owner (direct wasm-VM implementation experience): interpreter handlers are
+trivial (add.i32, local.get); the pressure is DISPATCH. A naive switch-in-loop
+compiles to one shared indirect branch — same machine code from every
+language, so no channel delta there; the fast shapes are threaded dispatch
+(computed goto) and musttail chains (wasm3/protobuf/Deegen style,
+musttail + preserve_none), which C owns and Rust cannot express (no stable
+guaranteed TCO, no computed goto). Consequences: (1) VM interpreter DROPPED as
+a leg-B channel showcase — it would measure dispatch codegen we have not
+built; leg-B candidates stay fannkuch (index compute) + codec class (blocked
+on const-array codegen). (2) CARDED as candidate CHANNEL 4 — "blessed
+interpreter pattern": lower the naive loop{match-on-opcode} source shape to
+threaded/musttail dispatch in our own codegen (emit musttail+preserve_none
+chains or tail-duplicated indirectbr from the pattern). Delta over Rust: real
+and structural (inexpressible there). Delta over C: parity with expert
+hand-threaded C, win over naive C. P0+W1 shaped: the obvious shape becomes the
+fast shape — pattern doctrine's thesis applied to control flow. Needs carding
+(BTB behavior, SimplifyCFG re-merging hazards, preserve_none availability)
+before any spec/impl work. (3) Nuance kept on record: channels are not
+irrelevant to interpreters — keeping pc/sp/stack headers in registers across
+handler bodies is an ALIASING fact (channel 1's exact shape: state struct
+behind &uniq, stack/locals/linear-memory as buffer fields), and wasm linear
+memory is bounds-checked buffer indexing (OP-4 elision territory). Dispatch
+dominates only when the opcode stream defeats prediction.

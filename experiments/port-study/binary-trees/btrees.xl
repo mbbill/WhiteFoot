@@ -1,0 +1,142 @@
+struct Pool {
+  l: buffer<u64>;
+  r: buffer<u64>;
+  cnt: u64;
+}
+
+fn build ['r] (s: &uniq 'r Pool, d: own u64) -> own u64 reads('r), writes('r), traps {
+  doc "bottom-up complete-tree build: one exclusive borrow, loops only; index 0 is the null sentinel";
+  let leaves: own u64 = ishl.wrap<u64>(1_u64, d);
+  let start: own u64 = deref(s).cnt;
+  let i: own u64 = 0_u64;
+  loop @lv {
+    match ige<u64>(i, leaves) {
+      True() => {
+        break @lv;
+      }
+      False() => {
+      }
+    }
+    let c1: own u64 = deref(s).cnt;
+    set index<u64>(deref(s).l, c1) = 0_u64;
+    set index<u64>(deref(s).r, c1) = 0_u64;
+    set deref(s).cnt = iadd.trap<u64>(c1, 1_u64);
+    set i = iadd.trap<u64>(i, 1_u64);
+  }
+  let width: own u64 = leaves;
+  loop @up {
+    match ile<u64>(width, 1_u64) {
+      True() => {
+        break @up;
+      }
+      False() => {
+      }
+    }
+    let half: own u64 = ishr.wrap<u64>(width, 1_u64);
+    let newstart: own u64 = deref(s).cnt;
+    let j: own u64 = 0_u64;
+    loop @pr {
+      match ige<u64>(j, half) {
+        True() => {
+          break @pr;
+        }
+        False() => {
+        }
+      }
+      let j2: own u64 = imul.trap<u64>(j, 2_u64);
+      let li: own u64 = iadd.trap<u64>(start, j2);
+      let ri: own u64 = iadd.trap<u64>(li, 1_u64);
+      let c2: own u64 = deref(s).cnt;
+      set index<u64>(deref(s).l, c2) = li;
+      set index<u64>(deref(s).r, c2) = ri;
+      set deref(s).cnt = iadd.trap<u64>(c2, 1_u64);
+      set j = iadd.trap<u64>(j, 1_u64);
+    }
+    set start = newstart;
+    set width = half;
+  }
+  return start;
+}
+
+fn chk ['r] (s: &'r Pool, i: own u64) -> own u64 reads('r), traps {
+  let li: own u64 = index<u64>(deref(s).l, i);
+  match ieq<u64>(li, 0_u64) {
+    True() => {
+      return 1_u64;
+    }
+    False() => {
+    }
+  }
+  let ri: own u64 = index<u64>(deref(s).r, i);
+  let lc: own u64 = chk(s: s, i: li);
+  let rc: own u64 = chk(s: s, i: ri);
+  let t: own u64 = iadd.trap<u64>(lc, rc);
+  return iadd.trap<u64>(t, 1_u64);
+}
+
+fn main () -> own unit allocates(heap), traps {
+  let maxd: own u64 = 21_u64;
+  let mind: own u64 = 4_u64;
+  let capbits: own u64 = iadd.trap<u64>(maxd, 2_u64);
+  let cap: own u64 = ishl.wrap<u64>(1_u64, capbits);
+  let al: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let ar: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let poola: own Pool = Pool(l: move al, r: move ar, cnt: 1_u64);
+  let bl: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let br: own buffer<u64> = buffer_new<u64>(cap, 0_u64);
+  let poolb: own Pool = Pool(l: move bl, r: move br, cnt: 1_u64);
+  region 'm {
+    let sd: own u64 = iadd.trap<u64>(maxd, 1_u64);
+    let sroot: own u64 = build(s: &uniq 'm poola, d: sd);
+    let sc: own u64 = chk(s: &'m poola, i: sroot);
+    let sbits: own u64 = iadd.trap<u64>(sd, 1_u64);
+    let sn: own u64 = ishl.wrap<u64>(1_u64, sbits);
+    let sexp: own u64 = isub.trap<u64>(sn, 1_u64);
+    check ieq<u64>(sc, sexp) else trap "stretch checksum drift";
+    set poola.cnt = 1_u64;
+    let lroot: own u64 = build(s: &uniq 'm poola, d: maxd);
+    let d: own u64 = mind;
+    loop @depths {
+      match igt<u64>(d, maxd) {
+        True() => {
+          break @depths;
+        }
+        False() => {
+        }
+      }
+      let spare: own u64 = isub.trap<u64>(maxd, d);
+      let ibits: own u64 = iadd.trap<u64>(spare, mind);
+      let iters: own u64 = ishl.wrap<u64>(1_u64, ibits);
+      let ebits: own u64 = iadd.trap<u64>(d, 1_u64);
+      let en: own u64 = ishl.wrap<u64>(1_u64, ebits);
+      let exp: own u64 = isub.trap<u64>(en, 1_u64);
+      let sum: own u64 = 0_u64;
+      let k: own u64 = 0_u64;
+      loop @trees {
+        match ige<u64>(k, iters) {
+          True() => {
+            break @trees;
+          }
+          False() => {
+          }
+        }
+        set poolb.cnt = 1_u64;
+        region 'it {
+          let root: own u64 = build(s: &uniq 'it poolb, d: d);
+          let tc: own u64 = chk(s: &'it poolb, i: root);
+          set sum = iadd.trap<u64>(sum, tc);
+        }
+        set k = iadd.trap<u64>(k, 1_u64);
+      }
+      let want: own u64 = imul.trap<u64>(iters, exp);
+      check ieq<u64>(sum, want) else trap "iteration checksum drift";
+      set d = iadd.trap<u64>(d, 2_u64);
+    }
+    let lc: own u64 = chk(s: &'m poola, i: lroot);
+    let lbits: own u64 = iadd.trap<u64>(maxd, 1_u64);
+    let ln: own u64 = ishl.wrap<u64>(1_u64, lbits);
+    let lexp: own u64 = isub.trap<u64>(ln, 1_u64);
+    check ieq<u64>(lc, lexp) else trap "long-lived checksum drift";
+  }
+  return unit;
+}
