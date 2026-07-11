@@ -136,3 +136,28 @@ Kernel: 4.05-4.12 GB/s with proofs vs 2.45-2.48 no-facts control (1.66x) —
 semantics and the boundary check intact. History: pre-proof checked build
 was 0.23s and LOST to BSD's 0.20; the proof tier flipped the ladder — now
 1.3x ahead of BSD, 2.25x ahead of GNU and the Rust rewrite.
+
+## Pre-registered adversary: Rust assert-up-front (2026-07-11)
+
+Four Rust variants, same 384MB, same machine (kernel GB/s):
+| variant | GB/s |
+|---|---:|
+| rust naive indexed | 2.52 |
+| rust assert-up-front (the requires-equivalent) | **2.51 — recovers NOTHING** |
+| rust idiomatic chunks_exact/zip (expert shape) | 4.29 |
+| rust unsafe get_unchecked ceiling | 4.29 |
+| xlang obvious shape + requires (for reference) | 4.09 |
+
+Verdicts: (1) The assert idiom is REFUTED as a recovery path — LLVM cannot
+connect the hoisted capacity assert to the coupled-counter bounds checks; the
+elision is genuinely checker-attributable, not heuristic-recoverable.
+(2) BUT expert Rust reaches the ceiling by RESTRUCTURING: chunks_exact/zip
+makes the checks structurally nonexistent (base64's fixed 3:4 shape is
+exactly iterator-friendly). Base64 therefore does NOT clear D9's strict
+"beats best-effort safe Rust" bar; the honest claim is distributional:
+xlang's obvious indexed shape + a one-line checked contract = 4.09; Rust's
+obvious indexed shape = 2.5 with NO local annotation fix — the writer must
+know the iterator rewrite. (3) Residual 4.29 vs 4.09 (~5%) is loop-shape
+quality, worth a look. (4) CONSEQUENCE: the decisive leg-B test moves to the
+class where iterator restructuring CANNOT sidestep checks — variable-size
+writes (QOI decode, the chosen decoder experiment).

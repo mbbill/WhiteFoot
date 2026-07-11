@@ -322,7 +322,7 @@ proof state:
 | `versioned` | A proved fast path omits it; the false-guard path preserves the original check | Emit guard + path-specific origins |
 | `unproved` | No admitted proof discharges the origin | Emit the original check |
 
-Each emitted origin separately records final lowering state:
+Each check origin/path instance separately records final lowering state:
 
 | Final lowering state | Meaning |
 |---|---|
@@ -415,7 +415,8 @@ Candidate approval record:
   "elaboration_proof_state": "unproved",
   "final_lowering_state": "present",
   "policy_disposition": "authorized-retained",
-  "reason": "output fullness is normal streaming control; returns NeedMoreOutput",
+  "dominating_recoverable_guard_ref": "body.loop@decode.capacity-match",
+  "reason": "redundant OP-4 check remains after the source NeedMoreOutput guard; prover debt",
   "approver": "owner-gate-record-id",
   "source_context_hash": "..."
 }
@@ -426,6 +427,9 @@ Required properties:
 - no source-level `allow`, warning suppression, or blanket function exemption;
 - exact function, check kind, node path, and source/artifact identity;
 - a nonempty reason from a closed reason class plus prose detail;
+- a reason that states the retained edge's actual failure semantics; claiming a
+  recoverable result requires a dominating source guard reference—the OP-4 edge
+  itself traps;
 - code changes invalidate stale approvals;
 - approval never removes the runtime check or adds a trusted optimizer fact;
 - approval affects performance promotion only, never safety acceptance; and
@@ -741,7 +745,8 @@ The proof obligation is local:
 o <= len(out), so remaining subtraction cannot wrap
 remaining >= B
 token_output <= B
-o and the output root remain stable across the region
+o is stable through the covered address calculations/stores, then advances
+  exactly once by token_output; output root and length remain stable throughout
 therefore every out[o+d], 0 <= d < token_output, is in bounds
 ```
 
@@ -980,8 +985,8 @@ Phase one builds a bounded decoder-shaped kernel with a deterministic output
 need distribution:
 
 ```text
-99%: 1..1024 bytes
-1%:  1025..1,048,576 bytes
+99%: 1..1023 bytes
+1%:  1024..1,048,576 bytes
 ```
 
 Compare at least:
@@ -995,10 +1000,12 @@ Compare at least:
 7. facts-off and perfect-elision/codegen-ceiling controls; and
 8. equivalent mature C and safe-Rust implementations.
 
-Variant 4 is host-language-only until grow/replace and aggregate result lowering
-exist, unless those prerequisites are implemented first. Variant 5 must start
-from a source API that already returns `NeedMoreOutput`; compiler versioning
-cannot convert an OP-4 trap into a recoverable result.
+Variants 3–5 require aggregate-result lowering or the explicitly non-canonical
+temporary status/struct ABI described above. Variant 4 additionally remains
+host-language-only until grow/replace exists, unless those prerequisites are
+implemented first. Variant 5 must start from a source API that already returns
+`NeedMoreOutput`; compiler versioning cannot convert an OP-4 trap into a
+recoverable result.
 
 These strategies do not automatically have the same accepted domain or failure
 timing. Either place them behind one behaviorally equivalent public wrapper or
