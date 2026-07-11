@@ -121,3 +121,18 @@ remains pinned by 139/139 deterministic boundary-biased facts/nofacts/Python
 reference differentials. A separate direct-C ABI probe confirms exact capacity
 succeeds and one-byte-under capacity traps at the callee boundary before the
 first body byte store (`verify.py`).
+
+## Post-PROOF-1/2 ladder (2026-07-11, 384MB, byte-identical outputs)
+
+| implementation | time |
+|---|---:|
+| **xlang, proofs active** | **0.16s** |
+| BSD base64 (Apple, wide-table) | 0.21s |
+| GNU base64 | 0.36s |
+| uutils base64 (Rust) | 0.36s |
+
+Kernel: 4.05-4.12 GB/s with proofs vs 2.45-2.48 no-facts control (1.66x) —
+97% of the perfect-prover ceiling (4.2), with full trap-on-violation
+semantics and the boundary check intact. History: pre-proof checked build
+was 0.23s and LOST to BSD's 0.20; the proof tier flipped the ladder — now
+1.3x ahead of BSD, 2.25x ahead of GNU and the Rust rewrite.
