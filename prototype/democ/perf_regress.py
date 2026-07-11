@@ -46,3 +46,14 @@ print("OK: checked-law (FN-4) reassociation intact")
 _tp = _d.compile_program(Path("examples/totality_pins.xl").read_text())
 assert "willreturn" not in _tp, "SOUNDNESS REGRESSION: willreturn on a divergent give-match fn"
 print("OK: willreturn tier soundness pins intact")
+
+# Fifth pin [OP-4 PROOF-1]: requesting structured proof accounting must be a
+# byte-transparent observation of compilation, never a codegen switch.
+_pr_src = Path("../../codegen-corpus/cases/bounds/dominating-guard/01-basic-read-positive.xl").read_text()
+_pr_sites = []
+_plain = _d.compile_program(_pr_src)
+_reported = _d.compile_program(_pr_src, proof_report=_pr_sites)
+assert _plain == _reported, "CODEGEN REGRESSION: proof accounting changed emitted IR"
+assert len(_pr_sites) == 1 and _pr_sites[0]["status"] == "proved", \
+    "PROOF REGRESSION: structured site accounting changed"
+print("OK: bounds-proof accounting is byte-transparent")

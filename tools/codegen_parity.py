@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 
-sys.dont_write_bytecode = True  # the repository contains historical tracked pyc files
+sys.dont_write_bytecode = True  # keep parity runs from polluting the workspace with caches
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "codegen-parity.json"
 CORPUS_ROOT = ROOT / "codegen-corpus/cases"
@@ -109,13 +109,60 @@ def assembly_opcodes(body: str) -> list[str]:
 
 
 def metrics(raw_ir: str, optimized_ir: str, assembly: str, remarks: str,
-            function: str | None) -> dict[str, Any]:
+            function: str | None, proof_report: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     raw_body = llvm_function(raw_ir, function)
     opt_body = llvm_function(optimized_ir, function)
     asm_body = assembly_function(assembly, function)
     opcodes = assembly_opcodes(asm_body)
     vectors = [(int(width), int(interleave)) for width, interleave in VECTOR_REMARK.findall(remarks)]
     ir_vector_widths = [int(width) for width in re.findall(r"<(\d+)\s+x\s+[^>]+>", opt_body)]
+    bounds = None if proof_report is None else [
+        site for site in proof_report if function is None or site["function"] == function
+    ]
+    if bounds is None:
+        proof_metrics = {
+            "proof.bounds_sites": None,
+            "proof.eligible": None,
+            "proof.proved": None,
+            "proof.retained": None,
+            "proof.ceiling": None,
+            "proof.partition_ok": None,
+            "proof.dominating_guard": None,
+            "proof.masked_index": None,
+            "proof.remainder_guard": None,
+            "proof.remainder_tail": None,
+            "proof.proved_targets": None,
+            "proof.retained_targets": None,
+            "proof.sites": None,
+        }
+    else:
+        def target_counts(status: str) -> dict[str, int]:
+            counts: dict[str, int] = {}
+            for site in bounds:
+                if site["status"] == status:
+                    target = site["target"]
+                    counts[target] = counts.get(target, 0) + 1
+            return dict(sorted(counts.items()))
+
+        proof_metrics = {
+            "proof.bounds_sites": len(bounds),
+            "proof.eligible": len(bounds),
+            "proof.proved": sum(site["status"] == "proved" for site in bounds),
+            "proof.retained": sum(site["status"] == "retained" for site in bounds),
+            "proof.ceiling": sum(site["status"] == "ceiling" for site in bounds),
+            "proof.partition_ok": len(bounds) == sum(
+                site["status"] in {"proved", "retained", "ceiling"} for site in bounds
+            ),
+            "proof.dominating_guard": sum(
+                site["proof"] == "dominating-guard" for site in bounds
+            ),
+            "proof.masked_index": sum(site["proof"] == "masked-index" for site in bounds),
+            "proof.remainder_guard": sum(site["proof"] == "remainder-guard" for site in bounds),
+            "proof.remainder_tail": sum(site["proof"] == "remainder-tail" for site in bounds),
+            "proof.proved_targets": target_counts("proved"),
+            "proof.retained_targets": target_counts("retained"),
+            "proof.sites": bounds,
+        }
     return {
         "raw_ir.alias_scope_uses": sum(
             "!alias.scope" in line for line in raw_body.splitlines() if not line.lstrip().startswith("!")
@@ -139,6 +186,7 @@ def metrics(raw_ir: str, optimized_ir: str, assembly: str, remarks: str,
         "remarks.vectorized_loops": len(vectors),
         "remarks.max_vector_width": max((width for width, _ in vectors), default=0),
         "remarks.max_interleave": max((interleave for _, interleave in vectors), default=0),
+        **proof_metrics,
     }
 
 
@@ -160,6 +208,35 @@ def environment_report() -> dict[str, str | None]:
     }
 
 
+def validate_proof_report(report: list[dict[str, Any]]) -> None:
+    by_function: dict[str, list[dict[str, Any]]] = {}
+    for site in report:
+        if not isinstance(site.get("function"), str) or not site["function"]:
+            raise HarnessError(f"invalid proof-site function: {site!r}")
+        if not isinstance(site.get("site"), int) or site["site"] < 0:
+            raise HarnessError(f"invalid proof-site ordinal: {site!r}")
+        if site.get("kind") not in {"const", "buffer", "buffer-field"}:
+            raise HarnessError(f"invalid proof-site target kind: {site!r}")
+        if not isinstance(site.get("target"), str) or not site["target"]:
+            raise HarnessError(f"invalid proof-site target: {site!r}")
+        if site.get("index") is not None and not isinstance(site["index"], str):
+            raise HarnessError(f"invalid proof-site index: {site!r}")
+        by_function.setdefault(site.get("function"), []).append(site)
+        if site.get("status") not in {"proved", "retained", "ceiling"}:
+            raise HarnessError(f"unknown proof-site status: {site!r}")
+        if site.get("proof") not in {
+                None, "dominating-guard", "masked-index", "remainder-guard", "remainder-tail"}:
+            raise HarnessError(f"unknown bounds proof reason: {site!r}")
+        if site["status"] == "proved" and site["proof"] is None:
+            raise HarnessError(f"proved bounds site lacks a proof reason: {site!r}")
+        if site["status"] == "retained" and site["proof"] is not None:
+            raise HarnessError(f"retained bounds site carries an elision proof: {site!r}")
+    for function, sites in by_function.items():
+        ordinals = [site.get("site") for site in sites]
+        if ordinals != list(range(len(sites))):
+            raise HarnessError(f"non-contiguous bounds-site ordinals in {function}: {ordinals}")
+
+
 def compile_variant(case_id: str, variant: dict[str, Any], build: Path, democ: Any) -> dict[str, Any]:
     name = variant["name"]
     kind = variant["kind"]
@@ -175,11 +252,14 @@ def compile_variant(case_id: str, variant: dict[str, Any], build: Path, democ: A
         raise HarnessError(f"invalid optimization level {level!r}")
 
     if kind == "xlang":
+        proof_report: list[dict[str, Any]] = []
         raw_ir = democ.compile_program(
             source.read_text(),
             alias=bool(variant.get("facts", True)),
             elide_bounds=bool(variant.get("elide_bounds", False)),
+            proof_report=proof_report,
         )
+        validate_proof_report(proof_report)
         raw_ir_path.write_text(raw_ir)
         input_path = raw_ir_path
     elif kind == "c":
@@ -205,7 +285,8 @@ def compile_variant(case_id: str, variant: dict[str, Any], build: Path, democ: A
     optimized_ir = opt_ir_path.read_text()
     if kind == "c":
         raw_ir = optimized_ir
-    return metrics(raw_ir, optimized_ir, asm_path.read_text(), compiled.stderr, variant.get("function"))
+    return metrics(raw_ir, optimized_ir, asm_path.read_text(), compiled.stderr,
+                   variant.get("function"), proof_report if kind == "xlang" else None)
 
 
 def resolve(reference: str, variants: dict[str, dict[str, Any]]) -> Any:
@@ -289,7 +370,7 @@ def load_corpus_cases() -> list[dict[str, Any]]:
             function = "probe" if family == "bounds/dominating-guard" else None
         if not function:
             raise HarnessError(f"corpus measurement function is required: {manifest_path}")
-        if measurement.get("metric") != "raw_ir.trap_calls":
+        if measurement.get("metric") != "proof.sites":
             raise HarnessError(f"unsupported corpus proof metric in {manifest_path}")
         for entry in family_manifest["cases"]:
             source_name = entry.get("source")
@@ -300,9 +381,12 @@ def load_corpus_cases() -> list[dict[str, Any]]:
                 raise HarnessError(f"invalid corpus source: {source_path}")
             expected = entry.get("expected", {})
             classification = expected.get("proof_classification", expected.get("classification"))
-            if classification not in {"proved", "elided", "retained", "checked"}:
+            if classification not in {"proved", "elided", "retained", "checked", "mixed"}:
                 raise HarnessError(f"invalid proof classification for {source_path}")
             is_positive = classification in {"proved", "elided"}
+            expected_sites = expected.get("bounds_sites")
+            if not isinstance(expected_sites, int) or expected_sites < 1:
+                raise HarnessError(f"expected.bounds_sites is required for {source_path}")
             maturity = entry.get("maturity")
             if maturity not in {"explore", "audit", "gate"}:
                 raise HarnessError(f"invalid corpus maturity for {source_path}")
@@ -315,34 +399,93 @@ def load_corpus_cases() -> list[dict[str, Any]]:
             case_id = "corpus." + family.replace("/", ".") + "." + stem
             relative_source = str(source_path.relative_to(ROOT))
             checks = []
+            checks.extend([
+                {
+                    "label": "facts enumerate every expected bounds site",
+                    "left": "facts.proof.eligible",
+                    "op": "eq",
+                    "value": expected_sites,
+                },
+                {
+                    "label": "facts-off enumerates the same bounds sites",
+                    "left": "nofacts.proof.eligible",
+                    "op": "eq",
+                    "value": expected_sites,
+                },
+                {
+                    "label": "proof status partition is complete",
+                    "left": "facts.proof.partition_ok",
+                    "op": "eq",
+                    "value": True,
+                },
+            ])
             if is_positive:
                 checks.extend([
                     {
-                        "label": "facts prove the indexed access",
-                        "left": "facts.raw_ir.trap_calls",
+                        "label": "facts prove the eligible access sites",
+                        "left": "facts.proof.proved",
+                        "op": "eq",
+                        "value": expected_sites,
+                    },
+                    {
+                        "label": "facts leave no eligible site checked",
+                        "left": "facts.proof.retained",
                         "op": "eq",
                         "value": 0,
                     },
                     {
-                        "label": "facts-off retains the dynamic check",
-                        "left": "nofacts.raw_ir.trap_calls",
-                        "op": "gt",
-                        "value": 0,
+                        "label": "facts-off retains exactly the proved sites",
+                        "left": "nofacts.proof.retained",
+                        "op": "eq",
+                        "value": expected_sites,
+                    },
+                ])
+            elif classification == "mixed":
+                proved_sites = expected.get("proved_sites")
+                retained_sites = expected.get("retained_sites")
+                if not isinstance(proved_sites, int) or not isinstance(retained_sites, int) \
+                        or proved_sites < 1 or retained_sites < 1 \
+                        or proved_sites + retained_sites != expected_sites:
+                    raise HarnessError(f"invalid mixed proof counts for {source_path}")
+                checks.extend([
+                    {
+                        "label": "mixed case proves exactly its eligible subset",
+                        "left": "facts.proof.proved",
+                        "op": "eq",
+                        "value": proved_sites,
+                    },
+                    {
+                        "label": "mixed case retains exactly its unsafe subset",
+                        "left": "facts.proof.retained",
+                        "op": "eq",
+                        "value": retained_sites,
+                    },
+                    {
+                        "label": "facts-off retains every mixed-case site",
+                        "left": "nofacts.proof.retained",
+                        "op": "eq",
+                        "value": expected_sites,
                     },
                 ])
             else:
                 checks.extend([
                     {
-                        "label": "near-miss retains the dynamic check",
-                        "left": "facts.raw_ir.trap_calls",
-                        "op": "gt",
+                        "label": "near-miss proves no access site",
+                        "left": "facts.proof.proved",
+                        "op": "eq",
                         "value": 0,
                     },
                     {
-                        "label": "facts do not overgeneralize beyond the control",
-                        "left": "facts.raw_ir.trap_calls",
+                        "label": "near-miss retains the dynamic sites",
+                        "left": "facts.proof.retained",
                         "op": "eq",
-                        "right": "nofacts.raw_ir.trap_calls",
+                        "value": expected_sites,
+                    },
+                    {
+                        "label": "facts do not overgeneralize beyond the control",
+                        "left": "nofacts.proof.retained",
+                        "op": "eq",
+                        "value": expected_sites,
                     },
                 ])
             cases.append({

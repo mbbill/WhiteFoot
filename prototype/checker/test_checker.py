@@ -527,6 +527,30 @@ class ProgramLayer(unittest.TestCase):
               {"kind": "call", "callee": "iadd.wrap", "args": [lit(), lit()],
                "argnames": ["a", "b"], "tyargs": [I32]}}], rmode=own(), rty=I32)}})
 
+    def test_own1_bare_affine_call_arg_rejected(self):
+        buf = {"kind": "buffer", "elem": {"kind": "prim", "name": "u8"}}
+        consume = pfn([{"kind": "return", "expr": lit(UNIT)}],
+                      params=[{"name": "b", "mode": own(), "ty": buf}])
+        caller = pfn([
+            {"kind": "expr", "expr": ucall("consume", ["b"], [use(var("src"))])},
+            {"kind": "return", "expr": lit(UNIT)},
+        ], params=[{"name": "src", "mode": own(), "ty": buf}])
+        self.expect("OWN-1", {"structs": {}, "enums": {},
+                              "fns": {"consume": consume, "caller": caller}})
+
+    def test_own1_explicit_affine_call_arg_moves(self):
+        buf = {"kind": "buffer", "elem": {"kind": "prim", "name": "u8"}}
+        consume = pfn([{"kind": "return", "expr": lit(UNIT)}],
+                      params=[{"name": "b", "mode": own(), "ty": buf}])
+        caller = pfn([
+            {"kind": "expr", "expr": ucall("consume", ["b"], [
+                {"kind": "move", "place": var("src")}
+            ])},
+            {"kind": "return", "expr": lit(UNIT)},
+        ], params=[{"name": "src", "mode": own(), "ty": buf}])
+        self.ok({"structs": {}, "enums": {},
+                 "fns": {"consume": consume, "caller": caller}})
+
     def test_type7_borrow_as_value(self):
         self.expect("TYPE-7", {"structs": {}, "enums": {}, "fns": {"f": pfn(
             [{"kind": "return", "expr": use(var("p"))}],

@@ -617,7 +617,7 @@ def _field_ll(tyname, structs):
 
 class Gen:
     def __init__(g, f, enums, structs=None, alias=True, fnret=None, decls=None, total=frozenset(),
-                 mdefs=None, mdctr=None, elide=False):
+                 mdefs=None, mdctr=None, elide=False, proof_report=None):
         g.f = f; g.enums = enums; g.structs = structs or {}; g.alias = alias
         g.fnret = fnret or {}          # fn name -> LLVM return type (for cross-fn calls)
         g.fnrty = getattr(Gen, "_fnrty", {})
@@ -625,6 +625,8 @@ class Gen:
         g.n = 0; g.lines = []; g.env = {}; g.traps = False; g.term = False
         g.loopstk = []
         g.elide = elide                # EXPERIMENT ONLY: emit no bounds checks (perfect-prover ceiling)
+        g.proof_report = proof_report  # optional structured OP-4 site accounting
+        g.bounds_site = 0              # deterministic source/codegen order within this function
         g.mdefs = mdefs                # module-level scoped-alias metadata lines [F003 channel]
         g.mdctr = mdctr                # shared metadata id counter (one numbering per module)
         g.pmode = {}                   # param name -> 'uniq' | 'shared' | 'own'
@@ -748,10 +750,27 @@ class Gen:
         Returns (ptr, elem_llty, signed, metadata-suffix)."""
         ipl = pl["index"]["place"]
         cinfo = g.consts.get(ipl["base"]) if not (ipl.get("path") or ipl.get("post")) else None
+        proof = pl["index"].get("proof")
+        status = "ceiling" if g.elide else ("proved" if proof else "retained")
+        kind = "const" if cinfo and cinfo[0] != "scalar" else \
+            ("buffer-field" if ipl.get("path") or ipl.get("post") else "buffer")
+        if g.proof_report is not None:
+            atom = pl["index"]["atom"]
+            index_name = atom.get("p", {}).get("base") if atom.get("e") == "place" else None
+            g.proof_report.append({
+                "function": g.f["name"],
+                "site": g.bounds_site,
+                "status": status,
+                "proof": proof,
+                "kind": kind,
+                "target": ipl["base"],
+                "index": index_name,
+            })
+        g.bounds_site += 1
         if cinfo and cinfo[0] != "scalar":             # [CONST-2] const-array index: GEP the global, bounds-checked
             ell, n, sg = cinfo
             iv = g.expr(pl["index"]["atom"])
-            if not g.elide and not pl["index"].get("proven"):   # [OP-4]; PROOF-1 discharges marked sites
+            if not g.elide and not proof:                        # [OP-4]; PROOF-1 discharges marked sites
                 g.traps = True
                 c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {n}")
                 l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
@@ -772,7 +791,7 @@ class Gen:
             pair = g.scopes.get(key)
             if pair: md = f", !alias.scope !{pair[0]}, !noalias !{pair[1]}"
         iv = g.expr(pl["index"]["atom"])
-        if not g.elide and not pl["index"].get("proven"):   # [OP-4]; PROOF-1 discharges marked sites
+        if not g.elide and not proof:                        # [OP-4]; PROOF-1 discharges marked sites
             g.traps = True
             c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {buf['len']}")
             l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
@@ -1507,7 +1526,15 @@ def _mutates_name(st, name):
     return False
 
 def _moved_or_reset(body, name):
-    """Conservative: any move or mutation of `name` anywhere in the body."""
+    """Conservative: any move, mutation, or uniq alias of `name` anywhere.
+
+    A write through a uniq-borrow holder does not syntactically name its
+    referent.  Treating creation of that alias as invalidation keeps proof
+    facts sound without duplicating the ownership checker's holder-resolution
+    machinery here.
+    """
+    if _uniq_borrows_name(body, name):
+        return True
     for st in body:
         if _mutates_name(st, name):
             return True
@@ -1543,11 +1570,29 @@ def _direct_exprs_of(st):
     return out
 
 def _expr_moves(e, name):
+    if isinstance(e, list):
+        return any(_expr_moves(item, name) for item in e)
     if not isinstance(e, dict): return False
     if e.get("e") == "move" and e["p"]["base"] == name and not e["p"].get("path") \
             and not e["p"].get("post"):
         return True
-    return any(_expr_moves(a, name) for a in e.get("args", []))
+    return any(_expr_moves(value, name) for value in e.values())
+
+def _uniq_borrows_name(node, name):
+    """Whether any uniq-borrow expression is rooted at `name`.
+
+    The originating borrow is always present even when its holder is later
+    dereferenced, passed, or reborrowed, so this deliberately conservative
+    provenance test covers all writes through that alias chain.
+    """
+    if isinstance(node, list):
+        return any(_uniq_borrows_name(item, name) for item in node)
+    if not isinstance(node, dict): return False
+    if node.get("e") == "borrow" and node.get("uniq"):
+        place = node.get("place", {})
+        if place.get("base") == name:
+            return True
+    return any(_uniq_borrows_name(value, name) for value in node.values())
 
 def _mark_indexes(stmts, bvar, ivar, stop_names):
     """mark index<T>(bvar, ivar) as proven in `stmts` until any stop-name is
@@ -1592,7 +1637,142 @@ def _mark_place(pl, bvar, ivar):
     at = ix["atom"]
     if ipl["base"] == bvar and at.get("e") == "place" and not at["p"].get("path") \
             and not at["p"].get("post") and at["p"]["base"] == ivar:
-        ix["proven"] = True
+        ix["proof"] = "dominating-guard"
+
+def _collect_direct_sets(stmts, name):
+    out = []
+    for st in stmts:
+        if st.get("s") == "set" and not st["p"].get("path") and not st["p"].get("post") \
+                and not st["p"].get("index") and st["p"]["base"] == name:
+            out.append(st)
+        if "body" in st:
+            out.extend(_collect_direct_sets(st["body"], name))
+        if st.get("s") == "match":
+            for a in st["arms"]: out.extend(_collect_direct_sets(a["body"], name))
+        if "match" in st:
+            for a in st["match"]["arms"]: out.extend(_collect_direct_sets(a["body"], name))
+    return out
+
+def _direct_place_name(e):
+    if not isinstance(e, dict) or e.get("e") != "place": return None
+    p = e["p"]
+    if p.get("path") or p.get("post") or p.get("deref") or p.get("index"): return None
+    return p["base"]
+
+def _bounded_offset_vars(stmts, ivar, limit, whole_body):
+    """Direct i+d temporaries with 0 <= d < limit and no later mutation."""
+    offsets = {ivar: 0}
+    for st in stmts:
+        e = st.get("e")
+        if st.get("s") != "let" or not isinstance(e, dict) or e.get("e") != "op" \
+                or e.get("op") != "iadd.wrap" or len(e.get("args", [])) != 2:
+            continue
+        base, amount = e["args"]
+        if _direct_place_name(base) != ivar or amount.get("e") != "lit": continue
+        d = amount["v"]
+        if 0 <= d < limit and not _moved_or_reset(whole_body, st["n"]):
+            offsets[st["n"]] = d
+    return offsets
+
+def _mark_offset_place(pl, bvar, offsets, reason):
+    ix = pl["index"]; ipl = ix["place"]
+    if ipl.get("path") or ipl.get("post") or ipl.get("deref") or ipl["base"] != bvar:
+        return
+    at = ix["atom"]
+    name = _direct_place_name(at)
+    if name in offsets:
+        ix["proof"] = reason
+
+def _mark_offset_expr(e, bvar, offsets, reason):
+    if not isinstance(e, dict): return
+    if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
+        _mark_offset_place(e["p"], bvar, offsets, reason)
+    for a in e.get("args", []): _mark_offset_expr(a, bvar, offsets, reason)
+
+def _mark_offset_indexes(stmts, bvar, ivar, limit, whole_body, reason):
+    offsets = _bounded_offset_vars(stmts, ivar, limit, whole_body)
+    for st in stmts:
+        for e in _direct_exprs_of(st):
+            _mark_offset_expr(e, bvar, offsets, reason)
+        if st.get("s") == "set" and st["p"].get("index"):
+            _mark_offset_place(st["p"], bvar, offsets, reason)
+
+def _prove_remainder_loops(stmts, lens, whole_body):
+    """Pattern B: prove an exact fixed-stride remainder loop.
+
+    Base i=0 and the sole mutation i=i+K establish i<=len(buf) inductively.
+    On the fall-through of (len-i)<K, offsets 0..K-1 are in bounds.  The same
+    invariant licenses exact tail==T arms after the loop.  Every syntactic
+    premise is required because unsigned wrapping makes the guard alone
+    insufficient when i may already exceed len.
+    """
+    for pos, loop in enumerate(stmts):
+        if loop.get("s") != "loop": continue
+        b = [st for st in loop["body"] if st.get("s") != "doc"]
+        if len(b) < 3 or b[0].get("s") != "let" or b[1].get("s") != "match": continue
+        rem, sub = b[0]["n"], b[0].get("e")
+        if not isinstance(sub, dict) or sub.get("e") != "op" or sub.get("op") != "isub.wrap" \
+                or len(sub.get("args", [])) != 2:
+            continue
+        nvar, ivar = map(_direct_place_name, sub["args"])
+        bvar = lens.get(nvar)
+        if not bvar or not ivar: continue
+        guard = b[1]; sc = guard["scrut"]
+        if not isinstance(sc, dict) or sc.get("e") != "op" or sc.get("op") != "ilt" \
+                or len(sc.get("args", [])) != 2 \
+                or _direct_place_name(sc["args"][0]) != rem \
+                or sc["args"][1].get("e") != "lit":
+            continue
+        stride = sc["args"][1]["v"]
+        arms = {a["v"]: a for a in guard["arms"]}
+        tstmts = [x for x in arms.get("True", {}).get("body", []) if x.get("s") != "doc"]
+        if stride <= 0 or set(arms) != {"True", "False"} or arms["False"]["body"] \
+                or len(tstmts) != 1 or tstmts[0].get("s") != "break" \
+                or tstmts[0].get("l") != loop["l"]:
+            continue
+        initial = [st for st in stmts[:pos] if st.get("s") == "let" and st.get("n") == ivar \
+                   and st.get("e", {}).get("e") == "lit" and st["e"]["v"] == 0]
+        increments = [st for st in b[2:] if st.get("s") == "set"
+                      and not st["p"].get("path") and not st["p"].get("post")
+                      and not st["p"].get("index") and st["p"]["base"] == ivar
+                      and st.get("e", {}).get("e") == "op"
+                      and st["e"].get("op") == "iadd.wrap"
+                      and _direct_place_name(st["e"]["args"][0]) == ivar
+                      and st["e"]["args"][1].get("e") == "lit"
+                      and st["e"]["args"][1]["v"] == stride]
+        if len(initial) != 1 or len(increments) != 1 \
+                or _collect_direct_sets(whole_body, ivar) != increments \
+                or _uniq_borrows_name(whole_body, ivar) or _expr_moves(whole_body, ivar) \
+                or _moved_or_reset(whole_body, nvar) or _moved_or_reset(whole_body, bvar) \
+                or _moved_or_reset(whole_body, rem):
+            continue
+        inc_pos = b.index(increments[0])
+        _mark_offset_indexes(b[2:inc_pos], bvar, ivar, stride, whole_body,
+                             "remainder-guard")
+
+        # Exact post-loop tail arms: tail=len-i and tail==T prove offsets <T.
+        tails = {}
+        for st in stmts[pos + 1:]:
+            e = st.get("e")
+            if st.get("s") == "let" and isinstance(e, dict) and e.get("e") == "op" \
+                    and e.get("op") == "isub.wrap" and len(e.get("args", [])) == 2 \
+                    and _direct_place_name(e["args"][0]) == nvar \
+                    and _direct_place_name(e["args"][1]) == ivar:
+                tails[st["n"]] = True
+                continue
+            if st.get("s") != "match": continue
+            eq = st["scrut"]
+            if not isinstance(eq, dict) or eq.get("e") != "op" or eq.get("op") != "ieq" \
+                    or len(eq.get("args", [])) != 2:
+                continue
+            tail = _direct_place_name(eq["args"][0]); lit = eq["args"][1]
+            if tail not in tails or _moved_or_reset(whole_body, tail) \
+                    or lit.get("e") != "lit" or not (0 < lit["v"] < stride):
+                continue
+            marms = {a["v"]: a for a in st["arms"]}
+            if set(marms) == {"True", "False"}:
+                _mark_offset_indexes(marms["True"]["body"], bvar, ivar, lit["v"],
+                                     whole_body, "remainder-tail")
 
 def prove_inbounds(fns, consts):
     for f in fns:
@@ -1638,50 +1818,80 @@ def prove_inbounds(fns, consts):
                 if st.get("s") == "region":
                     walk(st["body"])
         walk(body)
+        _prove_remainder_loops(body, lens, body)
         # pattern C: const-table index masked to the table size (power of two)
-        masks = {}                              # xvar -> mask literal K
-        def scanmask(stmts):
-            for st in stmts:
-                if st.get("s") == "let" and isinstance(st.get("e"), dict) \
-                        and st["e"].get("e") == "op" and st["e"]["op"] == "iand":
-                    aa = st["e"]["args"]
-                    if aa[1].get("e") == "lit":
-                        masks[st["n"]] = aa[1]["v"]
-                if "body" in st: scanmask(st["body"])
-                if st.get("s") == "match":
-                    for a in st["arms"]: scanmask(a["body"])
-                if "match" in st:
-                    for a in st["match"]["arms"]: scanmask(a["body"])
-        scanmask(body)
-        def markc(stmts):
-            for st in stmts:
-                for e in _exprs_of(st):
-                    _markc_expr(e)
-                if st.get("s") == "set" and st["p"].get("index"):
-                    _markc_place(st["p"])
-                if "body" in st: markc(st["body"])
-                if st.get("s") == "match":
-                    for a in st["arms"]: markc(a["body"])
-                if "match" in st:
-                    for a in st["match"]["arms"]: markc(a["body"])
-        def _markc_expr(e):
+        def _markc_expr(e, masks):
+            if isinstance(e, list):
+                for item in e: _markc_expr(item, masks)
+                return
             if not isinstance(e, dict): return
             if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
-                _markc_place(e["p"])
-            for a in e.get("args", []): _markc_expr(a)
-        def _markc_place(pl):
+                _markc_place(e["p"], masks)
+            for value in e.values(): _markc_expr(value, masks)
+        def _markc_place(pl, masks):
             ix = pl["index"]; ipl = ix["place"]
             if ipl.get("path") or ipl.get("post"): return
             cinfo = consts.get(ipl["base"])
             at = ix["atom"]
             if cinfo and cinfo[0] != "scalar" and at.get("e") == "place" \
                     and not at["p"].get("path") and not at["p"].get("post"):
-                k = masks.get(at["p"]["base"])
+                info = masks.get(at["p"]["base"])
                 n = cinfo[1]
-                if k is not None and k + 1 == n and (n & (n - 1)) == 0 \
-                        and not _moved_or_reset(body, at["p"]["base"]):
-                    ix["proven"] = True
-        markc(body)
+                if info is not None:
+                    k, deps = info
+                if info is not None and k + 1 == n and (n & (n - 1)) == 0 \
+                        and all(not _moved_or_reset(body, dep) for dep in deps):
+                    ix["proof"] = "masked-index"
+        def _mask_binding(st, masks):
+            if st.get("s") != "let" or not isinstance(st.get("e"), dict) \
+                    or st["e"].get("e") != "op":
+                return None
+            e = st["e"]
+            if e["op"] == "iand":
+                aa = e["args"]
+                if aa[1].get("e") == "lit":
+                    return aa[1]["v"], (st["n"],)
+            if e["op"] == "cvt" and len(e["args"]) == 1 \
+                    and e["args"][0].get("e") == "place" \
+                    and not e["args"][0]["p"].get("path") \
+                    and not e["args"][0]["p"].get("post"):
+                src, dst = e["tyargs"]
+                origin = e["args"][0]["p"]["base"]
+                # Unsigned widening is value-preserving, so the exact mask
+                # range survives (including through a chain).
+                if origin in masks and not _is_signed(src) and not _is_signed(dst) \
+                        and src in INT_WIDTH and dst in INT_WIDTH \
+                        and INT_WIDTH[dst] >= INT_WIDTH[src]:
+                    k, deps = masks[origin]
+                    return k, deps + (st["n"],)
+            return None
+        def markc(stmts, inherited):
+            # Facts flow into child lexical scopes; child declarations never
+            # escape or leak into sibling arms. TYPE-6 permits sibling arms to
+            # reuse a dead spelling, so a function-global name table is unsound.
+            masks = dict(inherited)
+            for st in stmts:
+                for e in _direct_exprs_of(st):
+                    _markc_expr(e, masks)
+                if st.get("s") == "set" and st["p"].get("index"):
+                    _markc_place(st["p"], masks)
+                if "body" in st:
+                    markc(st["body"], masks)
+                if st.get("s") == "match":
+                    for arm in st["arms"]:
+                        arm_masks = dict(masks)
+                        for binder in arm["b"]: arm_masks.pop(binder["name"], None)
+                        markc(arm["body"], arm_masks)
+                if "match" in st:
+                    for arm in st["match"]["arms"]:
+                        arm_masks = dict(masks)
+                        for binder in arm["b"]: arm_masks.pop(binder["name"], None)
+                        markc(arm["body"], arm_masks)
+                if st.get("s") in ("let", "try"):
+                    info = _mask_binding(st, masks)
+                    masks.pop(st["n"], None)
+                    if info is not None: masks[st["n"]] = info
+        markc(body, {})
 
 def reassociate_reductions(fns, proved):
     """[FN-4 consumer] rewrite proved-law reduction loops into 4 independent
@@ -1743,10 +1953,12 @@ def reassociate_reductions(fns, proved):
     for f in fns:
         f["body"] = walk(f["body"])
 
-def compile_program(src, alias=True, elide_bounds=False):
+def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
     # elide_bounds is an EXPERIMENT-ONLY ceiling probe (perfect-prover upper
     # bound): never a shipping mode; real elision arrives via the OP-4 proof
     # tier (THE-PLAN.md bet 1).
+    if proof_report is not None and proof_report:
+        raise ValueError("proof_report must be a fresh empty list")
     structs, enums, fns, contracts, conforms, consts = parse_program(src)
     check_program(build_prog(structs, enums, fns, consts))
     proved = discharge_laws(contracts, conforms, fns)
@@ -1782,7 +1994,7 @@ def compile_program(src, alias=True, elide_bounds=False):
     Gen._consts = cmap
     if alias: prove_inbounds(fns, cmap)                # [OP-4 PROOF-1] facts channel
     bodies = [Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr,
-                  elide=elide_bounds).run() for f in fns]
+                  elide=elide_bounds, proof_report=proof_report).run() for f in fns]
     if cglobals: bodies.insert(0, "\n".join(cglobals) + "\n")
     if mdefs: bodies.append("\n".join(mdefs) + "\n")
     # named aggregate type per used struct, emitted once (only when structs exist -> byte-stable

@@ -205,6 +205,96 @@
       ]
     },
     {
+      "id": "base64-local-proof-accounting",
+      "mode": "gate",
+      "description": "Base64 must discharge every locally provable source/table access while retaining all output-capacity checks.",
+      "variants": [
+        {
+          "name": "facts",
+          "kind": "xlang",
+          "source": "experiments/port-study/base64/b64.xl",
+          "function": "encode",
+          "opt": "O3"
+        },
+        {
+          "name": "nofacts",
+          "kind": "xlang",
+          "source": "experiments/port-study/base64/b64.xl",
+          "function": "encode",
+          "facts": false,
+          "opt": "O3"
+        }
+      ],
+      "checks": [
+        {
+          "label": "base64 encode has 27 lowered bounds sites",
+          "left": "facts.proof.eligible",
+          "op": "eq",
+          "value": 27
+        },
+        {
+          "label": "local proofs discharge 15 sites",
+          "left": "facts.proof.proved",
+          "op": "eq",
+          "value": 15
+        },
+        {
+          "label": "exactly 12 sites remain checked",
+          "left": "facts.proof.retained",
+          "op": "eq",
+          "value": 12
+        },
+        {
+          "label": "the remaining checks are exactly the output writes",
+          "left": "facts.proof.retained_targets",
+          "op": "eq",
+          "value": {"out": 12}
+        },
+        {
+          "label": "proved sites are exactly source and alphabet accesses",
+          "left": "facts.proof.proved_targets",
+          "op": "eq",
+          "value": {"b64": 9, "src": 6}
+        },
+        {
+          "label": "nine alphabet sites use masked-index proof",
+          "left": "facts.proof.masked_index",
+          "op": "eq",
+          "value": 9
+        },
+        {
+          "label": "three full-loop source sites use remainder guard",
+          "left": "facts.proof.remainder_guard",
+          "op": "eq",
+          "value": 3
+        },
+        {
+          "label": "three tail source sites use remainder proof",
+          "left": "facts.proof.remainder_tail",
+          "op": "eq",
+          "value": 3
+        },
+        {
+          "label": "facts-off retains every base64 bounds site",
+          "left": "nofacts.proof.retained",
+          "op": "eq",
+          "value": 27
+        },
+        {
+          "label": "facts-off enumerates the same 27 sites",
+          "left": "nofacts.proof.eligible",
+          "op": "eq",
+          "value": 27
+        },
+        {
+          "label": "facts-off proves no base64 site",
+          "left": "nofacts.proof.proved",
+          "op": "eq",
+          "value": 0
+        }
+      ]
+    },
+    {
       "id": "base64-bounds-ceiling",
       "mode": "audit",
       "description": "Known debt: ordinary checked code should converge on the perfect-prover ceiling without changing source semantics.",

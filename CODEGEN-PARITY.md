@@ -24,14 +24,15 @@ encoding today's bad codegen as tomorrow's contract.
 
 `--corpus` also discovers compact family manifests under `codegen-corpus/cases`.
 Each case's explicit maturity selects gate or audit behavior. Proof
-classification uses raw IR from the named function so LLVM's independent check
-elimination cannot create a false pass.
+classification uses the compiler's structured per-site report for the named
+function so LLVM's independent check elimination cannot create a false pass.
 
 The initial coverage is deliberately small and high-signal:
 
 - exact backend opcode parity for one xlang/C/safe-Rust scalar kernel;
 - the facts-on/off load-elimination, scoped-alias, and checked-law channels;
 - vector-width and trap parity on the real wc chunk classifier;
+- exact local proof accounting on the real base64 encoder;
 - the base64 perfect-prover ceiling as non-blocking bounds-elision debt.
 
 This is not a runtime-performance gate. Runtime measurements remain in their
@@ -58,6 +59,13 @@ The runner currently exposes:
 - `asm.instructions`, `asm.opcodes`, `asm.traps`;
 - `remarks.vectorized_loops`, `remarks.max_vector_width`, and
   `remarks.max_interleave`.
+- `proof.bounds_sites`, `proof.proved`, `proof.retained`, `proof.ceiling`,
+  proof-reason and target counts, and the deterministic `proof.sites` records.
+
+The compiler API accepts a fresh `proof_report=[]` out-parameter. Reporting is
+observational: a regression pin requires byte-identical IR with and without it.
+Each record is a lowered/codegen bounds site, with a function-local ordinal,
+status, proof rule, target kind, target binding, and index binding.
 
 Exact opcode parity is intentionally sensitive to a toolchain upgrade. If a
 new backend makes all three variants better but different, inspect the diff and

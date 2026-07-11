@@ -59,3 +59,34 @@ side-exits. Checks in this kernel divide into two provable classes:
 a structural prover covers these; (b) output writes bounded by a CALLER
 guarantee (out capacity >= 4*ceil(n/3)) — needs a precondition surface;
 LLVM cannot know it and the checker can. Design card: gates 2026-07-10.
+
+## PROOF-1 local discharge (2026-07-10)
+
+The shipping facts path now reports every lowered bounds site in `encode`:
+
+- 27 total sites;
+- 15 proved locally: 6 source reads from the fixed-stride remainder invariant
+  and 9 alphabet reads from masked ranges propagated through unsigned widening;
+- 12 retained: every remaining site is an output write whose safety depends on
+  the caller-provided capacity.
+
+Five-sample medians on the same 384MB encode-only harness:
+
+| variant | throughput | time/pass |
+|---|---:|---:|
+| no facts | 2.50 GB/s | 153.9 ms |
+| PROOF-1 local facts | **2.93 GB/s** | **131.2 ms** |
+| perfect-prover ceiling | 4.23 GB/s | 90.9 ms |
+
+Local proof discharge is a 1.17x throughput gain and recovers about 36% of the
+removable time measured by the ceiling. Optimized `encode` shrinks from 127 to
+110 instructions (ceiling: 66). The 9 alphabet checks were already removed by
+LLVM, so the measured gain comes from the 6 structurally proved source reads.
+Output correctness is unchanged: facts vs no-facts and facts vs system base64
+both passed 139/139 boundary-biased random cases. The remaining performance
+gap is now cleanly a PROOF-2 question: establish
+`len(out) >= 4 * ceil(len(src)/3)` at the call boundary and connect it to the
+lockstep `i=3k, o=4k` loop invariant.
+
+Reproduce with `python3 proof_benchmark.py [BYTES] [SAMPLES]`; it rebuilds all
+three variants in a temporary directory before measuring them.

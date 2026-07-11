@@ -248,7 +248,7 @@ democ emits effect-row function attributes (pure->memory(none)/argmem-read; trap
 
 ## Phase A progress: buffer stack lands (2026-07-09)
 
-buffer<T> end-to-end: OP-9 buffer_new (u64 size-overflow trap before alloc, fill loop), OP-4 bounds-checked index as a place (read+write, trap OOB), len as non-consuming place-read operand, {ptr,i64} cross-fn ABI, implicit move-at-call for own affine args (type-layer; flow-layer kill recorded as approximation). Conformance 179->183 PASS (3 pending activated + new OOB-trap case); two case files had spec-WRONG effect rows (pure/missing traps) — the implementation correctly rejected its own test suite per OP-4/OP-9 exhibits; cases corrected. M3 blocker `buffer_index_kernel` UNBLOCKED. Remaining M3 blockers: try/ERR-3, byte-parser surface (buffer<u8> now exists — needs only u8 literal ergonomics check), arena/pool ruling (STOR-1 already REJECTS index-pools; arena codegen missing). Channel-1 benchmark now possible once slice_of/loan metadata lands.
+buffer<T> end-to-end: OP-9 buffer_new (u64 size-overflow trap before alloc, fill loop), OP-4 bounds-checked index as a place (read+write, trap OOB), len as non-consuming place-read operand, {ptr,i64} cross-fn ABI, and a then-implicit move-at-call approximation for own affine args. Conformance 179->183 PASS (3 pending activated + new OOB-trap case); two case files had spec-WRONG effect rows (pure/missing traps) — the implementation correctly rejected its own test suite per OP-4/OP-9 exhibits; cases corrected. M3 blocker `buffer_index_kernel` UNBLOCKED. Remaining M3 blockers: try/ERR-3, byte-parser surface (buffer<u8> now exists — needs only u8 literal ergonomics check), arena/pool ruling (STOR-1 already REJECTS index-pools; arena codegen missing). Channel-1 benchmark now possible once slice_of/loan metadata lands. AMENDMENT 2026-07-10: the implicit call conversion was removed; OWN-1 requires `move` explicitly and both type and flow layers now see the same transfer.
 
 ## ERR-3 try lands (2026-07-09)
 
@@ -395,3 +395,34 @@ Repo history REWRITTEN (git-filter-repo + stale codex checkpoint-ref removal): .
 ## Bet 1 ceiling MEASURED + OP-4 proof-tier design card (2026-07-10)
 
 Experiment-only democ flag --elide-bounds-experiment (ceiling probe, default off, make check untouched): base64 encode 2.44 -> 4.2 GB/s (1.7x), branches 41 -> 9, byte-identical outputs; still zero SIMD (shuffle algorithm not vectorizer-discoverable — the audit's caution confirmed; elision value is scalar). CEILING JUSTIFIES THE TIER. DESIGN CARD (build next): (PROOF-1) structural dominating-guard prover — the checker already verifies the canonical loop idioms (P2/P7 shapes); recognize `guard cmp(i, n) dominates index(b, i)` with n bound to len(b), plus offset algebra under `rem >= k` guards; elided checks emit no trap branch. (PROOF-2, needs owner ratification as spec surface) precondition clauses on signatures (FN-1 extension: e.g. requires len(out) >= expr) checked at every call site, licensing elision of callee-side capacity checks — the cross-function class LLVM structurally cannot see. (PROOF-3 interaction) proven-elided checks leave the trap-exhibit set: rows tighten, derived willreturn returns, the totality tower rebuilds — elision compounds through channel 2. HONEST ADVERSARY pre-registered for the eventual benchmark: Rust's assert-up-front idiom (a dominating assert! lets LLVM elide some later checks) and unsafe get_unchecked (the escape we refuse); the claim to test is that PROOF-2's cross-function class beats assert-up-front on real codecs. Discipline note: writers keep .trap everywhere; elision is EARNED by proof, never granted by mode-switching (P8).
+
+## PROOF-1 shipped + base64 local fraction measured (2026-07-10)
+
+Structural bounds discharge now has one codegen source of truth (`index.proof`)
+and a byte-transparent per-site report at the exact `index_addr` lowering
+boundary. The parity runner gates exact eligible/proved/retained counts per
+function; C/Rust report N/A; ceiling elision remains distinct from proof.
+Corpus: 24 prior guard/mask cases plus 26 derived-range cases = 50 total,
+covering direct guards, fixed-stride remainder induction/tails, masked const
+indexes through unsigned widening, exact mixed-site classification, and
+wraparound/direct-or-aliased mutation/lexical-scope/wrong-buffer/wrong-bound adversaries. The key soundness
+premise for `rem=len-i` is explicit: i starts at zero and its sole mutation is
+the exact stride increment; the guard alone is UNSOUND under unsigned wrap.
+
+REAL-WORKLOAD RESULT: base64 `encode` has 27 lowered sites. PROOF-1 proves 15
+(6 source + 9 alphabet) and retains 12, all output-capacity writes. On the
+384MB encode-only M4 harness (five-sample medians), no-facts 2.50 GB/s / 153.9
+ms, local facts 2.93 GB/s / 131.2 ms, perfect ceiling 4.23 GB/s / 90.9 ms.
+Thus local proof is 1.17x and recovers ~36% of removable time; 139/139
+boundary-biased facts/nofacts and system-base64 differentials pass. The 9
+alphabet checks were already optimized away; the six source checks cause the
+measured gain. PROOF-2 is now sharply scoped: prove at the call boundary that
+`len(out) >= 4*ceil(len(src)/3)` and connect it to i=3k/o=4k. No spec surface
+was invented here; owner ratification remains required.
+
+PRE-COMMIT ADVERSARIAL AUDIT: three initially accepted holes were found and
+fixed before shipping: writes through uniq-borrow holders now invalidate proof
+dependencies; masked facts use lexical environments and cannot leak between
+sibling bindings that reuse a spelling; and bare affine call arguments no
+longer become type-layer-only implicit moves. Exact negative gates cover all
+three, with dedicated OWN-1 positive/negative conformance cases for calls.

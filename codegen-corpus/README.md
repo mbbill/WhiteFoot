@@ -8,8 +8,9 @@ Adding a family never requires editing one central manifest.
 Every positive proof case has near-identical negative controls. The facts-on
 and facts-off variants are synthesized by the runner, so generated manifests
 cannot accidentally compare different source programs. Proof classification
-uses raw IR from the named function: optimized assembly is recorded separately
-because LLVM may independently remove the same check.
+uses the compiler's structured per-site report for the named function:
+optimized IR/assembly is recorded separately because LLVM may independently
+remove the same check.
 
 ```text
 codegen-corpus/
@@ -24,6 +25,10 @@ codegen-corpus/
         cases.json
         p01-mask3-table4.xl
         n02-oversized-mask.xl
+      derived-range/
+        cases.json
+        p04-remainder-index-i.xl
+        n07-remainder-nonzero-init.xl
 ```
 
 Run all families or select a tag:
@@ -44,11 +49,17 @@ python3 tools/codegen_parity.py --corpus --tag proof-1
   one variant should be faster.
 - `proof_classification` is `proved`/`elided` for positive cases and
   `retained`/`checked` for near-misses. Silently proving a near-miss is a
-  blocking soundness failure.
+  blocking soundness failure. `mixed` cases give exact `proved_sites` and
+  `retained_sites` counts to pin partial discharge within one function.
+- `bounds_sites` is the exact number of lowered/codegen bounds sites expected
+  in both facts-on and facts-off variants; this prevents a missing site from
+  disappearing symmetrically and escaping the gate.
 
 Paths in `source` are relative to the fragment containing them and must remain
 inside the repository. Source and recipes are tracked; generated IR, assembly,
 objects, binaries, and expanded metamorphic cases are temporary artifacts.
+Site ordinals are deterministic within each lowered function, after any
+fact-driven AST transform; they are not source locations or cross-variant IDs.
 
 Promotion is deliberate: an `explore` case becomes `audit` once its target is
 understood, and becomes `gate` only after the property is implemented, verified

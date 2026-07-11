@@ -57,9 +57,12 @@
         "maturity": {"enum": ["explore", "audit", "gate"]},
         "expected": {
           "type": "object",
-          "required": ["proof_classification"],
+          "required": ["proof_classification", "bounds_sites"],
           "properties": {
-            "proof_classification": {"enum": ["proved", "elided", "retained", "checked"]}
+            "proof_classification": {"enum": ["proved", "elided", "retained", "checked", "mixed"]},
+            "bounds_sites": {"type": "integer", "minimum": 1},
+            "proved_sites": {"type": "integer", "minimum": 1},
+            "retained_sites": {"type": "integer", "minimum": 1}
           },
           "additionalProperties": true
         }

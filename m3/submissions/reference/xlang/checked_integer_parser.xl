@@ -114,26 +114,26 @@ fn digits20 (d0: own u8, d1: own u8, d2: own u8, d3: own u8, d4: own u8, d5: own
 fn main () -> own unit traps {
   doc "Six task cases: 0, 42, u64 MAX, MAX+1 overflow, 12x bad digit, empty.";
   let c1: own buffer<u8> = buffer_new<u8>(1_u64, 48_u8);
-  let r1: own Result<u64,ParseError> = parse_u64(b: c1);
-  let u1: own unit = expect_ok(r: r1, want: 0_u64);
+  let r1: own Result<u64,ParseError> = parse_u64(b: move c1);
+  let u1: own unit = expect_ok(r: move r1, want: 0_u64);
   let c2: own buffer<u8> = buffer_new<u8>(2_u64, 48_u8);
   set index<u8>(c2, 0_u64) = 52_u8;
   set index<u8>(c2, 1_u64) = 50_u8;
-  let r2: own Result<u64,ParseError> = parse_u64(b: c2);
-  let u2: own unit = expect_ok(r: r2, want: 42_u64);
+  let r2: own Result<u64,ParseError> = parse_u64(b: move c2);
+  let u2: own unit = expect_ok(r: move r2, want: 42_u64);
   let c3: own buffer<u8> = digits20(d0: 49_u8, d1: 56_u8, d2: 52_u8, d3: 52_u8, d4: 54_u8, d5: 55_u8, d6: 52_u8, d7: 52_u8, d8: 48_u8, d9: 55_u8, d10: 51_u8, d11: 55_u8, d12: 48_u8, d13: 57_u8, d14: 53_u8, d15: 53_u8, d16: 49_u8, d17: 54_u8, d18: 49_u8, d19: 53_u8);
-  let r3: own Result<u64,ParseError> = parse_u64(b: c3);
-  let u3: own unit = expect_ok(r: r3, want: 18446744073709551615_u64);
+  let r3: own Result<u64,ParseError> = parse_u64(b: move c3);
+  let u3: own unit = expect_ok(r: move r3, want: 18446744073709551615_u64);
   let c4: own buffer<u8> = digits20(d0: 49_u8, d1: 56_u8, d2: 52_u8, d3: 52_u8, d4: 54_u8, d5: 55_u8, d6: 52_u8, d7: 52_u8, d8: 48_u8, d9: 55_u8, d10: 51_u8, d11: 55_u8, d12: 48_u8, d13: 57_u8, d14: 53_u8, d15: 53_u8, d16: 49_u8, d17: 54_u8, d18: 49_u8, d19: 54_u8);
-  let r4: own Result<u64,ParseError> = parse_u64(b: c4);
-  let u4: own unit = expect_err(r: r4, want_tag: 2_i64);
+  let r4: own Result<u64,ParseError> = parse_u64(b: move c4);
+  let u4: own unit = expect_err(r: move r4, want_tag: 2_i64);
   let c5: own buffer<u8> = buffer_new<u8>(3_u64, 49_u8);
   set index<u8>(c5, 1_u64) = 50_u8;
   set index<u8>(c5, 2_u64) = 120_u8;
-  let r5: own Result<u64,ParseError> = parse_u64(b: c5);
-  let u5: own unit = expect_err(r: r5, want_tag: 1_i64);
+  let r5: own Result<u64,ParseError> = parse_u64(b: move c5);
+  let u5: own unit = expect_err(r: move r5, want_tag: 1_i64);
   let c6: own buffer<u8> = buffer_new<u8>(0_u64, 48_u8);
-  let r6: own Result<u64,ParseError> = parse_u64(b: c6);
-  let u6: own unit = expect_err(r: r6, want_tag: 0_i64);
+  let r6: own Result<u64,ParseError> = parse_u64(b: move c6);
+  let u6: own unit = expect_err(r: move r6, want_tag: 0_i64);
   return unit;
 }

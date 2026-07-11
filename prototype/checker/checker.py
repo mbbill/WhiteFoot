@@ -807,14 +807,11 @@ class TypeChecker:
                 [{"name": n} for n in argnames],
                 [{"name": p["name"]} for p in params], "GRAM-11", f"call {callee}")
             for arg, p in zip(e["args"], params):
-                if (p["mode"]["kind"] == "own" and isinstance(arg, dict)
-                        and arg.get("kind") == "use"
-                        and not self._is_copy(self.place_desc(arg["place"]))):
-                    # passing to an own param consumes: implicit move-at-call
-                    # [OWN-1/FN-1]; flow-layer kill is a recorded approximation
-                    d = self.expr_desc({"kind": "move", "place": arg["place"]})
-                else:
-                    d = self.expr_desc(arg)
+                # OWN-1 has one spelling for affine transfer. An own affine
+                # argument must be written `move place`; silently interpreting
+                # a bare use as a move here would bypass the flow-layer kill
+                # and permit use-after-transfer.
+                d = self.expr_desc(arg)
                 self.expect_mode_ty(d, p["mode"], p["ty"],
                                     f"arg {p['name']} of {callee}")
             return self._mode_desc(sig["rmode"], sig["rty"])

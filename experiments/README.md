@@ -23,7 +23,8 @@ and gitignored. Chronology and decisions live in
   result for channel attribution (Rust expresses the same algebra); reached
   C/Rust parity after the OWN-1 Bool-copy amendment (220->134ms).
 - `port-study/base64/` — first const-array consumer; 1.6x GNU/uutils,
-  ~parity BSD (table-width algorithm gap, documented).
+  ~parity BSD (table-width algorithm gap); PROOF-1 discharges 15/27 bounds
+  sites and improves the kernel 2.50 -> 2.93 GB/s, with PROOF-2 debt isolated.
 
 ## Earlier corpus-era studies
 - `codegen-vs-rust-c/`, `regions-effects-vs-safe-rust/`,

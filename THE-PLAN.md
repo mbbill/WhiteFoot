@@ -76,12 +76,14 @@ Measured non-wins (equally load-bearing):
    claimed until run). This is also the principled answer to "bad code
    exists": never push writers to `.wrap`. STATUS 2026-07-10: ceiling
    MEASURED — 1.7x on base64 (scalar; no SIMD unlock), design card in gates;
-   PROOF-1 now proves exact len-guarded direct indexes and exact power-of-two
-   masked const-array indexes. Its 24-case function-scoped corpus gates 10
-   positives and 14 adversarial/conservative near-misses. Base64 remains an
-   audit because its source indexes pass through conversions and its output
-   writes need PROOF-2 preconditions; that spec surface still needs owner
-   ratification.
+   PROOF-1 now proves exact len-guarded indexes, fixed-stride remainder-loop
+   offsets/tails, and masked const-array indexes through unsigned widening.
+   Its 50-case per-site corpus gates 18 positives, one mixed classification,
+   and 31 adversarial/conservative near-misses. On base64 it discharges 15/27
+   sites and measures 2.50 -> 2.93 GB/s (1.17x), recovering 36% of the
+   perfect-prover time gap; all 12 remaining sites are output-capacity writes.
+   Closing those needs PROOF-2 preconditions, whose spec surface still needs
+   owner ratification.
 2. **Leg-A frequency study** — never run, cheap, decision-relevant: how often
    do the channel patterns (alias-guard versioning, opaque hot calls, manual
    reassociation idioms) occur in real Rust corpora. Directly answers the

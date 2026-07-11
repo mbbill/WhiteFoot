@@ -5,7 +5,7 @@
   "hypothesis": "For a const array of power-of-two length N, a direct index temporary defined as iand<u64>(source, N - 1) is in bounds. Facts-on compilation may elide that index check. Changing any structural premise must conservatively retain the check, even when a broader prover could establish safety.",
   "measurement": {
     "function": "lookup",
-    "metric": "raw_ir.trap_calls",
+    "metric": "proof.sites",
     "opt": "O2",
     "facts_on": "compile_program(source, alias=true)",
     "facts_off": "compile_program(source, alias=false)",
@@ -18,7 +18,7 @@
       "hypothesis": "The minimal N=4 direct mask idiom is proven.",
       "tags": ["positive", "power-of-two", "mask-3", "baseline"],
       "maturity": "gate",
-      "expected": {"proof_classification": "elided", "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
+      "expected": {"proof_classification": "elided", "bounds_sites": 1, "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
     },
     {
       "id": "p02-mask3-benign-doc",
@@ -26,7 +26,7 @@
       "hypothesis": "A doc statement between mask and access does not invalidate the proof.",
       "tags": ["positive", "power-of-two", "metamorphic", "benign-doc"],
       "maturity": "gate",
-      "expected": {"proof_classification": "elided", "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
+      "expected": {"proof_classification": "elided", "bounds_sites": 1, "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
     },
     {
       "id": "p03-mask3-benign-independent-let",
@@ -34,7 +34,7 @@
       "hypothesis": "Independent wrapped arithmetic between mask and access does not invalidate the proof.",
       "tags": ["positive", "power-of-two", "metamorphic", "benign-let"],
       "maturity": "gate",
-      "expected": {"proof_classification": "elided", "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
+      "expected": {"proof_classification": "elided", "bounds_sites": 1, "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
     },
     {
       "id": "p04-mask7-table8",
@@ -42,7 +42,7 @@
       "hypothesis": "The direct idiom scales from N=4 to N=8.",
       "tags": ["positive", "power-of-two", "mask-7", "scale"],
       "maturity": "gate",
-      "expected": {"proof_classification": "elided", "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
+      "expected": {"proof_classification": "elided", "bounds_sites": 1, "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
     },
     {
       "id": "p05-mask7-two-reads",
@@ -50,7 +50,7 @@
       "hypothesis": "One valid mask temporary proves accesses to multiple same-sized const arrays.",
       "tags": ["positive", "power-of-two", "mask-7", "multiple-accesses", "metamorphic"],
       "maturity": "gate",
-      "expected": {"proof_classification": "elided", "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
+      "expected": {"proof_classification": "elided", "bounds_sites": 2, "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
     },
     {
       "id": "p06-mask15-table16",
@@ -58,7 +58,7 @@
       "hypothesis": "The direct idiom scales from N=8 to N=16.",
       "tags": ["positive", "power-of-two", "mask-15", "scale"],
       "maturity": "gate",
-      "expected": {"proof_classification": "elided", "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
+      "expected": {"proof_classification": "elided", "bounds_sites": 1, "facts_trap_calls": 0, "nofacts_trap_calls": 1, "trap_relation": "facts < nofacts"}
     },
     {
       "id": "n01-undersized-mask",
@@ -66,7 +66,7 @@
       "hypothesis": "PROOF-1 v1 rejects a safe but non-canonical smaller mask because it is not exactly N - 1.",
       "tags": ["negative", "wrong-mask", "safe-near-miss", "conservative"],
       "maturity": "gate",
-      "expected": {"proof_classification": "checked", "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
+      "expected": {"proof_classification": "checked", "bounds_sites": 1, "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
     },
     {
       "id": "n02-oversized-mask",
@@ -74,7 +74,7 @@
       "hypothesis": "A mask larger than N - 1 can produce an out-of-bounds index and must remain checked.",
       "tags": ["negative", "wrong-mask", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
-      "expected": {"proof_classification": "checked", "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
+      "expected": {"proof_classification": "checked", "bounds_sites": 1, "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
     },
     {
       "id": "n03-mask5-table6",
@@ -82,7 +82,7 @@
       "hypothesis": "A non-power-of-two table remains checked even when this particular bitmask happens to select only valid indices.",
       "tags": ["negative", "non-power-of-two", "safe-near-miss", "conservative"],
       "maturity": "gate",
-      "expected": {"proof_classification": "checked", "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
+      "expected": {"proof_classification": "checked", "bounds_sites": 1, "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
     },
     {
       "id": "n04-offset-after-mask",
@@ -90,7 +90,7 @@
       "hypothesis": "Adding an offset after masking can produce N and must break the direct-mask proof.",
       "tags": ["negative", "offset", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
-      "expected": {"proof_classification": "checked", "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
+      "expected": {"proof_classification": "checked", "bounds_sites": 1, "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
     },
     {
       "id": "n05-mutated-mask-temporary",
@@ -98,7 +98,7 @@
       "hypothesis": "Mutating the masked temporary before indexing invalidates its range fact.",
       "tags": ["negative", "mutation", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
-      "expected": {"proof_classification": "checked", "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
+      "expected": {"proof_classification": "checked", "bounds_sites": 1, "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
     },
     {
       "id": "n06-copied-mask-temporary",
@@ -106,7 +106,7 @@
       "hypothesis": "PROOF-1 v1 does not propagate a range fact through a copy temporary.",
       "tags": ["negative", "copy", "safe-near-miss", "conservative"],
       "maturity": "gate",
-      "expected": {"proof_classification": "checked", "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
+      "expected": {"proof_classification": "checked", "bounds_sites": 1, "facts_trap_calls": 1, "nofacts_trap_calls": 1, "trap_relation": "facts == nofacts"}
     }
   ]
 }
