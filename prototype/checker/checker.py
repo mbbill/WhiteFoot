@@ -506,13 +506,16 @@ def op_type(callee: str, tyargs):
     if callee in cmps:
         return ([("val", T), ("val", T)], ("val", NAMED_BOOL))
     bin_int = {"iadd", "isub", "imul", "idiv", "irem", "iand", "ior", "ixor",
-               "imin", "imax", "imulhi", "ishl", "ishr", "irotl", "irotr",
+               "imin", "imax", "imulhi",
                "fadd", "fsub", "fmul", "fdiv"}
     if base in bin_int:
         if mode == "checked":
             err = "DivError" if base in ("idiv", "irem") else "Overflow"
             return ([("val", T), ("val", T)], ("val", _res_of(T, err)))
         return ([("val", T), ("val", T)], ("val", T))
+    if base in {"ishl", "ishr", "irotl", "irotr"}:   # [OP-1/8] amount is always u32
+        U32 = {"kind": "prim", "name": "u32"}
+        return ([("val", T), ("val", U32)], ("val", T))
     un_int = {"ineg", "iabs", "inot"}
     if base in un_int:
         if mode == "checked":

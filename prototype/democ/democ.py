@@ -1047,20 +1047,34 @@ class Gen:
             t = g.tmp(); g.emit(f"  {t} = {BIT[base]} {w} {a[0]['v']}, {a[1]['v']}")
             return {"k": w, "v": t, "signed": signed}
         if base in ("ishl", "ishr"):                   # logical/arith shift; amount out-of-range axis
-            amt = a[1]['v']
+            amt32 = a[1]["v"]
             if mode == "trap":
                 g.traps = True
-                oor = g.tmp(); g.emit(f"  {oor} = icmp uge {w} {amt}, {INT_WIDTH[ty[0]]}")
+                oor = g.tmp(); g.emit(f"  {oor} = icmp uge i32 {amt32}, {INT_WIDTH[ty[0]]}")
                 l = g.lbl(); g.emit(f"  br i1 {oor}, label %trap, label %{l}"); g.emit(f"{l}:")
+                rawamt = amt32
             else:                                      # wrap: mask amount to width-1 [OP-8]
-                mk = g.tmp(); g.emit(f"  {mk} = and {w} {amt}, {INT_WIDTH[ty[0]] - 1}"); amt = mk
+                mk = g.tmp(); g.emit(f"  {mk} = and i32 {amt32}, {INT_WIDTH[ty[0]] - 1}")
+                rawamt = mk
+            if w == "i32":
+                amt = rawamt
+            elif INT_WIDTH[ty[0]] > 32:
+                amt = g.tmp(); g.emit(f"  {amt} = zext i32 {rawamt} to {w}")
+            else:
+                amt = g.tmp(); g.emit(f"  {amt} = trunc i32 {rawamt} to {w}")
             instr = "shl" if base == "ishl" else ("ashr" if signed else "lshr")
             t = g.tmp(); g.emit(f"  {t} = {instr} {w} {a[0]['v']}, {amt}")
             return {"k": w, "v": t, "signed": signed}
         if base in ("irotl", "irotr"):                 # rotates: dotless-total via fshl/fshr [OP-8]
             fn = "fshl" if base == "irotl" else "fshr"
             g.decls.add(f"declare {w} @llvm.{fn}.{w}({w}, {w}, {w})")
-            t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{fn}.{w}({w} {a[0]['v']}, {w} {a[0]['v']}, {w} {a[1]['v']})")
+            if w == "i32":
+                amt = a[1]["v"]
+            elif INT_WIDTH[ty[0]] > 32:
+                amt = g.tmp(); g.emit(f"  {amt} = zext i32 {a[1]['v']} to {w}")
+            else:
+                amt = g.tmp(); g.emit(f"  {amt} = trunc i32 {a[1]['v']} to {w}")
+            t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{fn}.{w}({w} {a[0]['v']}, {w} {a[0]['v']}, {w} {amt})")
             return {"k": w, "v": t, "signed": signed}
         if base in ("imin", "imax"):                   # signedness-parametric min/max [OP-8]
             iv = ("s" if signed else "u") + base[1:]

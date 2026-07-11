@@ -12,13 +12,13 @@ fn mix_n (seed: own u64, n: own u64) -> own u64 pure {
       }
     }
     set z = iadd.wrap<u64>(z, 11400714819323198485_u64);
-    let s1: own u64 = ishr.wrap<u64>(z, 30_u64);
+    let s1: own u64 = ishr.wrap<u64>(z, 30_u32);
     let x1: own u64 = ixor<u64>(z, s1);
     set z = imul.wrap<u64>(x1, 13787848793156543929_u64);
-    let s2: own u64 = ishr.wrap<u64>(z, 27_u64);
+    let s2: own u64 = ishr.wrap<u64>(z, 27_u32);
     let x2: own u64 = ixor<u64>(z, s2);
     set z = imul.wrap<u64>(x2, 10723151780598845931_u64);
-    let s3: own u64 = ishr.wrap<u64>(z, 31_u64);
+    let s3: own u64 = ishr.wrap<u64>(z, 31_u32);
     set z = ixor<u64>(z, s3);
     set acc = ixor<u64>(acc, z);
     set i = iadd.wrap<u64>(i, 1_u64);
