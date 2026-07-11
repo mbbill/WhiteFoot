@@ -1,6 +1,7 @@
-"""Checker-core prototype: D1a blocking-gate experiment.
+"""Checker-core prototype (kernel-spec-v0.6).
 
-Implements the kernel-spec-v0 ownership calculus (rules OWN-1..OWN-8, STOR-4)
+Implements the v0.6 ownership calculus (OWN-1..13 incl. the 2026-07-10 tag-only-copy
+amendment, CONST-2, GIVE-1, ERR-3 flow, EFF-1/2 rows-and-exhibits)
 over a toy canonical AST: affine ownership, lexical regions, borrow
 exclusivity, escape checking. Deliberately simplified per D1a: no inference,
 lexical liveness (OWN-6), reject-when-unsure (OWN-8).

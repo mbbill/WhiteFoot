@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """democ: demo compiler for a growing subset of kernel-spec v0.6.
 source -> parse -> program check (type + ownership) -> LLVM IR (-> native).
-Subset: fns, own/&/&uniq i32 params, let/set/return, deref places, iadd.wrap/
-trap/checked, ieq/ilt comparisons, enums + builtin Bool/Result, named
-construction K(field: atom), named match binders K(field: binder), named
-user-fn call args f(param: atom), give value-match, check-else-trap, region
-stmts, doc fields, cross-fn calls, runnable main.
+Subset (2026-07-10): all int widths x {wrap,trap,checked,sat}, Bool/tag-only
+enums as copy i1, buffers (incl. in-struct + buffer<Bool>), structs, payload
+enums + Result/Option, try/ERR-3, const items + arrays, contracts/laws with
+static FN-4 discharge + reduction reassociation, borrows/regions with
+scoped-alias + effect-attr + derived-willreturn fact channels (--no-facts for
+controls, --totality for the lint), give value-match, recursion, runnable main.
 Temporary tool (owner ruling): endgame is a self-hosted compiler.
 """
 import re, sys, subprocess, json

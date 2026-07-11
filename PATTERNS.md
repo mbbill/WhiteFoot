@@ -85,6 +85,37 @@ is licensed by a checked fact, not writer folklore.
 Replaces: hand-written multi-accumulator loops resting on unchecked human
 algebra (the signed-sat-add trap).
 
+## P7. Branchless classifier (i1 dataflow)
+
+Problem: byte/token classification with loop-carried state (word boundaries,
+token starts, run detection) — the shape inside every scanner and utility.
+Pattern: keep ALL state and predicates in `Bool` (copy, i1): predicates via
+comparisons, combination via `band`/`bor`/`bnot`, transitions via
+`set state = predicate;`, counters bumped through a give-match select
+(`match p { True() => { give 1_u64; } False() => { give 0_u64; } }`).
+NEVER route state through integer flags or match-arm control flow.
+Fast because: the state stays an i1 recurrence, which the vectorizer widens
+to full-width byte vectors (measured: width 16 vs width 2x4 for the integer
+form — the difference between C parity and a 1.6-1.8x loss on wc-class
+kernels). 2-variant tag-only user enums lower identically to Bool, so a
+domain-named state enum costs nothing.
+Replaces: integer state flags, branchy per-byte match chains.
+
+## P8. Traps to the boundary
+
+Problem: one trapping op in a hot leaf strips derived totality (willreturn)
+from the whole call tower and blocks vectorization of reductions.
+Pattern: validate at the edge (check/trap where cold), keep hot interiors
+trap-free — bounded counters use `.wrap` ONLY where the bound is structural
+(counter <= buffer length); everything else keeps `.trap`/`.checked` and
+waits for proof-elision (OP-4 tier) rather than weakening semantics. Use
+`--totality` to see exactly which trap poisons which tower.
+Fast because: trap-freedom is what admits willreturn (hoisting/CSE of calls)
+and single-exit loops (vectorization). Measured: one trap-per-increment
+counter = zero vector ops; the wrap form = full SIMD, 2x on wc -l.
+Replaces: sprinkling checks uniformly and paying for them in the one loop
+that matters.
+
 ## Known gaps (findings, not yet patterns)
 
 - In-place mutation interleaved with traversal of the same structure (graph
