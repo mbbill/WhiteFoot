@@ -90,3 +90,34 @@ lockstep `i=3k, o=4k` loop invariant.
 
 Reproduce with `python3 proof_benchmark.py [BYTES] [SAMPLES]`; it rebuilds all
 three variants in a temporary directory before measuring them.
+
+## PROOF-2 checked capacity + lockstep discharge (2026-07-11)
+
+`encode` now carries one checked callee-entry `requires` clause spelling the
+overflow-safe relation `len(src) <= 3 * floor(len(out)/4)`. The check remains
+in every build and direct C entry cannot bypass it. The deterministic prover
+then connects that passed fact to the exact loop induction `i = 3k, o = 4k`
+and the mutually exclusive one-/two-byte tail arms.
+
+Structured accounting on the unchanged 27 lowered index sites is now:
+
+- 27 proved, 0 retained;
+- 6 source reads and 9 alphabet reads from PROOF-1;
+- 12 output writes from `output-capacity-lockstep`;
+- facts-off retains all 27 sites while executing the identical entry check.
+
+Five-sample medians on the 384MB encode-only harness:
+
+| variant | throughput | time/pass |
+|---|---:|---:|
+| no facts (entry check + all index checks) | 2.480 GB/s | 154.9 ms |
+| PROOF-2 | **4.233 GB/s** | **90.7 ms** |
+| perfect index-elision ceiling (entry check retained) | 4.215 GB/s | 91.1 ms |
+
+PROOF-2 is 1.71x over the same-source facts-off control and reaches the
+measurement-noise envelope of the perfect-prover ceiling: both optimized
+`encode` bodies contain 77 instructions and one retained trap path. Correctness
+remains pinned by 139/139 deterministic boundary-biased facts/nofacts/Python
+reference differentials. A separate direct-C ABI probe confirms exact capacity
+succeeds and one-byte-under capacity traps at the callee boundary before the
+first body byte store (`verify.py`).

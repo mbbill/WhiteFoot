@@ -205,9 +205,43 @@
       ]
     },
     {
+      "id": "explicit-requires-check-retained",
+      "mode": "gate",
+      "description": "OP-5 requires an explicit checked precondition to survive backend optimization even when its predicate is tautological.",
+      "variants": [
+        {
+          "name": "facts",
+          "kind": "xlang",
+          "source": "codegen-corpus/cases/requires-check-tautology.xl",
+          "function": "checked",
+          "opt": "O3"
+        }
+      ],
+      "checks": [
+        {
+          "label": "raw IR contains the explicit requires trap edge",
+          "left": "facts.raw_ir.trap_calls",
+          "op": "eq",
+          "value": 1
+        },
+        {
+          "label": "optimized IR retains the explicit requires trap edge",
+          "left": "facts.opt_ir.trap_calls",
+          "op": "eq",
+          "value": 1
+        },
+        {
+          "label": "assembly retains the explicit requires trap instruction",
+          "left": "facts.asm.traps",
+          "op": "eq",
+          "value": 1
+        }
+      ]
+    },
+    {
       "id": "base64-local-proof-accounting",
       "mode": "gate",
-      "description": "Base64 must discharge every locally provable source/table access while retaining all output-capacity checks.",
+      "description": "Base64 must discharge every source, table, and checked-capacity output access from deterministic proofs.",
       "variants": [
         {
           "name": "facts",
@@ -233,28 +267,28 @@
           "value": 27
         },
         {
-          "label": "local proofs discharge 15 sites",
+          "label": "local and checked-capacity proofs discharge all 27 sites",
           "left": "facts.proof.proved",
           "op": "eq",
-          "value": 15
+          "value": 27
         },
         {
-          "label": "exactly 12 sites remain checked",
+          "label": "no per-index site remains checked",
           "left": "facts.proof.retained",
           "op": "eq",
-          "value": 12
+          "value": 0
         },
         {
-          "label": "the remaining checks are exactly the output writes",
+          "label": "no target retains a bounds check",
           "left": "facts.proof.retained_targets",
           "op": "eq",
-          "value": {"out": 12}
+          "value": {}
         },
         {
-          "label": "proved sites are exactly source and alphabet accesses",
+          "label": "proved sites are exactly source, alphabet, and output accesses",
           "left": "facts.proof.proved_targets",
           "op": "eq",
-          "value": {"b64": 9, "src": 6}
+          "value": {"b64": 9, "out": 12, "src": 6}
         },
         {
           "label": "nine alphabet sites use masked-index proof",
@@ -273,6 +307,12 @@
           "left": "facts.proof.remainder_tail",
           "op": "eq",
           "value": 3
+        },
+        {
+          "label": "twelve output sites use the checked capacity lockstep proof",
+          "left": "facts.proof.output_capacity_lockstep",
+          "op": "eq",
+          "value": 12
         },
         {
           "label": "facts-off retains every base64 bounds site",

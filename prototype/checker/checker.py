@@ -92,19 +92,34 @@ class Checker:
 
     # -- entry ---------------------------------------------------------------
     def check(self):
+        requirements = self.fn.get("requires", [])
+        if requirements:
+            # [FN-8] A requires clause is a checked, parameter-only prologue.
+            # Its helper bindings are clause-local: they neither collide with
+            # nor become visible to the function body.
+            self._seed_entry(include_consts=False)
+            self.check_block(requirements)
+        self._seed_entry(include_consts=True)
+        self.check_block(self.fn["body"])
+
+    def _seed_entry(self, include_consts):
+        self.ctx = Ctx()
+        self.loops = []
+        self.call_frames = []
+        self.deliver = []
         for r in self.fn.get("regions", []):
             self.ctx.regions.append(r)         # caller regions: outermost
-        for name in getattr(self, "consts", ()):        # [CONST-2] read-only static bindings
-            cb = Binding(name, {"kind": "own"}, 0)
-            cb.is_const = True
-            self.ctx.bindings[name] = cb
+        if include_consts:
+            for name in getattr(self, "consts", ()):    # [CONST-2] body-only static bindings
+                cb = Binding(name, {"kind": "own"}, 0)
+                cb.is_const = True
+                self.ctx.bindings[name] = cb
         for p in self.fn["params"]:
             b = Binding(p["name"], p["mode"], self.ctx.depth())
             b.ty = p.get("ty")
             if p["mode"]["kind"] == "ref":
                 b.region = p["mode"]["region"]
             self.ctx.bindings[p["name"]] = b
-        self.check_block(self.fn["body"])
 
     # -- statements ----------------------------------------------------------
     def check_block(self, stmts):
@@ -533,6 +548,141 @@ def op_type(callee: str, tyargs):
     return None
 
 
+# [FN-8] `requires` is deliberately not a second expression language.  This
+# closed prototype set is the intersection of OP-1's pure, total,
+# primitive/Bool-returning rows and operations whose signatures + lowerings
+# this compiler implements exactly.
+# Result-returning `.checked` operations are omitted even though they are total:
+# unpacking a Result would require control/construct forms forbidden in a clause.
+FN8_TOTAL_VALUE_OPS = frozenset({
+    "iadd.wrap", "isub.wrap", "imul.wrap",
+    "iadd.sat", "isub.sat",
+    "ieq", "ine", "ilt", "ile", "igt", "ige",
+    "band", "bor", "bxor", "bnot",
+    "len",
+    "iand", "ior", "ixor",
+    "ishl.wrap", "ishr.wrap", "irotl", "irotr",
+    "imin", "imax",
+})
+
+
+def _fn8_copy_result_ty(ty):
+    """The clause may bind only resource-free values understood exactly here."""
+    return (isinstance(ty, dict)
+            and (ty.get("kind") == "prim"
+                 or (ty.get("kind") == "named" and ty.get("name") == "Bool")))
+
+
+def _fn8_len_place(place, params, fnname):
+    """Accept exactly len(buffer-param) or len(deref(direct-ref-param))."""
+    if not isinstance(place, dict):
+        raise CheckError("FN-8", f"{fnname}: requires len operand is not a place")
+    if place.get("kind") == "var":
+        pname = place.get("name")
+        p = params.get(pname)
+        if p is None or p.get("ty", {}).get("kind") not in ("buffer", "array", "slice"):
+            raise CheckError("FN-8",
+                f"{fnname}: requires len operand must be a direct buffer/array/slice parameter")
+        return
+    if place.get("kind") == "deref":
+        inner = place.get("place")
+        if not isinstance(inner, dict) or inner.get("kind") != "var":
+            raise CheckError("FN-8",
+                f"{fnname}: requires len deref must name one direct reference parameter")
+        p = params.get(inner.get("name"))
+        if (p is None or p.get("mode", {}).get("kind") != "ref"
+                or p.get("ty", {}).get("kind") not in ("buffer", "array", "slice")):
+            raise CheckError("FN-8",
+                f"{fnname}: requires len deref must name a buffer/array/slice reference parameter")
+        return
+    raise CheckError("FN-8",
+        f"{fnname}: requires len operand must be a direct parameter (optionally one deref)")
+
+
+def _fn8_atom(expr, available, fnname):
+    if not isinstance(expr, dict):
+        raise CheckError("FN-8", f"{fnname}: malformed requires atom")
+    if expr.get("kind") == "lit":
+        return
+    if expr.get("kind") != "use":
+        raise CheckError("FN-8",
+            f"{fnname}: requires operands are literals or direct names; "
+            "moves, borrows, constructs, indexes, and nested calls are forbidden")
+    place = expr.get("place")
+    if not isinstance(place, dict) or place.get("kind") != "var":
+        raise CheckError("FN-8",
+            f"{fnname}: requires operand must be a direct parameter or earlier clause local")
+    name = place.get("name")
+    if name not in available:
+        raise CheckError("FN-8",
+            f"{fnname}: requires operand '{name}' is not a parameter or earlier clause local")
+
+
+def _fn8_expr(expr, available, params, fnname, require_call=False):
+    if not isinstance(expr, dict):
+        raise CheckError("FN-8", f"{fnname}: malformed requires expression")
+    if expr.get("kind") != "call":
+        if require_call:
+            raise CheckError("FN-8",
+                f"{fnname}: every requires let must bind one pure total table operation")
+        _fn8_atom(expr, available, fnname)
+        return
+
+    callee = expr.get("callee")
+    if callee not in FN8_TOTAL_VALUE_OPS:
+        raise CheckError("FN-8",
+            f"{fnname}: requires operation '{callee}' is not a permitted pure total "
+            "primitive/Bool table operation")
+    if expr.get("argnames") is not None:
+        raise CheckError("FN-8",
+            f"{fnname}: requires permits table operations only, never user-function calls")
+    sig = op_type(callee, expr.get("tyargs", []))
+    if sig is None or not _fn8_copy_result_ty(sig[1][1]):
+        raise CheckError("FN-8",
+            f"{fnname}: requires operation '{callee}' lacks an exact copy-result signature")
+    args = expr.get("args", [])
+    if callee == "len":
+        if len(args) != 1 or not isinstance(args[0], dict) or args[0].get("kind") != "use":
+            raise CheckError("FN-8",
+                f"{fnname}: requires len takes one direct place operand")
+        _fn8_len_place(args[0].get("place"), params, fnname)
+        return
+    for arg in args:
+        _fn8_atom(arg, available, fnname)
+
+
+def check_requires(fn):
+    """[FN-8] Validate the closed, checked precondition-prologue fragment.
+
+    Type agreement is intentionally left to TypeChecker so ordinary TYPE/OWN
+    diagnostics remain stable; this pass rejects only the clause's structure and
+    authority surface.
+    """
+    requirements = fn.get("requires", [])
+    if not requirements:
+        return
+    fnname = fn.get("name", "<anonymous>")
+    params = {p["name"]: p for p in fn.get("params", [])}
+    available = set(params)
+    if requirements[-1].get("kind") != "check":
+        raise CheckError("FN-8",
+            f"{fnname}: nonempty requires clause must end in exactly one check")
+    for stmt in requirements[:-1]:
+        if stmt.get("kind") != "let":
+            raise CheckError("FN-8",
+                f"{fnname}: requires contains only let statements followed by one final check")
+        name = stmt.get("name")
+        if name in available:
+            raise CheckError("FN-8",
+                f"{fnname}: requires local '{name}' is not fresh within its parameter-only scope")
+        if stmt.get("mode", {}).get("kind") != "own" or not _fn8_copy_result_ty(stmt.get("ty")):
+            raise CheckError("FN-8",
+                f"{fnname}: requires let '{name}' must bind an own primitive or Bool")
+        _fn8_expr(stmt.get("init"), available, params, fnname, require_call=True)
+        available.add(name)
+    _fn8_expr(requirements[-1].get("expr"), available, params, fnname)
+
+
 class Program:
     """Declaration tables built once per program (structs, enums, fns, prelude)."""
 
@@ -564,8 +714,15 @@ class TypeChecker:
         self.deliver = []    # stack of (mode, TY) for give [GIVE-1]
 
     def check(self):
-        for name, ty in self.P.consts.items():          # [CONST-2] const items: own-mode read-only values
-            self.env[name] = ({"kind": "own"}, ty)
+        params = {p["name"]: (p["mode"], p["ty"]) for p in self.fn["params"]}
+        requirements = self.fn.get("requires", [])
+        if requirements:
+            # [FN-8] Constants and body locals are outside the clause.  Discard
+            # every clause-local binding before checking the ordinary body.
+            self.env = dict(params)
+            self.check_block(requirements)
+        self.env = {name: ({"kind": "own"}, ty)
+                    for name, ty in self.P.consts.items()}  # [CONST-2] body-only statics
         for p in self.fn["params"]:
             self.env[p["name"]] = (p["mode"], p["ty"])
         self.check_block(self.fn["body"])
@@ -596,6 +753,10 @@ class TypeChecker:
             if d["cat"] != "val":
                 raise CheckError("TYPE-7",
                     "set target is a borrow; write through deref(.)")
+            if d["ty"].get("kind") == "buffer":
+                raise CheckError("STOR-1",
+                    "whole-buffer replacement is outside v0 pending the "
+                    "take/replace + old-storage release rule; mutate indexed elements instead")
             de = self.expr_desc(s["expr"])
             self.expect_value(de, d["ty"], "set")
         elif k == "return":
@@ -705,7 +866,9 @@ class TypeChecker:
         # prim/unit copy; borrows copy; tag-only enums copy (resource-free; OWN-1
         # amendment 2026-07-10); `any` is the generic-payload wildcard of unknown
         # affinity -> treat as copy (lenient), matching the type layer's generic handling.
-        if desc["cat"] == "ref" or desc["ty"].get("kind") in ("prim", "unit", "any"):
+        if desc["cat"] == "ref":
+            return not desc.get("uniq", False)             # OWN-1: shared copy, uniq affine
+        if desc["ty"].get("kind") in ("prim", "unit", "any"):
             return True
         ty = desc["ty"]
         if ty.get("kind") == "named":
@@ -869,6 +1032,12 @@ class TypeChecker:
                 raise CheckError("TYPE-5",
                     f"{ctx}: expected a borrow, got value of type "
                     f"{_ty_str(desc['ty'])}")
+            if bool(desc.get("uniq")) != bool(mode.get("uniq")):
+                actual = "&uniq" if desc.get("uniq") else "&"
+                expected = "&uniq" if mode.get("uniq") else "&"
+                raise CheckError("TYPE-5",
+                    f"{ctx}: borrow mode {actual} != expected {expected}; "
+                    "there is no implicit shared/exclusive conversion [OWN-2]")
             if not _ty_eq(desc["ty"], ty):
                 raise CheckError("TYPE-5",
                     f"{ctx}: borrow referent {_ty_str(desc['ty'])} "
@@ -947,8 +1116,8 @@ def _parse_effect_row(toks, fnname):
 
 
 def _exhibits_traps(fn, declared_traps):
-    """EFF-2: does the body exhibit traps? (.trap op, check, bounds-checked index,
-    or a call to a fn/op whose declared row includes traps)."""
+    """EFF-2: do the checked prologue or body exhibit traps? (.trap op, check,
+    bounds-checked index, or a call whose declared row includes traps)."""
     hit = [False]
 
     def place(p):
@@ -1004,6 +1173,8 @@ def _exhibits_traps(fn, declared_traps):
             for b in s.get("body", []):
                 stmt(b)
 
+    for s in fn.get("requires", []):
+        stmt(s)
     for s in fn["body"]:
         stmt(s)
     return hit[0]
@@ -1040,6 +1211,7 @@ def check_program(prog: dict):
     """
     P = Program(prog)
     for name, fn in prog["fns"].items():
+        check_requires({**fn, "name": name})         # FN-8 checked parameter-only prologue
         TypeChecker(fn, P).check()             # GRAM-8/10/11, TYPE-5/6/7, GIVE-1
         ch = Checker(fn)
         ch.copy_enums = frozenset(en for en, vs in P.enums.items()

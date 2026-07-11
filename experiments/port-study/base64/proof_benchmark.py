@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild and median-benchmark base64 no-facts, PROOF-1, and ceiling variants."""
+"""Rebuild and median-benchmark base64 no-facts, PROOF-2, and ceiling variants."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import democ  # noqa: E402
 RESULT = re.compile(r"encode: ([0-9.]+) GB/s \(([0-9.]+) ms/pass")
 VARIANTS = (
     ("no-facts", {"alias": False}),
-    ("PROOF-1", {}),
+    ("PROOF-2", {}),
     ("ceiling", {"elide_bounds": True}),
 )
 

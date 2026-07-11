@@ -18,6 +18,6 @@ fn i32_zero_b () -> own i32 pure {
   return 0_i32;
 }
 
-fn main () -> own unit traps {
+fn main () -> own unit pure {
   return unit;
 }

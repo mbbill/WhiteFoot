@@ -1,0 +1,11 @@
+fn hidden_local (x: own i32) -> own Bool traps requires {
+  let permitted: own Bool = ige<i32>(x, 0_i32);
+  check permitted else trap "x must be nonnegative";
+} {
+  doc "Requirement locals do not enter the function-body scope [FN-8/TYPE-5].";
+  return permitted;
+}
+
+fn main () -> own unit pure {
+  return unit;
+}

@@ -67,10 +67,12 @@ Measured non-wins (equally load-bearing):
 ## 4. The bets, ranked (what we do next)
 
 1. **Proof-elided checks (OP-4 tier)** — the D9-decisive candidate. Design
-   first, not code first: a precondition surface (FN-1-style declared
-   bounds/invariants the checker proves at call sites) so ELISION covers what
-   LLVM cannot derive locally; writers keep `.trap` semantics and the
-   compiler earns the speed. Evidence already filed: provably-safe trap
+   first, not code first: a checked concrete-function `requires` prologue
+   computes and verifies a boundary fact once at callee entry, then the
+   deterministic prover uses it to elide dominated implicit checks that LLVM
+   cannot derive locally. Calls remain legal without caller proof; writers
+   keep `.trap` semantics and the compiler earns the speed. Evidence already
+   filed: provably-safe trap
    reductions stay scalar; ~18 surviving bounds branches block base64
    vectorization (controlled elision experiment designed in gates, no gain
    claimed until run). This is also the principled answer to "bad code
@@ -82,8 +84,16 @@ Measured non-wins (equally load-bearing):
    and 31 adversarial/conservative near-misses. On base64 it discharges 15/27
    sites and measures 2.50 -> 2.93 GB/s (1.17x), recovering 36% of the
    perfect-prover time gap; all 12 remaining sites are output-capacity writes.
-   Closing those needs PROOF-2 preconditions, whose spec surface still needs
-   owner ratification.
+   PROOF-2 was owner-approved and implemented 2026-07-11 as the concrete-only
+   checked `requires { let_stmt* check_stmt }` first slice (FN-8); its semantics
+   are selected and its spelling remains R3-provisional. The exact checked
+   capacity relation plus i=3k/o=4k proof discharges base64 27/27 sites, reaches
+   the perfect-index-elision ceiling (77 instructions, one retained entry trap),
+   and measures 2.480 -> 4.233 GB/s (1.71x). The combined bounds corpus is 78
+   cases: 50 PROOF-1 plus 28 PROOF-2 capacity/lockstep cases, including alias,
+   mutation, relation, stride, ordering, and tail adversaries. Contract
+   refinement remains deferred; prototype artifact-embedded proof references,
+   gated FFI frames, and machine-readable trap reports remain explicit debt.
 2. **Leg-A frequency study** — never run, cheap, decision-relevant: how often
    do the channel patterns (alias-guard versioning, opaque hot calls, manual
    reassociation idioms) occur in real Rust corpora. Directly answers the

@@ -29,13 +29,17 @@ codegen-corpus/
         cases.json
         p04-remainder-index-i.xl
         n07-remainder-nonzero-init.xl
+      output-capacity-lockstep/
+        cases.json
+        p05-complete-groups.xl
+        n21-output-buffer-uniq-reborrow.xl
 ```
 
 Run all families or select a tag:
 
 ```sh
 make corpus
-python3 tools/codegen_parity.py --corpus --tag proof-1
+python3 tools/codegen_parity.py --corpus --tag proof-2
 ```
 
 ## Field policy

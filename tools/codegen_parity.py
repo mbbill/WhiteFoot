@@ -131,6 +131,7 @@ def metrics(raw_ir: str, optimized_ir: str, assembly: str, remarks: str,
             "proof.masked_index": None,
             "proof.remainder_guard": None,
             "proof.remainder_tail": None,
+            "proof.output_capacity_lockstep": None,
             "proof.proved_targets": None,
             "proof.retained_targets": None,
             "proof.sites": None,
@@ -159,6 +160,9 @@ def metrics(raw_ir: str, optimized_ir: str, assembly: str, remarks: str,
             "proof.masked_index": sum(site["proof"] == "masked-index" for site in bounds),
             "proof.remainder_guard": sum(site["proof"] == "remainder-guard" for site in bounds),
             "proof.remainder_tail": sum(site["proof"] == "remainder-tail" for site in bounds),
+            "proof.output_capacity_lockstep": sum(
+                site["proof"] == "output-capacity-lockstep" for site in bounds
+            ),
             "proof.proved_targets": target_counts("proved"),
             "proof.retained_targets": target_counts("retained"),
             "proof.sites": bounds,
@@ -225,7 +229,8 @@ def validate_proof_report(report: list[dict[str, Any]]) -> None:
         if site.get("status") not in {"proved", "retained", "ceiling"}:
             raise HarnessError(f"unknown proof-site status: {site!r}")
         if site.get("proof") not in {
-                None, "dominating-guard", "masked-index", "remainder-guard", "remainder-tail"}:
+                None, "dominating-guard", "masked-index", "remainder-guard", "remainder-tail",
+                "output-capacity-lockstep"}:
             raise HarnessError(f"unknown bounds proof reason: {site!r}")
         if site["status"] == "proved" and site["proof"] is None:
             raise HarnessError(f"proved bounds site lacks a proof reason: {site!r}")

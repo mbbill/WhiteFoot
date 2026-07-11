@@ -12,7 +12,7 @@ Temporary tool (owner ruling): endgame is a self-hosted compiler.
 import re, sys, subprocess, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'checker'))
-from checker import check_program, CheckError, PRELUDE_ENUMS
+from checker import check_program, CheckError, PRELUDE_ENUMS, _parse_effect_row
 
 TOK = re.compile(r'"[^"]*"|\'[a-z][a-z0-9_]*|@[a-z][a-z0-9_]*'
                  r'|->'
@@ -162,6 +162,13 @@ class P:
 
 def is_typeid(t): return bool(t) and t[0].isupper()
 
+def binding_ident(p, context):
+    name = p.eat()
+    if name == "requires":
+        raise CheckError("FORM-3",
+            f"'{name}' is a reserved grammar word and cannot bind a {context}")
+    return name
+
 def parse_mode(p):
     if p.peek() == '&uniq': p.eat(); return {"kind": "ref", "region": p.eat()[1:], "uniq": True}
     if p.peek() == '&': p.eat(); return {"kind": "ref", "region": p.eat()[1:], "uniq": False}
@@ -228,7 +235,7 @@ def parse_expr(p):
     if is_typeid(t):                                   # construct K(field: atom, ...) [GRAM-8]
         n = p.eat(); p.eat('('); fields = []
         while p.peek() != ')':
-            fname = p.eat(); p.eat(':'); atom = parse_atom(p)
+            fname = binding_ident(p, "field name"); p.eat(':'); atom = parse_atom(p)
             fields.append({"name": fname, "atom": atom})
             if p.peek() == ',': p.eat()
         p.eat(')'); return {"e": "construct", "n": n, "fields": fields}
@@ -248,7 +255,7 @@ def parse_expr(p):
     if p.peek(1) == '(' and t not in ('deref', 'index'):   # user call f(param: atom, ...) [GRAM-11]
         n = p.eat(); p.eat('('); args = []; argnames = []
         while p.peek() != ')':
-            pname = p.eat()
+            pname = binding_ident(p, "call-argument label")
             if p.peek() != ':':                        # [GRAM-11] call args are named (param: atom), never positional
                 raise CheckError("GRAM-11", "a user-fn call must name its arguments (param: atom) in declared order; positional args are illegal")
             p.eat(':'); atom = parse_atom(p)
@@ -268,7 +275,7 @@ def parse_match(p):
     while p.peek() != '}':
         vn = p.eat(); p.eat('('); binders = []
         while p.peek() != ')':                         # K(field: binder, ...) [GRAM-10]
-            field = p.eat(); p.eat(':'); binder = p.eat()
+            field = binding_ident(p, "field label"); p.eat(':'); binder = binding_ident(p, "match binder")
             binders.append({"field": field, "name": binder})
             if p.peek() == ',': p.eat()
         p.eat(')'); p.eat('=>'); p.eat('{'); body = []
@@ -280,7 +287,7 @@ def parse_stmt(p):
     t = p.peek()
     if t == 'doc': p.eat(); p.eat(); p.eat(';'); return {"s": "doc"}
     if t == 'let':
-        p.eat(); n = p.eat(); p.eat(':'); m = parse_mode(p); ty = parse_type(p); p.eat('=')
+        p.eat(); n = binding_ident(p, "let name"); p.eat(':'); m = parse_mode(p); ty = parse_type(p); p.eat('=')
         if p.peek() == 'match':                        # value-match initializer [GIVE-1]
             return {"s": "let", "n": n, "m": m, "ty": ty, "match": parse_match(p)}
         if p.peek() == 'try':                          # try-propagation [ERR-3]
@@ -315,11 +322,22 @@ def parse_stmt(p):
         raise CheckError("FORM-1", f"unknown construct: expected ';' to end the statement, got {p.peek()!r}")
     p.eat(';'); return {"s": "expr", "e": e}
 
+def parse_stmt_block(p):
+    """Parse a braced statement block without inventing a second AST shape.
+
+    `requires` deliberately reuses the ordinary ANF let/check nodes; FN-8's
+    checker-side validator applies the much smaller admitted sublanguage.
+    """
+    p.eat('{'); body = []
+    while p.peek() != '}': body.append(parse_stmt(p))
+    p.eat('}')
+    return body
+
 def parse_program(src):
     p = P(toks(src)); structs = {}; enums = {}; fns = []; contracts = {}; conforms = []; consts = []
     while p.peek():
         if p.peek() == 'const':                        # const NAME: type = cvalue; [CONST-2]
-            p.eat(); name = p.eat(); p.eat(':'); ty = parse_type(p); p.eat('=')
+            p.eat(); name = binding_ident(p, "const name"); p.eat(':'); ty = parse_type(p); p.eat('=')
             if p.peek() == '[':                        # array literal [cvalue, ...]
                 p.eat(); vals = []
                 while p.peek() != ']':
@@ -350,17 +368,30 @@ def parse_program(src):
                         raise CheckError("FN-4", f"law {lawname}({target}) names no fn declared in contract {name}")
                     laws.append({"law": lawname, "fn": target, "e": ident})
                     continue
-                p.eat('fn'); fname = p.eat(); p.eat('(')
+                p.eat('fn'); fname = binding_ident(p, "contract member"); sig_regions = []
+                if p.peek() == '[':
+                    p.eat()
+                    while p.peek() != ']':
+                        sig_regions.append(p.eat()[1:])
+                        if p.peek() == ',': p.eat()
+                    p.eat(']')
+                p.eat('(')
                 sig_params = []
                 while p.peek() != ')':
-                    pn = p.eat(); p.eat(':'); m = parse_mode(p); ty = parse_type(p)
+                    pn = binding_ident(p, "parameter"); p.eat(':'); m = parse_mode(p); ty = parse_type(p)
                     sig_params.append({"name": pn, "mode": m, "ty": ty})
                     if p.peek() == ',': p.eat()
                 p.eat(')'); p.eat('->'); rm = parse_mode(p); rt = parse_type(p)
                 eff = []
-                while p.peek() != ';': eff.append(p.eat())
+                while p.peek() not in (';', 'requires'): eff.append(p.eat())
+                if p.peek() == 'requires':
+                    raise CheckError("FN-8",
+                        "requires is not admitted on contract members in the first slice; "
+                        "precondition equality/refinement is not yet defined")
                 p.eat(';')
-                cfns[fname] = {"params": sig_params, "rmode": rm, "rty": rt, "effects": eff}
+                _parse_effect_row(eff, f"contract {name}.{fname}")
+                cfns[fname] = {"regions": sig_regions, "params": sig_params,
+                                "rmode": rm, "rty": rt, "effects": eff}
             p.eat('}'); contracts[name] = {"fns": cfns, "laws": laws}
         elif p.peek() == 'conform':                    # conform ty : Contract { member = fn; } [FN-3]
             p.eat(); ty = parse_type(p); p.eat(':'); cname = p.eat()
@@ -379,7 +410,7 @@ def parse_program(src):
             while p.peek() != '}':
                 if p.peek() == 'doc':                  # doc? rides the front of the body [GRAM-2]
                     p.eat(); p.eat(); p.eat(';'); continue
-                fname = p.eat(); p.eat(':'); fty = parse_type(p); p.eat(';')
+                fname = binding_ident(p, "field name"); p.eat(':'); fty = parse_type(p); p.eat(';')
                 fields.append({"name": fname, "ty": fty})
             p.eat('}'); structs[name] = fields
         elif p.peek() == 'enum':
@@ -390,13 +421,13 @@ def parse_program(src):
             while p.peek() != '}':
                 vn = p.eat(); p.eat('('); fields = []      # vfield := IDENT ":" type
                 while p.peek() != ')':
-                    fname = p.eat(); p.eat(':'); fty = parse_type(p)
+                    fname = binding_ident(p, "variant field name"); p.eat(':'); fty = parse_type(p)
                     fields.append({"name": fname, "ty": fty})
                     if p.peek() == ',': p.eat()
                 p.eat(')'); p.eat(';'); vs.append((vn, fields))
             p.eat('}'); enums[name] = vs
         else:
-            p.eat('fn'); name = p.eat()
+            p.eat('fn'); name = binding_ident(p, "function name")
             if not re.fullmatch(r'[a-z][a-z0-9_]*', name):   # [FORM-3] a fn name is an IDENT ([a-z][a-z0-9_]*)
                 raise CheckError("FORM-3", f"fn name must be an IDENT ([a-z][a-z0-9_]*), got '{name}'")
             regions = []
@@ -408,17 +439,24 @@ def parse_program(src):
                 p.eat(']')
             p.eat('('); params = []
             while p.peek() != ')':
-                pn = p.eat(); p.eat(':'); m = parse_mode(p); ty = parse_type(p)
+                pn = binding_ident(p, "parameter"); p.eat(':'); m = parse_mode(p); ty = parse_type(p)
                 params.append({"name": pn, "mode": m, "ty": ty})
                 if p.peek() == ',': p.eat()
             p.eat(')'); p.eat('->'); rmode = parse_mode(p); rty = parse_type(p)
             eff = []
-            while p.peek() != '{': eff.append(p.eat())   # effect row [EFF-1/EFF-2]
-            p.eat('{'); body = []
-            while p.peek() != '}': body.append(parse_stmt(p))
-            p.eat('}')
+            while p.peek() not in ('requires', '{'):
+                eff.append(p.eat())                       # effect row [EFF-1/EFF-2]
+            requires = []
+            if p.peek() == 'requires':
+                p.eat('requires')
+                requires = parse_stmt_block(p)            # restricted + checked by FN-8
+                if not requires:
+                    raise CheckError("FN-8",
+                        "requires must contain zero or more lets followed by one final check")
+            body = parse_stmt_block(p)
             fns.append({"name": name, "regions": regions, "params": params,
-                        "rmode": rmode, "rty": rty, "effects": eff, "body": body})
+                        "rmode": rmode, "rty": rty, "effects": eff,
+                        "requires": requires, "body": body})
     return structs, enums, fns, contracts, conforms, consts
 
 # ---- v0.6 type-layer mapping: democ parse tree -> check_program `prog` dict ----
@@ -519,6 +557,7 @@ def build_prog(structs, enums, fns, consts=()):
                        for q in f["params"]],
             "rmode": f["rmode"], "rty": ttype(f["rty"]),
             "effects": f.get("effects", []),
+            "requires": tstmts(f.get("requires", [])),
             "body": tstmts(f["body"]),
         }
     return prog
@@ -855,6 +894,8 @@ class Gen:
             return v
         if k == "borrow":                              # &'r p / &uniq 'r p -> pointer to place
             src = g.env[e["place"]["base"]]
+            if src["k"] == "buffer":                  # reborrow of a buffer keeps its checked header value
+                return dict(src)                       # (whole-buffer replacement is rejected by STOR-1)
             if src["k"] == "enum":                     # borrow of an own enum local: ptr to its slot
                 return {"k": "ptr", "v": src["v"], "ty": "%" + src["en"], "en": src["en"]}
             if src["k"] == "struct":                   # borrow of an own struct local: ptr to its slot
@@ -1215,7 +1256,15 @@ class Gen:
             elif k == "check":
                 g.traps = True
                 c = g.expr(s["e"]); l = g.lbl()
-                g.emit(f"  br i1 {c['v']}, label %{l}, label %trap")
+                # [OP-5] An explicit source check executes in every build; it
+                # is not an optimizer hint.  The volatile round-trip keeps the
+                # observation and failure edge present even when a backend can
+                # prove the source predicate tautological.  Implicit OP-4
+                # checks remain eligible for deterministic proof elision.
+                cs = g.tmp(); g.emit(f"  {cs} = alloca i1")
+                g.emit(f"  store volatile i1 {c['v']}, ptr {cs}")
+                observed = g.tmp(); g.emit(f"  {observed} = load volatile i1, ptr {cs}")
+                g.emit(f"  br i1 {observed}, label %{l}, label %trap")
                 g.emit(f"{l}:")
             elif k == "match":
                 g.gen_match(s)
@@ -1386,6 +1435,14 @@ class Gen:
         g.emit(f"define {rt} @{g.f['name']}({', '.join(ps)}){attrs} {{")
         g.emit("entry:")
         for line in g.prologue: g.emit(line)
+        # [FN-8] Checked preconditions are enforced at the callee boundary,
+        # after parameter/header unpack and before any body effect.  Clause
+        # locals are signature-local, so restore the body environment after
+        # emitting the guard.  The check itself always remains (OP-5); only
+        # downstream operations may be discharged by proof.
+        body_env = dict(g.env)
+        g.stmts(g.f.get("requires", []))
+        g.env = body_env
         g.stmts(g.f["body"])
         if not g.term:
             g.emit("  ret i32 0" if g.f["name"] == "main" else ("  ret void" if rt == "void" else "  unreachable"))
@@ -1407,6 +1464,8 @@ _LAW_TABLE = {
 
 def _single_op_body(f):
     """(opname, T) if f's body is exactly `return op<T>(param0, param1);`, else None."""
+    if f.get("requires"):
+        return None                                    # a partial-domain fn cannot witness a universal law [FN-4]
     body = [s for s in f["body"] if s.get("s") != "doc"]
     if len(body) != 1 or body[0].get("s") != "return": return None
     e = body[0]["e"]
@@ -1423,7 +1482,27 @@ def discharge_laws(contracts, conforms, fns):
     Returns {fn_name: {"op", "T", "laws": set, "identity": lit-expr}}."""
     fbyn = {f["name"]: f for f in fns}
     proved = {}
+    seen_conformance = set()
+
+    def mode_shape(mode):
+        return (mode.get("kind"), mode.get("region"), bool(mode.get("uniq")))
+
+    def signature_shape(sig):
+        """FN-1/FN-3 exact public signature identity (no refinement tier)."""
+        return (
+            tuple(sig.get("regions", [])),
+            tuple((q["name"], mode_shape(q["mode"]), q["ty"])
+                  for q in sig.get("params", [])),
+            mode_shape(sig.get("rmode", {})), sig.get("rty"),
+            tuple(sig.get("effects", [])),
+        )
+
     for cf in conforms:
+        ckey = (cf["ty"], cf["contract"])
+        if ckey in seen_conformance:
+            raise CheckError("FN-3",
+                f"duplicate conformance for ({cf['ty']}, {cf['contract']}); at most one is permitted")
+        seen_conformance.add(ckey)
         c = contracts.get(cf["contract"])
         if c is None:
             raise CheckError("FN-3", f"conform names unknown contract {cf['contract']}")
@@ -1434,8 +1513,15 @@ def discharge_laws(contracts, conforms, fns):
             f = fbyn.get(target)
             if f is None:
                 raise CheckError("FN-3", f"conform binds {member} = {target}, but no fn {target} exists")
-            if ([(q["ty"]) for q in f["params"]], f["rty"]) != ([(q["ty"]) for q in sig["params"]], sig["rty"]):
-                raise CheckError("FN-3", f"conform member {member} = {target}: signature does not match the contract")
+            if f.get("requires"):
+                raise CheckError("FN-3",
+                    f"conform member {member} = {target}: concrete requires is not part of fn_sig; "
+                    "contract/refinement binding is deferred [FN-8]")
+            if signature_shape(f) != signature_shape(sig):
+                raise CheckError("FN-3",
+                    f"conform member {member} = {target}: complete signature "
+                    "(regions, parameter names/modes/types, return mode/type, effects) "
+                    "does not exactly match the contract")
         for law in c["laws"]:
             target = cf["binds"][law["fn"]]
             f = fbyn[target]
@@ -1547,7 +1633,11 @@ def _moved_or_reset(body, name):
     facts sound without duplicating the ownership checker's holder-resolution
     machinery here.
     """
-    if _uniq_borrows_name(body, name):
+    # Passing an existing reference/buffer dependency to a user function can
+    # mutate or replace the referent under that callee's declared authority.
+    # The current proof tier is deliberately intraprocedural: do not try to
+    # summarize callees, even when today's codegen lacks one replacement form.
+    if _uniq_borrows_name(body, name) or _user_call_mentions_name(body, name):
         return True
     for st in body:
         if _mutates_name(st, name):
@@ -1592,6 +1682,25 @@ def _expr_moves(e, name):
         return True
     return any(_expr_moves(value, name) for value in e.values())
 
+def _expr_mentions_name(e, name):
+    if isinstance(e, list):
+        return any(_expr_mentions_name(item, name) for item in e)
+    if not isinstance(e, dict): return False
+    if e.get("e") in ("place", "move") and e.get("p", {}).get("base") == name:
+        return True
+    if e.get("e") == "borrow" and e.get("place", {}).get("base") == name:
+        return True
+    return any(_expr_mentions_name(value, name) for value in e.values())
+
+def _user_call_mentions_name(body, name):
+    """Conservative interprocedural invalidation for proof dependencies."""
+    for st in body:
+        for e in _exprs_of(st):
+            if e.get("e") == "ucall" and any(
+                    _expr_mentions_name(arg, name) for arg in e.get("args", [])):
+                return True
+    return False
+
 def _uniq_borrows_name(node, name):
     """Whether any uniq-borrow expression is rooted at `name`.
 
@@ -1607,6 +1716,15 @@ def _uniq_borrows_name(node, name):
         if place.get("base") == name:
             return True
     return any(_uniq_borrows_name(value, name) for value in node.values())
+
+def _borrows_name(node, name):
+    """Whether any shared or uniq borrow expression is rooted at `name`."""
+    if isinstance(node, list):
+        return any(_borrows_name(item, name) for item in node)
+    if not isinstance(node, dict): return False
+    if node.get("e") == "borrow" and node.get("place", {}).get("base") == name:
+        return True
+    return any(_borrows_name(value, name) for value in node.values())
 
 def _mark_indexes(stmts, bvar, ivar, stop_names):
     """mark index<T>(bvar, ivar) as proven in `stmts` until any stop-name is
@@ -1710,6 +1828,240 @@ def _mark_offset_indexes(stmts, bvar, ivar, limit, whole_body, reason):
             _mark_offset_expr(e, bvar, offsets, reason)
         if st.get("s") == "set" and st["p"].get("index"):
             _mark_offset_place(st["p"], bvar, offsets, reason)
+
+def _plain_direct_place(e, deref=None):
+    """Return the root name for a direct place atom, preserving deref identity."""
+    if not isinstance(e, dict) or e.get("e") != "place": return None
+    p = e.get("p", {})
+    if p.get("path") or p.get("post") or p.get("index"): return None
+    if deref is not None and p.get("deref", 0) != deref: return None
+    return p.get("base")
+
+def _capacity_requirement(f):
+    """Normalize the one PROOF-2 v1 capacity predicate.
+
+    Accepted checked relation (all names arbitrary, dependencies exact):
+
+      src_len = len(src)
+      out_len = len(deref(out))
+      groups  = out_len >> 2_u32
+      covered = groups * 3_u64
+      check src_len <= covered
+
+    `groups <= floor(U64_MAX/4)`, so `groups*3` cannot wrap.  The result is
+    therefore exactly N <= 3*floor(C/4), not a trusted interpretation of an
+    arbitrary writer expression.
+    """
+    req = f.get("requires", [])
+    if len(req) != 5 or any(st.get("s") == "doc" for st in req): return None
+    lets, final = req[:-1], req[-1]
+    if any(st.get("s") != "let" for st in lets) or final.get("s") != "check":
+        return None
+    if any(st.get("m", {}).get("kind") != "own" or st.get("ty") != "u64"
+           for st in lets):
+        return None
+    defs = {st["n"]: st.get("e") for st in lets}
+    if len(defs) != 4: return None
+    cond = final.get("e")
+    if not isinstance(cond, dict) or cond.get("e") != "op" or cond.get("op") != "ile" \
+            or cond.get("tyargs") != ["u64"] or len(cond.get("args", [])) != 2:
+        return None
+    src_len = _direct_place_name(cond["args"][0])
+    covered = _direct_place_name(cond["args"][1])
+    src_expr, covered_expr = defs.get(src_len), defs.get(covered)
+    if not isinstance(src_expr, dict) or src_expr.get("e") != "op" \
+            or src_expr.get("op") != "len" or len(src_expr.get("args", [])) != 1:
+        return None
+    src = _plain_direct_place(src_expr["args"][0], deref=0)
+    if not isinstance(covered_expr, dict) or covered_expr.get("e") != "op" \
+            or covered_expr.get("op") != "imul.wrap" \
+            or covered_expr.get("tyargs") != ["u64"] \
+            or len(covered_expr.get("args", [])) != 2:
+        return None
+    groups = _direct_place_name(covered_expr["args"][0])
+    three = covered_expr["args"][1]
+    if three.get("e") != "lit" or three.get("ty") != "u64" or three.get("v") != 3:
+        return None
+    group_expr = defs.get(groups)
+    if not isinstance(group_expr, dict) or group_expr.get("e") != "op" \
+            or group_expr.get("op") != "ishr.wrap" or group_expr.get("tyargs") != ["u64"] \
+            or len(group_expr.get("args", [])) != 2:
+        return None
+    out_len = _direct_place_name(group_expr["args"][0])
+    shift = group_expr["args"][1]
+    if shift.get("e") != "lit" or shift.get("ty") != "u32" or shift.get("v") != 2:
+        return None
+    out_expr = defs.get(out_len)
+    if not isinstance(out_expr, dict) or out_expr.get("e") != "op" \
+            or out_expr.get("op") != "len" or len(out_expr.get("args", [])) != 1:
+        return None
+    out = _plain_direct_place(out_expr["args"][0], deref=1)
+    if not src or not out or src == out: return None
+
+    params = {p["name"]: p for p in f.get("params", [])}
+    sp, op = params.get(src), params.get(out)
+    if not sp or sp.get("mode", {}).get("kind") != "own" or not _buf_elem(sp.get("ty")):
+        return None
+    if not op or op.get("mode", {}).get("kind") != "ref" \
+            or not op.get("mode", {}).get("uniq") or not _buf_elem(op.get("ty")):
+        return None
+    return {"src": src, "out": out}
+
+def _exact_direct_inc(st, name, amount):
+    if st.get("s") != "set": return False
+    p, e = st.get("p", {}), st.get("e", {})
+    return (p.get("base") == name and not p.get("path") and not p.get("post")
+            and not p.get("index") and not p.get("deref")
+            and isinstance(e, dict) and e.get("e") == "op"
+            and e.get("op") == "iadd.wrap" and e.get("tyargs") == ["u64"]
+            and len(e.get("args", [])) == 2
+            and _direct_place_name(e["args"][0]) == name
+            and e["args"][1].get("e") == "lit"
+            and e["args"][1].get("ty") == "u64"
+            and e["args"][1].get("v") == amount)
+
+def _linear_statements(stmts):
+    """The v1 lockstep proof admits no nested control in a group body."""
+    return all(st.get("s") not in ("loop", "region", "match", "break", "return", "give", "try")
+               and "match" not in st for st in stmts)
+
+def _mark_capacity_place(pl, out, offsets):
+    ix = pl.get("index")
+    if not ix: return
+    target = ix.get("place", {})
+    if target.get("base") != out or target.get("path") or target.get("post") \
+            or target.get("deref", 0) != 1:
+        return
+    name = _direct_place_name(ix.get("atom"))
+    if name in offsets:
+        ix["proof"] = "output-capacity-lockstep"
+
+def _mark_capacity_indexes(stmts, out, ovar):
+    # Scope the stability scan to this linear group/arm.  Bindings with the
+    # same spelling in sibling match arms are distinct TYPE-6 environments.
+    offsets = _bounded_offset_vars(stmts, ovar, 4, stmts)
+    for st in stmts:
+        for e in _direct_exprs_of(st):
+            if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
+                _mark_capacity_place(e["p"], out, offsets)
+            for a in e.get("args", []):
+                _mark_capacity_expr(a, out, offsets)
+        if st.get("s") == "set" and st.get("p", {}).get("index"):
+            _mark_capacity_place(st["p"], out, offsets)
+
+def _mark_capacity_expr(e, out, offsets):
+    if not isinstance(e, dict): return
+    if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
+        _mark_capacity_place(e["p"], out, offsets)
+    for value in e.values():
+        if isinstance(value, dict): _mark_capacity_expr(value, out, offsets)
+        elif isinstance(value, list):
+            for item in value: _mark_capacity_expr(item, out, offsets)
+
+def _prove_capacity_lockstep(f, fact):
+    """PROOF-2 v1: connect the checked 3:4 capacity fact to one exact loop.
+
+    At full iteration k, the admitted induction gives i=3k and o=4k.  Guard
+    fall-through proves 3(k+1)<=N<=3G, so o+d<4(k+1)<=4G<=C for d<4.
+    Exact tail==1/2 arms use ceil(N/3)=k+1 and the same bound.
+    """
+    body = f["body"]
+    src, out = fact["src"], fact["out"]
+    if _moved_or_reset(body, src) or _moved_or_reset(body, out): return
+    loops = [(pos, st) for pos, st in enumerate(body) if st.get("s") == "loop"]
+    if len(loops) != 1: return
+    pos, loop = loops[0]
+    b = [st for st in loop["body"] if st.get("s") != "doc"]
+    if len(b) < 4 or b[0].get("s") != "let" or b[1].get("s") != "match": return
+
+    # Re-establish the exact PROOF-1 unsigned induction instead of inheriting
+    # a marker as a premise.
+    rem, sub = b[0]["n"], b[0].get("e")
+    if not isinstance(sub, dict) or sub.get("e") != "op" or sub.get("op") != "isub.wrap" \
+            or sub.get("tyargs") != ["u64"] or len(sub.get("args", [])) != 2:
+        return
+    nvar, ivar = map(_direct_place_name, sub["args"])
+    if not nvar or not ivar: return
+    ndefs = [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == nvar]
+    if len(ndefs) != 1:
+        return
+    ne = ndefs[0].get("e", {})
+    if ne.get("e") != "op" or ne.get("op") != "len" or len(ne.get("args", [])) != 1 \
+            or _plain_direct_place(ne["args"][0], deref=0) != src:
+        return
+    guard, sc = b[1], b[1].get("scrut")
+    if not isinstance(sc, dict) or sc.get("e") != "op" or sc.get("op") != "ilt" \
+            or sc.get("tyargs") != ["u64"] or len(sc.get("args", [])) != 2 \
+            or _direct_place_name(sc["args"][0]) != rem \
+            or sc["args"][1].get("e") != "lit" or sc["args"][1].get("ty") != "u64" \
+            or sc["args"][1].get("v") != 3:
+        return
+    arms = {a["v"]: a for a in guard.get("arms", [])}
+    tguard = [x for x in arms.get("True", {}).get("body", []) if x.get("s") != "doc"]
+    if set(arms) != {"True", "False"} or arms["False"]["body"] \
+            or len(tguard) != 1 or tguard[0].get("s") != "break" \
+            or tguard[0].get("l") != loop.get("l"):
+        return
+    ipre = [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == ivar
+            and st.get("e", {}).get("e") == "lit" and st["e"].get("ty") == "u64"
+            and st["e"].get("v") == 0]
+    if len(ipre) != 1: return
+
+    tail_seq = [st for st in body[pos + 1:] if st.get("s") != "doc"]
+    if len(tail_seq) < 3: return
+    tail_let, tail_one, tail_two = tail_seq[:3]
+    te = tail_let.get("e", {})
+    if tail_let.get("s") != "let" or te.get("e") != "op" or te.get("op") != "isub.wrap" \
+            or te.get("tyargs") != ["u64"] or len(te.get("args", [])) != 2 \
+            or _direct_place_name(te["args"][0]) != nvar \
+            or _direct_place_name(te["args"][1]) != ivar:
+        return
+    tail = tail_let["n"]
+
+    def tail_arm(match, value):
+        if match.get("s") != "match": return None
+        eq = match.get("scrut", {})
+        if eq.get("e") != "op" or eq.get("op") != "ieq" or eq.get("tyargs") != ["u64"] \
+                or len(eq.get("args", [])) != 2 or _direct_place_name(eq["args"][0]) != tail \
+                or eq["args"][1].get("e") != "lit" or eq["args"][1].get("ty") != "u64" \
+                or eq["args"][1].get("v") != value:
+            return None
+        aa = {a["v"]: a for a in match.get("arms", [])}
+        false_body = [x for x in aa.get("False", {}).get("body", []) if x.get("s") != "doc"]
+        true_body = [x for x in aa.get("True", {}).get("body", []) if x.get("s") != "doc"]
+        if set(aa) != {"True", "False"} or false_body or not true_body \
+                or not _linear_statements(true_body) or not _exact_direct_inc(true_body[-1], ovar, 4):
+            return None
+        return true_body
+
+    # The loop's final paired increments are the synchronization point.
+    if not _linear_statements(b[2:]) or not _exact_direct_inc(b[-2], ivar, 3): return
+    ovar = b[-1].get("p", {}).get("base") if b[-1].get("s") == "set" else None
+    if not ovar or not _exact_direct_inc(b[-1], ovar, 4): return
+    opre = [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == ovar
+            and st.get("e", {}).get("e") == "lit" and st["e"].get("ty") == "u64"
+            and st["e"].get("v") == 0]
+    if len(opre) != 1: return
+    one_body = tail_arm(tail_one, 1)
+    two_body = tail_arm(tail_two, 2)
+    if one_body is None or two_body is None: return
+
+    approved_i = [b[-2]]
+    approved_o = [b[-1], one_body[-1], two_body[-1]]
+    if _collect_direct_sets(body, ivar) != approved_i \
+            or _collect_direct_sets(body, ovar) != approved_o:
+        return
+    deps = (nvar, ivar, ovar, rem, tail)
+    if any(_borrows_name(body, name) or _expr_moves(body, name) for name in deps):
+        return
+    if any(_moved_or_reset(body, name) for name in (nvar, rem, tail)):
+        return
+
+    # Mark only accesses before each exact o increment.  Any unrecognized
+    # offset remains dynamically checked, yielding safe mixed classifications.
+    _mark_capacity_indexes(b[2:-2], out, ovar)
+    _mark_capacity_indexes(one_body[:-1], out, ovar)
+    _mark_capacity_indexes(two_body[:-1], out, ovar)
 
 def _prove_remainder_loops(stmts, lens, whole_body):
     """Pattern B: prove an exact fixed-stride remainder loop.
@@ -1833,6 +2185,9 @@ def prove_inbounds(fns, consts):
                     walk(st["body"])
         walk(body)
         _prove_remainder_loops(body, lens, body)
+        capacity = _capacity_requirement(f)
+        if capacity is not None:
+            _prove_capacity_lockstep(f, capacity)
         # pattern C: const-table index masked to the table size (power of two)
         def _markc_expr(e, masks):
             if isinstance(e, list):

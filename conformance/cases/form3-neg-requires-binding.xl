@@ -1,0 +1,7 @@
+fn bad (requires: own i32) -> own i32 pure {
+  return requires;
+}
+
+fn main () -> own unit pure {
+  return unit;
+}

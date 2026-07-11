@@ -394,7 +394,7 @@ Repo history REWRITTEN (git-filter-repo + stale codex checkpoint-ref removal): .
 
 ## Bet 1 ceiling MEASURED + OP-4 proof-tier design card (2026-07-10)
 
-Experiment-only democ flag --elide-bounds-experiment (ceiling probe, default off, make check untouched): base64 encode 2.44 -> 4.2 GB/s (1.7x), branches 41 -> 9, byte-identical outputs; still zero SIMD (shuffle algorithm not vectorizer-discoverable — the audit's caution confirmed; elision value is scalar). CEILING JUSTIFIES THE TIER. DESIGN CARD (build next): (PROOF-1) structural dominating-guard prover — the checker already verifies the canonical loop idioms (P2/P7 shapes); recognize `guard cmp(i, n) dominates index(b, i)` with n bound to len(b), plus offset algebra under `rem >= k` guards; elided checks emit no trap branch. (PROOF-2, needs owner ratification as spec surface) precondition clauses on signatures (FN-1 extension: e.g. requires len(out) >= expr) checked at every call site, licensing elision of callee-side capacity checks — the cross-function class LLVM structurally cannot see. (PROOF-3 interaction) proven-elided checks leave the trap-exhibit set: rows tighten, derived willreturn returns, the totality tower rebuilds — elision compounds through channel 2. HONEST ADVERSARY pre-registered for the eventual benchmark: Rust's assert-up-front idiom (a dominating assert! lets LLVM elide some later checks) and unsafe get_unchecked (the escape we refuse); the claim to test is that PROOF-2's cross-function class beats assert-up-front on real codecs. Discipline note: writers keep .trap everywhere; elision is EARNED by proof, never granted by mode-switching (P8).
+Experiment-only democ flag --elide-bounds-experiment (ceiling probe, default off, make check untouched): base64 encode 2.44 -> 4.2 GB/s (1.7x), branches 41 -> 9, byte-identical outputs; still zero SIMD (shuffle algorithm not vectorizer-discoverable — the audit's caution confirmed; elision value is scalar). CEILING JUSTIFIES THE TIER. DESIGN CARD (build next): (PROOF-1) structural dominating-guard prover — the checker already verifies the canonical loop idioms (P2/P7 shapes); recognize `guard cmp(i, n) dominates index(b, i)` with n bound to len(b), plus offset algebra under `rem >= k` guards; elided checks emit no trap branch. (PROOF-2, then awaiting owner ratification) a checked concrete-function entry clause computes and checks the capacity relation once at the callee boundary, so every invocation is covered even when no xlang call site exists; its passed fact licenses elision of callee-body capacity checks. Static caller discharge is not required for acceptance and is not part of the first slice. (PROOF-3 correction under the normative EFF-2 rule) proof-elided checks remain in the syntactic exhibit set, so effect rows do not tighten and derived `willreturn` does not return through this route; this conservatism keeps acceptance and signatures optimization-stable. HONEST ADVERSARY pre-registered for the eventual benchmark: Rust's assert-up-front idiom (a dominating `assert!` lets LLVM elide some later checks) and unsafe `get_unchecked` (the escape we refuse); the claim to test is parity with the one-boundary-assert shape while retaining xlang's deterministic proof report, not a caller-site advantage. Discipline note: writers keep `.trap` everywhere; elision is EARNED by proof, never granted by mode-switching (P8).
 
 ## PROOF-1 shipped + base64 local fraction measured (2026-07-10)
 
@@ -416,9 +416,9 @@ ms, local facts 2.93 GB/s / 131.2 ms, perfect ceiling 4.23 GB/s / 90.9 ms.
 Thus local proof is 1.17x and recovers ~36% of removable time; 139/139
 boundary-biased facts/nofacts and system-base64 differentials pass. The 9
 alphabet checks were already optimized away; the six source checks cause the
-measured gain. PROOF-2 is now sharply scoped: prove at the call boundary that
-`len(out) >= 4*ceil(len(src)/3)` and connect it to i=3k/o=4k. No spec surface
-was invented here; owner ratification remains required.
+measured gain. PROOF-2 is now sharply scoped: check once at the callee entry that
+`len(out) >= 4*ceil(len(src)/3)` and connect the passed fact to i=3k/o=4k. No spec surface
+was invented at that step; owner ratification still remained required then.
 
 PRE-COMMIT ADVERSARIAL AUDIT: three initially accepted holes were found and
 fixed before shipping: writes through uniq-borrow holders now invalidate proof
@@ -426,3 +426,78 @@ dependencies; masked facts use lexical environments and cannot leak between
 sibling bindings that reuse a spelling; and bare affine call arguments no
 longer become type-layer-only implicit moves. Exact negative gates cover all
 three, with dedicated OWN-1 positive/negative conformance cases for calls.
+
+## PROOF-2 checked `requires` first slice selected (2026-07-11)
+
+Owner approved proceeding with the checked form. The selected semantic unit is
+an optional concrete-function prologue after the effect row:
+`requires { let_stmt* check_stmt }`. It executes at callee entry on every
+invocation; failure traps, success contributes one dominated fact, and ordinary
+call acceptance never depends on a caller proof. The clause is not `assume`, is
+not a trusted-ledger member, and its explicit check has OP-5 semantics. The proof
+tier may remove only downstream implicit checks justified by that fact. The
+first slice is deliberately absent from contract `fn_sig`: inventing
+refinement/subtyping or partial-law semantics before the FN-3/FN-4 evidence gate
+would violate R3/OWN-8's reject-when-unsure direction.
+
+Constitution chain: P0/R0 select the feature class because the measured base64
+ceiling is 1.7x, PROOF-1 leaves exactly 12 output-capacity checks, and its local
+subset already measures 1.17x. W3 fixes checked-not-trusted semantics; OP-5
+supplies the existing stated-and-checked channel. W3/T1 plus the observed
+direct-C entry path select callee-boundary coverage rather than reliance on a
+set of known xlang callers; R4 then ranks its runtime trap above the forbidden
+silent-corruption fallback when no static proof exists. T2 and OWN-8 justify
+the closed pure/total operation-table ANF sublanguage. EFF-2 remains conservative: both the retained boundary check and
+any proof-elided downstream source check continue to exhibit `traps`, so rows
+and totality attributes do not change after optimization. R3 makes only the
+surface spelling provisional.
+
+META-5 delta: +1 normative rule (FN-8; 89 -> 90), +1 grammar production
+(`requires_block`), +1 optional occurrence on `fn_decl`, +0 changes to
+`fn_sig`, +1 reserved surface word/spelling (`requires`), +0 exceptions, and
++1 R3-provisional-register item; +524 `cl100k_base` tokens in the normative
+spec (14,692 -> 15,216, measured with tiktoken 0.12.0). Selection ground is split explicitly:
+feature existence, callee-entry execution, always-retained check, and
+concrete-only scope are evidence/semantics-selected; the block spelling is
+minimality-selected because it reuses the existing ANF `let` and OP-5 `check`
+nodes. Completing experiment: compare first-parse/repair behavior and emitted
+code for this spelling against any credible single-predicate alternative; the
+semantics and W3 floor are not candidates in that A/B.
+
+Prototype boundary: democ emits and backend-pins the checked entry branch, and
+its external structured report gates each eliminated index. Gated FFI frames,
+DIAG-2 proof references embedded in a canonical artifact, and DIAG-3
+machine-readable trap reports are still unimplemented toolchain layers; the
+direct-C probe is evidence that entry enforcement is necessary, not a claim
+that the gated FFI/reporting stack has shipped.
+
+## PROOF-2 implemented, adversarially gated, and measured (2026-07-11)
+
+The prototype now parses, checks, scopes, and lowers FN-8 at callee entry. The
+base64 recognizer accepts exactly the checked non-wrapping relation
+`N <= 3*floor(C/4)`, then separately verifies the zero-based `i+=3/o+=4`
+induction and mutually exclusive tail-1/tail-2 groups before marking an output
+site `output-capacity-lockstep`. It proves all 27 base64 sites (6 source, 9
+alphabet, 12 output); facts-off retains all 27 while running the identical
+entry check. The optimized facts and perfect-index-elision variants both have
+77 instructions and one retained trap path.
+
+The new family gates 28 cases and 42 sites: 5 fully proved positives, 2 exact
+mixed classifications, and 21 retained near-misses covering relation/target,
+zero bases, 3:4 strides, increment order, offset four, conditional drift,
+tail shape/mutual exclusion, direct and aliased mutation, output-buffer
+reborrowing, sibling scope, and interprocedural fail-closed behavior. Combined
+PROOF-1/2 corpus: 78 cases. A pre-commit audit found and closed: user-call alias
+invalidation, shared-for-uniq mode substitution, affine uniq-borrow copying,
+whole-buffer-replacement acceptance without storage semantics, backend removal
+of explicit tautological checks, incomplete FN-3 signature matching, and an
+FN-8 whitelist broader than implemented lowerings.
+
+M4 five-sample median: same-source facts-off 2.480 GB/s / 154.9 ms, PROOF-2
+4.233 GB/s / 90.7 ms, perfect index-elision ceiling 4.215 GB/s / 91.1 ms.
+Thus the checked proof path is 1.71x and reaches the ceiling within noise.
+Correctness: 139/139 deterministic boundary-biased facts/nofacts/Python
+reference differentials; an exact-capacity direct-C call succeeds and a
+one-byte-under call traps at entry. All six verification layers are green,
+including the 10,000-program independent model check (zero accepted
+violations) and 223 runnable conformance cases.
