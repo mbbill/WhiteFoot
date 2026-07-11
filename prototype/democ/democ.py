@@ -36,6 +36,11 @@ LIT_RE = re.compile(r'(-?)([0-9]+)_([iu](?:8|16|32|64))')
 def _is_signed(suf):
     return suf in INT_SUFFIXES and suf[0] == "i"
 
+def _litval(tok):                                  # integer value of a suffixed literal token [FORM-5]
+    m = LIT_RE.fullmatch(tok)
+    if not m: raise CheckError("FORM-5", f"const value '{tok}' is not a numeric literal")
+    return int(m.group(1) + m.group(2))
+
 def _llty(name):
     """LLVM type for a democ type name; Bool is i1; non-int named types are i32 tags."""
     if name == "Bool": return "i1"
@@ -43,6 +48,12 @@ def _llty(name):
 
 def _buf_elem(name):
     return name[7:-1] if isinstance(name, str) and name.startswith("buffer<") else None
+
+def _arr_parts(name):                              # array<T,N> -> (T, N) else None [CONST-2]
+    if isinstance(name, str) and name.startswith("array<"):
+        elem, n = name[6:-1].split(",", 1)
+        return elem, int(n)
+    return None
 
 def _tybytes(name):
     """sizeof(T) for buffer_new's OP-9 byte-size computation (monomorphization-time)."""
@@ -161,6 +172,8 @@ def parse_type(p):
         p.eat('>')
     if base == 'buffer' and inner:                     # retain the element type [TYPE-2]
         return f"buffer<{inner[0]}>"
+    if base == 'array' and len(inner) == 2:            # array<T, N> const-array type [TYPE-2/CONST-2]
+        return f"array<{inner[0]},{inner[1]}>"
     if base == 'Result' and len(inner) == 2:           # retain payload types [ERR-3]
         return f"Result<{inner[0]},{inner[1]}>"
     return base
@@ -297,9 +310,21 @@ def parse_stmt(p):
     p.eat(';'); return {"s": "expr", "e": e}
 
 def parse_program(src):
-    p = P(toks(src)); structs = {}; enums = {}; fns = []; contracts = {}; conforms = []
+    p = P(toks(src)); structs = {}; enums = {}; fns = []; contracts = {}; conforms = []; consts = []
     while p.peek():
-        if p.peek() == 'contract':                     # contract TYPEID { fn sigs; laws } [FN-3/FN-4]
+        if p.peek() == 'const':                        # const NAME: type = cvalue; [CONST-2]
+            p.eat(); name = p.eat(); p.eat(':'); ty = parse_type(p); p.eat('=')
+            if p.peek() == '[':                        # array literal [cvalue, ...]
+                p.eat(); vals = []
+                while p.peek() != ']':
+                    vals.append(p.eat())
+                    if p.peek() == ',': p.eat()
+                p.eat(']')
+            else:
+                vals = [p.eat()]
+            p.eat(';')
+            consts.append({"name": name, "ty": ty, "vals": vals})
+        elif p.peek() == 'contract':                   # contract TYPEID { fn sigs; laws } [FN-3/FN-4]
             p.eat(); name = p.eat()
             if not is_typeid(name):
                 raise CheckError("FORM-3", f"contract name must be a TYPEID ([A-Z]...), got '{name}'")
@@ -388,7 +413,7 @@ def parse_program(src):
             p.eat('}')
             fns.append({"name": name, "regions": regions, "params": params,
                         "rmode": rmode, "rty": rty, "effects": eff, "body": body})
-    return structs, enums, fns, contracts, conforms
+    return structs, enums, fns, contracts, conforms, consts
 
 # ---- v0.6 type-layer mapping: democ parse tree -> check_program `prog` dict ----
 PRIM_SET = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
@@ -400,6 +425,9 @@ def ttype(base):
     if base.startswith("Result<"):
         ok, err = base[7:-1].split(",", 1)
         return {"kind": "named", "name": "Result", "args": [ttype(ok), ttype(err)]}
+    if base.startswith("array<"):
+        elem, n = _arr_parts(base)
+        return {"kind": "array", "elem": ttype(elem), "n": n}
     if base in ("box", "buffer"): return {"kind": base, "elem": {"kind": "any"}}
     if base in ("slice", "arena"): return {"kind": base, "region": None, "elem": {"kind": "any"}}
     if base == "array": return {"kind": "array", "elem": {"kind": "any"}, "n": None}
@@ -459,10 +487,19 @@ def tstmt(s):
     raise SystemExit(f"democ: cannot map stmt {k}")
 def tstmts(body):
     return [x for x in (tstmt(s) for s in body) if x is not None]
-def build_prog(structs, enums, fns):
+def build_prog(structs, enums, fns, consts=()):
     if len([f for f in fns if f["name"] == "main"]) > 1:   # FN-7: at most one main
         raise CheckError("FN-7", "at most one fn main")
-    prog = {"structs": {}, "enums": {}, "fns": {}}
+    for c in consts:                                       # [CONST-2] const-eligibility: primitive or array<prim,N>
+        ct = c["ty"]
+        parts = _arr_parts(ct)
+        base_elem = parts[0] if parts else ct
+        if base_elem not in PRIM_SET:
+            raise CheckError("CONST-2",
+                f"const {c['name']}: type '{ct}' is not const-eligible "
+                "(a const is static rodata: only a primitive or array<primitive, N>)")
+    prog = {"structs": {}, "enums": {}, "fns": {},
+            "consts": {c["name"]: ttype(c["ty"]) for c in consts}}  # [CONST-2]
     for sn, flds in structs.items():                       # struct field types -> the type layer [TYPE-2]
         prog["structs"][sn] = [{"name": f["name"], "ty": ttype(f["ty"])} for f in flds]
     for en, vs in enums.items():
@@ -579,6 +616,7 @@ class Gen:
         g.mdefs = mdefs                # module-level scoped-alias metadata lines [F003 channel]
         g.mdctr = mdctr                # shared metadata id counter (one numbering per module)
         g.pmode = {}                   # param name -> 'uniq' | 'shared' | 'own'
+        g.consts = getattr(Gen, "_consts", {})   # [CONST-2] const name -> (ell, N, signed) | ('scalar', v, signed)
         g.scopes = {}                  # provenance key -> (alias.scope list id, noalias list id)
         g.total = total; g.give_slot = None; g.give_ty = "i32"
         g.prologue = []                # entry-block setup (own struct params spilled to a slot)
@@ -697,6 +735,16 @@ class Gen:
         """[OP-4] bounds-checked element address of an index place; traps OOB.
         Returns (ptr, elem_llty, signed, metadata-suffix)."""
         ipl = pl["index"]["place"]
+        cinfo = g.consts.get(ipl["base"]) if not (ipl.get("path") or ipl.get("post")) else None
+        if cinfo and cinfo[0] != "scalar":             # [CONST-2] const-array index: GEP the global, bounds-checked
+            ell, n, sg = cinfo
+            iv = g.expr(pl["index"]["atom"])
+            g.traps = True
+            c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {n}")
+            l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
+            ptr = g.tmp()
+            g.emit(f"  {ptr} = getelementptr [{n} x {ell}], ptr @__const_{ipl['base']}, i64 0, i64 {iv['v']}")
+            return ptr, ell, sg, ""
         if ipl.get("path") or ipl.get("post"):         # buffer behind a struct field
             fp, fll, _s, _sub, tyn = g.place_addr(ipl)
             el = _buf_elem(tyn)
@@ -755,6 +803,11 @@ class Gen:
                     return g.load_buffield(ptr, el, pl)
                 t = g.tmp(); g.emit(f"  {t} = load {fll}, ptr {ptr}{g.scope_suffix(pl, hdr=True)}")
                 return {"k": fll, "v": t, "signed": fsigned}
+            cinfo = g.consts.get(pl["base"])           # [CONST-2] scalar const: fold to its literal
+            if cinfo and cinfo[0] == "scalar":
+                return {"k": _llty(pl.get("ty", "i32")), "v": str(cinfo[1]), "signed": cinfo[2]}
+            if cinfo:                                  # bare use of a const array: len operand marker
+                return {"k": "constarr", "n": cinfo[1]}
             v = g.env[pl["base"]]
             if v["k"] in ("struct", "enum"):           # whole aggregate use stays an addressable slot
                 return v
@@ -904,6 +957,8 @@ class Gen:
             return {"k": "buffer", "ptr": buf, "len": n_["v"], "ell": w, "esigned": signed}
         if base == "len":                              # len<T>(b) -> own u64 [OP-1]
             src = a[0]
+            if src.get("k") == "constarr":             # [CONST-2] len of a const array is its static N
+                return {"k": "i64", "v": str(src["n"]), "signed": False}
             assert src.get("k") == "buffer", "len over a non-buffer value (democ subset)"
             return {"k": "i64", "v": src["len"], "signed": False}
         VERB = {"iadd": "add", "isub": "sub", "imul": "mul"}
@@ -1447,8 +1502,8 @@ def reassociate_reductions(fns, proved):
         f["body"] = walk(f["body"])
 
 def compile_program(src, alias=True):
-    structs, enums, fns, contracts, conforms = parse_program(src)
-    check_program(build_prog(structs, enums, fns))
+    structs, enums, fns, contracts, conforms, consts = parse_program(src)
+    check_program(build_prog(structs, enums, fns, consts))
     proved = discharge_laws(contracts, conforms, fns)
     if alias: reassociate_reductions(fns, proved)      # [FN-4] facts channel; --no-facts is the control
     payenums = {en for en, vs in enums.items() if _enum_payw(vs) > 0}
@@ -1465,7 +1520,20 @@ def compile_program(src, alias=True):
     decls = set()
     total = compute_total(fns)
     mdefs, mdctr = [], [0]                             # scoped-alias metadata, one numbering per module
+    cmap = {}                                          # [CONST-2] const name -> (llvm elem type, N)
+    cglobals = []
+    for c in consts:
+        parts = _arr_parts(c["ty"])
+        if parts:
+            elem, n = parts; ell = _llty(elem)
+            vals = ", ".join(f"{ell} {_litval(v)}" for v in c["vals"])
+            cglobals.append(f"@__const_{c['name']} = private unnamed_addr constant [{n} x {ell}] [{vals}]")
+            cmap[c["name"]] = (ell, n, _is_signed(elem))
+        else:                                          # scalar const: fold to its literal at use sites
+            cmap[c["name"]] = ("scalar", _litval(c["vals"][0]), _is_signed(c["ty"]))
+    Gen._consts = cmap
     bodies = [Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr).run() for f in fns]
+    if cglobals: bodies.insert(0, "\n".join(cglobals) + "\n")
     if mdefs: bodies.append("\n".join(mdefs) + "\n")
     # named aggregate type per used struct, emitted once (only when structs exist -> byte-stable
     # i32/enum output). fields lower to their per-width int / i1 / nested-%T / i32-tag types [TYPE-2].

@@ -44,6 +44,7 @@ class Binding:
     depth: int                      # lexical region depth where bound
     state: str = "live"             # live | moved
     region: Optional[str] = None    # for ref modes
+    is_const: bool = False          # [CONST-2] read-only static: no move/set/&uniq
 
 
 @dataclass
@@ -90,6 +91,10 @@ class Checker:
     def check(self):
         for r in self.fn.get("regions", []):
             self.ctx.regions.append(r)         # caller regions: outermost
+        for name in getattr(self, "consts", ()):        # [CONST-2] read-only static bindings
+            cb = Binding(name, {"kind": "own"}, 0)
+            cb.is_const = True
+            self.ctx.bindings[name] = cb
         for p in self.fn["params"]:
             b = Binding(p["name"], p["mode"], self.ctx.depth())
             if p["mode"]["kind"] == "ref":
@@ -228,6 +233,8 @@ class Checker:
         if k == "move":
             key = self.place_key(e["place"])
             b = self.require_live(key[0])
+            if getattr(b, "is_const", False):
+                raise CheckError("CONST-2", f"a const item ({key[0]}) is never moved")
             key = self.resolve(key)
             # [OWN-5] cannot move while any borrow of an overlapping place lives
             for br in self.ctx.borrows:
@@ -245,6 +252,8 @@ class Checker:
         if k == "borrow":
             key = self.resolve(self.place_key(e["place"]))
             b = self.require_live(self.place_key(e["place"])[0])
+            if getattr(b, "is_const", False) and e.get("uniq"):
+                raise CheckError("CONST-2", f"a const item ({key[0]}) cannot be &uniq-borrowed")
             r = e["region"]
             if self.ctx.region_depth(r) == -1 and r not in self.fn.get("regions", []):
                 raise CheckError("OWN-3", f"unknown region {r}")
@@ -370,6 +379,8 @@ class Checker:
 
     def require_writable(self, key: tuple, holder: str = ""):
         b = self.require_live(holder or key[0])
+        if getattr(b, "is_const", False):
+            raise CheckError("CONST-2", f"a const item ({key[0]}) is immutable; no set")
         writing_through_holder = any(
             br.holder == holder and br.uniq for br in self.ctx.borrows)
         if b.mode["kind"] == "ref" and not b.mode.get("uniq") and not writing_through_holder:
@@ -515,6 +526,7 @@ class Program:
         for en, variants in prog.get("enums", {}).items():
             self.enums[en] = list(variants)
         self.fns = prog.get("fns", {})
+        self.consts = prog.get("consts", {})   # const name -> TY  [CONST-2]
         self.variant_of = {}   # variant name -> (enum name, fields)  [TYPE-6 global]
         for en, variants in self.enums.items():
             for v in variants:
@@ -536,6 +548,8 @@ class TypeChecker:
         self.deliver = []    # stack of (mode, TY) for give [GIVE-1]
 
     def check(self):
+        for name, ty in self.P.consts.items():          # [CONST-2] const items: own-mode read-only values
+            self.env[name] = ({"kind": "own"}, ty)
         for p in self.fn["params"]:
             self.env[p["name"]] = (p["mode"], p["ty"])
         self.check_block(self.fn["body"])
@@ -1000,5 +1014,7 @@ def check_program(prog: dict):
     P = Program(prog)
     for name, fn in prog["fns"].items():
         TypeChecker(fn, P).check()             # GRAM-8/10/11, TYPE-5/6/7, GIVE-1
-        Checker(fn).check()                    # OWN-1..13 (reused machinery)
+        ch = Checker(fn)
+        ch.consts = P.consts                   # [CONST-2] seed read-only static bindings
+        ch.check()                             # OWN-1..13 (reused machinery)
     check_effects(prog)                        # EFF-1 row order, EFF-2 traps exhibits
