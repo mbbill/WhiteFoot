@@ -1,0 +1,15 @@
+fn main () -> own unit allocates(heap), traps {
+  let f: own Bool = ieq<u64>(1_u64, 0_u64);
+  let t: own Bool = ieq<u64>(1_u64, 1_u64);
+  let b: own buffer<Bool> = buffer_new<Bool>(8_u64, f);
+  set index<Bool>(b, 3_u64) = t;
+  let x: own Bool = index<Bool>(b, 3_u64);
+  match x {
+    True() => {
+    }
+    False() => {
+      check ieq<u64>(0_u64, 1_u64) else trap "readback drift";
+    }
+  }
+  return unit;
+}

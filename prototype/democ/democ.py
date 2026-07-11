@@ -41,9 +41,12 @@ def _litval(tok):                                  # integer value of a suffixed
     if not m: raise CheckError("FORM-5", f"const value '{tok}' is not a numeric literal")
     return int(m.group(1) + m.group(2))
 
+_TAGONLY2 = {}    # 2-variant tag-only enums: Bool-isomorphic, lowered i1 (name -> (v0, v1))
+
 def _llty(name):
-    """LLVM type for a democ type name; Bool is i1; non-int named types are i32 tags."""
-    if name == "Bool": return "i1"
+    """LLVM type for a democ type name; Bool and 2-variant tag-only enums are i1;
+    other non-int named types are i32 tags."""
+    if name == "Bool" or name in _TAGONLY2: return "i1"
     return INT_LLTY.get(name, "i32")
 
 def _buf_elem(name):
@@ -57,6 +60,7 @@ def _arr_parts(name):                              # array<T,N> -> (T, N) else N
 
 def _tybytes(name):
     """sizeof(T) for buffer_new's OP-9 byte-size computation (monomorphization-time)."""
+    if name == "Bool" or name in _TAGONLY2: return 1   # i1 stores as one byte
     import re as _re
     m = _re.fullmatch(r'[iuf](\d+)', name)
     return (int(m.group(1)) // 8) if m else 4
@@ -67,7 +71,7 @@ def _size_align(tyname, structs):
     per-field with tail padding to the max field alignment."""
     if tyname in INT_LLTY:
         b = _tybytes(tyname); return (b, b)
-    if tyname == "Bool": return (1, 1)
+    if tyname == "Bool" or tyname in _TAGONLY2: return (1, 1)
     if _buf_elem(tyname): return (16, 8)
     if tyname in structs:
         off, mx = 0, 1
@@ -422,7 +426,7 @@ def ttype(base):
     if base in PRIM_SET: return {"kind": "prim", "name": base}
     if base == "unit": return {"kind": "unit"}
     if base.startswith("buffer<"):
-        return {"kind": "buffer", "elem": {"kind": "prim", "name": _buf_elem(base)}}
+        return {"kind": "buffer", "elem": ttype(_buf_elem(base))}
     if base.startswith("Result<"):
         ok, err = base[7:-1].split(",", 1)
         return {"kind": "named", "name": "Result", "args": [ttype(ok), ttype(err)]}
@@ -605,7 +609,7 @@ def _field_ll(tyname, structs):
     """LLVM type for a struct field: int width, i1 for Bool, %Sub for a nested struct,
     i32 for an enum tag (the democ enum representation)."""
     if tyname in INT_LLTY: return INT_LLTY[tyname]
-    if tyname == "Bool": return "i1"
+    if tyname == "Bool" or tyname in _TAGONLY2: return "i1"
     if tyname in structs: return "%" + tyname
     if _buf_elem(tyname): return "{ptr, i64}"   # buffer<T> field: {data-pointer, length} pair [TYPE-2]
     return "i32"                                # user enum / prelude tag-only: i32 tag
@@ -845,6 +849,9 @@ class Gen:
             # the value); True/False are its nullary constructors.
             if n == "True": return {"k": "i1", "v": "true"}
             if n == "False": return {"k": "i1", "v": "false"}
+            _en2, _idx2 = g.venum.get(n, (None, None))
+            if _en2 in _TAGONLY2:
+                return {"k": "i1", "v": "true" if _idx2 == 1 else "false"}
             # Prelude Option/Result are enums with one word-sized (type-erased) payload.
             # A directly-constructed variant is an SSA enum value {tag, payload}; the tag
             # index comes from the same registry as user enums [PRE-1].
@@ -1185,7 +1192,10 @@ class Gen:
         sc = g.expr(s["scrut"])
         have = {a["v"] for a in s["arms"]}
         if sc["k"] == "i1":
-            need = {"True", "False"}
+            first = s["arms"][0]["v"]
+            pair = ("False", "True") if first in ("True", "False") \
+                else _TAGONLY2[g.venum[first][0]]
+            need = set(pair)
         else:                                          # every other form dispatches on the registry
             need = set(g.evariants[g.venum[s["arms"][0]["v"]][0]])
         if have != need:
@@ -1196,7 +1206,7 @@ class Gen:
             lt, lf = g.lbl(), g.lbl()
             g.emit(f"  br i1 {sc['v']}, label %{lt}, label %{lf}")
             for a in s["arms"]:
-                l = lt if a["v"] == "True" else lf
+                l = lt if a["v"] == pair[1] else lf
                 g.emit(f"{l}:"); g.term = False; g.stmts(a["body"])
                 if not g.term: g.emit(f"  br label %{done}"); any_open = True
         else:
@@ -1528,6 +1538,9 @@ def compile_program(src, alias=True):
     proved = discharge_laws(contracts, conforms, fns)
     if alias: reassociate_reductions(fns, proved)      # [FN-4] facts channel; --no-facts is the control
     payenums = {en for en, vs in enums.items() if _enum_payw(vs) > 0}
+    _TAGONLY2.clear()
+    _TAGONLY2.update({en: (vs[0][0], vs[1][0]) for en, vs in enums.items()
+                      if len(vs) == 2 and all(not flds for _vn, flds in vs)})
     def _ret(f):
         if f["name"] == "main": return "i32"
         if f["rty"] == "unit": return "void"

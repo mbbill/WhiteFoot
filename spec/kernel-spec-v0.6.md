@@ -139,7 +139,7 @@ psuffix        := "." IDENT
 
 [TYPE-1] Primitive types: `i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 unit`. (`Bool` is a prelude enum, §15, not a primitive.)
 
-[TYPE-2] Composite types: `struct`, `enum`, `array<T, N>` (N a constant-expression, [CONST-1]), `slice<'r, T>` (region-carrying view), `box<T>` (heap-owned unique), `arena<'r, T>` (region-bounded owned), `buffer<T>` (heap-owned, runtime-length, flat contiguous {data-pointer, u64 length} value; affine single-owner; length fixed at allocation, no in-place growth). v0 buffer/array element type T must be copy (a primitive); affine-element buffers are DEFERRED with recorded delta (blocked on the §5 take/replace resolution).
+[TYPE-2] Composite types: `struct`, `enum`, `array<T, N>` (N a constant-expression, [CONST-1]), `slice<'r, T>` (region-carrying view), `box<T>` (heap-owned unique), `arena<'r, T>` (region-bounded owned), `buffer<T>` (heap-owned, runtime-length, flat contiguous {data-pointer, u64 length} value; affine single-owner; length fixed at allocation, no in-place growth). v0 buffer/array element type T must be copy (a primitive or tag-only enum, per the OWN-1 copy amendment); affine-element buffers are DEFERRED with recorded delta (blocked on the §5 take/replace resolution).
 
 [TYPE-3] Nameability: every constructible type/mode/effect has a canonical, finite, writable name requiring no compiler execution.
 
