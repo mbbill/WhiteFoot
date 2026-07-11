@@ -45,6 +45,7 @@ class Binding:
     state: str = "live"             # live | moved
     region: Optional[str] = None    # for ref modes
     is_const: bool = False          # [CONST-2] read-only static: no move/set/&uniq
+    ty: Optional[dict] = None       # declared type, for copy classification [OWN-1]
 
 
 @dataclass
@@ -86,6 +87,7 @@ class Checker:
         self.loops = []   # (region depth at loop entry, binding names at entry)
         self.call_frames = []   # ctx.borrows length at call-argument start
         self.deliver = []   # stack of let-init modes for `give` [GIVE-1] (v0.6)
+        self.copy_enums = frozenset()   # tag-only enum names: copy per OWN-1 amendment
 
     # -- entry ---------------------------------------------------------------
     def check(self):
@@ -97,6 +99,7 @@ class Checker:
             self.ctx.bindings[name] = cb
         for p in self.fn["params"]:
             b = Binding(p["name"], p["mode"], self.ctx.depth())
+            b.ty = p.get("ty")
             if p["mode"]["kind"] == "ref":
                 b.region = p["mode"]["region"]
             self.ctx.bindings[p["name"]] = b
@@ -128,6 +131,7 @@ class Checker:
             else:
                 self.check_expr(s["init"], expect_mode=s["mode"])
             b = Binding(s["name"], s["mode"], self.ctx.depth())
+            b.ty = s.get("ty")
             if s["mode"]["kind"] == "ref":
                 b.region = s["mode"]["region"]
                 # record that this binding holds the borrow just created
@@ -171,6 +175,14 @@ class Checker:
         else:
             raise CheckError("GRAM-4", f"unknown stmt kind {k}")
 
+    def _copy_ty(self, ty):
+        """copy classification for the flow layer [OWN-1 amendment]: primitives,
+        unit, and tag-only enums never consume on use."""
+        if not isinstance(ty, dict): return False
+        k = ty.get("kind")
+        if k in ("prim", "unit", "any"): return True
+        return k == "named" and ty.get("name") in self.copy_enums
+
     # -- match core (shared by statement- and let-initializer matches) --------
     def _check_match(self, s):
         # [OWN-13]/[T-B]: binder modes DERIVED from scrutinee; own moves,
@@ -179,7 +191,7 @@ class Checker:
         if scrut.get("kind") == "use":
             base = self.place_key(scrut["place"])[0]
             sb = self.require_live(base)
-            if sb.mode["kind"] == "own":
+            if sb.mode["kind"] == "own" and not self._copy_ty(sb.ty):
                 self.check_expr({"kind": "move", "place": scrut["place"]})
             else:
                 self.check_expr(scrut)
@@ -585,8 +597,9 @@ class TypeChecker:
         elif k == "return":
             ex = s["expr"]
             if (self.fn["rmode"]["kind"] == "own" and isinstance(ex, dict)
-                    and ex.get("kind") == "use"):
-                ex = {"kind": "move", "place": ex["place"]}   # return consumes [OWN-1/FR T-Move]
+                    and ex.get("kind") == "use"
+                    and not self._is_copy(self.place_desc(ex["place"]))):
+                ex = {"kind": "move", "place": ex["place"]}   # return consumes affine [OWN-1/FR T-Move]
             d = self.expr_desc(ex)
             self.expect_mode_ty(d, self.fn["rmode"], self.fn["rty"], "return")
         elif k == "give":
@@ -600,7 +613,8 @@ class TypeChecker:
                 raise CheckError("TYPE-6",
                     f"redeclaration of live name '{s['name']}' (no shadowing)")
             ex = s["expr"]
-            if isinstance(ex, dict) and ex.get("kind") == "use":
+            if (isinstance(ex, dict) and ex.get("kind") == "use"
+                    and not self._is_copy(self.place_desc(ex["place"]))):
                 ex = {"kind": "move", "place": ex["place"]}   # try consumes its Result
             d = self.expr_desc(ex)
             dt = d["ty"]
@@ -683,12 +697,17 @@ class TypeChecker:
             return self.place_desc(e["place"])
         return self.expr_desc(e)
 
-    @staticmethod
-    def _is_copy(desc):                                     # OWN-1 copy classification
-        # prim/unit copy; borrows copy; `any` is the generic-payload wildcard of unknown
+    def _is_copy(self, desc):                               # OWN-1 copy classification
+        # prim/unit copy; borrows copy; tag-only enums copy (resource-free; OWN-1
+        # amendment 2026-07-10); `any` is the generic-payload wildcard of unknown
         # affinity -> treat as copy (lenient), matching the type layer's generic handling.
-        return (desc["cat"] == "ref"
-                or desc["ty"].get("kind") in ("prim", "unit", "any"))
+        if desc["cat"] == "ref" or desc["ty"].get("kind") in ("prim", "unit", "any"):
+            return True
+        ty = desc["ty"]
+        if ty.get("kind") == "named":
+            vs = self.P.enums.get(ty.get("name"))
+            return vs is not None and all(not v["fields"] for v in vs)
+        return False
 
     # -- expression typing ---------------------------------------------------
     def expr_desc(self, e):
@@ -696,7 +715,11 @@ class TypeChecker:
         if k == "lit":
             return {"cat": "val", "ty": e.get("ty", {"kind": "unit"})}
         if k == "move":
-            return self.place_desc(e["place"])
+            d = self.place_desc(e["place"])
+            if self._is_copy(d) and d["cat"] != "ref":     # OWN-1: one spelling — copies are used bare
+                raise CheckError("OWN-1",
+                    f"move of copy value of type {_ty_str(d['ty'])}; copy values are used bare")
+            return d
         if k == "use":                                     # OWN-1: a bare use must be copy
             d = self.place_desc(e["place"])
             if not self._is_copy(d):
@@ -784,7 +807,8 @@ class TypeChecker:
                 [{"name": p["name"]} for p in params], "GRAM-11", f"call {callee}")
             for arg, p in zip(e["args"], params):
                 if (p["mode"]["kind"] == "own" and isinstance(arg, dict)
-                        and arg.get("kind") == "use"):
+                        and arg.get("kind") == "use"
+                        and not self._is_copy(self.place_desc(arg["place"]))):
                     # passing to an own param consumes: implicit move-at-call
                     # [OWN-1/FN-1]; flow-layer kill is a recorded approximation
                     d = self.expr_desc({"kind": "move", "place": arg["place"]})
@@ -1017,6 +1041,8 @@ def check_program(prog: dict):
     for name, fn in prog["fns"].items():
         TypeChecker(fn, P).check()             # GRAM-8/10/11, TYPE-5/6/7, GIVE-1
         ch = Checker(fn)
+        ch.copy_enums = frozenset(en for en, vs in P.enums.items()
+                                  if all(not v["fields"] for v in vs))
         ch.consts = P.consts                   # [CONST-2] seed read-only static bindings
         ch.check()                             # OWN-1..13 (reused machinery)
     check_effects(prog)                        # EFF-1 row order, EFF-2 traps exhibits

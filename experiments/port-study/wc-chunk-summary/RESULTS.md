@@ -84,3 +84,28 @@ codegen-quality investigation rather than as a language-feature project.
 make -C experiments/port-study/wc-chunk-summary check
 make -C experiments/port-study/wc-chunk-summary bench
 ```
+
+## Addendum: Bool-copy amendment closes the gap (2026-07-10)
+
+The width-2 lowering deficiency is FIXED via the OWN-1 amendment (tag-only
+enums are copy) + democ i1 lowering (mutable Bool slots; band/bor/bxor/bnot
+kept in i1). The scan loop rewritten in i1 dataflow form
+(`starts_word = band(prevspace, bnot(issp))`, increments via give-match
+selects) now vectorizes at width 16 (29 x16b ops; previously zero).
+
+| variant | 1 thread | 2 threads | 4 threads | 8 threads |
+|---|---:|---:|---:|---:|
+| xlang-facts | ~134-140 ms | 70.3 ms | 35.6 ms | 26.4 ms |
+| xlang-no-facts | 134.3 ms | 67.2 ms | 34.1 ms | 27.5 ms |
+| C control | 132.6 ms | 67.5 ms | 34.8 ms | 27.6 ms |
+| Rust safe | 133.9 ms | 67.6 ms | 34.2 ms | 27.9 ms |
+
+Correctness: full harness green (39.65M algebra triples, 107 cases, 1284
+split verdicts). facts/no-facts summarize asm byte-identical (label names
+only); the initial 153ms facts median was a thermal outlier — interleaved
+best-of shows <2% spread.
+
+PARITY ACHIEVED: the 1.6-1.8x gap was entirely the i64-recurrence lowering,
+as diagnosed. The experiment's DECISION IS UNCHANGED: this remains a
+no-fact-advantage workload (safe Rust expresses the identical algorithm);
+what changed is that xlang's scalar codegen no longer owes anyone 1.6x.

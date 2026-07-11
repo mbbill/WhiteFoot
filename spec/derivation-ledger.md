@@ -110,3 +110,20 @@ Audited against: kernel-spec-v0.3 + CONSTITUTION.md (2026-07-07). Requirement (o
 | GRAM-9 | flat three-address / A-normal form; call/construct only at expr position | 🟡 existence-only | FORM-1/META-1 (nesting-vs-let-split were two spellings; atoms-in-argument-position makes non-nesting a grammar guarantee) + W1 (collapses the nested-paren/argument-boundary surface; per-line node-path diagnostics) + TYPE-5 (every intermediate carries explicit mode+type). P0 NEUTRAL (mem2reg/SROA make a named local and the subexpression the identical SSA value; not a runtime delta). Precedent: LLVM IR / Rust MIR / ANF. | FORM-1/regularity force it; weak-writer net-sign vs nesting experiment-gated; needs_experiment. |
 | GRAM-10 | named match binders (field: freshBinder) in declared order | 🟡 existence-only | R4 (read-side symmetry: positional binders of a two-field variant silently transpose; order+name checking lifts it to reject) + regularity (write-named/read-positional asymmetry is the irregularity the enemy names) + TYPE-6 dodge (fresh binder distinct from the field name, so two arms binding same-named fields never collide). OWN-13 unchanged. | R4+regularity force it; magnitude gated with GRAM-8's experiment; needs_experiment. |
 | GRAM-11 | named-in-declared-order arguments for user-fn calls; positional operands for table ops | 🟡 existence-only | R4 (a fn call with two same-typed params has the same silent-transposition hazard GRAM-8 closes for construction; named-in-declared-order lifts it to check-reject) + FORM-1/META-1 (declared order is one byte sequence; names are checked-redundant facts, never a reordering license) + FN-1 (param names from the signature). Table-op calls stay positional (operands order-intrinsic); op-vs-fn is the existing name-lookup partition. | direction R4-forced; W1 magnitude experiment-gated with GRAM-8; needs_experiment. |
+
+## OWN-1 amendment: tag-only enums are copy (2026-07-10)
+
+Derivation: a tag-only enum value (every variant nullary) is resource-free —
+no heap, no drop obligation, no interior storage a borrow could alias — so
+affine classification buys zero safety (T1 unaffected) while taxing every
+boolean expression: an owned `Bool` cannot be loop-carried state (match
+consumes it, OWN-13), cannot flow through `band`/`bnot` dataflow (operands
+consumed), and forces integer-typed workarounds whose lowering degrades
+vectorization (measured: the chunk-summary wc classifier vectorizes at width
+2x4 as an i64 recurrence vs width 16 for the i1 form — a 1.6-1.8x kernel
+gap; experiments/port-study/wc-chunk-summary). The original affinity of Bool
+was minimality-selected (R3 provisional: uniform enum rule), not
+evidence-selected; this amendment is the evidence-driven correction (P0 via
+vectorizable i1 recurrences; W1 via removing a writer tax with no safety
+payoff). Companion FORM-1 discipline: `move` on a copy value is now a hard
+error (one spelling per meaning: copies are used bare).

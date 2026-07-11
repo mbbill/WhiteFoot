@@ -102,63 +102,69 @@ L26:
 L24:
   %t29 = load i8, ptr %t21
   %t30 = icmp uge i8 %t29, 9
-  %t31 = load i8, ptr %t21
-  %t32 = icmp ule i8 %t31, 13
-  %t33 = alloca i1
-  br i1 %t30, label %L35, label %L36
-L35:
-  store i1 %t32, ptr %t33
-  br label %L34
-L36:
-  store i1 false, ptr %t33
-  br label %L34
-L34:
-  %t37 = alloca i1
-  %t38 = load i1, ptr %t33
-  br i1 %t38, label %L40, label %L41
-L40:
-  store i1 true, ptr %t37
-  br label %L39
-L41:
-  %t42 = load i8, ptr %t21
-  %t43 = icmp eq i8 %t42, 32
-  store i1 %t43, ptr %t37
-  br label %L39
+  %t31 = alloca i1
+  store i1 %t30, ptr %t31
+  %t32 = load i8, ptr %t21
+  %t33 = icmp ule i8 %t32, 13
+  %t34 = alloca i1
+  store i1 %t33, ptr %t34
+  %t35 = alloca i1
+  %t36 = load i1, ptr %t31
+  br i1 %t36, label %L38, label %L39
+L38:
+  %t40 = load i1, ptr %t34
+  store i1 %t40, ptr %t35
+  br label %L37
 L39:
-  %t44 = load i1, ptr %t37
-  br i1 %t44, label %L46, label %L47
-L46:
-  store i64 1, ptr %t7
-  br label %L45
-L47:
-  %t48 = load i64, ptr %t7
-  %t49 = icmp eq i64 %t48, 1
-  br i1 %t49, label %L51, label %L52
-L51:
-  %t53 = load i64, ptr %t6
-  %t54 = add i64 %t53, 1
-  store i64 %t54, ptr %t6
-  br label %L50
-L52:
-  br label %L50
-L50:
-  store i64 0, ptr %t7
-  br label %L45
+  store i1 false, ptr %t35
+  br label %L37
+L37:
+  %t41 = alloca i1
+  %t42 = load i1, ptr %t35
+  br i1 %t42, label %L44, label %L45
+L44:
+  store i1 true, ptr %t41
+  br label %L43
 L45:
-  %t55 = load i64, ptr %t4
-  %t56 = add i64 %t55, 1
-  store i64 %t56, ptr %t4
+  %t46 = load i8, ptr %t21
+  %t47 = icmp eq i8 %t46, 32
+  store i1 %t47, ptr %t41
+  br label %L43
+L43:
+  %t48 = load i1, ptr %t41
+  br i1 %t48, label %L50, label %L51
+L50:
+  store i64 1, ptr %t7
+  br label %L49
+L51:
+  %t52 = load i64, ptr %t7
+  %t53 = icmp eq i64 %t52, 1
+  br i1 %t53, label %L55, label %L56
+L55:
+  %t57 = load i64, ptr %t6
+  %t58 = add i64 %t57, 1
+  store i64 %t58, ptr %t6
+  br label %L54
+L56:
+  br label %L54
+L54:
+  store i64 0, ptr %t7
+  br label %L49
+L49:
+  %t59 = load i64, ptr %t4
+  %t60 = add i64 %t59, 1
+  store i64 %t60, ptr %t4
   br label %L8
 L9:
-  %t57 = load i64, ptr %t5
-  %t58 = getelementptr %Counts, ptr %out, i32 0, i32 0
-  store i64 %t57, ptr %t58, !alias.scope !3, !noalias !4
-  %t59 = load i64, ptr %t6
-  %t60 = getelementptr %Counts, ptr %out, i32 0, i32 1
-  store i64 %t59, ptr %t60, !alias.scope !3, !noalias !4
-  %t61 = load i64, ptr %t3
-  %t62 = getelementptr %Counts, ptr %out, i32 0, i32 2
+  %t61 = load i64, ptr %t5
+  %t62 = getelementptr %Counts, ptr %out, i32 0, i32 0
   store i64 %t61, ptr %t62, !alias.scope !3, !noalias !4
+  %t63 = load i64, ptr %t6
+  %t64 = getelementptr %Counts, ptr %out, i32 0, i32 1
+  store i64 %t63, ptr %t64, !alias.scope !3, !noalias !4
+  %t65 = load i64, ptr %t3
+  %t66 = getelementptr %Counts, ptr %out, i32 0, i32 2
+  store i64 %t65, ptr %t66, !alias.scope !3, !noalias !4
   ret void
 trap:
   call void @llvm.trap()

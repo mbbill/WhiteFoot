@@ -88,6 +88,7 @@ _MODE_OPS = {"iadd": {"wrap", "trap", "checked", "sat"}, "isub": {"wrap", "trap"
              "irem": {"trap", "checked"}, "ishl": {"wrap", "trap"},
              "ishr": {"wrap", "trap"}}
 _DOTLESS_OPS = {"buffer_new", "len", "imin", "imax", "iand", "ior", "ixor", "irotl", "irotr",
+                "band", "bor", "bxor", "bnot",
                 "ieq", "ine", "ilt", "ile", "igt", "ige", "cvt", "reinterpret"}
 _KNOWN_OP_BASES = set(_MODE_OPS) | _DOTLESS_OPS
 
@@ -1036,6 +1037,13 @@ class Gen:
             g.decls.add(f"declare {w} @llvm.{iv}.{w}({w}, {w})")
             t = g.tmp(); g.emit(f"  {t} = call {w} @llvm.{iv}.{w}({w} {a[0]['v']}, {w} {a[1]['v']})")
             return {"k": w, "v": t, "signed": signed}
+        if base in ("band", "bor", "bxor"):            # Bool ops stay i1 [PRE-1/OWN-1 amendment]
+            instr = {"band": "and", "bor": "or", "bxor": "xor"}[base]
+            t = g.tmp(); g.emit(f"  {t} = {instr} i1 {a[0]['v']}, {a[1]['v']}")
+            return {"k": "i1", "v": t}
+        if base == "bnot":
+            t = g.tmp(); g.emit(f"  {t} = xor i1 {a[0]['v']}, true")
+            return {"k": "i1", "v": t}
         CMP_S = {"ieq": "eq", "ine": "ne", "ilt": "slt", "ile": "sle", "igt": "sgt", "ige": "sge"}
         CMP_U = {"ieq": "eq", "ine": "ne", "ilt": "ult", "ile": "ule", "igt": "ugt", "ige": "uge"}
         if base in CMP_S:                              # sign-correct integer comparison
@@ -1083,7 +1091,7 @@ class Gen:
                     g.env[s["n"]] = {"k": "slot", "v": slot, "ty": gty, "signed": gsigned}
                     continue
                 v = g.expr(s["e"])
-                if v["k"] in INT_LL:
+                if v["k"] in INT_LL or v["k"] == "i1":   # i1: mutable Bool locals [OWN-1 amendment]
                     slot = g.tmp(); g.emit(f"  {slot} = alloca {v['k']}")
                     g.emit(f"  store {v['k']} {v['v']}, ptr {slot}")
                     g.env[s["n"]] = {"k": "slot", "v": slot, "ty": v["k"],

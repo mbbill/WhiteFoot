@@ -57,7 +57,7 @@ fn count_all ['r] (out: &uniq 'r Counts, b: own buffer<u8>) -> own unit writes('
     let le13: own Bool = ile<u8>(c, 13_u8);
     let inrange: own Bool = match ge9 {
       True() => {
-        give move le13;
+        give le13;
       }
       False() => {
         give False();

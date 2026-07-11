@@ -1,15 +1,15 @@
-enum Sign { Neg(); Zero(); Pos(); }
+enum Sign { Neg(mag: i32); Zero(); Pos(); }
 
 fn main () -> own unit pure {
   doc "OWN-1/OWN-13: matching an own value moves it; a second use is use-after-move.";
   let s: own Sign = Pos();
   match s {
-    Neg() => { }
+    Neg(mag: m) => { }
     Zero() => { }
     Pos() => { }
   }
   match s {
-    Neg() => { }
+    Neg(mag: m) => { }
     Zero() => { }
     Pos() => { }
   }

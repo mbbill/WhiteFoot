@@ -157,7 +157,7 @@ psuffix        := "." IDENT
 
 ## 5. Ownership, regions, borrows (PROVISIONAL pending formal-calculus reconciliation)
 
-[OWN-1] Every value has exactly one owner. Values are classified copy or affine: primitives (TYPE-1) and shared borrows copy on use; all other values (owned composites, `box`, `arena`, `slice` as `&uniq`, uniq borrows) are affine. An affine value is consumed by `move p` exactly once; a bare `place` expression of affine type is a hard error (write `move p`). After a move, the whole binding rooting `p` is dead (partial moves kill the whole binding); any later use, write, or `set` of a dead binding is an error — reinitialization requires a new `let`.
+[OWN-1] Every value has exactly one owner. Values are classified copy or affine: primitives (TYPE-1), shared borrows, and tag-only enums (every variant nullary; `Bool` is the canonical case) copy on use; all other values (owned composites, `box`, `arena`, `slice` as `&uniq`, uniq borrows) are affine. An affine value is consumed by `move p` exactly once; a bare `place` expression of affine type is a hard error (write `move p`), and `move p` on a copy value is a hard error (copy values are used bare — one spelling per meaning, FORM-1). After a move, the whole binding rooting `p` is dead (partial moves kill the whole binding); any later use, write, or `set` of a dead binding is an error — reinitialization requires a new `let`.
 
 [OWN-2] Modes: `own` (owned), `&'r` (shared borrow in region `'r`), `&uniq 'r` (exclusive borrow in region `'r`). Modes are always written.
 
