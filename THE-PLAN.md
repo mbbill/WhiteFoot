@@ -104,6 +104,9 @@ failure.
 ## 6. Standing process rules
 
 - Durability: commit + gates line per completed step (rewind-proof).
+- Codegen parity is an explicit verification layer: deterministic earned
+  properties gate every `make check`; unresolved targets remain visible audits
+  until independently verified and promoted (`CODEGEN-PARITY.md`).
 - Fact channels get adversarial review BEFORE ship (the willreturn lesson:
   green checks missed a real unsoundness; the refutation attempt caught it).
 - Agent tiering: sonnet floor for mechanical work, opus for most fan-outs,

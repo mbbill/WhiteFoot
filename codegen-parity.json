@@ -1,0 +1,244 @@
+{
+  "schema": 1,
+  "cases": [
+    {
+      "id": "scalar-backend-parity",
+      "mode": "gate",
+      "description": "The same splitmix loop must select the same instruction sequence from xlang, C, and safe Rust.",
+      "variants": [
+        {
+          "name": "xlang",
+          "kind": "xlang",
+          "source": "experiments/codegen-vs-rust-c/xl/kernelA.xl",
+          "function": "mix_n",
+          "opt": "O3"
+        },
+        {
+          "name": "c",
+          "kind": "c",
+          "source": "experiments/codegen-vs-rust-c/c/kernelA.c",
+          "function": "mix_n",
+          "opt": "O3"
+        },
+        {
+          "name": "rust",
+          "kind": "rust",
+          "source": "experiments/codegen-vs-rust-c/rs/kernelA.rs",
+          "function": "mix_n",
+          "opt": "O3"
+        }
+      ],
+      "checks": [
+        {
+          "label": "xlang opcode sequence equals C",
+          "left": "xlang.asm.opcodes",
+          "op": "eq",
+          "right": "c.asm.opcodes"
+        },
+        {
+          "label": "xlang opcode sequence equals safe Rust",
+          "left": "xlang.asm.opcodes",
+          "op": "eq",
+          "right": "rust.asm.opcodes"
+        }
+      ]
+    },
+    {
+      "id": "ownership-load-elimination",
+      "mode": "gate",
+      "description": "The ownership fact must remove one of two optimized LLVM loads.",
+      "variants": [
+        {
+          "name": "facts",
+          "kind": "xlang",
+          "source": "prototype/democ/examples/twice_read.xl",
+          "function": "twice_read",
+          "opt": "O2"
+        },
+        {
+          "name": "nofacts",
+          "kind": "xlang",
+          "source": "prototype/democ/examples/twice_read.xl",
+          "function": "twice_read",
+          "facts": false,
+          "opt": "O2"
+        }
+      ],
+      "checks": [
+        {
+          "label": "facts-on optimized loads",
+          "left": "facts.opt_ir.loads",
+          "op": "eq",
+          "value": 1
+        },
+        {
+          "label": "facts-off optimized loads",
+          "left": "nofacts.opt_ir.loads",
+          "op": "eq",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "scoped-alias-vectorization",
+      "mode": "gate",
+      "description": "Ownership provenance must emit scoped alias metadata and unlock the SoA loop.",
+      "variants": [
+        {
+          "name": "facts",
+          "kind": "xlang",
+          "source": "prototype/democ/examples/soa_kernel.xl",
+          "function": "kernel",
+          "opt": "O2"
+        },
+        {
+          "name": "nofacts",
+          "kind": "xlang",
+          "source": "prototype/democ/examples/soa_kernel.xl",
+          "function": "kernel",
+          "facts": false,
+          "opt": "O2"
+        }
+      ],
+      "checks": [
+        {
+          "label": "facts-on alias scopes are present",
+          "left": "facts.raw_ir.alias_scope_uses",
+          "op": "gt",
+          "value": 0
+        },
+        {
+          "label": "facts-off alias scopes are absent",
+          "left": "nofacts.raw_ir.alias_scope_uses",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "label": "facts-on loop vectorizes",
+          "left": "facts.remarks.max_vector_width",
+          "op": "ge",
+          "value": 2
+        },
+        {
+          "label": "facts-off loop remains scalar",
+          "left": "nofacts.remarks.vectorized_loops",
+          "op": "eq",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "checked-law-reassociation",
+      "mode": "gate",
+      "description": "A discharged algebraic law must widen the saturating reduction; the control stays serial.",
+      "variants": [
+        {
+          "name": "facts",
+          "kind": "xlang",
+          "source": "prototype/democ/examples/sat_reduce.xl",
+          "function": "reduce",
+          "opt": "O2"
+        },
+        {
+          "name": "nofacts",
+          "kind": "xlang",
+          "source": "prototype/democ/examples/sat_reduce.xl",
+          "function": "reduce",
+          "facts": false,
+          "opt": "O2"
+        }
+      ],
+      "checks": [
+        {
+          "label": "facts-on has widened sat-add sites",
+          "left": "facts.raw_ir.saturating_add_mentions",
+          "op": "ge",
+          "value": 8
+        },
+        {
+          "label": "facts-off keeps the serial sites",
+          "left": "nofacts.raw_ir.saturating_add_mentions",
+          "op": "le",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "wc-classifier-parity",
+      "mode": "gate",
+      "description": "The real chunk classifier must retain C-equivalent vector width with no surviving trap in summarize.",
+      "variants": [
+        {
+          "name": "xlang",
+          "kind": "xlang",
+          "source": "experiments/port-study/wc-chunk-summary/chunk_wc.xl",
+          "function": "summarize",
+          "opt": "O3"
+        },
+        {
+          "name": "c",
+          "kind": "c",
+          "source": "experiments/port-study/wc-chunk-summary/c_control.c",
+          "function": "summarize",
+          "opt": "O3"
+        }
+      ],
+      "checks": [
+        {
+          "label": "xlang reaches at least 16-byte vector width",
+          "left": "xlang.remarks.max_vector_width",
+          "op": "ge",
+          "value": 16
+        },
+        {
+          "label": "xlang vector width equals C",
+          "left": "xlang.remarks.max_vector_width",
+          "op": "eq",
+          "right": "c.remarks.max_vector_width"
+        },
+        {
+          "label": "xlang summarize has no machine trap",
+          "left": "xlang.asm.traps",
+          "op": "eq",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "base64-bounds-ceiling",
+      "mode": "audit",
+      "description": "Known debt: ordinary checked code should converge on the perfect-prover ceiling without changing source semantics.",
+      "variants": [
+        {
+          "name": "facts",
+          "kind": "xlang",
+          "source": "experiments/port-study/base64/b64.xl",
+          "function": "encode",
+          "opt": "O3"
+        },
+        {
+          "name": "ceiling",
+          "kind": "xlang",
+          "source": "experiments/port-study/base64/b64.xl",
+          "function": "encode",
+          "elide_bounds": true,
+          "opt": "O3"
+        }
+      ],
+      "checks": [
+        {
+          "label": "checked encode reaches the ceiling's optimized trap count",
+          "left": "facts.opt_ir.trap_calls",
+          "op": "eq",
+          "right": "ceiling.opt_ir.trap_calls"
+        },
+        {
+          "label": "checked encode reaches the ceiling's instruction count",
+          "left": "facts.asm.instructions",
+          "op": "le",
+          "right": "ceiling.asm.instructions"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
-# xlang verification stack — `make check` runs all five layers.
+# xlang verification stack — `make check` runs all six layers.
 PY=python3
-check: spec rules soundness perf conformance
-	@echo "== ALL FIVE VERIFICATION LAYERS GREEN =="
+check: spec rules soundness perf parity conformance
+	@echo "== ALL SIX VERIFICATION LAYERS GREEN =="
 spec:                      # layer 1: spec integrity (META rules, ledger coverage)
 	$(PY) tools/spec_ci.py
 rules:                     # layer 2: rule-keyed checker unit tests (implementation tier)
@@ -10,8 +10,10 @@ soundness:                 # layer 3: generative model check vs independent orac
 	cd prototype/checker && $(PY) modelcheck.py 10000
 perf:                      # layer 4: pinned optimizer-fact effects
 	cd prototype/democ && $(PY) perf_regress.py
-conformance:               # layer 5: spec-anchored rule-keyed conformance suite (source -> verdict)
+parity:                    # layer 5: xlang/facts-off/C/Rust codegen properties + visible debt
+	$(PY) tools/codegen_parity.py
+conformance:               # layer 6: spec-anchored rule-keyed conformance suite (source -> verdict)
 	$(PY) conformance/runner.py all
 examples:                  # smoke: compile & run the demo programs
 	cd prototype/democ && $(PY) democ.py examples/ex1.xl --run && $(PY) democ.py examples/ex2.xl --run
-.PHONY: check spec rules soundness perf conformance examples
+.PHONY: check spec rules soundness perf parity conformance examples
