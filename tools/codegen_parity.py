@@ -12,6 +12,7 @@ import argparse
 import importlib.util
 import json
 import operator
+import platform
 import re
 import shutil
 import subprocess
@@ -24,6 +25,7 @@ from typing import Any
 sys.dont_write_bytecode = True  # the repository contains historical tracked pyc files
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "codegen-parity.json"
+CORPUS_ROOT = ROOT / "codegen-corpus/cases"
 CLANG = Path("/usr/bin/clang") if Path("/usr/bin/clang").exists() else Path("clang")
 VECTOR_REMARK = re.compile(
     r"vectorized loop \(vectorization width: (\d+), interleaved count: (\d+)\)"
@@ -108,21 +110,28 @@ def assembly_opcodes(body: str) -> list[str]:
 
 def metrics(raw_ir: str, optimized_ir: str, assembly: str, remarks: str,
             function: str | None) -> dict[str, Any]:
+    raw_body = llvm_function(raw_ir, function)
     opt_body = llvm_function(optimized_ir, function)
     asm_body = assembly_function(assembly, function)
     opcodes = assembly_opcodes(asm_body)
     vectors = [(int(width), int(interleave)) for width, interleave in VECTOR_REMARK.findall(remarks)]
+    ir_vector_widths = [int(width) for width in re.findall(r"<(\d+)\s+x\s+[^>]+>", opt_body)]
     return {
         "raw_ir.alias_scope_uses": sum(
-            "!alias.scope" in line for line in raw_ir.splitlines() if not line.lstrip().startswith("!")
+            "!alias.scope" in line for line in raw_body.splitlines() if not line.lstrip().startswith("!")
         ),
         "raw_ir.noalias_uses": sum(
-            "!noalias" in line for line in raw_ir.splitlines() if not line.lstrip().startswith("!")
+            "!noalias" in line for line in raw_body.splitlines() if not line.lstrip().startswith("!")
         ),
-        "raw_ir.saturating_add_mentions": raw_ir.count("@llvm.uadd.sat"),
-        "raw_ir.trap_calls": raw_ir.count("call void @llvm.trap"),
+        "raw_ir.saturating_add_mentions": raw_body.count("@llvm.uadd.sat"),
+        "raw_ir.trap_calls": raw_body.count("call void @llvm.trap"),
         "opt_ir.loads": len(re.findall(r"(?m)^\s*%[^\n=]+?=\s*load\b", opt_body)),
         "opt_ir.vector_loads": len(re.findall(r"(?m)=\s*load\s+<\d+\s+x\s+", opt_body)),
+        "opt_ir.vector_ops": sum(
+            bool(re.search(r"<\d+\s+x\s+[^>]+>", line)) for line in opt_body.splitlines()
+        ),
+        "opt_ir.max_vector_width": max(ir_vector_widths, default=0),
+        "opt_ir.saturating_add_mentions": opt_body.count("@llvm.uadd.sat"),
         "opt_ir.trap_calls": opt_body.count("call void @llvm.trap"),
         "asm.instructions": len(opcodes),
         "asm.opcodes": opcodes,
@@ -130,6 +139,24 @@ def metrics(raw_ir: str, optimized_ir: str, assembly: str, remarks: str,
         "remarks.vectorized_loops": len(vectors),
         "remarks.max_vector_width": max((width for width, _ in vectors), default=0),
         "remarks.max_interleave": max((interleave for _, interleave in vectors), default=0),
+    }
+
+
+def tool_version(command: list[str]) -> str | None:
+    try:
+        result = run(command)
+    except HarnessError:
+        return None
+    return (result.stdout.strip() or result.stderr.strip()).splitlines()[0]
+
+
+def environment_report() -> dict[str, str | None]:
+    return {
+        "architecture": platform.machine(),
+        "system": platform.system(),
+        "clang": tool_version([str(CLANG), "--version"]),
+        "rustc": tool_version([shutil.which("rustc") or "rustc", "--version"]),
+        "python": platform.python_version(),
     }
 
 
@@ -241,10 +268,117 @@ def validate_manifest(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     return cases
 
 
+def load_corpus_cases() -> list[dict[str, Any]]:
+    """Translate compact family manifests into ordinary parity-harness cases."""
+    cases: list[dict[str, Any]] = []
+    if not CORPUS_ROOT.is_dir():
+        return cases
+    for manifest_path in sorted(CORPUS_ROOT.rglob("cases.json")):
+        family_manifest = json.loads(manifest_path.read_text())
+        if family_manifest.get("schema") != 1 or not isinstance(family_manifest.get("cases"), list):
+            raise HarnessError(f"invalid corpus family manifest: {manifest_path}")
+        family = family_manifest.get("family")
+        if not isinstance(family, str) or not family:
+            raise HarnessError(f"corpus family is required: {manifest_path}")
+        family_tags = family_manifest.get("tags", [])
+        if not isinstance(family_tags, list) or not all(isinstance(tag, str) for tag in family_tags):
+            raise HarnessError(f"corpus family tags must be strings: {manifest_path}")
+        measurement = family_manifest.get("measurement", {})
+        function = measurement.get("function")
+        if not function:
+            function = "probe" if family == "bounds/dominating-guard" else None
+        if not function:
+            raise HarnessError(f"corpus measurement function is required: {manifest_path}")
+        if measurement.get("metric") != "raw_ir.trap_calls":
+            raise HarnessError(f"unsupported corpus proof metric in {manifest_path}")
+        for entry in family_manifest["cases"]:
+            source_name = entry.get("source")
+            if not isinstance(source_name, str):
+                raise HarnessError(f"corpus source is required: {manifest_path}")
+            source_path = (manifest_path.parent / source_name).resolve()
+            if not source_path.is_file() or ROOT not in source_path.parents:
+                raise HarnessError(f"invalid corpus source: {source_path}")
+            expected = entry.get("expected", {})
+            classification = expected.get("proof_classification", expected.get("classification"))
+            if classification not in {"proved", "elided", "retained", "checked"}:
+                raise HarnessError(f"invalid proof classification for {source_path}")
+            is_positive = classification in {"proved", "elided"}
+            maturity = entry.get("maturity")
+            if maturity not in {"explore", "audit", "gate"}:
+                raise HarnessError(f"invalid corpus maturity for {source_path}")
+            mode = "gate" if maturity == "gate" else "audit"
+            entry_tags = entry.get("tags")
+            if not isinstance(entry_tags, list) or not entry_tags \
+                    or not all(isinstance(tag, str) for tag in entry_tags):
+                raise HarnessError(f"corpus case tags must be non-empty strings: {source_path}")
+            stem = entry.get("id", source_path.stem)
+            case_id = "corpus." + family.replace("/", ".") + "." + stem
+            relative_source = str(source_path.relative_to(ROOT))
+            checks = []
+            if is_positive:
+                checks.extend([
+                    {
+                        "label": "facts prove the indexed access",
+                        "left": "facts.raw_ir.trap_calls",
+                        "op": "eq",
+                        "value": 0,
+                    },
+                    {
+                        "label": "facts-off retains the dynamic check",
+                        "left": "nofacts.raw_ir.trap_calls",
+                        "op": "gt",
+                        "value": 0,
+                    },
+                ])
+            else:
+                checks.extend([
+                    {
+                        "label": "near-miss retains the dynamic check",
+                        "left": "facts.raw_ir.trap_calls",
+                        "op": "gt",
+                        "value": 0,
+                    },
+                    {
+                        "label": "facts do not overgeneralize beyond the control",
+                        "left": "facts.raw_ir.trap_calls",
+                        "op": "eq",
+                        "right": "nofacts.raw_ir.trap_calls",
+                    },
+                ])
+            cases.append({
+                "id": case_id,
+                "mode": mode,
+                "maturity": maturity,
+                "tags": sorted(set(family_tags + entry_tags)),
+                "description": entry.get("hypothesis", family_manifest.get("hypothesis", "")),
+                "variants": [
+                    {
+                        "name": "facts",
+                        "kind": "xlang",
+                        "source": relative_source,
+                        "function": function,
+                        "opt": measurement.get("opt", "O2"),
+                    },
+                    {
+                        "name": "nofacts",
+                        "kind": "xlang",
+                        "source": relative_source,
+                        "function": function,
+                        "facts": False,
+                        "opt": measurement.get("opt", "O2"),
+                    },
+                ],
+                "checks": checks,
+            })
+    return cases
+
+
 def run_case(case: dict[str, Any], build: Path, democ: Any) -> dict[str, Any]:
     result: dict[str, Any] = {
         "id": case["id"],
         "mode": case["mode"],
+        "maturity": case.get("maturity", case["mode"]),
+        "tags": case.get("tags", []),
         "description": case.get("description", ""),
         "variants": {},
         "checks": [],
@@ -269,7 +403,10 @@ def run_case(case: dict[str, Any], build: Path, democ: Any) -> dict[str, Any]:
 
 def print_report(results: list[dict[str, Any]]) -> None:
     for result in results:
-        print(f"\n== {result['id']} [{result['mode']}] ==")
+        label = result["mode"]
+        if result["maturity"] != result["mode"]:
+            label += f"/{result['maturity']}"
+        print(f"\n== {result['id']} [{label}] ==")
         if result["description"]:
             print(result["description"])
         if "error" in result:
@@ -297,6 +434,8 @@ def parse_args() -> argparse.Namespace:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--gate-only", action="store_true")
     group.add_argument("--audit-only", action="store_true")
+    parser.add_argument("--corpus", action="store_true", help="append discovered codegen-corpus families")
+    parser.add_argument("--tag", action="append", dest="tags", help="run cases carrying this corpus tag")
     parser.add_argument("--json", action="store_true", help="emit the complete machine-readable report")
     return parser.parse_args()
 
@@ -306,6 +445,14 @@ def main() -> int:
     try:
         manifest = json.loads(args.manifest.read_text())
         selected = validate_manifest(manifest)
+        if args.corpus:
+            selected = selected + load_corpus_cases()
+            # Validate the translated cases too; this also catches duplicate or
+            # malformed generated definitions before any compiler is invoked.
+            selected = validate_manifest({"schema": 1, "cases": selected})
+        if args.tags:
+            wanted_tags = set(args.tags)
+            selected = [case for case in selected if wanted_tags.issubset(set(case.get("tags", [])))]
         if args.cases:
             wanted = set(args.cases)
             selected = [case for case in selected if case["id"] in wanted]
@@ -325,7 +472,8 @@ def main() -> int:
         return 2
 
     if args.json:
-        print(json.dumps({"schema": 1, "results": results}, indent=2, sort_keys=True))
+        print(json.dumps({"schema": 1, "environment": environment_report(), "results": results},
+                         indent=2, sort_keys=True))
     else:
         print_report(results)
     return int(any(not item["passed"] and item["mode"] == "gate" for item in results))

@@ -11,9 +11,11 @@ soundness:                 # layer 3: generative model check vs independent orac
 perf:                      # layer 4: pinned optimizer-fact effects
 	cd prototype/democ && $(PY) perf_regress.py
 parity:                    # layer 5: xlang/facts-off/C/Rust codegen properties + visible debt
-	$(PY) tools/codegen_parity.py
+	$(PY) tools/codegen_parity.py --corpus
+corpus:                    # focused proof/codegen corpus; positive + adversarial gates
+	$(PY) tools/codegen_parity.py --corpus --tag proof-1
 conformance:               # layer 6: spec-anchored rule-keyed conformance suite (source -> verdict)
 	$(PY) conformance/runner.py all
 examples:                  # smoke: compile & run the demo programs
 	cd prototype/democ && $(PY) democ.py examples/ex1.xl --run && $(PY) democ.py examples/ex2.xl --run
-.PHONY: check spec rules soundness perf parity conformance examples
+.PHONY: check spec rules soundness perf parity corpus conformance examples

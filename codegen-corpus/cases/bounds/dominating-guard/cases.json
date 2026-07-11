@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "family": "bounds/dominating-guard",
+  "tags": ["bounds", "proof-1", "dominating-guard"],
+  "hypothesis": "A direct index is proven only after the exact len-derived exit guard and only until a relevant mutation or nested-control frontier.",
+  "measurement": {
+    "function": "probe",
+    "metric": "raw_ir.trap_calls",
+    "opt": "O2",
+    "note": "Raw function IR is the proof oracle; LLVM may independently remove obvious checks in optimized IR."
+  },
+  "cases": [
+    {
+      "source": "01-basic-read-positive.xl",
+      "hypothesis": "A len-derived i >= m exit guard proves the following direct b[i] read in bounds.",
+      "tags": ["bounds", "proof-1", "dominating-guard", "positive", "read"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "proved", "facts_opt_traps": 0, "nofacts_opt_traps": 0, "relative": "facts removes the raw bounds edge; LLVM may independently remove the control edge"}
+    },
+    {
+      "source": "02-basic-write-positive.xl",
+      "hypothesis": "The same dominating guard proves a direct b[i] write in bounds.",
+      "tags": ["bounds", "proof-1", "dominating-guard", "positive", "write"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "proved", "facts_opt_traps": 0, "nofacts_opt_traps": 0, "relative": "facts removes the raw bounds edge"}
+    },
+    {
+      "source": "03-nested-match-positive.xl",
+      "hypothesis": "A non-mutating nested match preserves the outer guard's dominance for b[i].",
+      "tags": ["bounds", "proof-1", "dominating-guard", "positive", "nested-match"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "proved", "facts_opt_traps": 0, "nofacts_opt_traps": 0, "relative": "facts removes the raw bounds edge inside the match arm"}
+    },
+    {
+      "source": "04-mutate-after-access-positive.xl",
+      "hypothesis": "Mutation after the indexed access does not invalidate that access's dominating fact.",
+      "tags": ["bounds", "proof-1", "dominating-guard", "positive", "mutation-order"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "proved", "facts_opt_traps": 0, "nofacts_opt_traps": 0, "relative": "facts removes the raw check before the mutation frontier"}
+    },
+    {
+      "source": "05-wrong-buffer-negative.xl",
+      "hypothesis": "A length from a cannot prove an access into b.",
+      "tags": ["bounds", "proof-1", "negative", "wrong-buffer", "soundness"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 1, "nofacts_opt_traps": 1, "relative": "facts must not remove the bounds edge"}
+    },
+    {
+      "source": "06-copied-bound-negative.xl",
+      "hypothesis": "A copied-but-equivalent bound is not accepted by the deliberately structural v1 prover.",
+      "tags": ["bounds", "proof-1", "negative", "wrong-bound", "conservative"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 0, "nofacts_opt_traps": 0, "relative": "raw check remains; backend may prove it independently"}
+    },
+    {
+      "source": "07-wrong-comparator-negative.xl",
+      "hypothesis": "An i > m exit condition leaves i == m reachable and cannot prove safety.",
+      "tags": ["bounds", "proof-1", "negative", "comparator", "off-by-one", "soundness"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 1, "nofacts_opt_traps": 1, "relative": "facts must not remove the reachable trap"}
+    },
+    {
+      "source": "08-off-by-one-index-negative.xl",
+      "hypothesis": "A guard proving i < m does not prove i + 1 < m.",
+      "tags": ["bounds", "proof-1", "negative", "derived-index", "off-by-one", "soundness"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 1, "nofacts_opt_traps": 1, "relative": "facts must retain the derived-index trap"}
+    },
+    {
+      "source": "09-mutate-index-before-access-negative.xl",
+      "hypothesis": "Changing i after the guard invalidates the fact before b[i].",
+      "tags": ["bounds", "proof-1", "negative", "mutation", "soundness"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 1, "nofacts_opt_traps": 1, "relative": "facts must stop at the mutation frontier"}
+    },
+    {
+      "source": "10-mutate-bound-before-access-negative.xl",
+      "hypothesis": "Changing the len-derived bound invalidates its provenance before b[i].",
+      "tags": ["bounds", "proof-1", "negative", "bound-mutation", "soundness"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 1, "nofacts_opt_traps": 1, "relative": "facts must retain the check when the bound is mutable"}
+    },
+    {
+      "source": "11-nested-loop-negative.xl",
+      "hypothesis": "The v1 structural prover conservatively stops at nested loop control.",
+      "tags": ["bounds", "proof-1", "negative", "nested-loop", "conservative"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 0, "nofacts_opt_traps": 0, "relative": "raw check remains; backend may preserve dominance through the nested loop"}
+    },
+    {
+      "source": "12-guard-after-access-negative.xl",
+      "hypothesis": "A guard appearing after b[i] does not dominate the access.",
+      "tags": ["bounds", "proof-1", "negative", "guard-order", "soundness"],
+      "maturity": "gate",
+      "expected": {"proof_classification": "retained", "facts_opt_traps": 1, "nofacts_opt_traps": 1, "relative": "facts must retain the reachable pre-guard trap"}
+    }
+  ]
+}

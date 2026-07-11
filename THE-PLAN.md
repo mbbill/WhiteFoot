@@ -76,8 +76,12 @@ Measured non-wins (equally load-bearing):
    claimed until run). This is also the principled answer to "bad code
    exists": never push writers to `.wrap`. STATUS 2026-07-10: ceiling
    MEASURED — 1.7x on base64 (scalar; no SIMD unlock), design card in gates;
-   PROOF-1 structural prover is the next build unit, PROOF-2 preconditions
-   need owner ratification as spec surface.
+   PROOF-1 now proves exact len-guarded direct indexes and exact power-of-two
+   masked const-array indexes. Its 24-case function-scoped corpus gates 10
+   positives and 14 adversarial/conservative near-misses. Base64 remains an
+   audit because its source indexes pass through conversions and its output
+   writes need PROOF-2 preconditions; that spec surface still needs owner
+   ratification.
 2. **Leg-A frequency study** — never run, cheap, decision-relevant: how often
    do the channel patterns (alias-guard versioning, opaque hot calls, manual
    reassociation idioms) occur in real Rust corpora. Directly answers the

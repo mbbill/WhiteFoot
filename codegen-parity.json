@@ -115,13 +115,13 @@
         },
         {
           "label": "facts-on loop vectorizes",
-          "left": "facts.remarks.max_vector_width",
+          "left": "facts.opt_ir.max_vector_width",
           "op": "ge",
           "value": 2
         },
         {
           "label": "facts-off loop remains scalar",
-          "left": "nofacts.remarks.vectorized_loops",
+          "left": "nofacts.opt_ir.max_vector_width",
           "op": "eq",
           "value": 0
         }
@@ -151,15 +151,15 @@
       "checks": [
         {
           "label": "facts-on has widened sat-add sites",
-          "left": "facts.raw_ir.saturating_add_mentions",
+          "left": "facts.opt_ir.saturating_add_mentions",
           "op": "ge",
           "value": 8
         },
         {
           "label": "facts-off keeps the serial sites",
-          "left": "nofacts.raw_ir.saturating_add_mentions",
-          "op": "le",
-          "value": 3
+          "left": "nofacts.opt_ir.saturating_add_mentions",
+          "op": "eq",
+          "value": 1
         }
       ]
     },
@@ -186,15 +186,15 @@
       "checks": [
         {
           "label": "xlang reaches at least 16-byte vector width",
-          "left": "xlang.remarks.max_vector_width",
+          "left": "xlang.opt_ir.max_vector_width",
           "op": "ge",
           "value": 16
         },
         {
           "label": "xlang vector width equals C",
-          "left": "xlang.remarks.max_vector_width",
+          "left": "xlang.opt_ir.max_vector_width",
           "op": "eq",
-          "right": "c.remarks.max_vector_width"
+          "right": "c.opt_ir.max_vector_width"
         },
         {
           "label": "xlang summarize has no machine trap",

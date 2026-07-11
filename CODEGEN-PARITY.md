@@ -12,6 +12,7 @@ make parity
 python3 tools/codegen_parity.py --gate-only
 python3 tools/codegen_parity.py --audit-only
 python3 tools/codegen_parity.py --case scalar-backend-parity
+python3 tools/codegen_parity.py --corpus --tag proof-1
 python3 tools/codegen_parity.py --json
 ```
 
@@ -20,6 +21,11 @@ an `audit` case reports `DEBT` but exits successfully. Promotion from audit to
 gate happens only after the target property is implemented, independently
 verified, and expected to remain true. This keeps known debt visible without
 encoding today's bad codegen as tomorrow's contract.
+
+`--corpus` also discovers compact family manifests under `codegen-corpus/cases`.
+Each case's explicit maturity selects gate or audit behavior. Proof
+classification uses raw IR from the named function so LLVM's independent check
+elimination cannot create a false pass.
 
 The initial coverage is deliberately small and high-signal:
 
@@ -45,7 +51,10 @@ The runner currently exposes:
 
 - `raw_ir.alias_scope_uses`, `raw_ir.noalias_uses`,
   `raw_ir.saturating_add_mentions`, `raw_ir.trap_calls`;
-- `opt_ir.loads`, `opt_ir.vector_loads`, `opt_ir.trap_calls`;
+- `opt_ir.loads`, `opt_ir.vector_loads`, `opt_ir.trap_calls`,
+  `opt_ir.saturating_add_mentions`;
+- `opt_ir.vector_ops`, `opt_ir.max_vector_width` (scoped to the selected
+  function, unlike compiler remark summaries);
 - `asm.instructions`, `asm.opcodes`, `asm.traps`;
 - `remarks.vectorized_loops`, `remarks.max_vector_width`, and
   `remarks.max_interleave`.

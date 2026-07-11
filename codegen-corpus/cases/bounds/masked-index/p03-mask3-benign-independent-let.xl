@@ -1,0 +1,13 @@
+const table: array<u8, 4> = [12_u8, 22_u8, 32_u8, 42_u8];
+
+fn lookup (x: own u64) -> own u8 traps {
+  let slot: own u64 = iand<u64>(x, 3_u64);
+  let independent: own u64 = iadd.wrap<u64>(x, 9_u64);
+  return index<u8>(table, slot);
+}
+
+fn main () -> own unit traps {
+  let value: own u8 = lookup(x: 5_u64);
+  check ieq<u8>(value, 22_u8) else trap "benign let drift";
+  return unit;
+}

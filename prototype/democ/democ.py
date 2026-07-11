@@ -751,7 +751,7 @@ class Gen:
         if cinfo and cinfo[0] != "scalar":             # [CONST-2] const-array index: GEP the global, bounds-checked
             ell, n, sg = cinfo
             iv = g.expr(pl["index"]["atom"])
-            if not g.elide:                            # [OP-4]; elide-experiment skips (ceiling probe)
+            if not g.elide and not pl["index"].get("proven"):   # [OP-4]; PROOF-1 discharges marked sites
                 g.traps = True
                 c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {n}")
                 l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
@@ -772,7 +772,7 @@ class Gen:
             pair = g.scopes.get(key)
             if pair: md = f", !alias.scope !{pair[0]}, !noalias !{pair[1]}"
         iv = g.expr(pl["index"]["atom"])
-        if not g.elide:                                # [OP-4] check; elide-experiment skips (ceiling probe)
+        if not g.elide and not pl["index"].get("proven"):   # [OP-4]; PROOF-1 discharges marked sites
             g.traps = True
             c = g.tmp(); g.emit(f"  {c} = icmp ult i64 {iv['v']}, {buf['len']}")
             l = g.lbl(); g.emit(f"  br i1 {c}, label %{l}, label %trap"); g.emit(f"{l}:")
@@ -1476,6 +1476,213 @@ def _reduction_shape(st, proved):
             and inc["args"][1].get("e") == "lit" and inc["args"][1]["v"] == 1): return None
     return iv, mv, accn, b[1], d
 
+
+# ---- [OP-4] PROOF-1: structural in-bounds prover ---------------------------
+# Marks index places whose bounds check is discharged by a dominating guard
+# (pattern A) or a power-of-two mask (pattern C). Deliberately conservative:
+# only the exact blessed idioms qualify; anything else keeps its check.
+# Soundness rests on three facts: buffer lengths are immutable after
+# allocation; there is no shadowing (TYPE-6), so a name means one binding per
+# fn; and elision is only applied where the guard's fall-through DOMINATES the
+# access with no intervening write to the index, bound, or buffer name.
+
+def _mutates_name(st, name):
+    """does this statement (recursively) mutate an existing binding?
+
+    Unlike _writes_name this deliberately ignores the binding's establishing
+    let/try.  TYPE-6 forbids a second binding with the same name, so subsequent
+    changes can only be direct sets (or moves, handled separately).
+    """
+    if st.get("s") == "set" and not st["p"].get("path") and not st["p"].get("post") \
+            and not st["p"].get("index") and st["p"]["base"] == name:
+        return True
+    if "body" in st and any(_mutates_name(x, name) for x in st["body"]):
+        return True
+    if st.get("s") == "match" and any(
+            _mutates_name(x, name) for a in st["arms"] for x in a["body"]):
+        return True
+    if "match" in st and any(
+            _mutates_name(x, name) for a in st["match"]["arms"] for x in a["body"]):
+        return True
+    return False
+
+def _moved_or_reset(body, name):
+    """Conservative: any move or mutation of `name` anywhere in the body."""
+    for st in body:
+        if _mutates_name(st, name):
+            return True
+        for e in _exprs_of(st):
+            if _expr_moves(e, name):
+                return True
+    return False
+
+def _exprs_of(st):
+    out = []
+    for k in ("e", "expr", "init", "scrut"):
+        if k in st and isinstance(st[k], dict):
+            out.append(st[k])
+    if "match" in st:
+        out.append(st["match"]["scrut"])
+        for a in st["match"]["arms"]:
+            for x in a["body"]: out.extend(_exprs_of(x))
+    if st.get("s") == "match":
+        for a in st["arms"]:
+            for x in a["body"]: out.extend(_exprs_of(x))
+    if "body" in st:
+        for x in st["body"]: out.extend(_exprs_of(x))
+    return out
+
+def _direct_exprs_of(st):
+    """Expressions evaluated by `st` itself, excluding child statement lists."""
+    out = []
+    for k in ("e", "expr", "init", "scrut"):
+        if k in st and isinstance(st[k], dict):
+            out.append(st[k])
+    if "match" in st:
+        out.append(st["match"]["scrut"])
+    return out
+
+def _expr_moves(e, name):
+    if not isinstance(e, dict): return False
+    if e.get("e") == "move" and e["p"]["base"] == name and not e["p"].get("path") \
+            and not e["p"].get("post"):
+        return True
+    return any(_expr_moves(a, name) for a in e.get("args", []))
+
+def _mark_indexes(stmts, bvar, ivar, stop_names):
+    """mark index<T>(bvar, ivar) as proven in `stmts` until any stop-name is
+    written; returns False when marking must stop for the caller too."""
+    for st in stmts:
+        # Mark only expressions evaluated before this statement's mutation or
+        # control transfer.  Child bodies are traversed below in execution
+        # order; recursively harvesting them here would prove post-mutation
+        # accesses before seeing the mutation.
+        for e in _direct_exprs_of(st):
+            _mark_in_expr(e, bvar, ivar)
+        if st.get("s") == "set" and st["p"].get("index"):
+            _mark_place(st["p"], bvar, ivar)
+        if st.get("s") == "match":
+            if not all(_mark_indexes(a["body"], bvar, ivar, stop_names) for a in st["arms"]):
+                return False
+        if "match" in st:
+            if not all(_mark_indexes(a["body"], bvar, ivar, stop_names)
+                       for a in st["match"]["arms"]):
+                return False
+        if st.get("s") in ("loop", "region"):
+            return False                       # nested control: stop (conservative)
+        # At this point child paths have been handled.  A mutation in the
+        # current statement ends the fact for all following statements.
+        if any(st.get("s") == "set" and not st["p"].get("path")
+               and not st["p"].get("post") and not st["p"].get("index")
+               and st["p"]["base"] == nm for nm in stop_names):
+            return False
+    return True
+
+def _mark_in_expr(e, bvar, ivar):
+    if not isinstance(e, dict): return
+    if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
+        _mark_place(e["p"], bvar, ivar)
+    for a in e.get("args", []):
+        _mark_in_expr(a, bvar, ivar)
+
+def _mark_place(pl, bvar, ivar):
+    ix = pl["index"]; ipl = ix["place"]
+    if ipl.get("path") or ipl.get("post") or ipl.get("deref"):
+        return                                  # v1: direct bindings only
+    at = ix["atom"]
+    if ipl["base"] == bvar and at.get("e") == "place" and not at["p"].get("path") \
+            and not at["p"].get("post") and at["p"]["base"] == ivar:
+        ix["proven"] = True
+
+def prove_inbounds(fns, consts):
+    for f in fns:
+        body = f["body"]
+        lens = {}                               # mvar -> bvar for `let m = len<T>(b);`
+        for st in body:
+            if st.get("s") == "let" and isinstance(st.get("e"), dict) \
+                    and st["e"].get("e") == "op" and st["e"]["op"] == "len":
+                a0 = st["e"]["args"][0]
+                if a0.get("e") == "place" and not a0["p"].get("path") \
+                        and not a0["p"].get("post"):
+                    lens[st["n"]] = a0["p"]["base"]
+        def walk(stmts):
+            for st in stmts:
+                if st.get("s") == "loop":
+                    b = [x for x in st["body"] if x.get("s") != "doc"]
+                    if b and b[0].get("s") == "match":
+                        g = b[0]
+                        sc = g["scrut"]
+                        arms = {a["v"]: a for a in g["arms"]}
+                        if (isinstance(sc, dict) and sc.get("e") == "op"
+                                and sc["op"] == "ige"
+                                and sc["args"][0].get("e") == "place"
+                                and sc["args"][1].get("e") == "place"
+                                and not sc["args"][0]["p"].get("path")
+                                and not sc["args"][1]["p"].get("path")
+                                and set(arms) == {"True", "False"}
+                                and not arms["False"]["body"]
+                                and len([x for x in arms["True"]["body"]
+                                         if x.get("s") != "doc"]) == 1
+                                and arms["True"]["body"][0].get("s") == "break"):
+                            ivar = sc["args"][0]["p"]["base"]
+                            mvar = sc["args"][1]["p"]["base"]
+                            bvar = lens.get(mvar)
+                            if bvar and not _moved_or_reset(body, mvar) \
+                                    and not _moved_or_reset(body, bvar):
+                                _mark_indexes(b[1:], bvar, ivar, {ivar, mvar, bvar})
+                    walk(st["body"])
+                if st.get("s") == "match":
+                    for a in st["arms"]: walk(a["body"])
+                if "match" in st:
+                    for a in st["match"]["arms"]: walk(a["body"])
+                if st.get("s") == "region":
+                    walk(st["body"])
+        walk(body)
+        # pattern C: const-table index masked to the table size (power of two)
+        masks = {}                              # xvar -> mask literal K
+        def scanmask(stmts):
+            for st in stmts:
+                if st.get("s") == "let" and isinstance(st.get("e"), dict) \
+                        and st["e"].get("e") == "op" and st["e"]["op"] == "iand":
+                    aa = st["e"]["args"]
+                    if aa[1].get("e") == "lit":
+                        masks[st["n"]] = aa[1]["v"]
+                if "body" in st: scanmask(st["body"])
+                if st.get("s") == "match":
+                    for a in st["arms"]: scanmask(a["body"])
+                if "match" in st:
+                    for a in st["match"]["arms"]: scanmask(a["body"])
+        scanmask(body)
+        def markc(stmts):
+            for st in stmts:
+                for e in _exprs_of(st):
+                    _markc_expr(e)
+                if st.get("s") == "set" and st["p"].get("index"):
+                    _markc_place(st["p"])
+                if "body" in st: markc(st["body"])
+                if st.get("s") == "match":
+                    for a in st["arms"]: markc(a["body"])
+                if "match" in st:
+                    for a in st["match"]["arms"]: markc(a["body"])
+        def _markc_expr(e):
+            if not isinstance(e, dict): return
+            if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
+                _markc_place(e["p"])
+            for a in e.get("args", []): _markc_expr(a)
+        def _markc_place(pl):
+            ix = pl["index"]; ipl = ix["place"]
+            if ipl.get("path") or ipl.get("post"): return
+            cinfo = consts.get(ipl["base"])
+            at = ix["atom"]
+            if cinfo and cinfo[0] != "scalar" and at.get("e") == "place" \
+                    and not at["p"].get("path") and not at["p"].get("post"):
+                k = masks.get(at["p"]["base"])
+                n = cinfo[1]
+                if k is not None and k + 1 == n and (n & (n - 1)) == 0 \
+                        and not _moved_or_reset(body, at["p"]["base"]):
+                    ix["proven"] = True
+        markc(body)
+
 def reassociate_reductions(fns, proved):
     """[FN-4 consumer] rewrite proved-law reduction loops into 4 independent
     accumulators (block-interleaved: licensed by associative+commutative) seeded
@@ -1573,6 +1780,7 @@ def compile_program(src, alias=True, elide_bounds=False):
         else:                                          # scalar const: fold to its literal at use sites
             cmap[c["name"]] = ("scalar", _litval(c["vals"][0]), _is_signed(c["ty"]))
     Gen._consts = cmap
+    if alias: prove_inbounds(fns, cmap)                # [OP-4 PROOF-1] facts channel
     bodies = [Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr,
                   elide=elide_bounds).run() for f in fns]
     if cglobals: bodies.insert(0, "\n".join(cglobals) + "\n")
