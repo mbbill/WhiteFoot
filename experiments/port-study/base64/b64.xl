@@ -1,0 +1,113 @@
+const b64: array<u8, 64> = [65_u8, 66_u8, 67_u8, 68_u8, 69_u8, 70_u8, 71_u8, 72_u8, 73_u8, 74_u8, 75_u8, 76_u8, 77_u8, 78_u8, 79_u8, 80_u8, 81_u8, 82_u8, 83_u8, 84_u8, 85_u8, 86_u8, 87_u8, 88_u8, 89_u8, 90_u8, 97_u8, 98_u8, 99_u8, 100_u8, 101_u8, 102_u8, 103_u8, 104_u8, 105_u8, 106_u8, 107_u8, 108_u8, 109_u8, 110_u8, 111_u8, 112_u8, 113_u8, 114_u8, 115_u8, 116_u8, 117_u8, 118_u8, 119_u8, 120_u8, 121_u8, 122_u8, 48_u8, 49_u8, 50_u8, 51_u8, 52_u8, 53_u8, 54_u8, 55_u8, 56_u8, 57_u8, 43_u8, 47_u8];
+
+fn encode ['r] (out: &uniq 'r buffer<u8>, src: own buffer<u8>) -> own u64 reads('r), writes('r), traps {
+  doc "base64 encode: 3 src bytes -> 4 output chars via the const alphabet; stores through the out-borrow; returns output length";
+  let n: own u64 = len<u8>(src);
+  let i: own u64 = 0_u64;
+  let o: own u64 = 0_u64;
+  loop @full {
+    let rem: own u64 = isub.wrap<u64>(n, i);
+    match ilt<u64>(rem, 3_u64) {
+      True() => {
+        break @full;
+      }
+      False() => {
+      }
+    }
+    let i1: own u64 = iadd.wrap<u64>(i, 1_u64);
+    let i2: own u64 = iadd.wrap<u64>(i, 2_u64);
+    let b0: own u8 = index<u8>(src, i);
+    let b1: own u8 = index<u8>(src, i1);
+    let b2: own u8 = index<u8>(src, i2);
+    let w0: own u32 = cvt<u8, u32>(b0);
+    let w1: own u32 = cvt<u8, u32>(b1);
+    let w2: own u32 = cvt<u8, u32>(b2);
+    let s0: own u32 = ishl.wrap<u32>(w0, 16_u32);
+    let s1: own u32 = ishl.wrap<u32>(w1, 8_u32);
+    let acc0: own u32 = ior<u32>(s0, s1);
+    let acc: own u32 = ior<u32>(acc0, w2);
+    let sh0: own u32 = ishr.wrap<u32>(acc, 18_u32);
+    let m0: own u32 = iand<u32>(sh0, 63_u32);
+    let e0: own u64 = cvt<u32, u64>(m0);
+    let sh1: own u32 = ishr.wrap<u32>(acc, 12_u32);
+    let m1: own u32 = iand<u32>(sh1, 63_u32);
+    let e1: own u64 = cvt<u32, u64>(m1);
+    let sh2: own u32 = ishr.wrap<u32>(acc, 6_u32);
+    let m2: own u32 = iand<u32>(sh2, 63_u32);
+    let e2: own u64 = cvt<u32, u64>(m2);
+    let m3: own u32 = iand<u32>(acc, 63_u32);
+    let e3: own u64 = cvt<u32, u64>(m3);
+    let c0: own u8 = index<u8>(b64, e0);
+    let c1: own u8 = index<u8>(b64, e1);
+    let c2: own u8 = index<u8>(b64, e2);
+    let c3: own u8 = index<u8>(b64, e3);
+    let o1: own u64 = iadd.wrap<u64>(o, 1_u64);
+    let o2: own u64 = iadd.wrap<u64>(o, 2_u64);
+    let o3: own u64 = iadd.wrap<u64>(o, 3_u64);
+    set index<u8>(deref(out), o) = c0;
+    set index<u8>(deref(out), o1) = c1;
+    set index<u8>(deref(out), o2) = c2;
+    set index<u8>(deref(out), o3) = c3;
+    set i = iadd.wrap<u64>(i, 3_u64);
+    set o = iadd.wrap<u64>(o, 4_u64);
+  }
+  let tail: own u64 = isub.wrap<u64>(n, i);
+  match ieq<u64>(tail, 1_u64) {
+    True() => {
+      let pb0: own u8 = index<u8>(src, i);
+      let pw0: own u32 = cvt<u8, u32>(pb0);
+      let psh0: own u32 = ishr.wrap<u32>(pw0, 2_u32);
+      let pm0: own u32 = iand<u32>(psh0, 63_u32);
+      let pe0: own u64 = cvt<u32, u64>(pm0);
+      let psl1: own u32 = ishl.wrap<u32>(pw0, 4_u32);
+      let pm1: own u32 = iand<u32>(psl1, 63_u32);
+      let pe1: own u64 = cvt<u32, u64>(pm1);
+      let pc0: own u8 = index<u8>(b64, pe0);
+      let pc1: own u8 = index<u8>(b64, pe1);
+      let po1: own u64 = iadd.wrap<u64>(o, 1_u64);
+      let po2: own u64 = iadd.wrap<u64>(o, 2_u64);
+      let po3: own u64 = iadd.wrap<u64>(o, 3_u64);
+      set index<u8>(deref(out), o) = pc0;
+      set index<u8>(deref(out), po1) = pc1;
+      set index<u8>(deref(out), po2) = 61_u8;
+      set index<u8>(deref(out), po3) = 61_u8;
+      set o = iadd.wrap<u64>(o, 4_u64);
+    }
+    False() => {
+    }
+  }
+  match ieq<u64>(tail, 2_u64) {
+    True() => {
+      let qi1: own u64 = iadd.wrap<u64>(i, 1_u64);
+      let qb0: own u8 = index<u8>(src, i);
+      let qb1: own u8 = index<u8>(src, qi1);
+      let qw0: own u32 = cvt<u8, u32>(qb0);
+      let qw1: own u32 = cvt<u8, u32>(qb1);
+      let qs0: own u32 = ishl.wrap<u32>(qw0, 8_u32);
+      let qacc: own u32 = ior<u32>(qs0, qw1);
+      let qsh0: own u32 = ishr.wrap<u32>(qacc, 10_u32);
+      let qm0: own u32 = iand<u32>(qsh0, 63_u32);
+      let qe0: own u64 = cvt<u32, u64>(qm0);
+      let qsh1: own u32 = ishr.wrap<u32>(qacc, 4_u32);
+      let qm1: own u32 = iand<u32>(qsh1, 63_u32);
+      let qe1: own u64 = cvt<u32, u64>(qm1);
+      let qsl2: own u32 = ishl.wrap<u32>(qacc, 2_u32);
+      let qm2: own u32 = iand<u32>(qsl2, 63_u32);
+      let qe2: own u64 = cvt<u32, u64>(qm2);
+      let qc0: own u8 = index<u8>(b64, qe0);
+      let qc1: own u8 = index<u8>(b64, qe1);
+      let qc2: own u8 = index<u8>(b64, qe2);
+      let qo1: own u64 = iadd.wrap<u64>(o, 1_u64);
+      let qo2: own u64 = iadd.wrap<u64>(o, 2_u64);
+      let qo3: own u64 = iadd.wrap<u64>(o, 3_u64);
+      set index<u8>(deref(out), o) = qc0;
+      set index<u8>(deref(out), qo1) = qc1;
+      set index<u8>(deref(out), qo2) = qc2;
+      set index<u8>(deref(out), qo3) = 61_u8;
+      set o = iadd.wrap<u64>(o, 4_u64);
+    }
+    False() => {
+    }
+  }
+  return o;
+}

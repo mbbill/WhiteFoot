@@ -1286,6 +1286,14 @@ class Gen:
                 ps.append(f"{pll} %{q['name']}")
                 g.env[q["name"]] = {"k": pll, "v": f"%{q['name']}", "signed": psigned}
             else:
+                el = _buf_elem(q["ty"])
+                if el:                                 # &/&uniq buffer param: {ptr,i64} by value (element
+                    ps.append(f"{{ptr, i64}} %{q['name']}")   # writes go through the shared data pointer,
+                    bp = g.tmp(); g.prologue.append(f"  {bp} = extractvalue {{ptr, i64}} %{q['name']}, 0")  # caller-visible; exclusivity is the checker's job
+                    bl = g.tmp(); g.prologue.append(f"  {bl} = extractvalue {{ptr, i64}} %{q['name']}, 1")
+                    g.env[q["name"]] = {"k": "buffer", "ptr": bp, "len": bl,
+                                        "ell": _llty(el), "esigned": _is_signed(el)}
+                    continue
                 at = (" noalias" + ("" if q["mode"]["uniq"] else " readonly")) if g.alias else ""
                 if g.alias:
                     sa = _size_align(q["ty"], g.structs)   # borrows are always valid+aligned (checker fact)
