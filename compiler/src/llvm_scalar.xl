@@ -1,0 +1,944 @@
+fn llvm_scalar_fail ['o] (out: &uniq 'o ByteTape) -> own unit writes('o) {
+  set deref(out).status = ByteInvalidState();
+  return unit;
+}
+
+fn llvm_scalar_node_is ['a] (ast: &'a AstTape, node: own u64, expected: own AstKind) -> own Bool reads('a), traps {
+  let count: own u64 = deref(ast).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own AstKind = index<AstKind>(deref(ast).kinds, node);
+  return ieq<AstKind>(observed, expected);
+}
+
+fn llvm_scalar_leaf ['a] (ast: &'a AstTape, node: own u64) -> own Bool reads('a), traps {
+  let count: own u64 = deref(ast).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let first: own u64 = index<u64>(deref(ast).first_children, node);
+  let last: own u64 = index<u64>(deref(ast).last_children, node);
+  let first_none: own Bool = ieq<u64>(first, ast_none);
+  let last_none: own Bool = ieq<u64>(last, ast_none);
+  return band<Bool>(first_none, last_none);
+}
+
+fn llvm_scalar_next_is ['a] (ast: &'a AstTape, node: own u64, expected: own u64) -> own Bool reads('a), traps {
+  let count: own u64 = deref(ast).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own u64 = index<u64>(deref(ast).next_siblings, node);
+  return ieq<u64>(observed, expected);
+}
+
+fn llvm_scalar_first_child ['a] (ast: &'a AstTape, node: own u64) -> own u64 reads('a), traps {
+  let count: own u64 = deref(ast).count;
+  match ilt<u64>(node, count) {
+    True() => {
+      return index<u64>(deref(ast).first_children, node);
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+}
+
+fn llvm_scalar_last_child ['a] (ast: &'a AstTape, node: own u64) -> own u64 reads('a), traps {
+  let count: own u64 = deref(ast).count;
+  match ilt<u64>(node, count) {
+    True() => {
+      return index<u64>(deref(ast).last_children, node);
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+}
+
+fn llvm_scalar_next ['a] (ast: &'a AstTape, node: own u64) -> own u64 reads('a), traps {
+  let count: own u64 = deref(ast).count;
+  match ilt<u64>(node, count) {
+    True() => {
+      return index<u64>(deref(ast).next_siblings, node);
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+}
+
+fn llvm_scalar_type_is ['y] (types: &'y TypeTape, type_id: own u64, expected: own SemanticTypeKind) -> own Bool reads('y), traps {
+  let count: own u64 = deref(types).count;
+  match ilt<u64>(type_id, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own SemanticTypeKind = index<SemanticTypeKind>(deref(types).kinds, type_id);
+  return ieq<SemanticTypeKind>(observed, expected);
+}
+
+fn llvm_scalar_tokens_valid ['t] (tokens: &'t TokenTape) -> own Bool reads('t) {
+  let clean_tag: own LexStatus = LexClean();
+  let clean: own Bool = ieq<LexStatus>(deref(tokens).status, clean_tag);
+  match clean {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let count: own u64 = deref(tokens).count;
+  let kinds_length: own u64 = len<TokenKind>(deref(tokens).kinds);
+  let starts_length: own u64 = len<u64>(deref(tokens).starts);
+  let ends_length: own u64 = len<u64>(deref(tokens).ends);
+  let kinds_ok: own Bool = ige<u64>(kinds_length, count);
+  let starts_ok: own Bool = ige<u64>(starts_length, count);
+  let ends_ok: own Bool = ige<u64>(ends_length, count);
+  let offsets_ok: own Bool = band<Bool>(starts_ok, ends_ok);
+  return band<Bool>(kinds_ok, offsets_ok);
+}
+
+fn llvm_scalar_name_token_valid ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64) -> own Bool reads('s 't), traps {
+  let ordinal_valid: own Bool = token_ordinal_valid(source: source, tokens: tokens, token: token);
+  match ordinal_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed_kind: own TokenKind = index<TokenKind>(deref(tokens).kinds, token);
+  let word_tag: own TokenKind = TokWord();
+  let is_word: own Bool = ieq<TokenKind>(observed_kind, word_tag);
+  match is_word {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let end: own u64 = index<u64>(deref(tokens).ends, token);
+  match ilt<u64>(start, end) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let first: own u8 = index<u8>(deref(source), start);
+  let first_valid: own Bool = lexer_is_lower(c: first);
+  match first_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let cursor: own u64 = iadd.trap<u64>(start, 1_u64);
+  loop @llvm_scalar_name_tail {
+    match ige<u64>(cursor, end) {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let valid: own Bool = lexer_is_ident_tail(c: byte);
+    match valid {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+}
+
+fn llvm_scalar_node_type_is ['f, 'y] (facts: &'f NodeFacts, types: &'y TypeTape, node: own u64, expected: own SemanticTypeKind) -> own Bool reads('f 'y), traps {
+  let fact_count: own u64 = deref(facts).count;
+  match ilt<u64>(node, fact_count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let type_id: own u64 = index<u64>(deref(facts).type_ids, node);
+  return llvm_scalar_type_is(types: types, type_id: type_id, expected: expected);
+}
+
+fn llvm_scalar_mode_is ['f] (facts: &'f NodeFacts, node: own u64, expected: own SemanticValueMode) -> own Bool reads('f), traps {
+  let count: own u64 = deref(facts).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, node);
+  return ieq<SemanticValueMode>(observed, expected);
+}
+
+fn llvm_scalar_operation_is ['f] (facts: &'f NodeFacts, node: own u64, expected: own SemanticOperation) -> own Bool reads('f), traps {
+  let count: own u64 = deref(facts).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, node);
+  return ieq<SemanticOperation>(observed, expected);
+}
+
+fn llvm_scalar_operation_is_compare ['f] (facts: &'f NodeFacts, node: own u64) -> own Bool reads('f), traps {
+  let count: own u64 = deref(facts).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, node);
+  let ige_tag: own SemanticOperation = SemanticOperationIge();
+  let ile_tag: own SemanticOperation = SemanticOperationIle();
+  let is_ige: own Bool = ieq<SemanticOperation>(observed, ige_tag);
+  let is_ile: own Bool = ieq<SemanticOperation>(observed, ile_tag);
+  return bor<Bool>(is_ige, is_ile);
+}
+
+fn llvm_scalar_resolves_to ['f] (facts: &'f NodeFacts, node: own u64, declaration: own u64) -> own Bool reads('f), traps {
+  let count: own u64 = deref(facts).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own u64 = index<u64>(deref(facts).resolved_declarations, node);
+  return ieq<u64>(observed, declaration);
+}
+
+fn llvm_scalar_ordinal_is ['f] (facts: &'f NodeFacts, node: own u64, ordinal: own u64) -> own Bool reads('f), traps {
+  let count: own u64 = deref(facts).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own u64 = index<u64>(deref(facts).ordinals, node);
+  return ieq<u64>(observed, ordinal);
+}
+
+fn llvm_scalar_constant_is_u8 ['f] (facts: &'f NodeFacts, node: own u64) -> own Bool reads('f), traps {
+  let count: own u64 = deref(facts).count;
+  match ilt<u64>(node, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let observed: own u64 = index<u64>(deref(facts).constant_values, node);
+  return ile<u64>(observed, 255_u64);
+}
+
+fn llvm_scalar_emit_indent ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'indent {
+    byte_tape_emit_chunk(out: &uniq 'indent deref(out), count: 2_u64, b0: 32_u8, b1: 32_u8, b2: 32_u8, b3: 32_u8, b4: 32_u8, b5: 32_u8, b6: 32_u8, b7: 32_u8);
+  }
+  return unit;
+}
+
+fn llvm_scalar_emit_resolved_operand ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts, place: own u64, out: &uniq 'o ByteTape) -> own unit reads('a 'f 'o), writes('o), traps {
+  let declaration: own u64 = index<u64>(deref(facts).resolved_declarations, place);
+  let declaration_kind: own AstKind = index<AstKind>(deref(ast).kinds, declaration);
+  let ordinal: own u64 = index<u64>(deref(facts).ordinals, declaration);
+  let parameter_tag: own AstKind = AstParameter();
+  let is_parameter: own Bool = ieq<AstKind>(declaration_kind, parameter_tag);
+  match is_parameter {
+    True() => {
+      region 'parameter_operand {
+        llvm_text_emit_place(out: &uniq 'parameter_operand deref(out), id: ordinal);
+      }
+      return unit;
+    }
+    False() => {
+    }
+  }
+  let let_tag: own AstKind = AstLet();
+  let is_let: own Bool = ieq<AstKind>(declaration_kind, let_tag);
+  match is_let {
+    True() => {
+      region 'let_operand {
+        llvm_text_emit_value(out: &uniq 'let_operand deref(out), id: ordinal);
+      }
+    }
+    False() => {
+      region 'invalid_operand {
+        llvm_scalar_fail(out: &uniq 'invalid_operand deref(out));
+      }
+    }
+  }
+  return unit;
+}
+
+fn llvm_scalar_emit_compare ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, place: own u64, numeric: own u64, value: own u64, out: &uniq 'o ByteTape) -> own unit reads('a 'f 'o), writes('o), traps {
+  region 'compare_indent {
+    llvm_scalar_emit_indent(out: &uniq 'compare_indent deref(out));
+  }
+  region 'compare_result {
+    llvm_text_emit_value(out: &uniq 'compare_result deref(out), id: value);
+  }
+  region 'compare_result_space {
+    llvm_text_emit_space(out: &uniq 'compare_result_space deref(out));
+  }
+  region 'compare_equal {
+    llvm_text_emit_equal(out: &uniq 'compare_equal deref(out));
+  }
+  region 'compare_equal_space {
+    llvm_text_emit_space(out: &uniq 'compare_equal_space deref(out));
+  }
+
+  let operation: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, call);
+  let uge_tag: own SemanticOperation = SemanticOperationIge();
+  let is_uge: own Bool = ieq<SemanticOperation>(operation, uge_tag);
+  match is_uge {
+    True() => {
+      region 'compare_uge {
+        llvm_text_emit_icmp_uge(out: &uniq 'compare_uge deref(out));
+      }
+    }
+    False() => {
+      let ule_tag: own SemanticOperation = SemanticOperationIle();
+      let is_ule: own Bool = ieq<SemanticOperation>(operation, ule_tag);
+      match is_ule {
+        True() => {
+          region 'compare_ule {
+            llvm_text_emit_icmp_ule(out: &uniq 'compare_ule deref(out));
+          }
+        }
+        False() => {
+          region 'compare_invalid {
+            llvm_scalar_fail(out: &uniq 'compare_invalid deref(out));
+          }
+          return unit;
+        }
+      }
+    }
+  }
+  region 'compare_operation_space {
+    llvm_text_emit_space(out: &uniq 'compare_operation_space deref(out));
+  }
+  region 'compare_type {
+    llvm_text_emit_i8(out: &uniq 'compare_type deref(out));
+  }
+  region 'compare_type_space {
+    llvm_text_emit_space(out: &uniq 'compare_type_space deref(out));
+  }
+  region 'compare_operand {
+    llvm_scalar_emit_resolved_operand(ast: ast, facts: facts, place: place, out: &uniq 'compare_operand deref(out));
+  }
+  region 'compare_comma {
+    llvm_text_emit_comma(out: &uniq 'compare_comma deref(out));
+  }
+  region 'compare_comma_space {
+    llvm_text_emit_space(out: &uniq 'compare_comma_space deref(out));
+  }
+  let constant: own u64 = index<u64>(deref(facts).constant_values, numeric);
+  region 'compare_constant {
+    byte_tape_emit_u64(out: &uniq 'compare_constant deref(out), value: constant);
+  }
+  region 'compare_newline {
+    llvm_text_emit_newline(out: &uniq 'compare_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scalar_emit_band ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, left: own u64, right: own u64, value: own u64, out: &uniq 'o ByteTape) -> own unit reads('a 'f 'o), writes('o), traps {
+  let operation: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, call);
+  let band_tag: own SemanticOperation = SemanticOperationBand();
+  let is_band: own Bool = ieq<SemanticOperation>(operation, band_tag);
+  match is_band {
+    True() => {
+    }
+    False() => {
+      region 'band_invalid {
+        llvm_scalar_fail(out: &uniq 'band_invalid deref(out));
+      }
+      return unit;
+    }
+  }
+  region 'band_indent {
+    llvm_scalar_emit_indent(out: &uniq 'band_indent deref(out));
+  }
+  region 'band_result {
+    llvm_text_emit_value(out: &uniq 'band_result deref(out), id: value);
+  }
+  region 'band_result_space {
+    llvm_text_emit_space(out: &uniq 'band_result_space deref(out));
+  }
+  region 'band_equal {
+    llvm_text_emit_equal(out: &uniq 'band_equal deref(out));
+  }
+  region 'band_equal_space {
+    llvm_text_emit_space(out: &uniq 'band_equal_space deref(out));
+  }
+  region 'band_operation {
+    llvm_text_emit_and(out: &uniq 'band_operation deref(out));
+  }
+  region 'band_operation_space {
+    llvm_text_emit_space(out: &uniq 'band_operation_space deref(out));
+  }
+  region 'band_type {
+    llvm_text_emit_i1(out: &uniq 'band_type deref(out));
+  }
+  region 'band_type_space {
+    llvm_text_emit_space(out: &uniq 'band_type_space deref(out));
+  }
+  region 'band_left {
+    llvm_scalar_emit_resolved_operand(ast: ast, facts: facts, place: left, out: &uniq 'band_left deref(out));
+  }
+  region 'band_comma {
+    llvm_text_emit_comma(out: &uniq 'band_comma deref(out));
+  }
+  region 'band_comma_space {
+    llvm_text_emit_space(out: &uniq 'band_comma_space deref(out));
+  }
+  region 'band_right {
+    llvm_scalar_emit_resolved_operand(ast: ast, facts: facts, place: right, out: &uniq 'band_right deref(out));
+  }
+  region 'band_newline {
+    llvm_text_emit_newline(out: &uniq 'band_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scalar_emit_function ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+  region 'scalar_reset {
+    byte_tape_reset(out: &uniq 'scalar_reset deref(out));
+  }
+
+  let ast_valid: own Bool = semantic_globals_ast_tape_valid(ast: ast);
+  let tokens_valid: own Bool = llvm_scalar_tokens_valid(tokens: tokens);
+  let types_valid: own Bool = semantic_type_tape_shape_valid(types: types);
+  let facts_valid: own Bool = semantic_node_facts_shape_valid(facts: facts);
+  let facts_clean_tag: own SemanticFactsStatus = SemanticFactsClean();
+  let types_clean: own Bool = ieq<SemanticFactsStatus>(deref(types).status, facts_clean_tag);
+  let facts_clean: own Bool = ieq<SemanticFactsStatus>(deref(facts).status, facts_clean_tag);
+  let fact_count_exact: own Bool = ieq<u64>(deref(facts).count, deref(ast).count);
+  let syntax_valid: own Bool = band<Bool>(ast_valid, tokens_valid);
+  let first_valid: own Bool = band<Bool>(syntax_valid, types_valid);
+  let second_valid: own Bool = band<Bool>(facts_valid, types_clean);
+  let third_valid: own Bool = band<Bool>(facts_clean, fact_count_exact);
+  let first_two: own Bool = band<Bool>(first_valid, second_valid);
+  let tapes_valid: own Bool = band<Bool>(first_two, third_valid);
+  match tapes_valid {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_tapes {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_tapes deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let function_tag: own AstKind = AstFunction();
+  let function_name_tag: own AstKind = AstFunctionName();
+  let parameter_tag: own AstKind = AstParameter();
+  let own_tag: own AstKind = AstOwnMode();
+  let return_type_tag: own AstKind = AstReturnType();
+  let pure_tag: own AstKind = AstPureEffect();
+  let block_tag: own AstKind = AstBlock();
+  let parameter_type_tag: own AstKind = AstParameterType();
+  let let_tag: own AstKind = AstLet();
+  let return_tag: own AstKind = AstReturn();
+  let binding_name_tag: own AstKind = AstBindingName();
+  let binding_type_tag: own AstKind = AstBindingType();
+  let table_call_tag: own AstKind = AstTableCall();
+  let type_argument_tag: own AstKind = AstTypeArgument();
+  let place_tag: own AstKind = AstPlaceUse();
+  let numeric_tag: own AstKind = AstNumericLiteral();
+  let function_is_function: own Bool = llvm_scalar_node_is(ast: ast, node: function, expected: function_tag);
+  match function_is_function {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_function {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_function deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let name: own u64 = llvm_scalar_first_child(ast: ast, node: function);
+  match llvm_scalar_node_is(ast: ast, node: name, expected: function_name_tag) {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_name {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_name deref(out));
+      }
+      return unit;
+    }
+  }
+  let parameter: own u64 = llvm_scalar_next(ast: ast, node: name);
+  let return_mode: own u64 = llvm_scalar_next(ast: ast, node: parameter);
+  let return_type: own u64 = llvm_scalar_next(ast: ast, node: return_mode);
+  let pure_effect: own u64 = llvm_scalar_next(ast: ast, node: return_type);
+  let block: own u64 = llvm_scalar_next(ast: ast, node: pure_effect);
+  let parameter_kind: own Bool = llvm_scalar_node_is(ast: ast, node: parameter, expected: parameter_tag);
+  let return_mode_kind: own Bool = llvm_scalar_node_is(ast: ast, node: return_mode, expected: own_tag);
+  let return_type_kind: own Bool = llvm_scalar_node_is(ast: ast, node: return_type, expected: return_type_tag);
+  let pure_kind: own Bool = llvm_scalar_node_is(ast: ast, node: pure_effect, expected: pure_tag);
+  let block_kind: own Bool = llvm_scalar_node_is(ast: ast, node: block, expected: block_tag);
+  let function_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: function);
+  let function_last: own Bool = ieq<u64>(function_last_child, block);
+  let block_last_sibling: own Bool = llvm_scalar_next_is(ast: ast, node: block, expected: ast_none);
+  let signature_first: own Bool = band<Bool>(parameter_kind, return_mode_kind);
+  let signature_second: own Bool = band<Bool>(return_type_kind, pure_kind);
+  let signature_third: own Bool = band<Bool>(block_kind, function_last);
+  let signature_first_four: own Bool = band<Bool>(signature_first, signature_second);
+  let signature_first_six: own Bool = band<Bool>(signature_first_four, signature_third);
+  let signature_valid: own Bool = band<Bool>(signature_first_six, block_last_sibling);
+  match signature_valid {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_signature {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_signature deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let parameter_mode: own u64 = llvm_scalar_first_child(ast: ast, node: parameter);
+  let parameter_type: own u64 = llvm_scalar_next(ast: ast, node: parameter_mode);
+  let parameter_mode_kind: own Bool = llvm_scalar_node_is(ast: ast, node: parameter_mode, expected: own_tag);
+  let parameter_type_kind: own Bool = llvm_scalar_node_is(ast: ast, node: parameter_type, expected: parameter_type_tag);
+  let parameter_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: parameter);
+  let parameter_last: own Bool = ieq<u64>(parameter_last_child, parameter_type);
+  let parameter_end: own Bool = llvm_scalar_next_is(ast: ast, node: parameter_type, expected: ast_none);
+  let parameter_first: own Bool = band<Bool>(parameter_mode_kind, parameter_type_kind);
+  let parameter_second: own Bool = band<Bool>(parameter_last, parameter_end);
+  match band<Bool>(parameter_first, parameter_second) {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_parameter {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_parameter deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let first_let: own u64 = llvm_scalar_first_child(ast: ast, node: block);
+  let second_let: own u64 = llvm_scalar_next(ast: ast, node: first_let);
+  let return_node: own u64 = llvm_scalar_next(ast: ast, node: second_let);
+  let first_let_kind: own Bool = llvm_scalar_node_is(ast: ast, node: first_let, expected: let_tag);
+  let second_let_kind: own Bool = llvm_scalar_node_is(ast: ast, node: second_let, expected: let_tag);
+  let return_kind: own Bool = llvm_scalar_node_is(ast: ast, node: return_node, expected: return_tag);
+  let block_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: block);
+  let block_last: own Bool = ieq<u64>(block_last_child, return_node);
+  let return_end: own Bool = llvm_scalar_next_is(ast: ast, node: return_node, expected: ast_none);
+  let statements_first: own Bool = band<Bool>(first_let_kind, second_let_kind);
+  let statements_second: own Bool = band<Bool>(return_kind, block_last);
+  let statements_first_four: own Bool = band<Bool>(statements_first, statements_second);
+  match band<Bool>(statements_first_four, return_end) {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_statements {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_statements deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let first_name: own u64 = llvm_scalar_first_child(ast: ast, node: first_let);
+  let first_mode: own u64 = llvm_scalar_next(ast: ast, node: first_name);
+  let first_type: own u64 = llvm_scalar_next(ast: ast, node: first_mode);
+  let first_call: own u64 = llvm_scalar_next(ast: ast, node: first_type);
+  let second_name: own u64 = llvm_scalar_first_child(ast: ast, node: second_let);
+  let second_mode: own u64 = llvm_scalar_next(ast: ast, node: second_name);
+  let second_type: own u64 = llvm_scalar_next(ast: ast, node: second_mode);
+  let second_call: own u64 = llvm_scalar_next(ast: ast, node: second_type);
+  let first_name_kind: own Bool = llvm_scalar_node_is(ast: ast, node: first_name, expected: binding_name_tag);
+  let first_mode_kind: own Bool = llvm_scalar_node_is(ast: ast, node: first_mode, expected: own_tag);
+  let first_type_kind: own Bool = llvm_scalar_node_is(ast: ast, node: first_type, expected: binding_type_tag);
+  let first_call_kind: own Bool = llvm_scalar_node_is(ast: ast, node: first_call, expected: table_call_tag);
+  let second_name_kind: own Bool = llvm_scalar_node_is(ast: ast, node: second_name, expected: binding_name_tag);
+  let second_mode_kind: own Bool = llvm_scalar_node_is(ast: ast, node: second_mode, expected: own_tag);
+  let second_type_kind: own Bool = llvm_scalar_node_is(ast: ast, node: second_type, expected: binding_type_tag);
+  let second_call_kind: own Bool = llvm_scalar_node_is(ast: ast, node: second_call, expected: table_call_tag);
+  let first_let_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: first_let);
+  let second_let_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: second_let);
+  let first_last: own Bool = ieq<u64>(first_let_last_child, first_call);
+  let second_last: own Bool = ieq<u64>(second_let_last_child, second_call);
+  let first_call_end: own Bool = llvm_scalar_next_is(ast: ast, node: first_call, expected: ast_none);
+  let second_call_end: own Bool = llvm_scalar_next_is(ast: ast, node: second_call, expected: ast_none);
+  let lets0: own Bool = band<Bool>(first_name_kind, first_mode_kind);
+  let lets1: own Bool = band<Bool>(first_type_kind, first_call_kind);
+  let lets2: own Bool = band<Bool>(second_name_kind, second_mode_kind);
+  let lets3: own Bool = band<Bool>(second_type_kind, second_call_kind);
+  let lets4: own Bool = band<Bool>(first_last, second_last);
+  let lets5: own Bool = band<Bool>(first_call_end, second_call_end);
+  let lets01: own Bool = band<Bool>(lets0, lets1);
+  let lets23: own Bool = band<Bool>(lets2, lets3);
+  let lets45: own Bool = band<Bool>(lets4, lets5);
+  let lets0123: own Bool = band<Bool>(lets01, lets23);
+  match band<Bool>(lets0123, lets45) {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_lets {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_lets deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let first_type_argument: own u64 = llvm_scalar_first_child(ast: ast, node: first_call);
+  let first_place: own u64 = llvm_scalar_next(ast: ast, node: first_type_argument);
+  let first_numeric: own u64 = llvm_scalar_next(ast: ast, node: first_place);
+  let second_type_argument: own u64 = llvm_scalar_first_child(ast: ast, node: second_call);
+  let second_place: own u64 = llvm_scalar_next(ast: ast, node: second_type_argument);
+  let second_numeric: own u64 = llvm_scalar_next(ast: ast, node: second_place);
+  let return_call: own u64 = llvm_scalar_first_child(ast: ast, node: return_node);
+  let return_type_argument: own u64 = llvm_scalar_first_child(ast: ast, node: return_call);
+  let return_left: own u64 = llvm_scalar_next(ast: ast, node: return_type_argument);
+  let return_right: own u64 = llvm_scalar_next(ast: ast, node: return_left);
+  let call0: own Bool = llvm_scalar_node_is(ast: ast, node: first_type_argument, expected: type_argument_tag);
+  let call1: own Bool = llvm_scalar_node_is(ast: ast, node: first_place, expected: place_tag);
+  let call2: own Bool = llvm_scalar_node_is(ast: ast, node: first_numeric, expected: numeric_tag);
+  let call3: own Bool = llvm_scalar_node_is(ast: ast, node: second_type_argument, expected: type_argument_tag);
+  let call4: own Bool = llvm_scalar_node_is(ast: ast, node: second_place, expected: place_tag);
+  let call5: own Bool = llvm_scalar_node_is(ast: ast, node: second_numeric, expected: numeric_tag);
+  let call6: own Bool = llvm_scalar_node_is(ast: ast, node: return_call, expected: table_call_tag);
+  let call7: own Bool = llvm_scalar_node_is(ast: ast, node: return_type_argument, expected: type_argument_tag);
+  let call8: own Bool = llvm_scalar_node_is(ast: ast, node: return_left, expected: place_tag);
+  let call9: own Bool = llvm_scalar_node_is(ast: ast, node: return_right, expected: place_tag);
+  let first_call_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: first_call);
+  let second_call_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: second_call);
+  let return_call_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: return_call);
+  let return_node_last_child: own u64 = llvm_scalar_last_child(ast: ast, node: return_node);
+  let call10: own Bool = ieq<u64>(first_call_last_child, first_numeric);
+  let call11: own Bool = ieq<u64>(second_call_last_child, second_numeric);
+  let call12: own Bool = ieq<u64>(return_call_last_child, return_right);
+  let call13: own Bool = ieq<u64>(return_node_last_child, return_call);
+  let call14: own Bool = llvm_scalar_next_is(ast: ast, node: first_numeric, expected: ast_none);
+  let call15: own Bool = llvm_scalar_next_is(ast: ast, node: second_numeric, expected: ast_none);
+  let call16: own Bool = llvm_scalar_next_is(ast: ast, node: return_right, expected: ast_none);
+  let call17: own Bool = llvm_scalar_next_is(ast: ast, node: return_call, expected: ast_none);
+  let calls01: own Bool = band<Bool>(call0, call1);
+  let calls23: own Bool = band<Bool>(call2, call3);
+  let calls45: own Bool = band<Bool>(call4, call5);
+  let calls67: own Bool = band<Bool>(call6, call7);
+  let calls89: own Bool = band<Bool>(call8, call9);
+  let calls1011: own Bool = band<Bool>(call10, call11);
+  let calls1213: own Bool = band<Bool>(call12, call13);
+  let calls1415: own Bool = band<Bool>(call14, call15);
+  let calls1617: own Bool = band<Bool>(call16, call17);
+  let calls0: own Bool = band<Bool>(calls01, calls23);
+  let calls1: own Bool = band<Bool>(calls45, calls67);
+  let calls2: own Bool = band<Bool>(calls89, calls1011);
+  let calls3: own Bool = band<Bool>(calls1213, calls1415);
+  let calls4: own Bool = band<Bool>(calls0, calls1);
+  let calls5: own Bool = band<Bool>(calls2, calls3);
+  let calls6: own Bool = band<Bool>(calls4, calls5);
+  let calls_valid: own Bool = band<Bool>(calls6, calls1617);
+  match calls_valid {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_calls {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_calls deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let leaves0: own Bool = llvm_scalar_leaf(ast: ast, node: name);
+  let leaves1: own Bool = llvm_scalar_leaf(ast: ast, node: parameter_mode);
+  let leaves2: own Bool = llvm_scalar_leaf(ast: ast, node: parameter_type);
+  let leaves3: own Bool = llvm_scalar_leaf(ast: ast, node: return_mode);
+  let leaves4: own Bool = llvm_scalar_leaf(ast: ast, node: return_type);
+  let leaves5: own Bool = llvm_scalar_leaf(ast: ast, node: pure_effect);
+  let leaves6: own Bool = llvm_scalar_leaf(ast: ast, node: first_name);
+  let leaves7: own Bool = llvm_scalar_leaf(ast: ast, node: first_mode);
+  let leaves8: own Bool = llvm_scalar_leaf(ast: ast, node: first_type);
+  let leaves9: own Bool = llvm_scalar_leaf(ast: ast, node: first_type_argument);
+  let leaves10: own Bool = llvm_scalar_leaf(ast: ast, node: first_place);
+  let leaves11: own Bool = llvm_scalar_leaf(ast: ast, node: first_numeric);
+  let leaves12: own Bool = llvm_scalar_leaf(ast: ast, node: second_name);
+  let leaves13: own Bool = llvm_scalar_leaf(ast: ast, node: second_mode);
+  let leaves14: own Bool = llvm_scalar_leaf(ast: ast, node: second_type);
+  let leaves15: own Bool = llvm_scalar_leaf(ast: ast, node: second_type_argument);
+  let leaves16: own Bool = llvm_scalar_leaf(ast: ast, node: second_place);
+  let leaves17: own Bool = llvm_scalar_leaf(ast: ast, node: second_numeric);
+  let leaves18: own Bool = llvm_scalar_leaf(ast: ast, node: return_type_argument);
+  let leaves19: own Bool = llvm_scalar_leaf(ast: ast, node: return_left);
+  let leaves20: own Bool = llvm_scalar_leaf(ast: ast, node: return_right);
+  let leaf01: own Bool = band<Bool>(leaves0, leaves1);
+  let leaf23: own Bool = band<Bool>(leaves2, leaves3);
+  let leaf45: own Bool = band<Bool>(leaves4, leaves5);
+  let leaf67: own Bool = band<Bool>(leaves6, leaves7);
+  let leaf89: own Bool = band<Bool>(leaves8, leaves9);
+  let leaf1011: own Bool = band<Bool>(leaves10, leaves11);
+  let leaf1213: own Bool = band<Bool>(leaves12, leaves13);
+  let leaf1415: own Bool = band<Bool>(leaves14, leaves15);
+  let leaf1617: own Bool = band<Bool>(leaves16, leaves17);
+  let leaf1819: own Bool = band<Bool>(leaves18, leaves19);
+  let leaf0123: own Bool = band<Bool>(leaf01, leaf23);
+  let leaf4567: own Bool = band<Bool>(leaf45, leaf67);
+  let leaf891011: own Bool = band<Bool>(leaf89, leaf1011);
+  let leaf12131415: own Bool = band<Bool>(leaf1213, leaf1415);
+  let leaf16171819: own Bool = band<Bool>(leaf1617, leaf1819);
+  let leaf0to7: own Bool = band<Bool>(leaf0123, leaf4567);
+  let leaf8to15: own Bool = band<Bool>(leaf891011, leaf12131415);
+  let leaf0to15: own Bool = band<Bool>(leaf0to7, leaf8to15);
+  let leaf16to20: own Bool = band<Bool>(leaf16171819, leaves20);
+  match band<Bool>(leaf0to15, leaf16to20) {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_leaves {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_leaves deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let u8_kind: own SemanticTypeKind = SemanticTypeU8();
+  let bool_kind: own SemanticTypeKind = SemanticTypeBool();
+  let own_mode: own SemanticValueMode = SemanticModeOwn();
+  let band_operation: own SemanticOperation = SemanticOperationBand();
+  let facts0: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: parameter, expected: u8_kind);
+  let facts1: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: parameter_type, expected: u8_kind);
+  let facts2: own Bool = llvm_scalar_mode_is(facts: facts, node: parameter, expected: own_mode);
+  let facts3: own Bool = llvm_scalar_ordinal_is(facts: facts, node: parameter, ordinal: 0_u64);
+  let facts4: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: return_type, expected: bool_kind);
+  let facts5: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: first_let, expected: bool_kind);
+  let facts6: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: first_type, expected: bool_kind);
+  let facts7: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: first_call, expected: bool_kind);
+  let facts8: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: first_type_argument, expected: u8_kind);
+  let facts9: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: first_place, expected: u8_kind);
+  let facts10: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: first_numeric, expected: u8_kind);
+  let facts11: own Bool = llvm_scalar_mode_is(facts: facts, node: first_let, expected: own_mode);
+  let facts12: own Bool = llvm_scalar_mode_is(facts: facts, node: first_call, expected: own_mode);
+  let facts13: own Bool = llvm_scalar_mode_is(facts: facts, node: first_place, expected: own_mode);
+  let facts14: own Bool = llvm_scalar_mode_is(facts: facts, node: first_numeric, expected: own_mode);
+  let facts15: own Bool = llvm_scalar_operation_is_compare(facts: facts, node: first_call);
+  let facts16: own Bool = llvm_scalar_resolves_to(facts: facts, node: first_place, declaration: parameter);
+  let facts17: own Bool = llvm_scalar_constant_is_u8(facts: facts, node: first_numeric);
+  let facts18: own Bool = llvm_scalar_ordinal_is(facts: facts, node: first_let, ordinal: 0_u64);
+  let facts19: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: second_let, expected: bool_kind);
+  let facts20: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: second_type, expected: bool_kind);
+  let facts21: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: second_call, expected: bool_kind);
+  let facts22: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: second_type_argument, expected: u8_kind);
+  let facts23: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: second_place, expected: u8_kind);
+  let facts24: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: second_numeric, expected: u8_kind);
+  let facts25: own Bool = llvm_scalar_mode_is(facts: facts, node: second_let, expected: own_mode);
+  let facts26: own Bool = llvm_scalar_mode_is(facts: facts, node: second_call, expected: own_mode);
+  let facts27: own Bool = llvm_scalar_mode_is(facts: facts, node: second_place, expected: own_mode);
+  let facts28: own Bool = llvm_scalar_mode_is(facts: facts, node: second_numeric, expected: own_mode);
+  let facts29: own Bool = llvm_scalar_operation_is_compare(facts: facts, node: second_call);
+  let facts30: own Bool = llvm_scalar_resolves_to(facts: facts, node: second_place, declaration: parameter);
+  let facts31: own Bool = llvm_scalar_constant_is_u8(facts: facts, node: second_numeric);
+  let facts32: own Bool = llvm_scalar_ordinal_is(facts: facts, node: second_let, ordinal: 1_u64);
+  let facts33: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: return_node, expected: bool_kind);
+  let facts34: own Bool = llvm_scalar_mode_is(facts: facts, node: return_node, expected: own_mode);
+  let facts35: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: return_call, expected: bool_kind);
+  let facts36: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: return_type_argument, expected: bool_kind);
+  let facts37: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: return_left, expected: bool_kind);
+  let facts38: own Bool = llvm_scalar_node_type_is(facts: facts, types: types, node: return_right, expected: bool_kind);
+  let facts39: own Bool = llvm_scalar_mode_is(facts: facts, node: return_call, expected: own_mode);
+  let facts40: own Bool = llvm_scalar_mode_is(facts: facts, node: return_left, expected: own_mode);
+  let facts41: own Bool = llvm_scalar_mode_is(facts: facts, node: return_right, expected: own_mode);
+  let facts42: own Bool = llvm_scalar_operation_is(facts: facts, node: return_call, expected: band_operation);
+  let facts43: own Bool = llvm_scalar_resolves_to(facts: facts, node: return_left, declaration: first_let);
+  let facts44: own Bool = llvm_scalar_resolves_to(facts: facts, node: return_right, declaration: second_let);
+  let fact_pair0: own Bool = band<Bool>(facts0, facts1);
+  let fact_pair1: own Bool = band<Bool>(facts2, facts3);
+  let fact_pair2: own Bool = band<Bool>(facts4, facts5);
+  let fact_pair3: own Bool = band<Bool>(facts6, facts7);
+  let fact_pair4: own Bool = band<Bool>(facts8, facts9);
+  let fact_pair5: own Bool = band<Bool>(facts10, facts11);
+  let fact_pair6: own Bool = band<Bool>(facts12, facts13);
+  let fact_pair7: own Bool = band<Bool>(facts14, facts15);
+  let fact_pair8: own Bool = band<Bool>(facts16, facts17);
+  let fact_pair9: own Bool = band<Bool>(facts18, facts19);
+  let fact_pair10: own Bool = band<Bool>(facts20, facts21);
+  let fact_pair11: own Bool = band<Bool>(facts22, facts23);
+  let fact_pair12: own Bool = band<Bool>(facts24, facts25);
+  let fact_pair13: own Bool = band<Bool>(facts26, facts27);
+  let fact_pair14: own Bool = band<Bool>(facts28, facts29);
+  let fact_pair15: own Bool = band<Bool>(facts30, facts31);
+  let fact_pair16: own Bool = band<Bool>(facts32, facts33);
+  let fact_pair17: own Bool = band<Bool>(facts34, facts35);
+  let fact_pair18: own Bool = band<Bool>(facts36, facts37);
+  let fact_pair19: own Bool = band<Bool>(facts38, facts39);
+  let fact_pair20: own Bool = band<Bool>(facts40, facts41);
+  let fact_pair21: own Bool = band<Bool>(facts42, facts43);
+  let fact_last: own Bool = band<Bool>(fact_pair21, facts44);
+  let fact_group0: own Bool = band<Bool>(fact_pair0, fact_pair1);
+  let fact_group1: own Bool = band<Bool>(fact_pair2, fact_pair3);
+  let fact_group2: own Bool = band<Bool>(fact_pair4, fact_pair5);
+  let fact_group3: own Bool = band<Bool>(fact_pair6, fact_pair7);
+  let fact_group4: own Bool = band<Bool>(fact_pair8, fact_pair9);
+  let fact_group5: own Bool = band<Bool>(fact_pair10, fact_pair11);
+  let fact_group6: own Bool = band<Bool>(fact_pair12, fact_pair13);
+  let fact_group7: own Bool = band<Bool>(fact_pair14, fact_pair15);
+  let fact_group8: own Bool = band<Bool>(fact_pair16, fact_pair17);
+  let fact_group9: own Bool = band<Bool>(fact_pair18, fact_pair19);
+  let fact_group10: own Bool = band<Bool>(fact_pair20, fact_last);
+  let fact_groups01: own Bool = band<Bool>(fact_group0, fact_group1);
+  let fact_groups23: own Bool = band<Bool>(fact_group2, fact_group3);
+  let fact_groups45: own Bool = band<Bool>(fact_group4, fact_group5);
+  let fact_groups67: own Bool = band<Bool>(fact_group6, fact_group7);
+  let fact_groups89: own Bool = band<Bool>(fact_group8, fact_group9);
+  let fact_groups0123: own Bool = band<Bool>(fact_groups01, fact_groups23);
+  let fact_groups4567: own Bool = band<Bool>(fact_groups45, fact_groups67);
+  let fact_groups0to7: own Bool = band<Bool>(fact_groups0123, fact_groups4567);
+  let fact_groups8to10: own Bool = band<Bool>(fact_groups89, fact_group10);
+  let semantic_valid: own Bool = band<Bool>(fact_groups0to7, fact_groups8to10);
+  match semantic_valid {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_facts {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_facts deref(out));
+      }
+      return unit;
+    }
+  }
+
+  let name_token: own u64 = index<u64>(deref(ast).heads, name);
+  let name_token_valid: own Bool = llvm_scalar_name_token_valid(source: source, tokens: tokens, token: name_token);
+  match name_token_valid {
+    True() => {
+    }
+    False() => {
+      region 'scalar_bad_name_token {
+        llvm_scalar_fail(out: &uniq 'scalar_bad_name_token deref(out));
+      }
+      return unit;
+    }
+  }
+  region 'header_define {
+    llvm_text_emit_define(out: &uniq 'header_define deref(out));
+  }
+  region 'header_define_space {
+    llvm_text_emit_space(out: &uniq 'header_define_space deref(out));
+  }
+  region 'header_return_type {
+    llvm_text_emit_i1(out: &uniq 'header_return_type deref(out));
+  }
+  region 'header_return_space {
+    llvm_text_emit_space(out: &uniq 'header_return_space deref(out));
+  }
+  region 'header_at {
+    llvm_text_emit_at(out: &uniq 'header_at deref(out));
+  }
+  region 'header_name {
+    llvm_text_emit_token(source: source, tokens: tokens, token: name_token, out: &uniq 'header_name deref(out));
+  }
+  region 'header_left_paren {
+    llvm_text_emit_left_paren(out: &uniq 'header_left_paren deref(out));
+  }
+  region 'header_parameter_type {
+    llvm_text_emit_i8(out: &uniq 'header_parameter_type deref(out));
+  }
+  region 'header_parameter_space {
+    llvm_text_emit_space(out: &uniq 'header_parameter_space deref(out));
+  }
+  let parameter_ordinal: own u64 = index<u64>(deref(facts).ordinals, parameter);
+  region 'header_parameter {
+    llvm_text_emit_place(out: &uniq 'header_parameter deref(out), id: parameter_ordinal);
+  }
+  region 'header_right_paren {
+    llvm_text_emit_right_paren(out: &uniq 'header_right_paren deref(out));
+  }
+  region 'header_brace_space {
+    llvm_text_emit_space(out: &uniq 'header_brace_space deref(out));
+  }
+  region 'header_left_brace {
+    llvm_text_emit_left_brace(out: &uniq 'header_left_brace deref(out));
+  }
+  region 'header_newline {
+    llvm_text_emit_newline(out: &uniq 'header_newline deref(out));
+  }
+  region 'entry_label {
+    llvm_text_emit_entry(out: &uniq 'entry_label deref(out));
+  }
+  region 'entry_newline {
+    llvm_text_emit_newline(out: &uniq 'entry_newline deref(out));
+  }
+
+  let first_value: own u64 = index<u64>(deref(facts).ordinals, first_let);
+  region 'emit_first_compare {
+    llvm_scalar_emit_compare(ast: ast, facts: facts, call: first_call, place: first_place, numeric: first_numeric, value: first_value, out: &uniq 'emit_first_compare deref(out));
+  }
+  let second_value: own u64 = index<u64>(deref(facts).ordinals, second_let);
+  region 'emit_second_compare {
+    llvm_scalar_emit_compare(ast: ast, facts: facts, call: second_call, place: second_place, numeric: second_numeric, value: second_value, out: &uniq 'emit_second_compare deref(out));
+  }
+  region 'emit_band {
+    llvm_scalar_emit_band(ast: ast, facts: facts, call: return_call, left: return_left, right: return_right, value: 2_u64, out: &uniq 'emit_band deref(out));
+  }
+  region 'return_indent {
+    llvm_scalar_emit_indent(out: &uniq 'return_indent deref(out));
+  }
+  region 'return_operation {
+    llvm_text_emit_ret(out: &uniq 'return_operation deref(out));
+  }
+  region 'return_operation_space {
+    llvm_text_emit_space(out: &uniq 'return_operation_space deref(out));
+  }
+  region 'return_type_text {
+    llvm_text_emit_i1(out: &uniq 'return_type_text deref(out));
+  }
+  region 'return_type_space {
+    llvm_text_emit_space(out: &uniq 'return_type_space deref(out));
+  }
+  region 'return_value {
+    llvm_text_emit_value(out: &uniq 'return_value deref(out), id: 2_u64);
+  }
+  region 'return_newline {
+    llvm_text_emit_newline(out: &uniq 'return_newline deref(out));
+  }
+  region 'function_right_brace {
+    llvm_text_emit_right_brace(out: &uniq 'function_right_brace deref(out));
+  }
+  region 'function_newline {
+    llvm_text_emit_newline(out: &uniq 'function_newline deref(out));
+  }
+  return unit;
+}

@@ -23,10 +23,11 @@ indexing, structural type equality, and exact type-name/array-size resolution. T
 names and constructor names are deliberately separate namespaces: this permits the
 prelude's `Overflow` type and `Overflow()` constructor while still rejecting duplicate
 constructors across enums. The prelude names are recognized from exact bytes and cannot
-be redeclared. The remaining expression, ownership, and effect checks grow from those
+be redeclared. Body semantics now begin with a deliberately narrow, fact-producing
+scalar profile; the remaining expression, ownership, and effect checks grow from those
 pieces. `src/source_names.xl` compares
 names byte-for-byte without hashes. `src/output.xl` is the capacity-aware, two-pass
-byte sink the LLVM emitter will use. `make check` compiles the whole compiler with
+byte sink used by the LLVM emitters. `make check` compiles the whole compiler with
 stage 0 and exercises these native C ABIs, including hostile capacities and malformed
 internal tapes. The lexer oracle normalizes stage 0's obsolete broad dotted-word token
 to the current closed-suffix `OPNAME` rule, so fields are `word . word` while only
@@ -56,6 +57,14 @@ compiler source through this one ABI and checks deterministic counts;
 guarded internal tapes accessible to the next compiler stage. The final public
 ABI remains `xlc_compile(source, output, report)`, which will add LLVM output without
 accepting caller-forged internal tapes.
+
+`semantic_body_run` now resolves and types the compiler's scalar byte predicates into
+a compact `TypeTape` plus dense `NodeFacts`; `llvm_scalar_emit_function` consumes those
+facts without resolving operation names again. The first vertical gate compiles the
+real `lexer_is_lower` function to deterministic SSA LLVM, asks clang to load it, and
+checks all 256 possible `u8` inputs. The same fact-driven path also emits the analogous
+uppercase predicate, while hostile names, types, links, facts, and asymmetric tape
+capacities fail closed.
 
 Stage 0 is invoked with optimizer facts disabled for xlc builds until xlc's effect
 checking is complete. Parsing now expands grammar slice by slice; semantic checking and

@@ -13,6 +13,7 @@ check:
 	$(PY) test_symbols.py
 	$(PY) test_semantic_prelude.py
 	$(PY) test_semantic_facts.py
+	$(PY) test_semantic_body.py
 	$(PY) test_semantic_types.py
 	$(PY) test_semantic_globals.py
 	$(PY) test_semantic_type_resolve.py
@@ -22,5 +23,6 @@ check:
 	$(PY) test_frontend.py
 	$(PY) test_frontend_retained.py
 	$(PY) test_llvm_text.py
+	$(PY) test_llvm_scalar.py
 
 .PHONY: check
