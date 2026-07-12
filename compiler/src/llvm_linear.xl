@@ -889,6 +889,217 @@ fn llvm_linear_return_valid ['a, 'y, 'f] (ast: &'a AstTape, types: &'y TypeTape,
   }
 }
 
+fn llvm_linear_match_node_valid ['a, 'y, 'f] (ast: &'a AstTape, types: &'y TypeTape, facts: &'f NodeFacts, function: own u64, node: own u64, expected_let: own u64, continuation: own u64) -> own Bool reads('a 'y 'f), traps {
+  let function_kind: own Bool = llvm_linear_node_is(ast: ast, node: function, want: AstFunction());
+  let expected_kind: own Bool = llvm_linear_node_is(ast: ast, node: expected_let, want: AstLet());
+  let continuation_valid: own Bool = ilt<u64>(continuation, deref(ast).count);
+  let match_kind: own Bool = llvm_linear_node_is(ast: ast, node: node, want: AstMatch());
+  let match_shape: own Bool = llvm_linear_exact_children(ast: ast, node: node, want: 3_u64);
+  let root0: own Bool = band<Bool>(function_kind, expected_kind);
+  let root1: own Bool = band<Bool>(continuation_valid, match_kind);
+  let root01: own Bool = band<Bool>(root0, root1);
+  match band<Bool>(root01, match_shape) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  match ieq<u64>(index<u64>(deref(facts).control_targets, node), continuation) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let scrutinee: own u64 = llvm_linear_child_at(ast: ast, node: node, ordinal: 0_u64);
+  let true_arm: own u64 = llvm_linear_child_at(ast: ast, node: node, ordinal: 1_u64);
+  let false_arm: own u64 = llvm_linear_child_at(ast: ast, node: node, ordinal: 2_u64);
+  let scrutinee_kind: own Bool = llvm_linear_node_is(ast: ast, node: scrutinee, want: AstPlaceUse());
+  let scrutinee_leaf: own Bool = llvm_linear_exact_children(ast: ast, node: scrutinee, want: 0_u64);
+  let scrutinee_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: scrutinee, want: SemanticTypeBool());
+  let scrutinee_mode: own Bool = llvm_linear_node_is_own(facts: facts, node: scrutinee);
+  let scrutinee_resolution: own Bool = ieq<u64>(index<u64>(deref(facts).resolved_declarations, scrutinee), expected_let);
+  let scrutinee_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, scrutinee), semantic_facts_none);
+  let scrutinee_operation: own Bool = ieq<SemanticOperation>(index<SemanticOperation>(deref(facts).operations, scrutinee), SemanticOperationNone());
+  let scrutinee_constant: own Bool = ieq<u64>(index<u64>(deref(facts).constant_values, scrutinee), semantic_facts_none);
+  let scrutinee_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, scrutinee), node);
+  let scrutinee0: own Bool = band<Bool>(scrutinee_kind, scrutinee_leaf);
+  let scrutinee1: own Bool = band<Bool>(scrutinee_type, scrutinee_mode);
+  let scrutinee2: own Bool = band<Bool>(scrutinee_resolution, scrutinee_ordinal);
+  let scrutinee3: own Bool = band<Bool>(scrutinee_operation, scrutinee_constant);
+  let scrutinee01: own Bool = band<Bool>(scrutinee0, scrutinee1);
+  let scrutinee23: own Bool = band<Bool>(scrutinee2, scrutinee3);
+  let scrutinee0123: own Bool = band<Bool>(scrutinee01, scrutinee23);
+  match band<Bool>(scrutinee0123, scrutinee_target) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let true_kind: own Bool = llvm_linear_node_is(ast: ast, node: true_arm, want: AstMatchArm());
+  let false_kind: own Bool = llvm_linear_node_is(ast: ast, node: false_arm, want: AstMatchArm());
+  let true_shape: own Bool = llvm_linear_exact_children(ast: ast, node: true_arm, want: 1_u64);
+  let false_shape: own Bool = llvm_linear_exact_children(ast: ast, node: false_arm, want: 1_u64);
+  let arm_kinds: own Bool = band<Bool>(true_kind, false_kind);
+  let arm_shapes: own Bool = band<Bool>(true_shape, false_shape);
+  match band<Bool>(arm_kinds, arm_shapes) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let true_block: own u64 = llvm_linear_child_at(ast: ast, node: true_arm, ordinal: 0_u64);
+  let false_block: own u64 = llvm_linear_child_at(ast: ast, node: false_arm, ordinal: 0_u64);
+  let true_block_kind: own Bool = llvm_linear_node_is(ast: ast, node: true_block, want: AstBlock());
+  let false_block_kind: own Bool = llvm_linear_node_is(ast: ast, node: false_block, want: AstBlock());
+  let true_block_shape: own Bool = llvm_linear_exact_children(ast: ast, node: true_block, want: 1_u64);
+  let false_block_shape: own Bool = llvm_linear_exact_children(ast: ast, node: false_block, want: 0_u64);
+  let block_kinds: own Bool = band<Bool>(true_block_kind, false_block_kind);
+  let block_shapes: own Bool = band<Bool>(true_block_shape, false_block_shape);
+  match band<Bool>(block_kinds, block_shapes) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let early_return: own u64 = llvm_linear_child_at(ast: ast, node: true_block, ordinal: 0_u64);
+  let return_kind: own Bool = llvm_linear_node_is(ast: ast, node: early_return, want: AstReturn());
+  let return_shape: own Bool = llvm_linear_exact_children(ast: ast, node: early_return, want: 1_u64);
+  match band<Bool>(return_kind, return_shape) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let constructor: own u64 = llvm_linear_child_at(ast: ast, node: early_return, ordinal: 0_u64);
+  let constructor_kind: own Bool = llvm_linear_node_is(ast: ast, node: constructor, want: AstConstructor());
+  let constructor_shape: own Bool = llvm_linear_exact_children(ast: ast, node: constructor, want: 0_u64);
+  match band<Bool>(constructor_kind, constructor_shape) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let true_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: true_arm, want: SemanticTypeBool());
+  let true_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, true_arm), 0_u64);
+  let true_constant: own Bool = ieq<u64>(index<u64>(deref(facts).constant_values, true_arm), 1_u64);
+  let true_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, true_arm), early_return);
+  let true_code: own Bool = ieq<PreludeConstructorCode>(index<PreludeConstructorCode>(deref(facts).prelude_constructors, true_arm), PreludeConstructorTrue());
+  let false_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: false_arm, want: SemanticTypeBool());
+  let false_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, false_arm), 1_u64);
+  let false_constant: own Bool = ieq<u64>(index<u64>(deref(facts).constant_values, false_arm), 0_u64);
+  let false_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, false_arm), continuation);
+  let false_code: own Bool = ieq<PreludeConstructorCode>(index<PreludeConstructorCode>(deref(facts).prelude_constructors, false_arm), PreludeConstructorFalse());
+  let true0: own Bool = band<Bool>(true_type, true_ordinal);
+  let true1: own Bool = band<Bool>(true_constant, true_target);
+  let true01: own Bool = band<Bool>(true0, true1);
+  let false0: own Bool = band<Bool>(false_type, false_ordinal);
+  let false1: own Bool = band<Bool>(false_constant, false_target);
+  let false01: own Bool = band<Bool>(false0, false1);
+  let arms0: own Bool = band<Bool>(true01, true_code);
+  let arms1: own Bool = band<Bool>(false01, false_code);
+  match band<Bool>(arms0, arms1) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let true_block_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, true_block), early_return);
+  let false_block_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, false_block), continuation);
+  match band<Bool>(true_block_target, false_block_target) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let early_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: early_return, want: SemanticTypeBool());
+  let early_mode: own Bool = llvm_linear_node_is_own(facts: facts, node: early_return);
+  let early_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, early_return), semantic_facts_none);
+  let early_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, early_return), function);
+  let early0: own Bool = band<Bool>(early_type, early_mode);
+  let early1: own Bool = band<Bool>(early_ordinal, early_target);
+  let constructor_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: constructor, want: SemanticTypeBool());
+  let constructor_mode: own Bool = llvm_linear_node_is_own(facts: facts, node: constructor);
+  let constructor_resolution: own Bool = ieq<u64>(index<u64>(deref(facts).resolved_declarations, constructor), semantic_facts_none);
+  let constructor_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, constructor), semantic_facts_none);
+  let constructor_operation: own Bool = ieq<SemanticOperation>(index<SemanticOperation>(deref(facts).operations, constructor), SemanticOperationNone());
+  let constructor_constant: own Bool = ieq<u64>(index<u64>(deref(facts).constant_values, constructor), 1_u64);
+  let constructor_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, constructor), early_return);
+  let constructor_code: own Bool = ieq<PreludeConstructorCode>(index<PreludeConstructorCode>(deref(facts).prelude_constructors, constructor), PreludeConstructorTrue());
+  let constructor0: own Bool = band<Bool>(constructor_type, constructor_mode);
+  let constructor1: own Bool = band<Bool>(constructor_resolution, constructor_ordinal);
+  let constructor2: own Bool = band<Bool>(constructor_operation, constructor_constant);
+  let constructor01: own Bool = band<Bool>(constructor0, constructor1);
+  let constructor23: own Bool = band<Bool>(constructor2, constructor_target);
+  let constructor0123: own Bool = band<Bool>(constructor01, constructor23);
+  let terminal0: own Bool = band<Bool>(early0, early1);
+  let terminal1: own Bool = band<Bool>(constructor0123, constructor_code);
+  return band<Bool>(terminal0, terminal1);
+}
+
+fn llvm_linear_match_return_valid ['a, 'y, 'f] (ast: &'a AstTape, types: &'y TypeTape, facts: &'f NodeFacts, function: own u64, statement: own u64, final_let: own u64, value_ordinal: own u64) -> own Bool reads('a 'y 'f), traps {
+  let function_kind: own Bool = llvm_linear_node_is(ast: ast, node: function, want: AstFunction());
+  let let_kind: own Bool = llvm_linear_node_is(ast: ast, node: final_let, want: AstLet());
+  let return_kind: own Bool = llvm_linear_node_is(ast: ast, node: statement, want: AstReturn());
+  let return_shape: own Bool = llvm_linear_exact_children(ast: ast, node: statement, want: 1_u64);
+  let root0: own Bool = band<Bool>(function_kind, let_kind);
+  let root1: own Bool = band<Bool>(return_kind, return_shape);
+  match band<Bool>(root0, root1) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let value: own u64 = llvm_linear_child_at(ast: ast, node: statement, ordinal: 0_u64);
+  let value_kind: own Bool = llvm_linear_node_is(ast: ast, node: value, want: AstPlaceUse());
+  let value_leaf: own Bool = llvm_linear_exact_children(ast: ast, node: value, want: 0_u64);
+  let value_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: value, want: SemanticTypeBool());
+  let value_mode: own Bool = llvm_linear_node_is_own(facts: facts, node: value);
+  let value_resolution: own Bool = ieq<u64>(index<u64>(deref(facts).resolved_declarations, value), final_let);
+  let value_ordinal_none: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, value), semantic_facts_none);
+  let value_operation: own Bool = ieq<SemanticOperation>(index<SemanticOperation>(deref(facts).operations, value), SemanticOperationNone());
+  let value_constant: own Bool = ieq<u64>(index<u64>(deref(facts).constant_values, value), semantic_facts_none);
+  let value_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, value), statement);
+  let value0: own Bool = band<Bool>(value_kind, value_leaf);
+  let value1: own Bool = band<Bool>(value_type, value_mode);
+  let value2: own Bool = band<Bool>(value_resolution, value_ordinal_none);
+  let value3: own Bool = band<Bool>(value_operation, value_constant);
+  let value01: own Bool = band<Bool>(value0, value1);
+  let value23: own Bool = band<Bool>(value2, value3);
+  let value0123: own Bool = band<Bool>(value01, value23);
+  match band<Bool>(value0123, value_target) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let final_let_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, final_let), value_ordinal);
+  let statement_type: own Bool = llvm_linear_node_type_is(types: types, facts: facts, node: statement, want: SemanticTypeBool());
+  let statement_mode: own Bool = llvm_linear_node_is_own(facts: facts, node: statement);
+  let statement_ordinal: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, statement), value_ordinal);
+  let statement_resolution: own Bool = ieq<u64>(index<u64>(deref(facts).resolved_declarations, statement), semantic_facts_none);
+  let statement_target: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, statement), function);
+  let statement0: own Bool = band<Bool>(statement_type, statement_mode);
+  let statement1: own Bool = band<Bool>(statement_ordinal, statement_resolution);
+  let statement01: own Bool = band<Bool>(statement0, statement1);
+  let return0: own Bool = band<Bool>(final_let_ordinal, statement01);
+  return band<Bool>(return0, statement_target);
+}
+
 fn llvm_linear_table_function_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'y 'f), traps {
   let tokens_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
   let ast_valid: own Bool = semantic_globals_ast_tape_valid(ast: ast);
@@ -966,6 +1177,106 @@ fn llvm_linear_table_function_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>
         let return0: own Bool = band<Bool>(return_valid, return_last);
         let return1: own Bool = band<Bool>(return_end, return_position);
         return band<Bool>(return0, return1);
+      }
+    }
+  }
+}
+
+fn llvm_linear_match_function_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'y 'f), traps {
+  let tokens_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  let ast_valid: own Bool = semantic_globals_ast_tape_valid(ast: ast);
+  let types_valid: own Bool = semantic_type_tape_shape_valid(types: types);
+  let facts_valid: own Bool = semantic_node_facts_shape_valid(facts: facts);
+  let clean_tag: own SemanticFactsStatus = SemanticFactsClean();
+  let types_clean: own Bool = ieq<SemanticFactsStatus>(deref(types).status, clean_tag);
+  let facts_clean: own Bool = ieq<SemanticFactsStatus>(deref(facts).status, clean_tag);
+  let facts_dense: own Bool = ieq<u64>(deref(facts).count, deref(ast).count);
+  let tapes0: own Bool = band<Bool>(tokens_valid, ast_valid);
+  let tapes1: own Bool = band<Bool>(types_valid, facts_valid);
+  let tapes2: own Bool = band<Bool>(types_clean, facts_clean);
+  let tapes01: own Bool = band<Bool>(tapes0, tapes1);
+  let tapes23: own Bool = band<Bool>(tapes2, facts_dense);
+  match band<Bool>(tapes01, tapes23) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  match llvm_linear_signature_valid(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 1_u64);
+  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 5_u64);
+  let statement: own u64 = index<u64>(deref(ast).first_children, block);
+  let value_ordinal: own u64 = 0_u64;
+  let match_count: own u64 = 0_u64;
+  let steps: own u64 = 0_u64;
+  loop @llvm_linear_match_statements {
+    match ilt<u64>(steps, deref(ast).count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    match llvm_linear_let_valid(source: source, tokens: tokens, ast: ast, types: types, facts: facts, statement: statement, parameter: parameter, block: block, value_ordinal: value_ordinal) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let initializer: own u64 = llvm_linear_child_at(ast: ast, node: statement, ordinal: 3_u64);
+    let initializer_kind: own Bool = llvm_linear_node_is(ast: ast, node: initializer, want: AstTableCall());
+    let initializer_operation: own Bool = ieq<SemanticOperation>(index<SemanticOperation>(deref(facts).operations, initializer), SemanticOperationIeq());
+    match band<Bool>(initializer_kind, initializer_operation) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next: own u64 = index<u64>(deref(ast).next_siblings, statement);
+    match ilt<u64>(next, deref(ast).count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    match llvm_linear_node_is(ast: ast, node: next, want: AstMatch()) {
+      True() => {
+        let continuation: own u64 = index<u64>(deref(ast).next_siblings, next);
+        match llvm_linear_match_node_valid(ast: ast, types: types, facts: facts, function: function, node: next, expected_let: statement, continuation: continuation) {
+          True() => {
+            set statement = continuation;
+            set value_ordinal = iadd.trap<u64>(value_ordinal, 1_u64);
+            set match_count = iadd.trap<u64>(match_count, 1_u64);
+            set steps = iadd.trap<u64>(steps, 2_u64);
+          }
+          False() => {
+            return False();
+          }
+        }
+      }
+      False() => {
+        match ige<u64>(match_count, 1_u64) {
+          True() => {
+          }
+          False() => {
+            return False();
+          }
+        }
+        let return_valid: own Bool = llvm_linear_match_return_valid(ast: ast, types: types, facts: facts, function: function, statement: next, final_let: statement, value_ordinal: value_ordinal);
+        let return_last: own Bool = ieq<u64>(next, index<u64>(deref(ast).last_children, block));
+        let return_end: own Bool = ieq<u64>(index<u64>(deref(ast).next_siblings, next), ast_none);
+        let return0: own Bool = band<Bool>(return_valid, return_last);
+        return band<Bool>(return0, return_end);
       }
     }
   }
@@ -1283,6 +1594,180 @@ fn llvm_linear_emit_footer ['f, 'o] (facts: &'f NodeFacts, call: own u64, out: &
   return unit;
 }
 
+fn llvm_linear_emit_block_label ['o] (out: &uniq 'o ByteTape, id: own u64) -> own unit reads('o), writes('o), traps {
+  region 'llvm_linear_block_label_name {
+    llvm_text_emit_block(out: &uniq 'llvm_linear_block_label_name deref(out), id: id);
+  }
+  region 'llvm_linear_block_label_colon {
+    llvm_text_emit_colon(out: &uniq 'llvm_linear_block_label_colon deref(out));
+  }
+  region 'llvm_linear_block_label_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_linear_block_label_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_linear_emit_match_branch ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts, node: own u64, false_block: own u64, out: &uniq 'o ByteTape) -> own unit reads('a 'f 'o), writes('o), traps {
+  let scrutinee: own u64 = llvm_linear_child_at(ast: ast, node: node, ordinal: 0_u64);
+  let declaration: own u64 = index<u64>(deref(facts).resolved_declarations, scrutinee);
+  let condition: own u64 = index<u64>(deref(facts).ordinals, declaration);
+  region 'llvm_linear_branch_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_linear_branch_indent deref(out));
+  }
+  region 'llvm_linear_branch_operation {
+    llvm_text_emit_br(out: &uniq 'llvm_linear_branch_operation deref(out));
+  }
+  region 'llvm_linear_branch_operation_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_branch_operation_space deref(out));
+  }
+  region 'llvm_linear_branch_type {
+    llvm_text_emit_i1(out: &uniq 'llvm_linear_branch_type deref(out));
+  }
+  region 'llvm_linear_branch_type_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_branch_type_space deref(out));
+  }
+  region 'llvm_linear_branch_condition {
+    llvm_text_emit_value(out: &uniq 'llvm_linear_branch_condition deref(out), id: condition);
+  }
+  region 'llvm_linear_branch_true_comma {
+    llvm_text_emit_comma(out: &uniq 'llvm_linear_branch_true_comma deref(out));
+  }
+  region 'llvm_linear_branch_true_comma_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_branch_true_comma_space deref(out));
+  }
+  region 'llvm_linear_branch_true_label {
+    llvm_text_emit_label(out: &uniq 'llvm_linear_branch_true_label deref(out));
+  }
+  region 'llvm_linear_branch_true_label_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_branch_true_label_space deref(out));
+  }
+  region 'llvm_linear_branch_true_target {
+    llvm_text_emit_block_ref(out: &uniq 'llvm_linear_branch_true_target deref(out), id: 0_u64);
+  }
+  region 'llvm_linear_branch_false_comma {
+    llvm_text_emit_comma(out: &uniq 'llvm_linear_branch_false_comma deref(out));
+  }
+  region 'llvm_linear_branch_false_comma_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_branch_false_comma_space deref(out));
+  }
+  region 'llvm_linear_branch_false_label {
+    llvm_text_emit_label(out: &uniq 'llvm_linear_branch_false_label deref(out));
+  }
+  region 'llvm_linear_branch_false_label_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_branch_false_label_space deref(out));
+  }
+  region 'llvm_linear_branch_false_target {
+    llvm_text_emit_block_ref(out: &uniq 'llvm_linear_branch_false_target deref(out), id: false_block);
+  }
+  region 'llvm_linear_branch_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_linear_branch_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_linear_emit_true_return ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'llvm_linear_true_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_linear_true_indent deref(out));
+  }
+  region 'llvm_linear_true_ret {
+    llvm_text_emit_ret(out: &uniq 'llvm_linear_true_ret deref(out));
+  }
+  region 'llvm_linear_true_ret_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_true_ret_space deref(out));
+  }
+  region 'llvm_linear_true_type {
+    llvm_text_emit_i1(out: &uniq 'llvm_linear_true_type deref(out));
+  }
+  region 'llvm_linear_true_type_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_true_type_space deref(out));
+  }
+  region 'llvm_linear_true_value {
+    llvm_text_emit_true(out: &uniq 'llvm_linear_true_value deref(out));
+  }
+  region 'llvm_linear_true_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_linear_true_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_linear_emit_place_footer ['f, 'o] (facts: &'f NodeFacts, place: own u64, out: &uniq 'o ByteTape) -> own unit reads('f 'o), writes('o), traps {
+  let declaration: own u64 = index<u64>(deref(facts).resolved_declarations, place);
+  let result: own u64 = index<u64>(deref(facts).ordinals, declaration);
+  region 'llvm_linear_place_footer_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_linear_place_footer_indent deref(out));
+  }
+  region 'llvm_linear_place_footer_ret {
+    llvm_text_emit_ret(out: &uniq 'llvm_linear_place_footer_ret deref(out));
+  }
+  region 'llvm_linear_place_footer_ret_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_place_footer_ret_space deref(out));
+  }
+  region 'llvm_linear_place_footer_type {
+    llvm_text_emit_i1(out: &uniq 'llvm_linear_place_footer_type deref(out));
+  }
+  region 'llvm_linear_place_footer_type_space {
+    llvm_text_emit_space(out: &uniq 'llvm_linear_place_footer_type_space deref(out));
+  }
+  region 'llvm_linear_place_footer_value {
+    llvm_text_emit_value(out: &uniq 'llvm_linear_place_footer_value deref(out), id: result);
+  }
+  region 'llvm_linear_place_footer_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_linear_place_footer_newline deref(out));
+  }
+  region 'llvm_linear_place_footer_brace {
+    llvm_text_emit_right_brace(out: &uniq 'llvm_linear_place_footer_brace deref(out));
+  }
+  region 'llvm_linear_place_footer_function_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_linear_place_footer_function_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_linear_emit_match_body ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
+  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 5_u64);
+  let statement: own u64 = index<u64>(deref(ast).first_children, block);
+  let match_index: own u64 = 0_u64;
+  loop @llvm_linear_emit_match_statements {
+    let initializer: own u64 = llvm_linear_child_at(ast: ast, node: statement, ordinal: 3_u64);
+    region 'llvm_linear_match_emit_let {
+      llvm_linear_emit_initializer(source: source, tokens: tokens, ast: ast, facts: facts, value: initializer, out: &uniq 'llvm_linear_match_emit_let deref(out));
+    }
+    let next: own u64 = index<u64>(deref(ast).next_siblings, statement);
+    match llvm_linear_node_is(ast: ast, node: next, want: AstMatch()) {
+      True() => {
+        let false_block: own u64 = iadd.trap<u64>(match_index, 1_u64);
+        region 'llvm_linear_match_emit_branch {
+          llvm_linear_emit_match_branch(ast: ast, facts: facts, node: next, false_block: false_block, out: &uniq 'llvm_linear_match_emit_branch deref(out));
+        }
+        match ieq<u64>(match_index, 0_u64) {
+          True() => {
+            region 'llvm_linear_match_emit_success_label {
+              llvm_linear_emit_block_label(out: &uniq 'llvm_linear_match_emit_success_label deref(out), id: 0_u64);
+            }
+            region 'llvm_linear_match_emit_success_return {
+              llvm_linear_emit_true_return(out: &uniq 'llvm_linear_match_emit_success_return deref(out));
+            }
+          }
+          False() => {
+          }
+        }
+        region 'llvm_linear_match_emit_false_label {
+          llvm_linear_emit_block_label(out: &uniq 'llvm_linear_match_emit_false_label deref(out), id: false_block);
+        }
+        set statement = index<u64>(deref(ast).next_siblings, next);
+        set match_index = false_block;
+      }
+      False() => {
+        let place: own u64 = llvm_linear_child_at(ast: ast, node: next, ordinal: 0_u64);
+        region 'llvm_linear_match_emit_footer {
+          llvm_linear_emit_place_footer(facts: facts, place: place, out: &uniq 'llvm_linear_match_emit_footer deref(out));
+        }
+        return unit;
+      }
+    }
+  }
+}
+
 fn llvm_linear_append_function ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
   let invalid_tag: own ByteStatus = ByteInvalidState();
   match ieq<ByteStatus>(deref(out).status, invalid_tag) {
@@ -1308,8 +1793,16 @@ fn llvm_linear_append_function ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>,
       return unit;
     }
   }
-  let function_valid: own Bool = llvm_linear_table_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts);
-  match function_valid {
+  let linear_valid: own Bool = llvm_linear_table_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts);
+  let match_valid: own Bool = False();
+  match linear_valid {
+    True() => {
+    }
+    False() => {
+      set match_valid = llvm_linear_match_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts);
+    }
+  }
+  match bor<Bool>(linear_valid, match_valid) {
     True() => {
     }
     False() => {
@@ -1321,6 +1814,16 @@ fn llvm_linear_append_function ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>,
   }
   region 'llvm_linear_append_header {
     llvm_linear_emit_header(source: source, tokens: tokens, ast: ast, function: function, facts: facts, out: &uniq 'llvm_linear_append_header deref(out));
+  }
+  match match_valid {
+    True() => {
+      region 'llvm_linear_append_match_body {
+        llvm_linear_emit_match_body(source: source, tokens: tokens, ast: ast, function: function, facts: facts, out: &uniq 'llvm_linear_append_match_body deref(out));
+      }
+      return unit;
+    }
+    False() => {
+    }
   }
   let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 5_u64);
   let statement: own u64 = index<u64>(deref(ast).first_children, block);

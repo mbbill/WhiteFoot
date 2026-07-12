@@ -2,6 +2,7 @@
 """Lower real linear scalar functions from retained semantic facts to LLVM."""
 
 import ctypes
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,7 @@ from test_semantic_body import (
     invoke,
     make_outputs,
     parsed,
+    symbol_body_nodes,
 )
 from test_semantic_facts import NodeFacts, TypeTape
 from test_llvm_text import (
@@ -38,11 +40,15 @@ HERE = ROOT / "compiler"
 U64_MAX = (1 << 64) - 1
 OP_NONE = 0
 OP_IEQ = 5
+MODE_NONE = 0
+PRELUDE_UNKNOWN = 0
+PRELUDE_TRUE = 1
+PRELUDE_FALSE = 2
 
 
 def real_profile_source():
     data = (HERE / "src" / "lexer.xl").read_bytes()
-    return data[: data.index(b"\nfn lexer_is_symbol")]
+    return data[: data.index(b"\nfn lexer_scan_ident")]
 
 
 SOURCE = real_profile_source()
@@ -54,7 +60,41 @@ ORDER = (
     b"lexer_is_ident_tail",
     b"lexer_is_type_tail",
     b"lexer_is_number_tail",
+    b"lexer_is_symbol",
 )
+
+SYMBOL_GUARD_BYTES = (40, 41, 123, 125, 60, 62, 58, 59, 44, 61, 91, 93)
+
+
+def expected_symbol_ir():
+    lines = [
+        b"define i1 @lexer_is_symbol(i8 %p0) {",
+        b"entry:",
+        b"  %v0 = icmp eq i8 %p0, 40",
+        b"  br i1 %v0, label %bb0, label %bb1",
+        b"bb0:",
+        b"  ret i1 true",
+    ]
+    for ordinal, literal in enumerate(SYMBOL_GUARD_BYTES[1:], start=1):
+        lines.extend(
+            (
+                f"bb{ordinal}:".encode(),
+                f"  %v{ordinal} = icmp eq i8 %p0, {literal}".encode(),
+                (
+                    f"  br i1 %v{ordinal}, label %bb0, "
+                    f"label %bb{ordinal + 1}"
+                ).encode(),
+            )
+        )
+    lines.extend(
+        (
+            b"bb12:",
+            b"  %v12 = icmp eq i8 %p0, 46",
+            b"  ret i1 %v12",
+            b"}",
+        )
+    )
+    return b"\n".join(lines) + b"\n"
 
 EXPECTED = {
     b"lexer_is_lower": b"""define i1 @lexer_is_lower(i8 %p0) {
@@ -127,6 +167,7 @@ entry:
   ret i1 %v10
 }
 """,
+    b"lexer_is_symbol": expected_symbol_ir(),
 }
 
 
@@ -211,7 +252,10 @@ def analyze(library, parsed_case, name):
     function = find_function_by_text(SOURCE, parsed_case[4], ast, name)
     direct = children_of(parsed_case[4], function)
     statements = children_of(parsed_case[4], direct[-1])
-    scratch_capacity = len(statements)
+    scratch_capacity = 1 + sum(
+        parsed_case[4][0][statement] == AST["AstLet"]
+        for statement in statements
+    )
     outputs = make_outputs(
         library,
         ast.count,
@@ -279,6 +323,30 @@ def assert_single_modes(library, parsed_case, analyzed, expected):
     assert (exact.status, exact.count) == (BYTE_CLEAN, len(expected))
     assert output_bytes(exact_storage, exact) == expected
     assert exact_storage[len(expected)] == GUARD
+
+
+def assert_every_short(library, parsed_case, analyzed, expected):
+    for capacity in range(len(expected)):
+        storage, out = make_output(capacity)
+        call(library, parsed_case, analyzed, out, append=False)
+        assert (out.status, out.count) == (
+            BYTE_NEED_CAPACITY,
+            len(expected),
+        ), (capacity, out.status, out.count)
+        assert output_bytes(storage, out) == expected[:capacity]
+        assert storage[capacity] == GUARD
+
+
+def assert_symbol_ir_shape(ir):
+    value_ids = [int(raw) for raw in re.findall(rb"%v([0-9]+) =", ir)]
+    block_ids = [int(raw) for raw in re.findall(rb"(?m)^bb([0-9]+):$", ir)]
+    assert value_ids == list(range(13)), value_ids
+    assert block_ids == list(range(13)), block_ids
+    assert ir.count(b"label %bb0") == 12
+    assert ir.count(b"bb0:\n  ret i1 true\n") == 1
+    assert b"\n  br label " not in ir
+    for forbidden in (b" phi ", b" alloca ", b" load ", b" store "):
+        assert forbidden not in ir
 
 
 def assert_append_matrix(library, parsed_case, analyzed_by_name):
@@ -532,6 +600,172 @@ def assert_direct_hostile_facts_and_atomicity(
             column[node] = prior
 
 
+def assert_symbol_hostile_facts_and_atomicity(
+    library, parsed_case, analyzed_by_name
+):
+    symbol = analyzed_by_name[b"lexer_is_symbol"]
+    prefix_item = analyzed_by_name[b"lexer_is_lower"]
+    function, outputs = symbol
+    nodes = symbol_body_nodes(parsed_case[4], function)
+    guard = nodes["guards"][0]
+    last_guard = nodes["guards"][-1]
+    fact_storage = outputs[2]
+    type_ids = fact_storage[0]
+    resolved = fact_storage[1]
+    ordinals = fact_storage[2]
+    operations = fact_storage[3]
+    constants = fact_storage[4]
+    targets = fact_storage[5]
+    modes = fact_storage[6]
+    constructors = fact_storage[7]
+    expected = EXPECTED[b"lexer_is_symbol"]
+    prefix = EXPECTED[b"lexer_is_lower"]
+
+    mutations = (
+        ("match-target", targets, guard["match"], guard["match"]),
+        ("match-target-oob", targets, guard["match"], parsed_case[5].count),
+        (
+            "last-match-target",
+            targets,
+            last_guard["match"],
+            guard["continuation"],
+        ),
+        (
+            "scrutinee-target",
+            targets,
+            guard["scrutinee"],
+            guard["continuation"],
+        ),
+        (
+            "true-arm-target",
+            targets,
+            guard["true_arm"],
+            guard["continuation"],
+        ),
+        (
+            "false-arm-target",
+            targets,
+            guard["false_arm"],
+            guard["early_return"],
+        ),
+        (
+            "last-false-arm-target",
+            targets,
+            last_guard["false_arm"],
+            guard["continuation"],
+        ),
+        (
+            "true-block-target",
+            targets,
+            guard["true_block"],
+            guard["continuation"],
+        ),
+        (
+            "false-block-target",
+            targets,
+            guard["false_block"],
+            guard["early_return"],
+        ),
+        (
+            "last-false-block-target",
+            targets,
+            last_guard["false_block"],
+            guard["continuation"],
+        ),
+        (
+            "early-return-target",
+            targets,
+            guard["early_return"],
+            guard["continuation"],
+        ),
+        (
+            "constructor-target",
+            targets,
+            guard["constructor"],
+            guard["continuation"],
+        ),
+        (
+            "final-place-target",
+            targets,
+            nodes["final_place"],
+            function,
+        ),
+        (
+            "final-return-target",
+            targets,
+            nodes["final_return"],
+            nodes["final_return"],
+        ),
+        ("true-arm-ordinal", ordinals, guard["true_arm"], 1),
+        ("false-arm-ordinal", ordinals, guard["false_arm"], 0),
+        ("true-arm-tag", constructors, guard["true_arm"], PRELUDE_FALSE),
+        ("false-arm-tag", constructors, guard["false_arm"], PRELUDE_TRUE),
+        ("true-arm-constant", constants, guard["true_arm"], 0),
+        ("false-arm-constant", constants, guard["false_arm"], 1),
+        ("constructor-type", type_ids, guard["constructor"], 0),
+        (
+            "constructor-resolution",
+            resolved,
+            guard["constructor"],
+            nodes["parameter"],
+        ),
+        ("constructor-ordinal", ordinals, guard["constructor"], 0),
+        ("constructor-operation", operations, guard["constructor"], OP_IEQ),
+        ("constructor-constant", constants, guard["constructor"], 0),
+        ("constructor-mode", modes, guard["constructor"], MODE_NONE),
+        (
+            "constructor-tag",
+            constructors,
+            guard["constructor"],
+            PRELUDE_FALSE,
+        ),
+        (
+            "scrutinee-resolution",
+            resolved,
+            guard["scrutinee"],
+            nodes["parameter"],
+        ),
+        (
+            "final-resolution",
+            resolved,
+            nodes["final_place"],
+            nodes["parameter"],
+        ),
+        ("final-return-ordinal", ordinals, nodes["final_return"], 11),
+    )
+
+    for label, column, node, replacement in mutations:
+        prior = column[node]
+        column[node] = replacement
+        try:
+            storage, out = make_output(len(expected))
+            call(library, parsed_case, symbol, out, append=False)
+            assert (out.status, out.count) == (
+                BYTE_INVALID_STATE,
+                0,
+            ), (label, out.status, out.count)
+            assert all(byte == POISON for byte in storage[:-1]), label
+            assert storage[-1] == GUARD
+
+            capacity = len(prefix) + len(expected)
+            append_storage, appended = make_output(capacity)
+            call(library, parsed_case, prefix_item, appended, append=True)
+            assert (appended.status, appended.count) == (
+                BYTE_CLEAN,
+                len(prefix),
+            )
+            before = bytes(append_storage[:capacity])
+            call(library, parsed_case, symbol, appended, append=True)
+            assert (appended.status, appended.count) == (
+                BYTE_INVALID_STATE,
+                len(prefix),
+            ), (label, appended.status, appended.count)
+            assert bytes(append_storage[:capacity]) == before, label
+            assert append_storage[capacity] == GUARD
+        finally:
+            column[node] = prior
+
+
 def assert_profile_boundaries(library, parsed_case, space):
     direct_source = b"""fn direct (c: own u8) -> own Bool pure {
   return ieq<u8>(c, 0_u8);
@@ -648,6 +882,9 @@ def assert_executable_ir(directory, ir):
             or 48 <= value <= 57
             or value in (95, 46, 45)
         ),
+        b"lexer_is_symbol": lambda value: (
+            value in SYMBOL_GUARD_BYTES or value == 46
+        ),
     }
     for name, predicate in predicates.items():
         function = getattr(generated, name.decode())
@@ -670,6 +907,13 @@ def main():
 
         for name in ORDER:
             assert_single_modes(library, parsed_case, analyzed[name], EXPECTED[name])
+        assert_every_short(
+            library,
+            parsed_case,
+            analyzed[b"lexer_is_symbol"],
+            EXPECTED[b"lexer_is_symbol"],
+        )
+        assert_symbol_ir_shape(EXPECTED[b"lexer_is_symbol"])
         assert_fact_driven(library, parsed_case, analyzed[b"lexer_is_lower"])
         assert_resolved_callee_fact_driven(
             library,
@@ -688,6 +932,9 @@ def main():
         assert_direct_hostile_facts_and_atomicity(
             library, parsed_case, analyzed
         )
+        assert_symbol_hostile_facts_and_atomicity(
+            library, parsed_case, analyzed
+        )
         assert_profile_boundaries(
             library, parsed_case, analyzed[b"lexer_is_space"]
         )
@@ -695,9 +942,9 @@ def main():
         assert_executable_ir(directory, combined)
 
         print(
-            "linear LLVM: 7 real predicates in dependency order, "
+            "linear LLVM: 8 real predicates in dependency order, "
             "exact/measure/all-short/repeat, fact-driven calls, atomic append, "
-            "hostile facts/profile boundaries, clang, and all 1792 u8 cases pass"
+            "hostile facts/profile boundaries, clang, and all 2048 u8 cases pass"
         )
 
 
