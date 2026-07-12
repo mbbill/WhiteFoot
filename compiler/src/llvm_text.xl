@@ -196,6 +196,13 @@ fn llvm_text_emit_load ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writ
   return unit;
 }
 
+fn llvm_text_emit_call ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'call_text {
+    byte_tape_emit_chunk(out: &uniq 'call_text deref(out), count: 4_u64, b0: 99_u8, b1: 97_u8, b2: 108_u8, b3: 108_u8, b4: 32_u8, b5: 32_u8, b6: 32_u8, b7: 32_u8);
+  }
+  return unit;
+}
+
 fn llvm_text_emit_icmp_uge ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
   region 'icmp_uge_text {
     byte_tape_emit_chunk(out: &uniq 'icmp_uge_text deref(out), count: 8_u64, b0: 105_u8, b1: 99_u8, b2: 109_u8, b3: 112_u8, b4: 32_u8, b5: 117_u8, b6: 103_u8, b7: 101_u8);

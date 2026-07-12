@@ -11,6 +11,7 @@ from test_ast_validate import AstValidationReport
 from test_lexer import Buffer, TokenTape
 from test_parser import AstTape, children_of
 from test_semantic_body import (
+    AST,
     BODY_CLEAN,
     configure as configure_semantic_body,
     find_function_by_text,
@@ -50,6 +51,9 @@ ORDER = (
     b"lexer_is_upper",
     b"lexer_is_digit",
     b"lexer_is_space",
+    b"lexer_is_ident_tail",
+    b"lexer_is_type_tail",
+    b"lexer_is_number_tail",
 )
 
 EXPECTED = {
@@ -85,6 +89,42 @@ entry:
   %v3 = and i1 %v1, %v2
   %v4 = or i1 %v0, %v3
   ret i1 %v4
+}
+""",
+    b"lexer_is_ident_tail": b"""define i1 @lexer_is_ident_tail(i8 %p0) {
+entry:
+  %v0 = call i1 @lexer_is_lower(i8 %p0)
+  %v1 = call i1 @lexer_is_digit(i8 %p0)
+  %v2 = icmp eq i8 %p0, 95
+  %v3 = or i1 %v0, %v1
+  %v4 = or i1 %v3, %v2
+  ret i1 %v4
+}
+""",
+    b"lexer_is_type_tail": b"""define i1 @lexer_is_type_tail(i8 %p0) {
+entry:
+  %v0 = call i1 @lexer_is_lower(i8 %p0)
+  %v1 = call i1 @lexer_is_upper(i8 %p0)
+  %v2 = call i1 @lexer_is_digit(i8 %p0)
+  %v3 = or i1 %v0, %v1
+  %v4 = or i1 %v3, %v2
+  ret i1 %v4
+}
+""",
+    b"lexer_is_number_tail": b"""define i1 @lexer_is_number_tail(i8 %p0) {
+entry:
+  %v0 = call i1 @lexer_is_lower(i8 %p0)
+  %v1 = call i1 @lexer_is_upper(i8 %p0)
+  %v2 = call i1 @lexer_is_digit(i8 %p0)
+  %v3 = icmp eq i8 %p0, 95
+  %v4 = icmp eq i8 %p0, 46
+  %v5 = icmp eq i8 %p0, 45
+  %v6 = or i1 %v0, %v1
+  %v7 = or i1 %v6, %v2
+  %v8 = or i1 %v7, %v3
+  %v9 = or i1 %v8, %v4
+  %v10 = or i1 %v9, %v5
+  ret i1 %v10
 }
 """,
 }
@@ -169,7 +209,14 @@ def configure(library):
 def analyze(library, parsed_case, name):
     ast = parsed_case[5]
     function = find_function_by_text(SOURCE, parsed_case[4], ast, name)
-    outputs = make_outputs(library, ast.count, scratch_caps=(5, 5, 5, 5))
+    direct = children_of(parsed_case[4], function)
+    statements = children_of(parsed_case[4], direct[-1])
+    scratch_capacity = len(statements)
+    outputs = make_outputs(
+        library,
+        ast.count,
+        scratch_caps=(scratch_capacity,) * 4,
+    )
     report = invoke(library, parsed_case, function, outputs)
     assert report.status == BODY_CLEAN, (name, report.status, report.node, report.related)
     return function, outputs
@@ -205,7 +252,10 @@ def output_bytes(storage, out):
 def assert_single_modes(library, parsed_case, analyzed, expected):
     measured_storage, measured = make_output(0)
     call(library, parsed_case, analyzed, measured, append=False)
-    assert (measured.status, measured.count) == (BYTE_NEED_CAPACITY, len(expected))
+    assert (measured.status, measured.count) == (
+        BYTE_NEED_CAPACITY,
+        len(expected),
+    ), (measured.status, measured.count, len(expected), expected.splitlines()[0])
     assert measured_storage[0] == GUARD
 
     exact_storage, exact = make_output(len(expected))
@@ -234,6 +284,26 @@ def assert_single_modes(library, parsed_case, analyzed, expected):
 def assert_append_matrix(library, parsed_case, analyzed_by_name):
     combined = b"".join(EXPECTED[name] for name in ORDER)
     analyzed = [analyzed_by_name[name] for name in ORDER]
+    dependencies = {
+        b"lexer_is_ident_tail": (
+            b"lexer_is_lower",
+            b"lexer_is_digit",
+        ),
+        b"lexer_is_type_tail": (
+            b"lexer_is_lower",
+            b"lexer_is_upper",
+            b"lexer_is_digit",
+        ),
+        b"lexer_is_number_tail": (
+            b"lexer_is_lower",
+            b"lexer_is_upper",
+            b"lexer_is_digit",
+        ),
+    }
+    for caller, callees in dependencies.items():
+        caller_offset = combined.index(b"define i1 @" + caller)
+        for callee in callees:
+            assert combined.index(b"define i1 @" + callee) < caller_offset
 
     exact_storage, exact = make_output(len(combined))
     observed = 0
@@ -267,6 +337,25 @@ def first_call(parsed_case, function):
     block = children_of(columns, function)[5]
     first_let = children_of(columns, block)[0]
     return children_of(columns, first_let)[3]
+
+
+def direct_user_calls(parsed_case, function):
+    columns = parsed_case[4]
+    direct = children_of(columns, function)
+    statements = children_of(columns, direct[-1])
+    pairs = []
+    for statement in statements[:-1]:
+        initializer = children_of(columns, statement)[3]
+        if columns[0][initializer] == AST["AstUserCall"]:
+            pairs.append((statement, initializer))
+    return pairs
+
+
+def user_call_parts(parsed_case, function, ordinal=0):
+    statement, call_node = direct_user_calls(parsed_case, function)[ordinal]
+    named = children_of(parsed_case[4], call_node)[0]
+    actual = children_of(parsed_case[4], named)[0]
+    return statement, call_node, named, actual
 
 
 def assert_fact_driven(library, parsed_case, analyzed):
@@ -304,6 +393,38 @@ def assert_fact_driven(library, parsed_case, analyzed):
     finally:
         for index, byte in enumerate(original):
             source_storage[offset + index] = byte
+
+
+def assert_resolved_callee_fact_driven(library, parsed_case, analyzed):
+    function, outputs = analyzed
+    _, call_node, named, _ = user_call_parts(parsed_case, function)
+    resolutions = outputs[2][1]
+    callee = resolutions[call_node]
+    assert callee != U64_MAX
+    formal = children_of(parsed_case[4], callee)[1]
+    assert resolutions[named] == formal
+
+    call_head = parsed_case[4][1][call_node]
+    start = parsed_case[2][1][call_head]
+    end = parsed_case[2][2][call_head]
+    source_storage = parsed_case[0]
+    original = bytes(source_storage[start:end])
+    assert original == b"lexer_is_lower"
+    replacement = b"x" * len(original)
+    for offset, byte in enumerate(replacement):
+        source_storage[start + offset] = byte
+    try:
+        expected = EXPECTED[b"lexer_is_ident_tail"]
+        storage, out = make_output(len(expected))
+        call(library, parsed_case, analyzed, out, append=False)
+        assert (out.status, out.count) == (BYTE_CLEAN, len(expected))
+        assert output_bytes(storage, out) == expected
+        assert b"call i1 @lexer_is_lower(i8 %p0)" in output_bytes(storage, out)
+        assert replacement not in output_bytes(storage, out)
+        assert storage[len(expected)] == GUARD
+    finally:
+        for offset, byte in enumerate(original):
+            source_storage[start + offset] = byte
 
 
 def assert_append_atomicity(library, parsed_case, lower, upper):
@@ -346,6 +467,69 @@ def assert_append_atomicity(library, parsed_case, lower, upper):
         assert (hostile.status, hostile.count) == (BYTE_INVALID_STATE, count)
         assert all(byte == POISON for byte in hostile_storage[:capacity])
         assert hostile_storage[capacity] == GUARD
+
+
+def assert_direct_hostile_facts_and_atomicity(
+    library, parsed_case, analyzed_by_name
+):
+    ident = analyzed_by_name[b"lexer_is_ident_tail"]
+    lower = analyzed_by_name[b"lexer_is_lower"]
+    upper = analyzed_by_name[b"lexer_is_upper"]
+    function, outputs = ident
+    statement, call_node, named, actual = user_call_parts(
+        parsed_case, function
+    )
+    fact_storage = outputs[2]
+    resolved = fact_storage[1]
+    ordinals = fact_storage[2]
+    caller_parameter = children_of(parsed_case[4], function)[1]
+    upper_function = upper[0]
+    upper_formal = children_of(parsed_case[4], upper_function)[1]
+    expected = EXPECTED[b"lexer_is_ident_tail"]
+    prefix = EXPECTED[b"lexer_is_lower"]
+
+    mutations = (
+        ("callee-none", resolved, call_node, U64_MAX),
+        ("callee-out-of-range", resolved, call_node, parsed_case[5].count),
+        ("callee-nonfunction", resolved, call_node, call_node),
+        ("named-none", resolved, named, U64_MAX),
+        ("named-caller-parameter", resolved, named, caller_parameter),
+        ("named-other-formal", resolved, named, upper_formal),
+        ("named-ordinal", ordinals, named, 1),
+        ("call-ordinal", ordinals, call_node, ordinals[call_node] + 1),
+        ("let-ordinal", ordinals, statement, ordinals[statement] + 1),
+        ("actual-resolution", resolved, actual, upper_formal),
+    )
+    for label, column, node, replacement in mutations:
+        prior = column[node]
+        column[node] = replacement
+        try:
+            storage, out = make_output(len(expected))
+            call(library, parsed_case, ident, out, append=False)
+            assert (out.status, out.count) == (
+                BYTE_INVALID_STATE,
+                0,
+            ), (label, out.status, out.count)
+            assert all(byte == POISON for byte in storage[:-1]), label
+            assert storage[-1] == GUARD
+
+            capacity = len(prefix) + len(expected)
+            append_storage, appended = make_output(capacity)
+            call(library, parsed_case, lower, appended, append=True)
+            assert (appended.status, appended.count) == (
+                BYTE_CLEAN,
+                len(prefix),
+            )
+            before = bytes(append_storage[:capacity])
+            call(library, parsed_case, ident, appended, append=True)
+            assert (appended.status, appended.count) == (
+                BYTE_INVALID_STATE,
+                len(prefix),
+            ), (label, appended.status, appended.count)
+            assert bytes(append_storage[:capacity]) == before, label
+            assert append_storage[capacity] == GUARD
+        finally:
+            column[node] = prior
 
 
 def assert_profile_boundaries(library, parsed_case, space):
@@ -450,6 +634,20 @@ def assert_executable_ir(directory, ir):
         b"lexer_is_upper": lambda value: 65 <= value <= 90,
         b"lexer_is_digit": lambda value: 48 <= value <= 57,
         b"lexer_is_space": lambda value: value == 32 or 9 <= value <= 13,
+        b"lexer_is_ident_tail": lambda value: (
+            97 <= value <= 122 or 48 <= value <= 57 or value == 95
+        ),
+        b"lexer_is_type_tail": lambda value: (
+            97 <= value <= 122
+            or 65 <= value <= 90
+            or 48 <= value <= 57
+        ),
+        b"lexer_is_number_tail": lambda value: (
+            97 <= value <= 122
+            or 65 <= value <= 90
+            or 48 <= value <= 57
+            or value in (95, 46, 45)
+        ),
     }
     for name, predicate in predicates.items():
         function = getattr(generated, name.decode())
@@ -473,6 +671,11 @@ def main():
         for name in ORDER:
             assert_single_modes(library, parsed_case, analyzed[name], EXPECTED[name])
         assert_fact_driven(library, parsed_case, analyzed[b"lexer_is_lower"])
+        assert_resolved_callee_fact_driven(
+            library,
+            parsed_case,
+            analyzed[b"lexer_is_ident_tail"],
+        )
         assert_append_atomicity(
             library,
             parsed_case,
@@ -482,6 +685,9 @@ def main():
         assert_selected_hostile_facts(
             library, parsed_case, analyzed[b"lexer_is_lower"]
         )
+        assert_direct_hostile_facts_and_atomicity(
+            library, parsed_case, analyzed
+        )
         assert_profile_boundaries(
             library, parsed_case, analyzed[b"lexer_is_space"]
         )
@@ -489,9 +695,9 @@ def main():
         assert_executable_ir(directory, combined)
 
         print(
-            "linear LLVM: 4 real predicates, exact/measure/all-short/repeat, "
-            "fact-driven lowering, atomic append, hostile facts/profile boundaries, "
-            "clang, and all 1024 u8 cases pass"
+            "linear LLVM: 7 real predicates in dependency order, "
+            "exact/measure/all-short/repeat, fact-driven calls, atomic append, "
+            "hostile facts/profile boundaries, clang, and all 1792 u8 cases pass"
         )
 
 
