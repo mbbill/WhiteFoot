@@ -1,0 +1,245 @@
+fn parser_token_kind_code (kind: own TokenKind) -> own u64 pure {
+  match kind {
+    TokEnd() => {
+      return 0_u64;
+    }
+    TokWord() => {
+      return 1_u64;
+    }
+    TokOpName() => {
+      return 2_u64;
+    }
+    TokTypeId() => {
+      return 3_u64;
+    }
+    TokRegionId() => {
+      return 4_u64;
+    }
+    TokLabel() => {
+      return 5_u64;
+    }
+    TokNumber() => {
+      return 6_u64;
+    }
+    TokString() => {
+      return 7_u64;
+    }
+    TokArrow() => {
+      return 8_u64;
+    }
+    TokFatArrow() => {
+      return 9_u64;
+    }
+    TokAmp() => {
+      return 10_u64;
+    }
+    TokAmpUniq() => {
+      return 11_u64;
+    }
+    TokSymbol() => {
+      return 12_u64;
+    }
+  }
+}
+
+fn parser_kind_at_is ['t] (tokens: &'t TokenTape, token: own u64, want: own u64) -> own Bool reads('t), traps {
+  let count: own u64 = deref(tokens).count;
+  let valid: own Bool = ilt<u64>(token, count);
+  match valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let kind: own TokenKind = index<TokenKind>(deref(tokens).kinds, token);
+  let code: own u64 = parser_token_kind_code(kind: kind);
+  return ieq<u64>(code, want);
+}
+
+fn parser_word_span ['t] (tokens: &'t TokenTape, token: own u64, width: own u64) -> own Bool reads('t), traps {
+  let word: own Bool = parser_kind_at_is(tokens: tokens, token: token, want: 1_u64);
+  match word {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let end: own u64 = index<u64>(deref(tokens).ends, token);
+  let size: own u64 = isub.wrap<u64>(end, start);
+  return ieq<u64>(size, width);
+}
+
+fn parser_word_byte ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, offset: own u64, want: own u8) -> own Bool reads('s 't), traps {
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let at: own u64 = iadd.trap<u64>(start, offset);
+  let byte: own u8 = index<u8>(deref(source), at);
+  return ieq<u8>(byte, want);
+}
+
+fn parser_word2 ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, a: own u8, b: own u8) -> own Bool reads('s 't), traps {
+  let span: own Bool = parser_word_span(tokens: tokens, token: token, width: 2_u64);
+  match span {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let e0: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 0_u64, want: a);
+  let e1: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 1_u64, want: b);
+  return band<Bool>(e0, e1);
+}
+
+fn parser_word3 ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, a: own u8, b: own u8, c: own u8) -> own Bool reads('s 't), traps {
+  let span: own Bool = parser_word_span(tokens: tokens, token: token, width: 3_u64);
+  match span {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let e0: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 0_u64, want: a);
+  let e1: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 1_u64, want: b);
+  let e2: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 2_u64, want: c);
+  let first: own Bool = band<Bool>(e0, e1);
+  return band<Bool>(first, e2);
+}
+
+fn parser_word4 ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, a: own u8, b: own u8, c: own u8, d: own u8) -> own Bool reads('s 't), traps {
+  let span: own Bool = parser_word_span(tokens: tokens, token: token, width: 4_u64);
+  match span {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let e0: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 0_u64, want: a);
+  let e1: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 1_u64, want: b);
+  let e2: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 2_u64, want: c);
+  let e3: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 3_u64, want: d);
+  let first: own Bool = band<Bool>(e0, e1);
+  let second: own Bool = band<Bool>(e2, e3);
+  return band<Bool>(first, second);
+}
+
+fn parser_word6 ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, a: own u8, b: own u8, c: own u8, d: own u8, e: own u8, f: own u8) -> own Bool reads('s 't), traps {
+  let span: own Bool = parser_word_span(tokens: tokens, token: token, width: 6_u64);
+  match span {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let e0: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 0_u64, want: a);
+  let e1: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 1_u64, want: b);
+  let e2: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 2_u64, want: c);
+  let e3: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 3_u64, want: d);
+  let e4: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 4_u64, want: e);
+  let e5: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 5_u64, want: f);
+  let pair0: own Bool = band<Bool>(e0, e1);
+  let pair1: own Bool = band<Bool>(e2, e3);
+  let pair2: own Bool = band<Bool>(e4, e5);
+  let first_four: own Bool = band<Bool>(pair0, pair1);
+  return band<Bool>(first_four, pair2);
+}
+
+fn parser_symbol_is ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, want: own u8) -> own Bool reads('s 't), traps {
+  let symbol: own Bool = parser_kind_at_is(tokens: tokens, token: token, want: 12_u64);
+  match symbol {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let end: own u64 = index<u64>(deref(tokens).ends, token);
+  let width: own u64 = isub.wrap<u64>(end, start);
+  let one: own Bool = ieq<u64>(width, 1_u64);
+  match one {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let byte: own u8 = index<u8>(deref(source), start);
+  return ieq<u8>(byte, want);
+}
+
+fn parser_error_start ['t] (tokens: &'t TokenTape, token: own u64) -> own u64 reads('t), traps {
+  let count: own u64 = deref(tokens).count;
+  let valid: own Bool = ilt<u64>(token, count);
+  match valid {
+    True() => {
+      return index<u64>(deref(tokens).starts, token);
+    }
+    False() => {
+      let last: own u64 = isub.wrap<u64>(count, 1_u64);
+      return index<u64>(deref(tokens).ends, last);
+    }
+  }
+}
+
+fn parser_error_end ['t] (tokens: &'t TokenTape, token: own u64) -> own u64 reads('t), traps {
+  let count: own u64 = deref(tokens).count;
+  let valid: own Bool = ilt<u64>(token, count);
+  match valid {
+    True() => {
+      return index<u64>(deref(tokens).ends, token);
+    }
+    False() => {
+      let last: own u64 = isub.wrap<u64>(count, 1_u64);
+      return index<u64>(deref(tokens).ends, last);
+    }
+  }
+}
+
+fn parser_push ['o] (out: &uniq 'o AstTape, kind: own AstKind, head: own u64, start: own u64, end: own u64) -> own u64 reads('o), writes('o), traps {
+  let slot: own u64 = deref(out).count;
+  let kinds_capacity: own u64 = len<AstKind>(deref(out).kinds);
+  let heads_capacity: own u64 = len<u64>(deref(out).heads);
+  let starts_capacity: own u64 = len<u64>(deref(out).starts);
+  let ends_capacity: own u64 = len<u64>(deref(out).ends);
+  let first_capacity: own u64 = len<u64>(deref(out).first_children);
+  let last_capacity: own u64 = len<u64>(deref(out).last_children);
+  let next_capacity: own u64 = len<u64>(deref(out).next_siblings);
+  let f0: own Bool = ilt<u64>(slot, kinds_capacity);
+  let f1: own Bool = ilt<u64>(slot, heads_capacity);
+  let f2: own Bool = ilt<u64>(slot, starts_capacity);
+  let f3: own Bool = ilt<u64>(slot, ends_capacity);
+  let f4: own Bool = ilt<u64>(slot, first_capacity);
+  let f5: own Bool = ilt<u64>(slot, last_capacity);
+  let f6: own Bool = ilt<u64>(slot, next_capacity);
+  let p0: own Bool = band<Bool>(f0, f1);
+  let p1: own Bool = band<Bool>(f2, f3);
+  let p2: own Bool = band<Bool>(f4, f5);
+  let p3: own Bool = band<Bool>(p0, p1);
+  let p4: own Bool = band<Bool>(p2, f6);
+  let fits: own Bool = band<Bool>(p3, p4);
+  match fits {
+    True() => {
+    }
+    False() => {
+      set deref(out).status = ParseCapacity();
+      set deref(out).error_start = start;
+      set deref(out).error_end = end;
+      return ast_none;
+    }
+  }
+  set index<AstKind>(deref(out).kinds, slot) = kind;
+  set index<u64>(deref(out).heads, slot) = head;
+  set index<u64>(deref(out).starts, slot) = start;
+  set index<u64>(deref(out).ends, slot) = end;
+  set index<u64>(deref(out).first_children, slot) = ast_none;
+  set index<u64>(deref(out).last_children, slot) = ast_none;
+  set index<u64>(deref(out).next_siblings, slot) = ast_none;
+  set deref(out).count = iadd.trap<u64>(slot, 1_u64);
+  return slot;
+}

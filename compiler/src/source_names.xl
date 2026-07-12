@@ -1,0 +1,134 @@
+fn source_span_valid ['s] (source: &'s buffer<u8>, start: own u64, end: own u64) -> own Bool reads('s) {
+  let ordered: own Bool = ile<u64>(start, end);
+  match ordered {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let size: own u64 = len<u8>(deref(source));
+  return ile<u64>(end, size);
+}
+
+fn source_spans_equal ['l, 'r] (left_source: &'l buffer<u8>, left_start: own u64, left_end: own u64, right_source: &'r buffer<u8>, right_start: own u64, right_end: own u64) -> own Bool reads('l 'r), traps {
+  let left_valid: own Bool = source_span_valid(source: left_source, start: left_start, end: left_end);
+  match left_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let right_valid: own Bool = source_span_valid(source: right_source, start: right_start, end: right_end);
+  match right_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let left_length: own u64 = isub.wrap<u64>(left_end, left_start);
+  let right_length: own u64 = isub.wrap<u64>(right_end, right_start);
+  let same_length: own Bool = ieq<u64>(left_length, right_length);
+  match same_length {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let offset: own u64 = 0_u64;
+  loop @bytes {
+    let finished: own Bool = ige<u64>(offset, left_length);
+    match finished {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+    let left_position: own u64 = iadd.trap<u64>(left_start, offset);
+    let right_position: own u64 = iadd.trap<u64>(right_start, offset);
+    let left_byte: own u8 = index<u8>(deref(left_source), left_position);
+    let right_byte: own u8 = index<u8>(deref(right_source), right_position);
+    let equal: own Bool = ieq<u8>(left_byte, right_byte);
+    match equal {
+      True() => {
+        set offset = iadd.trap<u64>(offset, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+}
+
+fn token_ordinal_valid ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64) -> own Bool reads('s 't), traps {
+  let count: own u64 = deref(tokens).count;
+  let within_count: own Bool = ilt<u64>(token, count);
+  match within_count {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let starts_size: own u64 = len<u64>(deref(tokens).starts);
+  let ends_size: own u64 = len<u64>(deref(tokens).ends);
+  let within_starts: own Bool = ilt<u64>(token, starts_size);
+  let within_ends: own Bool = ilt<u64>(token, ends_size);
+  let within_tape: own Bool = band<Bool>(within_starts, within_ends);
+  match within_tape {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let end: own u64 = index<u64>(deref(tokens).ends, token);
+  return source_span_valid(source: source, start: start, end: end);
+}
+
+fn token_text_equal ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, left: own u64, right: own u64) -> own Bool reads('s 't), traps {
+  let left_valid: own Bool = token_ordinal_valid(source: source, tokens: tokens, token: left);
+  match left_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let right_valid: own Bool = token_ordinal_valid(source: source, tokens: tokens, token: right);
+  match right_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let left_start: own u64 = index<u64>(deref(tokens).starts, left);
+  let left_end: own u64 = index<u64>(deref(tokens).ends, left);
+  let right_start: own u64 = index<u64>(deref(tokens).starts, right);
+  let right_end: own u64 = index<u64>(deref(tokens).ends, right);
+  return source_spans_equal(left_source: source, left_start: left_start, left_end: left_end, right_source: source, right_start: right_start, right_end: right_end);
+}
+
+fn token_text_equal_span ['s, 't, 'p] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, span_source: &'p buffer<u8>, span_start: own u64, span_end: own u64) -> own Bool reads('s 't 'p), traps {
+  let token_valid: own Bool = token_ordinal_valid(source: source, tokens: tokens, token: token);
+  match token_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let token_start: own u64 = index<u64>(deref(tokens).starts, token);
+  let token_end: own u64 = index<u64>(deref(tokens).ends, token);
+  return source_spans_equal(left_source: source, left_start: token_start, left_end: token_end, right_source: span_source, right_start: span_start, right_end: span_end);
+}
+
+fn token_text_equal_probe ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, left: own u64, right: own u64) -> own Bool reads('s 't), traps {
+  return token_text_equal(source: source, tokens: tokens, left: left, right: right);
+}

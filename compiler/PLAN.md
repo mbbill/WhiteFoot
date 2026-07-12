@@ -1,6 +1,9 @@
 # xlc — the self-hosting xlang compiler: bootstrap plan
 
-*Approved 2026-07-08. This is the structure we build forward on — clean, no rewrite.*
+> Historical design record from 2026-07-08. Its feature inventory and `pool` proposal
+> are stale. See `README.md`, `sources.txt`, and `src/` for the current bootstrap.
+
+*Original status, 2026-07-08: approved as the bootstrap sketch then in force.*
 
 ## Goal
 

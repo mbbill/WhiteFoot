@@ -1,0 +1,77 @@
+enum ByteStatus {
+  ByteClean();
+  ByteNeedCapacity();
+  ByteInvalidState();
+}
+
+struct ByteTape {
+  bytes: buffer<u8>;
+  count: u64;
+  status: ByteStatus;
+}
+
+const byte_tape_digits: array<u8, 10> = [48_u8, 49_u8, 50_u8, 51_u8, 52_u8, 53_u8, 54_u8, 55_u8, 56_u8, 57_u8];
+
+fn byte_tape_push ['o] (out: &uniq 'o ByteTape, byte: own u8) -> own unit reads('o), writes('o), traps {
+  let slot: own u64 = deref(out).count;
+  let capacity: own u64 = len<u8>(deref(out).bytes);
+  let fits: own Bool = ilt<u64>(slot, capacity);
+  match fits {
+    True() => {
+      set index<u8>(deref(out).bytes, slot) = byte;
+    }
+    False() => {
+      set deref(out).status = ByteNeedCapacity();
+    }
+  }
+  set deref(out).count = iadd.trap<u64>(slot, 1_u64);
+  return unit;
+}
+
+fn byte_tape_emit_prefix ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'b0 {
+    byte_tape_push(out: &uniq 'b0 deref(out), byte: 120_u8);
+  }
+  region 'b1 {
+    byte_tape_push(out: &uniq 'b1 deref(out), byte: 108_u8);
+  }
+  region 'b2 {
+    byte_tape_push(out: &uniq 'b2 deref(out), byte: 99_u8);
+  }
+  region 'b3 {
+    byte_tape_push(out: &uniq 'b3 deref(out), byte: 32_u8);
+  }
+  return unit;
+}
+
+fn byte_tape_emit_u64 ['o] (out: &uniq 'o ByteTape, value: own u64) -> own unit reads('o), writes('o), traps {
+  let has_higher_digits: own Bool = ige<u64>(value, 10_u64);
+  match has_higher_digits {
+    True() => {
+      let higher: own u64 = idiv.trap<u64>(value, 10_u64);
+      region 'higher_digits {
+        byte_tape_emit_u64(out: &uniq 'higher_digits deref(out), value: higher);
+      }
+    }
+    False() => {
+    }
+  }
+  let remainder: own u64 = irem.trap<u64>(value, 10_u64);
+  let digit: own u8 = index<u8>(byte_tape_digits, remainder);
+  region 'last_digit {
+    byte_tape_push(out: &uniq 'last_digit deref(out), byte: digit);
+  }
+  return unit;
+}
+
+fn byte_tape_emit_probe ['o] (out: &uniq 'o ByteTape, value: own u64) -> own unit reads('o), writes('o), traps {
+  set deref(out).count = 0_u64;
+  set deref(out).status = ByteClean();
+  region 'prefix {
+    byte_tape_emit_prefix(out: &uniq 'prefix deref(out));
+  }
+  region 'decimal {
+    byte_tape_emit_u64(out: &uniq 'decimal deref(out), value: value);
+  }
+  return unit;
+}

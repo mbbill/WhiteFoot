@@ -1,0 +1,888 @@
+fn lexer_is_lower (c: own u8) -> own Bool pure {
+  let ge: own Bool = ige<u8>(c, 97_u8);
+  let le: own Bool = ile<u8>(c, 122_u8);
+  return band<Bool>(ge, le);
+}
+
+fn lexer_is_upper (c: own u8) -> own Bool pure {
+  let ge: own Bool = ige<u8>(c, 65_u8);
+  let le: own Bool = ile<u8>(c, 90_u8);
+  return band<Bool>(ge, le);
+}
+
+fn lexer_is_digit (c: own u8) -> own Bool pure {
+  let ge: own Bool = ige<u8>(c, 48_u8);
+  let le: own Bool = ile<u8>(c, 57_u8);
+  return band<Bool>(ge, le);
+}
+
+fn lexer_is_ident_tail (c: own u8) -> own Bool pure {
+  let lower: own Bool = lexer_is_lower(c: c);
+  let digit: own Bool = lexer_is_digit(c: c);
+  let underscore: own Bool = ieq<u8>(c, 95_u8);
+  let alpha_num: own Bool = bor<Bool>(lower, digit);
+  return bor<Bool>(alpha_num, underscore);
+}
+
+fn lexer_is_type_tail (c: own u8) -> own Bool pure {
+  let lower: own Bool = lexer_is_lower(c: c);
+  let upper: own Bool = lexer_is_upper(c: c);
+  let digit: own Bool = lexer_is_digit(c: c);
+  let alpha: own Bool = bor<Bool>(lower, upper);
+  return bor<Bool>(alpha, digit);
+}
+
+fn lexer_is_number_tail (c: own u8) -> own Bool pure {
+  let lower: own Bool = lexer_is_lower(c: c);
+  let upper: own Bool = lexer_is_upper(c: c);
+  let digit: own Bool = lexer_is_digit(c: c);
+  let underscore: own Bool = ieq<u8>(c, 95_u8);
+  let dot: own Bool = ieq<u8>(c, 46_u8);
+  let minus: own Bool = ieq<u8>(c, 45_u8);
+  let alpha: own Bool = bor<Bool>(lower, upper);
+  let alpha_num: own Bool = bor<Bool>(alpha, digit);
+  let with_underscore: own Bool = bor<Bool>(alpha_num, underscore);
+  let with_dot: own Bool = bor<Bool>(with_underscore, dot);
+  return bor<Bool>(with_dot, minus);
+}
+
+fn lexer_is_space (c: own u8) -> own Bool pure {
+  let horizontal: own Bool = ieq<u8>(c, 32_u8);
+  let control_ge: own Bool = ige<u8>(c, 9_u8);
+  let control_le: own Bool = ile<u8>(c, 13_u8);
+  let control: own Bool = band<Bool>(control_ge, control_le);
+  return bor<Bool>(horizontal, control);
+}
+
+fn lexer_is_symbol (c: own u8) -> own Bool pure {
+  let left_paren: own Bool = ieq<u8>(c, 40_u8);
+  match left_paren {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let right_paren: own Bool = ieq<u8>(c, 41_u8);
+  match right_paren {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let left_brace: own Bool = ieq<u8>(c, 123_u8);
+  match left_brace {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let right_brace: own Bool = ieq<u8>(c, 125_u8);
+  match right_brace {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let left_angle: own Bool = ieq<u8>(c, 60_u8);
+  match left_angle {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let right_angle: own Bool = ieq<u8>(c, 62_u8);
+  match right_angle {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let colon: own Bool = ieq<u8>(c, 58_u8);
+  match colon {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let semicolon: own Bool = ieq<u8>(c, 59_u8);
+  match semicolon {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let comma: own Bool = ieq<u8>(c, 44_u8);
+  match comma {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let equal: own Bool = ieq<u8>(c, 61_u8);
+  match equal {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let left_square: own Bool = ieq<u8>(c, 91_u8);
+  match left_square {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let right_square: own Bool = ieq<u8>(c, 93_u8);
+  match right_square {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let dot: own Bool = ieq<u8>(c, 46_u8);
+  return dot;
+}
+
+fn lexer_scan_ident ['s] (source: &'s buffer<u8>, start: own u64, size: own u64) -> own u64 reads('s), traps {
+  let cursor: own u64 = start;
+  loop @ident {
+    match ige<u64>(cursor, size) {
+      True() => {
+        break @ident;
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let keep: own Bool = lexer_is_ident_tail(c: byte);
+    match keep {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        break @ident;
+      }
+    }
+  }
+  return cursor;
+}
+
+fn lexer_scan_typeid ['s] (source: &'s buffer<u8>, start: own u64, size: own u64) -> own u64 reads('s), traps {
+  let cursor: own u64 = start;
+  loop @typeid {
+    match ige<u64>(cursor, size) {
+      True() => {
+        break @typeid;
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let keep: own Bool = lexer_is_type_tail(c: byte);
+    match keep {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        break @typeid;
+      }
+    }
+  }
+  return cursor;
+}
+
+fn lexer_match3 ['s] (source: &'s buffer<u8>, start: own u64, a: own u8, b: own u8, c: own u8) -> own Bool reads('s), traps {
+  let p1: own u64 = iadd.trap<u64>(start, 1_u64);
+  let p2: own u64 = iadd.trap<u64>(start, 2_u64);
+  let b0: own u8 = index<u8>(deref(source), start);
+  let b1: own u8 = index<u8>(deref(source), p1);
+  let b2: own u8 = index<u8>(deref(source), p2);
+  let e0: own Bool = ieq<u8>(b0, a);
+  let e1: own Bool = ieq<u8>(b1, b);
+  let e2: own Bool = ieq<u8>(b2, c);
+  let first: own Bool = band<Bool>(e0, e1);
+  return band<Bool>(first, e2);
+}
+
+fn lexer_match4 ['s] (source: &'s buffer<u8>, start: own u64, a: own u8, b: own u8, c: own u8, d: own u8) -> own Bool reads('s), traps {
+  let p1: own u64 = iadd.trap<u64>(start, 1_u64);
+  let p2: own u64 = iadd.trap<u64>(start, 2_u64);
+  let p3: own u64 = iadd.trap<u64>(start, 3_u64);
+  let b0: own u8 = index<u8>(deref(source), start);
+  let b1: own u8 = index<u8>(deref(source), p1);
+  let b2: own u8 = index<u8>(deref(source), p2);
+  let b3: own u8 = index<u8>(deref(source), p3);
+  let e0: own Bool = ieq<u8>(b0, a);
+  let e1: own Bool = ieq<u8>(b1, b);
+  let e2: own Bool = ieq<u8>(b2, c);
+  let e3: own Bool = ieq<u8>(b3, d);
+  let first: own Bool = band<Bool>(e0, e1);
+  let second: own Bool = band<Bool>(e2, e3);
+  return band<Bool>(first, second);
+}
+
+fn lexer_match6 ['s] (source: &'s buffer<u8>, start: own u64, a: own u8, b: own u8, c: own u8, d: own u8, e: own u8, f: own u8) -> own Bool reads('s), traps {
+  let p1: own u64 = iadd.trap<u64>(start, 1_u64);
+  let p2: own u64 = iadd.trap<u64>(start, 2_u64);
+  let p3: own u64 = iadd.trap<u64>(start, 3_u64);
+  let p4: own u64 = iadd.trap<u64>(start, 4_u64);
+  let p5: own u64 = iadd.trap<u64>(start, 5_u64);
+  let b0: own u8 = index<u8>(deref(source), start);
+  let b1: own u8 = index<u8>(deref(source), p1);
+  let b2: own u8 = index<u8>(deref(source), p2);
+  let b3: own u8 = index<u8>(deref(source), p3);
+  let b4: own u8 = index<u8>(deref(source), p4);
+  let b5: own u8 = index<u8>(deref(source), p5);
+  let e0: own Bool = ieq<u8>(b0, a);
+  let e1: own Bool = ieq<u8>(b1, b);
+  let e2: own Bool = ieq<u8>(b2, c);
+  let e3: own Bool = ieq<u8>(b3, d);
+  let e4: own Bool = ieq<u8>(b4, e);
+  let e5: own Bool = ieq<u8>(b5, f);
+  let pair0: own Bool = band<Bool>(e0, e1);
+  let pair1: own Bool = band<Bool>(e2, e3);
+  let pair2: own Bool = band<Bool>(e4, e5);
+  let first_four: own Bool = band<Bool>(pair0, pair1);
+  return band<Bool>(first_four, pair2);
+}
+
+fn lexer_match7 ['s] (source: &'s buffer<u8>, start: own u64, a: own u8, b: own u8, c: own u8, d: own u8, e: own u8, f: own u8, g: own u8) -> own Bool reads('s), traps {
+  let p1: own u64 = iadd.trap<u64>(start, 1_u64);
+  let p2: own u64 = iadd.trap<u64>(start, 2_u64);
+  let p3: own u64 = iadd.trap<u64>(start, 3_u64);
+  let p4: own u64 = iadd.trap<u64>(start, 4_u64);
+  let p5: own u64 = iadd.trap<u64>(start, 5_u64);
+  let p6: own u64 = iadd.trap<u64>(start, 6_u64);
+  let b0: own u8 = index<u8>(deref(source), start);
+  let b1: own u8 = index<u8>(deref(source), p1);
+  let b2: own u8 = index<u8>(deref(source), p2);
+  let b3: own u8 = index<u8>(deref(source), p3);
+  let b4: own u8 = index<u8>(deref(source), p4);
+  let b5: own u8 = index<u8>(deref(source), p5);
+  let b6: own u8 = index<u8>(deref(source), p6);
+  let e0: own Bool = ieq<u8>(b0, a);
+  let e1: own Bool = ieq<u8>(b1, b);
+  let e2: own Bool = ieq<u8>(b2, c);
+  let e3: own Bool = ieq<u8>(b3, d);
+  let e4: own Bool = ieq<u8>(b4, e);
+  let e5: own Bool = ieq<u8>(b5, f);
+  let e6: own Bool = ieq<u8>(b6, g);
+  let pair0: own Bool = band<Bool>(e0, e1);
+  let pair1: own Bool = band<Bool>(e2, e3);
+  let pair2: own Bool = band<Bool>(e4, e5);
+  let first_four: own Bool = band<Bool>(pair0, pair1);
+  let first_six: own Bool = band<Bool>(first_four, pair2);
+  return band<Bool>(first_six, e6);
+}
+
+fn lexer_scan_op_suffix ['s] (source: &'s buffer<u8>, dot: own u64, size: own u64) -> own u64 reads('s), traps {
+  let suffix_start: own u64 = iadd.trap<u64>(dot, 1_u64);
+  match ige<u64>(suffix_start, size) {
+    True() => {
+      return dot;
+    }
+    False() => {
+    }
+  }
+  let first: own u8 = index<u8>(deref(source), suffix_start);
+  let starts_ident: own Bool = lexer_is_lower(c: first);
+  match starts_ident {
+    True() => {
+    }
+    False() => {
+      return dot;
+    }
+  }
+  let suffix_end: own u64 = lexer_scan_ident(source: source, start: suffix_start, size: size);
+  let length: own u64 = isub.wrap<u64>(suffix_end, suffix_start);
+  let length3: own Bool = ieq<u64>(length, 3_u64);
+  match length3 {
+    True() => {
+      let sat_mode: own Bool = lexer_match3(source: source, start: suffix_start, a: 115_u8, b: 97_u8, c: 116_u8);
+      match sat_mode {
+        True() => {
+          return suffix_end;
+        }
+        False() => {
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let length4: own Bool = ieq<u64>(length, 4_u64);
+  match length4 {
+    True() => {
+      let wrap_mode: own Bool = lexer_match4(source: source, start: suffix_start, a: 119_u8, b: 114_u8, c: 97_u8, d: 112_u8);
+      let trap_mode: own Bool = lexer_match4(source: source, start: suffix_start, a: 116_u8, b: 114_u8, c: 97_u8, d: 112_u8);
+      let valid: own Bool = bor<Bool>(wrap_mode, trap_mode);
+      match valid {
+        True() => {
+          return suffix_end;
+        }
+        False() => {
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let length6: own Bool = ieq<u64>(length, 6_u64);
+  match length6 {
+    True() => {
+      let strict_mode: own Bool = lexer_match6(source: source, start: suffix_start, a: 115_u8, b: 116_u8, c: 114_u8, d: 105_u8, e: 99_u8, f: 116_u8);
+      match strict_mode {
+        True() => {
+          return suffix_end;
+        }
+        False() => {
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let length7: own Bool = ieq<u64>(length, 7_u64);
+  match length7 {
+    True() => {
+      let checked_mode: own Bool = lexer_match7(source: source, start: suffix_start, a: 99_u8, b: 104_u8, c: 101_u8, d: 99_u8, e: 107_u8, f: 101_u8, g: 100_u8);
+      match checked_mode {
+        True() => {
+          return suffix_end;
+        }
+        False() => {
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  return dot;
+}
+
+fn lexer_scan_word ['s] (source: &'s buffer<u8>, base_end: own u64, size: own u64) -> own u64 reads('s), traps {
+  match ige<u64>(base_end, size) {
+    True() => {
+      return base_end;
+    }
+    False() => {
+    }
+  }
+  let byte: own u8 = index<u8>(deref(source), base_end);
+  let dot: own Bool = ieq<u8>(byte, 46_u8);
+  match dot {
+    True() => {
+      return lexer_scan_op_suffix(source: source, dot: base_end, size: size);
+    }
+    False() => {
+      return base_end;
+    }
+  }
+}
+
+fn lexer_scan_number ['s] (source: &'s buffer<u8>, start: own u64, size: own u64) -> own u64 reads('s), traps {
+  let cursor: own u64 = start;
+  loop @number {
+    match ige<u64>(cursor, size) {
+      True() => {
+        break @number;
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let keep: own Bool = lexer_is_number_tail(c: byte);
+    match keep {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        break @number;
+      }
+    }
+  }
+  return cursor;
+}
+
+fn lexer_ampuniq_at ['s] (source: &'s buffer<u8>, start: own u64, size: own u64) -> own Bool reads('s), traps {
+  let p1: own u64 = iadd.trap<u64>(start, 1_u64);
+  match ige<u64>(p1, size) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let p2: own u64 = iadd.trap<u64>(start, 2_u64);
+  match ige<u64>(p2, size) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let p3: own u64 = iadd.trap<u64>(start, 3_u64);
+  match ige<u64>(p3, size) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let p4: own u64 = iadd.trap<u64>(start, 4_u64);
+  match ige<u64>(p4, size) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let b1: own u8 = index<u8>(deref(source), p1);
+  let b2: own u8 = index<u8>(deref(source), p2);
+  let b3: own u8 = index<u8>(deref(source), p3);
+  let b4: own u8 = index<u8>(deref(source), p4);
+  let u: own Bool = ieq<u8>(b1, 117_u8);
+  let n: own Bool = ieq<u8>(b2, 110_u8);
+  let i: own Bool = ieq<u8>(b3, 105_u8);
+  let q: own Bool = ieq<u8>(b4, 113_u8);
+  let un: own Bool = band<Bool>(u, n);
+  let iq: own Bool = band<Bool>(i, q);
+  let all: own Bool = band<Bool>(un, iq);
+  match all {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let end: own u64 = iadd.trap<u64>(start, 5_u64);
+  match ige<u64>(end, size) {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let after: own u8 = index<u8>(deref(source), end);
+  let joins_word: own Bool = lexer_is_ident_tail(c: after);
+  return bnot<Bool>(joins_word);
+}
+
+fn lexer_scan_string ['s] (source: &'s buffer<u8>, start: own u64, size: own u64) -> own ScannedToken reads('s), traps {
+  let cursor: own u64 = iadd.trap<u64>(start, 1_u64);
+  loop @string {
+    match ige<u64>(cursor, size) {
+      True() => {
+        return ScannedToken(kind: TokEnd(), end: size, status: LexUnterminatedString(), error_start: start, error_end: size);
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let quote: own Bool = ieq<u8>(byte, 34_u8);
+    match quote {
+      True() => {
+        let end: own u64 = iadd.trap<u64>(cursor, 1_u64);
+        return ScannedToken(kind: TokString(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+      }
+      False() => {
+      }
+    }
+    let slash: own Bool = ieq<u8>(byte, 92_u8);
+    match slash {
+      True() => {
+        let escaped_at: own u64 = iadd.trap<u64>(cursor, 1_u64);
+        match ige<u64>(escaped_at, size) {
+          True() => {
+            return ScannedToken(kind: TokEnd(), end: size, status: LexUnterminatedString(), error_start: start, error_end: size);
+          }
+          False() => {
+          }
+        }
+        let escaped: own u8 = index<u8>(deref(source), escaped_at);
+        let escaped_slash: own Bool = ieq<u8>(escaped, 92_u8);
+        let escaped_quote: own Bool = ieq<u8>(escaped, 34_u8);
+        let escaped_newline: own Bool = ieq<u8>(escaped, 110_u8);
+        let slash_or_quote: own Bool = bor<Bool>(escaped_slash, escaped_quote);
+        let valid_escape: own Bool = bor<Bool>(slash_or_quote, escaped_newline);
+        match valid_escape {
+          True() => {
+            set cursor = iadd.trap<u64>(escaped_at, 1_u64);
+          }
+          False() => {
+            let invalid_end: own u64 = iadd.trap<u64>(escaped_at, 1_u64);
+            return ScannedToken(kind: TokEnd(), end: invalid_end, status: LexInvalidString(), error_start: cursor, error_end: invalid_end);
+          }
+        }
+      }
+      False() => {
+        let printable_ge: own Bool = ige<u8>(byte, 32_u8);
+        let printable_le: own Bool = ile<u8>(byte, 126_u8);
+        let printable: own Bool = band<Bool>(printable_ge, printable_le);
+        match printable {
+          True() => {
+            set cursor = iadd.trap<u64>(cursor, 1_u64);
+          }
+          False() => {
+            let invalid_end: own u64 = iadd.trap<u64>(cursor, 1_u64);
+            return ScannedToken(kind: TokEnd(), end: invalid_end, status: LexInvalidString(), error_start: cursor, error_end: invalid_end);
+          }
+        }
+      }
+    }
+  }
+}
+
+fn lexer_scan_one ['s] (source: &'s buffer<u8>, start: own u64, size: own u64) -> own ScannedToken reads('s), traps {
+  let byte: own u8 = index<u8>(deref(source), start);
+  let lower: own Bool = lexer_is_lower(c: byte);
+  match lower {
+    True() => {
+      let base_end: own u64 = lexer_scan_ident(source: source, start: start, size: size);
+      let end: own u64 = lexer_scan_word(source: source, base_end: base_end, size: size);
+      let opname: own Bool = igt<u64>(end, base_end);
+      match opname {
+        True() => {
+          return ScannedToken(kind: TokOpName(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+          return ScannedToken(kind: TokWord(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let upper: own Bool = lexer_is_upper(c: byte);
+  match upper {
+    True() => {
+      let end: own u64 = lexer_scan_typeid(source: source, start: start, size: size);
+      return ScannedToken(kind: TokTypeId(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+    }
+    False() => {
+    }
+  }
+  let region_prefix: own Bool = ieq<u8>(byte, 39_u8);
+  match region_prefix {
+    True() => {
+      let body: own u64 = iadd.trap<u64>(start, 1_u64);
+      match ige<u64>(body, size) {
+        True() => {
+          return ScannedToken(kind: TokEnd(), end: body, status: LexInvalidRegionId(), error_start: start, error_end: body);
+        }
+        False() => {
+        }
+      }
+      let first: own u8 = index<u8>(deref(source), body);
+      let valid: own Bool = lexer_is_lower(c: first);
+      match valid {
+        True() => {
+          let end: own u64 = lexer_scan_ident(source: source, start: body, size: size);
+          return ScannedToken(kind: TokRegionId(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+          let invalid_end: own u64 = iadd.trap<u64>(body, 1_u64);
+          return ScannedToken(kind: TokEnd(), end: invalid_end, status: LexInvalidRegionId(), error_start: start, error_end: invalid_end);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let label_prefix: own Bool = ieq<u8>(byte, 64_u8);
+  match label_prefix {
+    True() => {
+      let body: own u64 = iadd.trap<u64>(start, 1_u64);
+      match ige<u64>(body, size) {
+        True() => {
+          return ScannedToken(kind: TokEnd(), end: body, status: LexInvalidLabel(), error_start: start, error_end: body);
+        }
+        False() => {
+        }
+      }
+      let first: own u8 = index<u8>(deref(source), body);
+      let valid: own Bool = lexer_is_lower(c: first);
+      match valid {
+        True() => {
+          let end: own u64 = lexer_scan_ident(source: source, start: body, size: size);
+          return ScannedToken(kind: TokLabel(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+          let invalid_end: own u64 = iadd.trap<u64>(body, 1_u64);
+          return ScannedToken(kind: TokEnd(), end: invalid_end, status: LexInvalidLabel(), error_start: start, error_end: invalid_end);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let quote: own Bool = ieq<u8>(byte, 34_u8);
+  match quote {
+    True() => {
+      return lexer_scan_string(source: source, start: start, size: size);
+    }
+    False() => {
+    }
+  }
+  let minus: own Bool = ieq<u8>(byte, 45_u8);
+  match minus {
+    True() => {
+      let next: own u64 = iadd.trap<u64>(start, 1_u64);
+      match ige<u64>(next, size) {
+        True() => {
+          return ScannedToken(kind: TokEnd(), end: next, status: LexUnknownByte(), error_start: start, error_end: next);
+        }
+        False() => {
+        }
+      }
+      let after: own u8 = index<u8>(deref(source), next);
+      let arrow_tail: own Bool = ieq<u8>(after, 62_u8);
+      match arrow_tail {
+        True() => {
+          let end: own u64 = iadd.trap<u64>(next, 1_u64);
+          return ScannedToken(kind: TokArrow(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+        }
+      }
+      let numeric_tail: own Bool = lexer_is_digit(c: after);
+      match numeric_tail {
+        True() => {
+          let end: own u64 = lexer_scan_number(source: source, start: start, size: size);
+          return ScannedToken(kind: TokNumber(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+          return ScannedToken(kind: TokEnd(), end: next, status: LexUnknownByte(), error_start: start, error_end: next);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let digit: own Bool = lexer_is_digit(c: byte);
+  match digit {
+    True() => {
+      let end: own u64 = lexer_scan_number(source: source, start: start, size: size);
+      return ScannedToken(kind: TokNumber(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+    }
+    False() => {
+    }
+  }
+  let equal: own Bool = ieq<u8>(byte, 61_u8);
+  match equal {
+    True() => {
+      let next: own u64 = iadd.trap<u64>(start, 1_u64);
+      match ige<u64>(next, size) {
+        True() => {
+          return ScannedToken(kind: TokSymbol(), end: next, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+        }
+      }
+      let after: own u8 = index<u8>(deref(source), next);
+      let arrow_tail: own Bool = ieq<u8>(after, 62_u8);
+      match arrow_tail {
+        True() => {
+          let end: own u64 = iadd.trap<u64>(next, 1_u64);
+          return ScannedToken(kind: TokFatArrow(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+          return ScannedToken(kind: TokSymbol(), end: next, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let amp: own Bool = ieq<u8>(byte, 38_u8);
+  match amp {
+    True() => {
+      let ampuniq: own Bool = lexer_ampuniq_at(source: source, start: start, size: size);
+      match ampuniq {
+        True() => {
+          let end: own u64 = iadd.trap<u64>(start, 5_u64);
+          return ScannedToken(kind: TokAmpUniq(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+        False() => {
+          let end: own u64 = iadd.trap<u64>(start, 1_u64);
+          return ScannedToken(kind: TokAmp(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let slash: own Bool = ieq<u8>(byte, 47_u8);
+  match slash {
+    True() => {
+      let next: own u64 = iadd.trap<u64>(start, 1_u64);
+      match ige<u64>(next, size) {
+        True() => {
+          return ScannedToken(kind: TokEnd(), end: next, status: LexUnknownByte(), error_start: start, error_end: next);
+        }
+        False() => {
+        }
+      }
+      let after: own u8 = index<u8>(deref(source), next);
+      let line_comment: own Bool = ieq<u8>(after, 47_u8);
+      let block_comment: own Bool = ieq<u8>(after, 42_u8);
+      let comment: own Bool = bor<Bool>(line_comment, block_comment);
+      match comment {
+        True() => {
+          let end: own u64 = iadd.trap<u64>(next, 1_u64);
+          return ScannedToken(kind: TokEnd(), end: end, status: LexComment(), error_start: start, error_end: end);
+        }
+        False() => {
+          return ScannedToken(kind: TokEnd(), end: next, status: LexUnknownByte(), error_start: start, error_end: next);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let symbol: own Bool = lexer_is_symbol(c: byte);
+  match symbol {
+    True() => {
+      let end: own u64 = iadd.trap<u64>(start, 1_u64);
+      return ScannedToken(kind: TokSymbol(), end: end, status: LexClean(), error_start: 0_u64, error_end: 0_u64);
+    }
+    False() => {
+      let end: own u64 = iadd.trap<u64>(start, 1_u64);
+      return ScannedToken(kind: TokEnd(), end: end, status: LexUnknownByte(), error_start: start, error_end: end);
+    }
+  }
+}
+
+fn lexer_run ['s, 'o] (source: &'s buffer<u8>, out: &uniq 'o TokenTape) -> own unit reads('s 'o), writes('o), traps {
+  set deref(out).count = 0_u64;
+  set deref(out).status = LexClean();
+  set deref(out).error_start = 0_u64;
+  set deref(out).error_end = 0_u64;
+  let size: own u64 = len<u8>(deref(source));
+  let cursor: own u64 = 0_u64;
+  loop @tokens {
+    match ige<u64>(cursor, size) {
+      True() => {
+        let slot: own u64 = deref(out).count;
+        let kinds_capacity: own u64 = len<TokenKind>(deref(out).kinds);
+        let starts_capacity: own u64 = len<u64>(deref(out).starts);
+        let ends_capacity: own u64 = len<u64>(deref(out).ends);
+        let kind_fits: own Bool = ilt<u64>(slot, kinds_capacity);
+        let start_fits: own Bool = ilt<u64>(slot, starts_capacity);
+        let end_fits: own Bool = ilt<u64>(slot, ends_capacity);
+        let first_pair_fits: own Bool = band<Bool>(kind_fits, start_fits);
+        let output_fits: own Bool = band<Bool>(first_pair_fits, end_fits);
+        match output_fits {
+          True() => {
+            set index<TokenKind>(deref(out).kinds, slot) = TokEnd();
+            set index<u64>(deref(out).starts, slot) = size;
+            set index<u64>(deref(out).ends, slot) = size;
+            set deref(out).count = iadd.trap<u64>(slot, 1_u64);
+            return unit;
+          }
+          False() => {
+            set deref(out).status = LexCapacity();
+            set deref(out).error_start = size;
+            set deref(out).error_end = size;
+            return unit;
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let space: own Bool = lexer_is_space(c: byte);
+    match space {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        let scanned: own ScannedToken = lexer_scan_one(source: source, start: cursor, size: size);
+        let scan_status: own LexStatus = scanned.status;
+        match scan_status {
+          LexClean() => {
+            let slot: own u64 = deref(out).count;
+            let kinds_capacity: own u64 = len<TokenKind>(deref(out).kinds);
+            let starts_capacity: own u64 = len<u64>(deref(out).starts);
+            let ends_capacity: own u64 = len<u64>(deref(out).ends);
+            let kind_fits: own Bool = ilt<u64>(slot, kinds_capacity);
+            let start_fits: own Bool = ilt<u64>(slot, starts_capacity);
+            let end_fits: own Bool = ilt<u64>(slot, ends_capacity);
+            let first_pair_fits: own Bool = band<Bool>(kind_fits, start_fits);
+            let output_fits: own Bool = band<Bool>(first_pair_fits, end_fits);
+            match output_fits {
+              True() => {
+                set index<TokenKind>(deref(out).kinds, slot) = scanned.kind;
+                set index<u64>(deref(out).starts, slot) = cursor;
+                set index<u64>(deref(out).ends, slot) = scanned.end;
+                set deref(out).count = iadd.trap<u64>(slot, 1_u64);
+                set cursor = scanned.end;
+              }
+              False() => {
+                set deref(out).status = LexCapacity();
+                set deref(out).error_start = cursor;
+                set deref(out).error_end = scanned.end;
+                return unit;
+              }
+            }
+          }
+          LexUnknownByte() => {
+            set deref(out).status = LexUnknownByte();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+          LexInvalidString() => {
+            set deref(out).status = LexInvalidString();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+          LexUnterminatedString() => {
+            set deref(out).status = LexUnterminatedString();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+          LexInvalidRegionId() => {
+            set deref(out).status = LexInvalidRegionId();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+          LexInvalidLabel() => {
+            set deref(out).status = LexInvalidLabel();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+          LexComment() => {
+            set deref(out).status = LexComment();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+          LexCapacity() => {
+            set deref(out).status = LexCapacity();
+            set deref(out).error_start = scanned.error_start;
+            set deref(out).error_end = scanned.error_end;
+            return unit;
+          }
+        }
+      }
+    }
+  }
+}

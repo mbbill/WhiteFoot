@@ -1,0 +1,69 @@
+enum AstKind {
+  AstProgram();
+  AstFunction();
+  AstFunctionName();
+  AstOwnMode();
+  AstReturnType();
+  AstPureEffect();
+  AstBlock();
+  AstReturn();
+  AstUnitLiteral();
+  AstParameter();
+  AstParameterType();
+  AstLet();
+  AstBindingName();
+  AstBindingType();
+  AstNumericLiteral();
+  AstPlaceUse();
+  AstTableCall();
+  AstTypeArgument();
+  AstUserCall();
+  AstNamedArgument();
+}
+
+enum ParseStatus {
+  ParseClean();
+  ParseLexError();
+  ParseExpectedFunction();
+  ParseExpectedName();
+  ParseExpectedLeftParen();
+  ParseExpectedRightParen();
+  ParseExpectedArrow();
+  ParseExpectedOwn();
+  ParseExpectedReturnType();
+  ParseExpectedPure();
+  ParseExpectedLeftBrace();
+  ParseExpectedReturn();
+  ParseExpectedUnit();
+  ParseExpectedSemicolon();
+  ParseExpectedRightBrace();
+  ParseTrailingToken();
+  ParseExpectedEnd();
+  ParseCapacity();
+  ParseInvalidTokenTape();
+  ParseExpectedColon();
+  ParseExpectedCommaOrRightParen();
+  ParseExpectedStatement();
+  ParseExpectedEquals();
+  ParseExpectedExpression();
+  ParseExpectedAtom();
+  ParseExpectedLeftAngle();
+  ParseExpectedRightAngle();
+}
+
+const ast_none: u64 = 18446744073709551615_u64;
+
+struct AstTape {
+  kinds: buffer<AstKind>;
+  heads: buffer<u64>;
+  starts: buffer<u64>;
+  ends: buffer<u64>;
+  first_children: buffer<u64>;
+  last_children: buffer<u64>;
+  next_siblings: buffer<u64>;
+  count: u64;
+  root: u64;
+  status: ParseStatus;
+  error_start: u64;
+  error_end: u64;
+}

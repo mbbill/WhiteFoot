@@ -1,0 +1,8 @@
+fn add (x: own i32, y: own i32) -> own i32 pure {
+  let sum: own i32 = iadd.wrap<i32>(x, y);
+  return sum;
+}
+
+fn answer () -> own i32 pure {
+  return add(x: 40_i32, y: 2_i32);
+}

@@ -1,0 +1,44 @@
+enum TokenKind {
+  TokEnd();
+  TokWord();
+  TokOpName();
+  TokTypeId();
+  TokRegionId();
+  TokLabel();
+  TokNumber();
+  TokString();
+  TokArrow();
+  TokFatArrow();
+  TokAmp();
+  TokAmpUniq();
+  TokSymbol();
+}
+
+enum LexStatus {
+  LexClean();
+  LexUnknownByte();
+  LexInvalidString();
+  LexUnterminatedString();
+  LexInvalidRegionId();
+  LexInvalidLabel();
+  LexComment();
+  LexCapacity();
+}
+
+struct ScannedToken {
+  kind: TokenKind;
+  end: u64;
+  status: LexStatus;
+  error_start: u64;
+  error_end: u64;
+}
+
+struct TokenTape {
+  kinds: buffer<TokenKind>;
+  starts: buffer<u64>;
+  ends: buffer<u64>;
+  count: u64;
+  status: LexStatus;
+  error_start: u64;
+  error_end: u64;
+}
