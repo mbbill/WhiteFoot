@@ -26,5 +26,6 @@ check:
 	$(PY) test_llvm_text.py
 	$(PY) test_llvm_scalar.py
 	$(PY) test_llvm_linear.py
+	$(PY) test_llvm_buffer.py
 
 .PHONY: check

@@ -25,3 +25,4 @@ src/frontend.xl
 src/llvm_text.xl
 src/llvm_scalar.xl
 src/llvm_linear.xl
+src/llvm_buffer.xl
