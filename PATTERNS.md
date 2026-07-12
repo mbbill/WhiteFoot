@@ -116,6 +116,29 @@ counter = zero vector ops; the wrap form = full SIMD, 2x on wc -l.
 Replaces: sprinkling checks uniformly and paying for them in the one loop
 that matters.
 
+## P9. Exact capacity contract or recoverable shortage
+
+Problem: an encoder/decoder writes caller-owned output, but the amount may be
+fixed-ratio, cheaply preflightable, or genuinely data-dependent.  A
+worst-case entry contract can make the inner loop look perfect by forcing
+ordinary callers to overallocate or trap.
+Pattern: use `requires` only when a false predicate means the caller has
+violated the actual API contract.  For a fixed-ratio transform, state the
+weakest overflow-safe capacity relation that covers the body.  If insufficient
+capacity is an expected runtime outcome, test the next token/burst before any
+of its effects and return a value such as `NeedMoreOutput`; do not turn that
+outcome into a contract trap.  A preflight/exact-allocation API is appropriate
+only when its validated size remains bound to the input it describes.  Never
+put a merely common-case size or a rare worst-case allocation in `requires`.
+Fast because: a checked exact relation can discharge repeated implicit bounds
+checks, while the body-derived obligation report names a missing or mismatched
+fact.  Recoverable boundary control preserves the useful small-buffer domain
+and provides the explicit slow path needed by future guarded fast-region
+proofs without weakening OP-4 safety.
+Replaces: per-store bounds checks in fixed-ratio kernels, unconditional
+maximum-size caller allocation, retry-after-partial-token mutation, and using
+`requires` as an optimizer hint.
+
 ## Known gaps (findings, not yet patterns)
 
 - In-place mutation interleaved with traversal of the same structure (graph

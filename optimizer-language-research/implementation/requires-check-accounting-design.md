@@ -1,12 +1,20 @@
 # Checked requirements, proof obligations, and performance check accounting
 
-Status: **REVIEW DRAFT — no normative change selected**
+Status: **REVIEWED DESIGN — narrowed first slice accepted; no normative change selected**
 
 Date: 2026-07-11
 
 Scope: FN-8 checked `requires`, OP-4 proof-elided checks, compiler-generated
 guards, per-check artifact accounting, and writer guidance for variable-size
 outputs.
+
+Review disposition:
+[requires-check-accounting-REVIEW.md](requires-check-accounting-REVIEW.md).
+Prototype progress on 2026-07-11: the accepted body-first analyzer, structured
+relationship diagnostics, facts/facts-off equality check, and 37-case
+diagnostic oracle are implemented.  Existing accepted programs and emitted IR
+remain unchanged.  Guard versioning, counterexample generation, approval
+records, and the checked-automation promotion policy are not implemented.
 
 This draft exists because PROOF-2 exposed two different failure modes that the
 current prototype safely retains but does not yet explain or govern:
@@ -1078,6 +1086,10 @@ Measure whether writers:
 - understand the provisional `requires` spelling consistently.
 
 ## 14. Proposed implementation sequence after review
+
+Progress note (2026-07-11): items 1 and 2 are implemented; item 3's
+deterministic diagnostic oracle is implemented, while constructive
+counterexamples remain deferred.  Item 4 is next.
 
 1. Refactor PROOF-2 into a body analyzer producing obligations and failed
    premises, without changing codegen.

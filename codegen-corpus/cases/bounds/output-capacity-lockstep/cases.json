@@ -28,7 +28,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "elided",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
    }
   },
   {
@@ -44,7 +49,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "elided",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
    }
   },
   {
@@ -59,7 +69,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "elided",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
    }
   },
   {
@@ -75,7 +90,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "elided",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
    }
   },
   {
@@ -91,7 +111,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "elided",
-    "bounds_sites": 12
+    "bounds_sites": 12,
+    "obligation_status": "derived",
+    "obligation_exactness": "exact",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
    }
   },
   {
@@ -109,7 +134,24 @@
     "proof_classification": "mixed",
     "bounds_sites": 2,
     "proved_sites": 1,
-    "retained_sites": 1
+    "retained_sites": 1,
+    "obligation_status_counts": {
+     "derived": 1,
+     "failed-premise": 1
+    },
+    "obligation_exactness_counts": {
+     "sufficient": 1,
+     "unknown": 1
+    },
+    "requirement_relation_counts": {
+     "equivalent": 1,
+     "unknown": 1
+    },
+    "first_failed_premise_reason_counts": {
+     "<null>": 1,
+     "body.output-offset-funded": 1
+    },
+    "first_missing_fact": null
    }
   },
   {
@@ -127,7 +169,24 @@
     "proof_classification": "mixed",
     "bounds_sites": 2,
     "proved_sites": 1,
-    "retained_sites": 1
+    "retained_sites": 1,
+    "obligation_status_counts": {
+     "derived": 1,
+     "failed-premise": 1
+    },
+    "obligation_exactness_counts": {
+     "sufficient": 1,
+     "unknown": 1
+    },
+    "requirement_relation_counts": {
+     "equivalent": 1,
+     "unknown": 1
+    },
+    "first_failed_premise_reason_counts": {
+     "<null>": 1,
+     "body.output-offset-stability": 1
+    },
+    "first_missing_fact": null
    }
   },
   {
@@ -142,7 +201,19 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "missing",
+    "first_failed_premise": null,
+    "first_missing_fact": {
+     "family": "output-capacity-lockstep",
+     "source": "src",
+     "output": "out",
+     "input_stride": 3,
+     "output_stride": 4,
+     "condition": "len(source) <= 3 * floor(len(output) / 4)"
+    }
    }
   },
   {
@@ -158,7 +229,24 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "mismatch",
+    "first_failed_premise": {
+     "reason": "requirement.comparator-ile",
+     "path": "requires[4].condition",
+     "expected": "ile<u64>",
+     "observed": "ilt"
+    },
+    "first_missing_fact": {
+     "family": "output-capacity-lockstep",
+     "source": "src",
+     "output": "out",
+     "input_stride": 3,
+     "output_stride": 4,
+     "condition": "len(source) <= 3 * floor(len(output) / 4)"
+    }
    }
   },
   {
@@ -173,7 +261,19 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "mismatch",
+    "first_failed_premise": "requirement.matches-body-output",
+    "first_missing_fact": {
+     "family": "output-capacity-lockstep",
+     "source": "src",
+     "output": "out",
+     "input_stride": 3,
+     "output_stride": 4,
+     "condition": "len(source) <= 3 * floor(len(output) / 4)"
+    }
    }
   },
   {
@@ -189,7 +289,19 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "mismatch",
+    "first_failed_premise": "requirement.matches-body-source",
+    "first_missing_fact": {
+     "family": "output-capacity-lockstep",
+     "source": "src",
+     "output": "out",
+     "input_stride": 3,
+     "output_stride": 4,
+     "condition": "len(source) <= 3 * floor(len(output) / 4)"
+    }
    }
   },
   {
@@ -205,7 +317,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-base",
+    "first_missing_fact": null
    }
   },
   {
@@ -221,7 +338,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.input-stride",
+    "first_missing_fact": null
    }
   },
   {
@@ -237,7 +359,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-stride",
+    "first_missing_fact": null
    }
   },
   {
@@ -253,7 +380,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.increment-order",
+    "first_missing_fact": null
    }
   },
   {
@@ -269,7 +401,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.increment-order",
+    "first_missing_fact": null
    }
   },
   {
@@ -285,7 +422,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-offset-funded",
+    "first_missing_fact": null
    }
   },
   {
@@ -301,7 +443,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-mutation",
+    "first_missing_fact": null
    }
   },
   {
@@ -318,7 +465,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-cursor-stability",
+    "first_missing_fact": null
    }
   },
   {
@@ -334,7 +486,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-site-unfunded",
+    "first_missing_fact": null
    }
   },
   {
@@ -350,7 +507,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-site-unfunded",
+    "first_missing_fact": null
    }
   },
   {
@@ -367,7 +529,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.tail-stability",
+    "first_missing_fact": null
    }
   },
   {
@@ -384,7 +551,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-mutation",
+    "first_missing_fact": null
    }
   },
   {
@@ -400,7 +572,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.tail-expression",
+    "first_missing_fact": null
    }
   },
   {
@@ -418,7 +595,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-offset-stability",
+    "first_missing_fact": null
    }
   },
   {
@@ -434,7 +616,19 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "mismatch",
+    "first_failed_premise": "requirement.multiplier-three",
+    "first_missing_fact": {
+     "family": "output-capacity-lockstep",
+     "source": "src",
+     "output": "out",
+     "input_stride": 3,
+     "output_stride": 4,
+     "condition": "len(source) <= 3 * floor(len(output) / 4)"
+    }
    }
   },
   {
@@ -450,7 +644,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.output-stability",
+    "first_missing_fact": null
    }
   },
   {
@@ -467,7 +666,24 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 2
+    "bounds_sites": 2,
+    "obligation_status_counts": {
+     "failed-premise": 1,
+     "not-applicable": 1
+    },
+    "obligation_exactness_counts": {
+     "<null>": 1,
+     "unknown": 1
+    },
+    "requirement_relation_counts": {
+     "not-applicable": 1,
+     "unknown": 1
+    },
+    "first_failed_premise_reason_counts": {
+     "<null>": 1,
+     "body.output-stability": 1
+    },
+    "first_missing_fact": null
    }
   },
   {
@@ -483,7 +699,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.guard-input-stride",
+    "first_missing_fact": null
    }
   },
   {
@@ -499,7 +720,12 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.guard-input-stride",
+    "first_missing_fact": null
    }
   },
   {
@@ -516,7 +742,160 @@
    "maturity": "gate",
    "expected": {
     "proof_classification": "checked",
-    "bounds_sites": 1
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "mismatch",
+    "first_failed_premise": "requirement.output-shift-two",
+    "first_missing_fact": {
+     "family": "output-capacity-lockstep",
+     "source": "src",
+     "output": "out",
+     "input_stride": 3,
+     "output_stride": 4,
+     "condition": "len(source) <= 3 * floor(len(output) / 4)"
+    }
+   }
+  },
+  {
+   "id": "p06-funded-read-write",
+   "source": "p06-funded-read-write.xl",
+   "hypothesis": "A funded out[o] access is independent of access mode: the read and following write both derive the same equivalent capacity obligation and are proved.",
+   "tags": [
+    "positive",
+    "read-write",
+    "full-loop",
+    "offset-0"
+   ],
+   "maturity": "gate",
+   "expected": {
+    "proof_classification": "elided",
+    "bounds_sites": 2,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
+   }
+  },
+  {
+   "id": "m03-unrelated-aux",
+   "source": "m03-unrelated-aux.xl",
+   "hypothesis": "The canonical out[o] store is proved while an unrelated aux[0] store remains a not-applicable retained site without poisoning the output obligation.",
+   "tags": [
+    "mixed",
+    "unrelated-buffer",
+    "not-applicable",
+    "full-loop"
+   ],
+   "maturity": "gate",
+   "expected": {
+    "proof_classification": "mixed",
+    "bounds_sites": 2,
+    "proved_sites": 1,
+    "retained_sites": 1,
+    "obligation_status_counts": {
+     "derived": 1,
+     "not-applicable": 1
+    },
+    "obligation_exactness_counts": {
+     "<null>": 1,
+     "sufficient": 1
+    },
+    "requirement_relation_counts": {
+     "equivalent": 1,
+     "not-applicable": 1
+    },
+    "first_failed_premise": null,
+    "first_missing_fact": null
+   }
+  },
+  {
+   "id": "p07-unrelated-counter",
+   "source": "p07-unrelated-counter.xl",
+   "hypothesis": "An unrelated scalar count+=1 in the straight-line group does not mutate a lockstep dependency and preserves the canonical output proof.",
+   "tags": [
+    "positive",
+    "unrelated-scalar",
+    "mutation",
+    "full-loop"
+   ],
+   "maturity": "gate",
+   "expected": {
+    "proof_classification": "elided",
+    "bounds_sites": 1,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
+   }
+  },
+  {
+   "id": "n26-harmless-anchor-prefix",
+   "source": "n26-harmless-anchor-prefix.xl",
+   "hypothesis": "A harmless let before the canonical remainder/guard anchor is a recognized near-family failure, reported as body.supported-control rather than laundered as not-applicable.",
+   "tags": [
+    "negative",
+    "anchor-position",
+    "supported-control",
+    "fail-closed"
+   ],
+   "maturity": "gate",
+   "expected": {
+    "proof_classification": "checked",
+    "bounds_sites": 1,
+    "obligation_status": "failed-premise",
+    "obligation_exactness": "unknown",
+    "requirement_relation": "unknown",
+    "first_failed_premise": "body.supported-control",
+    "first_missing_fact": null
+   }
+  },
+  {
+   "id": "p08-preempted-complete-groups",
+   "source": "p08-preempted-complete-groups.xl",
+   "hypothesis": "All twelve funded output stores may remain proved after explicit trapping checks, but preemption makes the obligation only sufficient and never exact in any region.",
+   "tags": [
+    "positive",
+    "preemption",
+    "explicit-check",
+    "complete-groups",
+    "exactness"
+   ],
+   "maturity": "gate",
+   "expected": {
+    "proof_classification": "elided",
+    "bounds_sites": 12,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
+   }
+  },
+  {
+   "id": "p09-dotless-allocation-preemption",
+   "source": "p09-dotless-allocation-preemption.xl",
+   "hypothesis": "A dotless buffer_new allocation can trap on byte-size overflow before each funded region; all twelve output sites remain proved, but the obligation is sufficient and never exact.",
+   "tags": [
+    "positive",
+    "preemption",
+    "dotless-op",
+    "allocation",
+    "size-overflow",
+    "complete-groups",
+    "exactness"
+   ],
+   "maturity": "gate",
+   "expected": {
+    "proof_classification": "elided",
+    "bounds_sites": 12,
+    "obligation_status": "derived",
+    "obligation_exactness": "sufficient",
+    "requirement_relation": "equivalent",
+    "first_failed_premise": null,
+    "first_missing_fact": null
    }
   }
  ]

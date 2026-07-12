@@ -89,16 +89,20 @@ Measured non-wins (equally load-bearing):
    are selected and its spelling remains R3-provisional. The exact checked
    capacity relation plus i=3k/o=4k proof discharges base64 27/27 sites, reaches
    the perfect-index-elision ceiling (77 instructions, one retained entry trap),
-   and measures 2.480 -> 4.233 GB/s (1.71x). The combined bounds corpus is 78
-   cases: 50 PROOF-1 plus 28 PROOF-2 capacity/lockstep cases, including alias,
+   and measures 2.480 -> 4.233 GB/s (1.71x). The combined bounds corpus is 87
+   cases: 50 PROOF-1 plus 37 PROOF-2 capacity/lockstep cases, including alias,
    mutation, relation, stride, ordering, and tail adversaries. Contract
    refinement remains deferred; prototype artifact-embedded proof references,
    gated FFI frames, and machine-readable trap reports remain explicit debt.
-   REVIEW DRAFT 2026-07-11: the follow-up design for obligation-driven proof
-   discovery, guarded checked fallbacks, enforceable retained-check accounting,
-   and non-overrestrictive variable-output `requires` guidance is recorded in
-   `optimizer-language-research/implementation/requires-check-accounting-design.md`;
-   it changes no normative rule until reviewed.
+   FIRST REVIEWED SLICE IMPLEMENTED 2026-07-11: PROOF-2 now derives its
+   obligation from the body before independently normalizing `requires`, emits
+   deterministic first-missing-fact / first-failed-premise site diagnostics,
+   and gates those diagnostics in both facts modes across all 37 adversarial
+   cases. The refactor is byte-transparent across all 88 corpus programs in
+   both facts modes. The checked-automation, approval, guard-versioning, and
+   variable-output work remains staged by
+   `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`;
+   no normative language rule changed.
 2. **Leg-A frequency study** — never run, cheap, decision-relevant: how often
    do the channel patterns (alias-guard versioning, opaque hot calls, manual
    reassociation idioms) occur in real Rust corpora. Directly answers the

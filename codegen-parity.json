@@ -315,6 +315,48 @@
           "value": 12
         },
         {
+          "label": "base64 obligation diagnostics are facts-independent",
+          "left": "facts.proof.obligation_diagnostics_by_site",
+          "op": "eq",
+          "right": "nofacts.proof.obligation_diagnostics_by_site"
+        },
+        {
+          "label": "only the twelve output writes carry the capacity obligation",
+          "left": "facts.proof.obligation_family_counts",
+          "op": "eq",
+          "value": {"<null>": 15, "output-capacity-lockstep": 12}
+        },
+        {
+          "label": "all twelve output obligations are derived",
+          "left": "facts.proof.obligation_status_counts",
+          "op": "eq",
+          "value": {"derived": 12, "not-applicable": 15}
+        },
+        {
+          "label": "base64 output discharge is sufficient; exactness is not overclaimed",
+          "left": "facts.proof.obligation_exactness_counts",
+          "op": "eq",
+          "value": {"<null>": 15, "sufficient": 12}
+        },
+        {
+          "label": "the checked requirement exactly matches every output obligation",
+          "left": "facts.proof.requirement_relation_counts",
+          "op": "eq",
+          "value": {"equivalent": 12, "not-applicable": 15}
+        },
+        {
+          "label": "base64 has no missing capacity fact",
+          "left": "facts.proof.first_missing_fact_count",
+          "op": "eq",
+          "value": 0
+        },
+        {
+          "label": "base64 has no failed PROOF-2 premise",
+          "left": "facts.proof.first_failed_premise_count",
+          "op": "eq",
+          "value": 0
+        },
+        {
           "label": "facts-off retains every base64 bounds site",
           "left": "nofacts.proof.retained",
           "op": "eq",

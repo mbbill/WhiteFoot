@@ -62,7 +62,71 @@
             "proof_classification": {"enum": ["proved", "elided", "retained", "checked", "mixed"]},
             "bounds_sites": {"type": "integer", "minimum": 1},
             "proved_sites": {"type": "integer", "minimum": 1},
-            "retained_sites": {"type": "integer", "minimum": 1}
+            "retained_sites": {"type": "integer", "minimum": 1},
+            "obligation_status": {
+              "enum": ["derived", "failed-premise", "not-applicable", "unknown"]
+            },
+            "obligation_exactness": {
+              "type": ["string", "null"],
+              "enum": ["exact", "sufficient", "unknown", null]
+            },
+            "requirement_relation": {
+              "type": ["string", "null"],
+              "enum": ["equivalent", "missing", "mismatch", "unknown", "not-applicable", null]
+            },
+            "obligation_status_counts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "enum": ["derived", "failed-premise", "not-applicable", "unknown"]
+              },
+              "additionalProperties": {"type": "integer", "minimum": 1}
+            },
+            "obligation_exactness_counts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "enum": ["exact", "sufficient", "unknown", "<null>"]
+              },
+              "additionalProperties": {"type": "integer", "minimum": 1}
+            },
+            "requirement_relation_counts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "enum": ["equivalent", "missing", "mismatch", "unknown", "not-applicable", "<null>"]
+              },
+              "additionalProperties": {"type": "integer", "minimum": 1}
+            },
+            "first_failed_premise_reason_counts": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"type": "string", "minLength": 1},
+              "additionalProperties": {"type": "integer", "minimum": 1}
+            },
+            "first_missing_fact": {
+              "type": ["object", "null"]
+            },
+            "first_failed_premise": {
+              "oneOf": [
+                {"type": "null"},
+                {"type": "string", "minLength": 1},
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["reason"],
+                  "properties": {
+                    "reason": {"type": "string", "minLength": 1},
+                    "expected": {"type": "string"},
+                    "observed": {"type": "string"},
+                    "path": {"type": "string"}
+                  }
+                }
+              ]
+            },
+            "first_failed_premise_reason": {
+              "type": ["string", "null"]
+            }
           },
           "additionalProperties": true
         }

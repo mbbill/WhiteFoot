@@ -796,6 +796,14 @@ class Gen:
         if g.proof_report is not None:
             atom = pl["index"]["atom"]
             index_name = atom.get("p", {}).get("base") if atom.get("e") == "place" else None
+            obligation = pl["index"].get("obligation_info", {
+                "obligation": None,
+                "obligation_status": "not-applicable",
+                "obligation_exactness": None,
+                "requirement_relation": "not-applicable",
+                "first_missing_fact": None,
+                "first_failed_premise": None,
+            })
             g.proof_report.append({
                 "function": g.f["name"],
                 "site": g.bounds_site,
@@ -804,6 +812,7 @@ class Gen:
                 "kind": kind,
                 "target": ipl["base"],
                 "index": index_name,
+                **obligation,
             })
         g.bounds_site += 1
         if cinfo and cinfo[0] != "scalar":             # [CONST-2] const-array index: GEP the global, bounds-checked
@@ -1839,75 +1848,122 @@ def _plain_direct_place(e, deref=None):
     if deref is not None and p.get("deref", 0) != deref: return None
     return p.get("base")
 
-def _capacity_requirement(f):
-    """Normalize the one PROOF-2 v1 capacity predicate.
+def _proof_premise(reason, path, expected=None, observed=None):
+    """Stable, machine-readable first-failure record for proof diagnostics."""
+    out = {"reason": reason, "path": path}
+    if expected is not None: out["expected"] = str(expected)
+    if observed is not None: out["observed"] = str(observed)
+    return out
 
-    Accepted checked relation (all names arbitrary, dependencies exact):
+def _requirement_mismatch(reason, path, expected=None, observed=None):
+    return {"state": "mismatch", "fact": None,
+            "first_failed_premise": _proof_premise(
+                reason, path, expected=expected, observed=observed)}
 
-      src_len = len(src)
-      out_len = len(deref(out))
-      groups  = out_len >> 2_u32
-      covered = groups * 3_u64
-      check src_len <= covered
+def _normalize_capacity_requirement(f):
+    """Normalize the one admitted PROOF-2 v1 checked predicate.
 
-    `groups <= floor(U64_MAX/4)`, so `groups*3` cannot wrap.  The result is
-    therefore exactly N <= 3*floor(C/4), not a trusted interpretation of an
-    arbitrary writer expression.
+    Unlike the old dict-or-None recognizer, this function preserves why a
+    present predicate failed.  It deliberately does not inspect the body.
     """
-    req = (f.get("requires") or [])
-    if len(req) != 5 or any(st.get("s") == "doc" for st in req): return None
+    req = f.get("requires") or []
+    if not req:
+        return {"state": "missing", "fact": None,
+                "first_failed_premise": None}
+    if len(req) != 5 or any(st.get("s") == "doc" for st in req):
+        return _requirement_mismatch(
+            "requirement.statement-shape", "requires",
+            "four u64 lets followed by one check", f"{len(req)} statements")
     lets, final = req[:-1], req[-1]
-    if any(st.get("s") != "let" for st in lets) or final.get("s") != "check":
-        return None
+    if any(st.get("s") != "let" for st in lets):
+        return _requirement_mismatch(
+            "requirement.statement-shape", "requires[0:4]", "let statements")
+    if final.get("s") != "check":
+        return _requirement_mismatch(
+            "requirement.final-check", "requires[4]", "check", final.get("s"))
     if any(st.get("m", {}).get("kind") != "own" or st.get("ty") != "u64"
            for st in lets):
-        return None
+        return _requirement_mismatch(
+            "requirement.let-types", "requires[0:4]", "own u64 bindings")
     defs = {st["n"]: st.get("e") for st in lets}
-    if len(defs) != 4: return None
+    if len(defs) != 4:
+        return _requirement_mismatch(
+            "requirement.statement-shape", "requires[0:4]", "four distinct bindings")
+
     cond = final.get("e")
-    if not isinstance(cond, dict) or cond.get("e") != "op" or cond.get("op") != "ile" \
-            or cond.get("tyargs") != ["u64"] or len(cond.get("args", [])) != 2:
-        return None
+    if not isinstance(cond, dict) or cond.get("e") != "op" \
+            or cond.get("op") != "ile" or cond.get("tyargs") != ["u64"] \
+            or len(cond.get("args", [])) != 2:
+        actual = cond.get("op") if isinstance(cond, dict) else None
+        return _requirement_mismatch(
+            "requirement.comparator-ile", "requires[4].condition", "ile<u64>", actual)
     src_len = _direct_place_name(cond["args"][0])
     covered = _direct_place_name(cond["args"][1])
     src_expr, covered_expr = defs.get(src_len), defs.get(covered)
     if not isinstance(src_expr, dict) or src_expr.get("e") != "op" \
             or src_expr.get("op") != "len" or len(src_expr.get("args", [])) != 1:
-        return None
+        return _requirement_mismatch(
+            "requirement.source-len", "requires.condition.left", "len(source)")
     src = _plain_direct_place(src_expr["args"][0], deref=0)
+    if not src:
+        return _requirement_mismatch(
+            "requirement.source-len", "requires.condition.left", "direct owned buffer")
+
     if not isinstance(covered_expr, dict) or covered_expr.get("e") != "op" \
             or covered_expr.get("op") != "imul.wrap" \
             or covered_expr.get("tyargs") != ["u64"] \
             or len(covered_expr.get("args", [])) != 2:
-        return None
+        return _requirement_mismatch(
+            "requirement.multiplier-three", "requires.covered", "groups * 3_u64")
     groups = _direct_place_name(covered_expr["args"][0])
     three = covered_expr["args"][1]
-    if three.get("e") != "lit" or three.get("ty") != "u64" or three.get("v") != 3:
-        return None
+    if not isinstance(three, dict) or three.get("e") != "lit" \
+            or three.get("ty") != "u64" or three.get("v") != 3:
+        actual = three.get("v") if isinstance(three, dict) else None
+        return _requirement_mismatch(
+            "requirement.multiplier-three", "requires.covered.multiplier", 3, actual)
+
     group_expr = defs.get(groups)
     if not isinstance(group_expr, dict) or group_expr.get("e") != "op" \
-            or group_expr.get("op") != "ishr.wrap" or group_expr.get("tyargs") != ["u64"] \
+            or group_expr.get("op") != "ishr.wrap" \
+            or group_expr.get("tyargs") != ["u64"] \
             or len(group_expr.get("args", [])) != 2:
-        return None
+        return _requirement_mismatch(
+            "requirement.output-shift-two", "requires.groups", "out_len >> 2_u32")
     out_len = _direct_place_name(group_expr["args"][0])
     shift = group_expr["args"][1]
-    if shift.get("e") != "lit" or shift.get("ty") != "u32" or shift.get("v") != 2:
-        return None
+    if not isinstance(shift, dict) or shift.get("e") != "lit" \
+            or shift.get("ty") != "u32" or shift.get("v") != 2:
+        actual = shift.get("v") if isinstance(shift, dict) else None
+        return _requirement_mismatch(
+            "requirement.output-shift-two", "requires.groups.shift", 2, actual)
+
     out_expr = defs.get(out_len)
     if not isinstance(out_expr, dict) or out_expr.get("e") != "op" \
             or out_expr.get("op") != "len" or len(out_expr.get("args", [])) != 1:
-        return None
+        return _requirement_mismatch(
+            "requirement.output-len", "requires.groups.input", "len(deref(output))")
     out = _plain_direct_place(out_expr["args"][0], deref=1)
-    if not src or not out or src == out: return None
+    if not out or src == out:
+        return _requirement_mismatch(
+            "requirement.output-len", "requires.groups.input", "distinct unique output")
 
     params = {p["name"]: p for p in f.get("params", [])}
     sp, op = params.get(src), params.get(out)
     if not sp or sp.get("mode", {}).get("kind") != "own" or not _buf_elem(sp.get("ty")):
-        return None
+        return _requirement_mismatch(
+            "requirement.parameter-modes", f"parameter.{src}", "owned buffer")
     if not op or op.get("mode", {}).get("kind") != "ref" \
             or not op.get("mode", {}).get("uniq") or not _buf_elem(op.get("ty")):
-        return None
-    return {"src": src, "out": out}
+        return _requirement_mismatch(
+            "requirement.parameter-modes", f"parameter.{out}", "unique buffer reference")
+    return {"state": "normalized", "fact": {"src": src, "out": out},
+            "first_failed_premise": None}
+
+def _capacity_requirement(f):
+    """Compatibility wrapper for callers that need only an admitted fact."""
+    normalized = _normalize_capacity_requirement(f)
+    return normalized["fact"] if normalized["state"] == "normalized" else None
 
 def _exact_direct_inc(st, name, amount):
     if st.get("s") != "set": return False
@@ -1930,7 +1986,7 @@ def _linear_statements(stmts):
     return all(st.get("s") in ("doc", "let", "set", "check", "expr")
                and "match" not in st for st in stmts)
 
-def _mark_capacity_place(pl, out, offsets):
+def _mark_capacity_place(pl, out, offsets, covered, apply_proof):
     ix = pl.get("index")
     if not ix: return
     target = ix.get("place", {})
@@ -1939,134 +1995,580 @@ def _mark_capacity_place(pl, out, offsets):
         return
     name = _direct_place_name(ix.get("atom"))
     if name in offsets:
-        ix["proof"] = "output-capacity-lockstep"
+        covered[id(ix)] = offsets[name]
+        if apply_proof:
+            ix["proof"] = "output-capacity-lockstep"
 
-def _mark_capacity_indexes(stmts, out, ovar):
+def _mark_capacity_indexes(stmts, out, ovar, apply_proof=True):
     # Scope the stability scan to this linear group/arm.  Bindings with the
     # same spelling in sibling match arms are distinct TYPE-6 environments.
     offsets = _bounded_offset_vars(stmts, ovar, 4, stmts)
+    covered = {}
     for st in stmts:
         for e in _direct_exprs_of(st):
             if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
-                _mark_capacity_place(e["p"], out, offsets)
+                _mark_capacity_place(e["p"], out, offsets, covered, apply_proof)
             for a in e.get("args", []):
-                _mark_capacity_expr(a, out, offsets)
+                _mark_capacity_expr(a, out, offsets, covered, apply_proof)
         if st.get("s") == "set" and st.get("p", {}).get("index"):
-            _mark_capacity_place(st["p"], out, offsets)
+            _mark_capacity_place(st["p"], out, offsets, covered, apply_proof)
+    return covered
 
-def _mark_capacity_expr(e, out, offsets):
+def _mark_capacity_expr(e, out, offsets, covered, apply_proof):
     if not isinstance(e, dict): return
     if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
-        _mark_capacity_place(e["p"], out, offsets)
+        _mark_capacity_place(e["p"], out, offsets, covered, apply_proof)
     for value in e.values():
-        if isinstance(value, dict): _mark_capacity_expr(value, out, offsets)
+        if isinstance(value, dict):
+            _mark_capacity_expr(value, out, offsets, covered, apply_proof)
         elif isinstance(value, list):
-            for item in value: _mark_capacity_expr(item, out, offsets)
+            for item in value:
+                _mark_capacity_expr(item, out, offsets, covered, apply_proof)
 
-def _prove_capacity_lockstep(f, fact):
-    """PROOF-2 v1: connect the checked 3:4 capacity fact to one exact loop.
+def _indexed_access_nodes(node):
+    """Return each indexed read or write once, in source order."""
+    out, seen = [], set()
+    def walk(value):
+        if isinstance(value, list):
+            for item in value: walk(item)
+            return
+        if not isinstance(value, dict): return
+        if value.get("e") in ("place", "move") \
+                and value.get("p", {}).get("index"):
+            ix = value["p"]["index"]
+            if id(ix) not in seen:
+                seen.add(id(ix)); out.append(ix)
+        if value.get("s") == "set" and value.get("p", {}).get("index"):
+            ix = value["p"]["index"]
+            if id(ix) not in seen:
+                seen.add(id(ix)); out.append(ix)
+        for child in value.values(): walk(child)
+    walk(node)
+    return out
 
-    At full iteration k, the admitted induction gives i=3k and o=4k.  Guard
-    fall-through proves 3(k+1)<=N<=3G, so o+d<4(k+1)<=4G<=C for d<4.
-    Exact tail==1/2 arms use ceil(N/3)=k+1 and the same bound.
+def _direct_increment_name(st):
+    """Name of a direct `x = x + literal` u64 increment, at any amount."""
+    if st.get("s") != "set": return None
+    p, e = st.get("p", {}), st.get("e", {})
+    if p.get("path") or p.get("post") or p.get("index") or p.get("deref"):
+        return None
+    name = p.get("base")
+    if not name or not isinstance(e, dict) or e.get("e") != "op" \
+            or e.get("op") != "iadd.wrap" or e.get("tyargs") != ["u64"] \
+            or len(e.get("args", [])) != 2 \
+            or _direct_place_name(e["args"][0]) != name \
+            or e["args"][1].get("e") != "lit" \
+            or e["args"][1].get("ty") != "u64":
+        return None
+    return name
+
+def _increment_names(node):
+    names = set()
+    def walk(value):
+        if isinstance(value, list):
+            for item in value: walk(item)
+            return
+        if not isinstance(value, dict): return
+        name = _direct_increment_name(value)
+        if name: names.add(name)
+        for child in value.values(): walk(child)
+    walk(node)
+    return names
+
+def _capacity_cursor_sites(stmts, ovar, params):
+    """Lexically find direct unique-buffer accesses indexed by `o` or `o+d`.
+
+    This deliberately ignores other cursors and other targets: they neither
+    acquire this obligation nor poison a canonical lockstep region.
+    """
+    out, seen = [], set()
+    def eligible(ix, names):
+        name = _direct_place_name(ix.get("atom"))
+        target = ix.get("place", {})
+        root = target.get("base")
+        p = params.get(root)
+        return name in names and target.get("deref", 0) == 1 \
+            and not target.get("path") and not target.get("post") and p \
+            and p.get("mode", {}).get("kind") == "ref" \
+            and p.get("mode", {}).get("uniq") and _buf_elem(p.get("ty"))
+    def add_expr(e, names):
+        if isinstance(e, list):
+            for item in e: add_expr(item, names)
+            return
+        if not isinstance(e, dict): return
+        if e.get("e") in ("place", "move") and e.get("p", {}).get("index"):
+            ix = e["p"]["index"]
+            if eligible(ix, names) and id(ix) not in seen:
+                seen.add(id(ix)); out.append(ix)
+        for child in e.values(): add_expr(child, names)
+    def walk(seq, inherited):
+        names = set(inherited)
+        for st in seq:
+            for e in _direct_exprs_of(st): add_expr(e, names)
+            if st.get("s") == "set" and st.get("p", {}).get("index"):
+                ix = st["p"]["index"]
+                if eligible(ix, names) and id(ix) not in seen:
+                    seen.add(id(ix)); out.append(ix)
+            e = st.get("e")
+            if st.get("s") == "let" and isinstance(e, dict) \
+                    and e.get("e") == "op" and e.get("op") == "iadd.wrap" \
+                    and e.get("tyargs") == ["u64"] and len(e.get("args", [])) == 2 \
+                    and _direct_place_name(e["args"][0]) == ovar \
+                    and e["args"][1].get("e") == "lit" \
+                    and e["args"][1].get("ty") == "u64":
+                names.add(st["n"])
+            if st.get("s") in ("loop", "region"):
+                walk(st.get("body", []), names)
+            if st.get("s") == "match":
+                for arm in st.get("arms", []): walk(arm.get("body", []), names)
+            if "match" in st:
+                for arm in st["match"].get("arms", []): walk(arm.get("body", []), names)
+    walk(stmts, {ovar})
+    return out
+
+def _capacity_failure(writes, reason, path, expected=None, observed=None,
+                      src=None, out=None):
+    return {
+        "state": "failed-premise", "sites": writes, "src": src, "out": out,
+        "first_failed_premise": _proof_premise(
+            reason, path, expected=expected, observed=observed),
+    }
+
+def _analyze_capacity_lockstep_body(f):
+    """Derive PROOF-2's candidate obligation from the body, never `requires`.
+
+    This is intentionally the old proof's exact conjunction, made observable.
+    A failed premise can only retain checks; it never licenses codegen.
     """
     body = f["body"]
-    src, out = fact["src"], fact["out"]
-    if _moved_or_reset(body, src) or _moved_or_reset(body, out): return
-    loops = [(pos, st) for pos, st in enumerate(body) if st.get("s") == "loop"]
-    if len(loops) != 1: return
-    pos, loop = loops[0]
-    b = [st for st in loop["body"] if st.get("s") != "doc"]
-    if len(b) < 4 or b[0].get("s") != "let" or b[1].get("s") != "match": return
+    all_accesses = _indexed_access_nodes(body)
+    if not all_accesses:
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
 
-    # Re-establish the exact PROOF-1 unsigned induction instead of inheriting
-    # a marker as a premise.
+    loops = [(pos, st) for pos, st in enumerate(body) if st.get("s") == "loop"]
+    anchors = []
+    for pos, loop in loops:
+        b = [st for st in loop.get("body", []) if st.get("s") != "doc"]
+        if len(b) >= 2 and b[0].get("s") == "let" and b[1].get("s") == "match":
+            sub = b[0].get("e", {})
+            if isinstance(sub, dict) and sub.get("e") == "op" \
+                    and sub.get("op") == "isub.wrap":
+                anchors.append((pos, loop, b))
+    if not anchors:
+        # A near-family must not become a B2 "no family applies" pass merely
+        # by inserting one harmless statement before the canonical anchor.
+        if len(loops) == 1:
+            _pos, _loop = loops[0]
+            candidate_body = [st for st in _loop.get("body", []) if st.get("s") != "doc"]
+            rems = [st for st in candidate_body if st.get("s") == "let"
+                    and isinstance(st.get("e"), dict)
+                    and st["e"].get("e") == "op"
+                    and st["e"].get("op") == "isub.wrap"
+                    and len(st["e"].get("args", [])) == 2]
+            if len(rems) == 1:
+                _nvar, _ivar = map(_direct_place_name, rems[0]["e"]["args"])
+                params = {p["name"]: p for p in f.get("params", [])}
+                _ovar = _direct_increment_name(candidate_body[-1]) \
+                    if candidate_body else None
+                if _ivar and (not _ovar or _ovar == _ivar):
+                    cursor_candidates = [
+                        name for name in sorted(_increment_names(candidate_body) - {_ivar})
+                        if _capacity_cursor_sites(body, name, params)
+                    ]
+                    _ovar = cursor_candidates[0] if len(cursor_candidates) == 1 else None
+                sites = _capacity_cursor_sites(body, _ovar, params) if _ovar else []
+                if sites:
+                    return _capacity_failure(
+                        sites, "body.supported-control", "loop.anchor-position",
+                        "remainder then guard at loop entry")
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
+    if len(anchors) != 1 or len(loops) != 1:
+        params = {p["name"]: p for p in f.get("params", [])}
+        sites, seen = [], set()
+        for _pos, _loop, candidate_body in anchors:
+            args = candidate_body[0].get("e", {}).get("args", [])
+            _ivar = _direct_place_name(args[1]) if len(args) == 2 else None
+            _ovar = _direct_increment_name(candidate_body[-1]) \
+                if candidate_body else None
+            if _ivar and (not _ovar or _ovar == _ivar):
+                cursor_candidates = [
+                    name for name in sorted(_increment_names(candidate_body[2:]) - {_ivar})
+                    if _capacity_cursor_sites(body, name, params)
+                ]
+                _ovar = cursor_candidates[0] if len(cursor_candidates) == 1 else None
+            for ix in _capacity_cursor_sites(body, _ovar, params) if _ovar else []:
+                if id(ix) not in seen:
+                    seen.add(id(ix)); sites.append(ix)
+        if sites:
+            return _capacity_failure(
+                sites, "body.supported-control", "body.loops", "one lockstep loop",
+                f"{len(loops)} loops")
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
+    pos, loop, b = anchors[0]
+
     rem, sub = b[0]["n"], b[0].get("e")
-    if not isinstance(sub, dict) or sub.get("e") != "op" or sub.get("op") != "isub.wrap" \
-            or sub.get("tyargs") != ["u64"] or len(sub.get("args", [])) != 2:
-        return
+    if sub.get("tyargs") != ["u64"] or len(sub.get("args", [])) != 2:
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
     nvar, ivar = map(_direct_place_name, sub["args"])
-    if not nvar or not ivar: return
+    if not nvar or not ivar:
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
+
+    params = {p["name"]: p for p in f.get("params", [])}
+    ovar = _direct_increment_name(b[-1]) if b else None
+    if not ovar or ovar == ivar:
+        candidates = [
+            name for name in sorted(_increment_names(b[2:]) - {ivar})
+            if _capacity_cursor_sites(body, name, params)
+        ]
+        ovar = candidates[0] if len(candidates) == 1 else None
+    if not ovar:
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
+    writes = _capacity_cursor_sites(body, ovar, params)
+    if not writes:
+        return {"state": "not-applicable", "sites": [],
+                "first_failed_premise": None}
+    outputs = {ix.get("place", {}).get("base") for ix in writes}
+    out = next(iter(outputs)) if len(outputs) == 1 else None
+
     ndefs = [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == nvar]
     if len(ndefs) != 1:
-        return
+        return _capacity_failure(
+            writes, "body.source-length", f"body.binding.{nvar}", "one len(source) binding")
     ne = ndefs[0].get("e", {})
-    if ne.get("e") != "op" or ne.get("op") != "len" or len(ne.get("args", [])) != 1 \
-            or _plain_direct_place(ne["args"][0], deref=0) != src:
-        return
+    src = None
+    if ne.get("e") == "op" and ne.get("op") == "len" and len(ne.get("args", [])) == 1:
+        src = _plain_direct_place(ne["args"][0], deref=0)
+    if not src:
+        return _capacity_failure(
+            writes, "body.source-length", f"body.binding.{nvar}", "len(direct owned buffer)")
+
+    sp = params.get(src)
+    if not sp or sp.get("mode", {}).get("kind") != "own" or not _buf_elem(sp.get("ty")):
+        return _capacity_failure(
+            writes, "body.source-root", f"parameter.{src}", "owned buffer", src=src)
+
     guard, sc = b[1], b[1].get("scrut")
     if not isinstance(sc, dict) or sc.get("e") != "op" or sc.get("op") != "ilt" \
             or sc.get("tyargs") != ["u64"] or len(sc.get("args", [])) != 2 \
-            or _direct_place_name(sc["args"][0]) != rem \
-            or sc["args"][1].get("e") != "lit" or sc["args"][1].get("ty") != "u64" \
-            or sc["args"][1].get("v") != 3:
-        return
+            or _direct_place_name(sc["args"][0]) != rem:
+        return _capacity_failure(
+            writes, "body.group-guard", "loop.guard", "ilt<u64>(remainder, 3)",
+            src=src, out=out)
+    stride_lit = sc["args"][1]
+    if stride_lit.get("e") != "lit" or stride_lit.get("ty") != "u64" \
+            or stride_lit.get("v") != 3:
+        observed = stride_lit.get("v") if isinstance(stride_lit, dict) else None
+        return _capacity_failure(
+            writes, "body.guard-input-stride", "loop.guard.literal", 3, observed,
+            src=src, out=out)
     arms = {a["v"]: a for a in guard.get("arms", [])}
     tguard = [x for x in arms.get("True", {}).get("body", []) if x.get("s") != "doc"]
     if set(arms) != {"True", "False"} or arms["False"]["body"] \
             or len(tguard) != 1 or tguard[0].get("s") != "break" \
             or tguard[0].get("l") != loop.get("l"):
-        return
-    ipre = [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == ivar
-            and st.get("e", {}).get("e") == "lit" and st["e"].get("ty") == "u64"
-            and st["e"].get("v") == 0]
-    if len(ipre) != 1: return
+        return _capacity_failure(
+            writes, "body.group-guard", "loop.guard.arms", "true breaks; false falls through",
+            src=src, out=out)
+
+    def exact_base(name, value):
+        return [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == name
+                and st.get("e", {}).get("e") == "lit" and st["e"].get("ty") == "u64"
+                and st["e"].get("v") == value]
+    if len(exact_base(ivar, 0)) != 1:
+        return _capacity_failure(
+            writes, "body.input-base", f"body.binding.{ivar}", "0_u64", src=src, out=out)
+    if len(exact_base(ovar, 0)) != 1:
+        return _capacity_failure(
+            writes, "body.output-base", f"body.binding.{ovar}", "0_u64", src=src, out=out)
+
+    group_i = _collect_direct_sets(b[2:], ivar)
+    if len(group_i) != 1 or not _exact_direct_inc(group_i[0], ivar, 3):
+        return _capacity_failure(
+            writes, "body.input-stride", "loop.input-increment", "i += 3",
+            src=src, out=out)
+    group_o = _collect_direct_sets(b[2:], ovar)
+    if len(group_o) != 1:
+        return _capacity_failure(
+            writes, "body.output-mutation", "loop.output-cursor", "one output increment",
+            f"{len(group_o)} mutations", src=src, out=out)
+    if not _exact_direct_inc(group_o[0], ovar, 4):
+        return _capacity_failure(
+            writes, "body.output-stride", "loop.output-increment", "o += 4",
+            src=src, out=out)
+    if len(b) < 4 or b[-2] is not group_i[0] or b[-1] is not group_o[0]:
+        return _capacity_failure(
+            writes, "body.increment-order", "loop.synchronization-point",
+            "final i += 3 then o += 4", src=src, out=out)
+    if not _linear_statements(b[2:]):
+        unstable = [
+            _direct_place_name(ix.get("atom")) for ix in writes
+            if _direct_place_name(ix.get("atom")) not in (None, ovar)
+            and _moved_or_reset(b[2:], _direct_place_name(ix.get("atom")))
+        ]
+        if unstable:
+            return _capacity_failure(
+                writes, "body.output-offset-stability",
+                f"loop.binding.{sorted(set(unstable))[0]}", "stable funded offset",
+                src=src, out=out)
+        return _capacity_failure(
+            writes, "body.supported-control", "loop.group-body", "straight-line group body",
+            src=src, out=out)
 
     tail_seq = [st for st in body[pos + 1:] if st.get("s") != "doc"]
-    if len(tail_seq) < 3: return
+    if len(tail_seq) < 3:
+        return _capacity_failure(
+            writes, "body.tail-shape", "body.after-loop", "tail binding and cases 1,2",
+            src=src, out=out)
     tail_let, tail_one, tail_two = tail_seq[:3]
     te = tail_let.get("e", {})
-    if tail_let.get("s") != "let" or te.get("e") != "op" or te.get("op") != "isub.wrap" \
-            or te.get("tyargs") != ["u64"] or len(te.get("args", [])) != 2 \
+    if tail_let.get("s") != "let" or te.get("e") != "op" \
+            or te.get("op") != "isub.wrap" or te.get("tyargs") != ["u64"] \
+            or len(te.get("args", [])) != 2 \
             or _direct_place_name(te["args"][0]) != nvar \
             or _direct_place_name(te["args"][1]) != ivar:
-        return
+        return _capacity_failure(
+            writes, "body.tail-expression", "body.tail", "n - i", src=src, out=out)
     tail = tail_let["n"]
+    if _collect_direct_sets(body[pos + 1:], tail):
+        return _capacity_failure(
+            writes, "body.tail-stability", f"body.binding.{tail}", "no mutation",
+            src=src, out=out)
 
     def tail_arm(match, value):
-        if match.get("s") != "match": return None
+        if match.get("s") != "match":
+            return None, _proof_premise(
+                "body.tail-case", f"tail[{value}]", f"tail == {value}")
         eq = match.get("scrut", {})
-        if eq.get("e") != "op" or eq.get("op") != "ieq" or eq.get("tyargs") != ["u64"] \
-                or len(eq.get("args", [])) != 2 or _direct_place_name(eq["args"][0]) != tail \
-                or eq["args"][1].get("e") != "lit" or eq["args"][1].get("ty") != "u64" \
-                or eq["args"][1].get("v") != value:
-            return None
+        lit = eq.get("args", [{}, {}])[1] if isinstance(eq, dict) \
+            and len(eq.get("args", [])) == 2 else {}
+        if eq.get("e") != "op" or eq.get("op") != "ieq" \
+                or eq.get("tyargs") != ["u64"] or len(eq.get("args", [])) != 2 \
+                or _direct_place_name(eq["args"][0]) != tail \
+                or lit.get("e") != "lit" or lit.get("ty") != "u64" \
+                or lit.get("v") != value:
+            observed = lit.get("v") if isinstance(lit, dict) else None
+            return None, _proof_premise(
+                "body.tail-case", f"tail[{value}].condition", value, observed)
         aa = {a["v"]: a for a in match.get("arms", [])}
         false_body = [x for x in aa.get("False", {}).get("body", []) if x.get("s") != "doc"]
         true_body = [x for x in aa.get("True", {}).get("body", []) if x.get("s") != "doc"]
-        if set(aa) != {"True", "False"} or false_body or not true_body \
-                or not _linear_statements(true_body) or not _exact_direct_inc(true_body[-1], ovar, 4):
-            return None
-        return true_body
+        if set(aa) != {"True", "False"} or not true_body:
+            return None, _proof_premise(
+                "body.tail-shape", f"tail[{value}].arms", "nonempty true; empty false")
+        if false_body:
+            reason = "body.output-mutation" if _collect_direct_sets(false_body, ovar) \
+                else "body.tail-shape"
+            return None, _proof_premise(
+                reason, f"tail[{value}].false", "empty false arm")
+        if not _linear_statements(true_body):
+            return None, _proof_premise(
+                "body.supported-control", f"tail[{value}].true", "straight-line body")
+        if not _exact_direct_inc(true_body[-1], ovar, 4):
+            return None, _proof_premise(
+                "body.output-stride", f"tail[{value}].output-increment", "o += 4")
+        return true_body, None
 
-    # The loop's final paired increments are the synchronization point.
-    if not _linear_statements(b[2:]) or not _exact_direct_inc(b[-2], ivar, 3): return
-    ovar = b[-1].get("p", {}).get("base") if b[-1].get("s") == "set" else None
-    if not ovar or not _exact_direct_inc(b[-1], ovar, 4): return
-    opre = [st for st in body[:pos] if st.get("s") == "let" and st.get("n") == ovar
-            and st.get("e", {}).get("e") == "lit" and st["e"].get("ty") == "u64"
-            and st["e"].get("v") == 0]
-    if len(opre) != 1: return
-    one_body = tail_arm(tail_one, 1)
-    two_body = tail_arm(tail_two, 2)
-    if one_body is None or two_body is None: return
+    one_body, failure = tail_arm(tail_one, 1)
+    if failure is not None:
+        return {"state": "failed-premise", "sites": writes, "src": src, "out": out,
+                "first_failed_premise": failure}
+    two_body, failure = tail_arm(tail_two, 2)
+    if failure is not None:
+        return {"state": "failed-premise", "sites": writes, "src": src, "out": out,
+                "first_failed_premise": failure}
 
-    approved_i = [b[-2]]
-    approved_o = [b[-1], one_body[-1], two_body[-1]]
-    if _collect_direct_sets(body, ivar) != approved_i \
-            or _collect_direct_sets(body, ovar) != approved_o:
-        return
-    deps = (nvar, ivar, ovar, rem, tail)
-    if any(_borrows_name(body, name) or _expr_moves(body, name) for name in deps):
-        return
-    if any(_moved_or_reset(body, name) for name in (nvar, rem, tail)):
+    approved_i = [group_i[0]]
+    approved_o = [group_o[0], one_body[-1], two_body[-1]]
+    if _collect_direct_sets(body, ivar) != approved_i:
+        return _capacity_failure(
+            writes, "body.input-mutation", "body.input-cursor", "one approved increment",
+            src=src, out=out)
+    if _collect_direct_sets(body, ovar) != approved_o:
+        return _capacity_failure(
+            writes, "body.output-mutation", "body.output-cursor", "three approved increments",
+            src=src, out=out)
+    if _collect_direct_sets(body, tail):
+        return _capacity_failure(
+            writes, "body.tail-stability", "body.tail", "no mutation", src=src, out=out)
+    if _borrows_name(body, ovar) or _expr_moves(body, ovar):
+        return _capacity_failure(
+            writes, "body.output-cursor-stability", f"body.binding.{ovar}", "stable direct cursor",
+            src=src, out=out)
+    for name, reason in ((nvar, "body.source-length-stability"),
+                         (ivar, "body.input-cursor-stability"),
+                         (rem, "body.remainder-stability"),
+                         (tail, "body.tail-stability")):
+        reset_invalidates = name != ivar and _moved_or_reset(body, name)
+        if _borrows_name(body, name) or _expr_moves(body, name) or reset_invalidates:
+            return _capacity_failure(
+                writes, reason, f"body.binding.{name}", "stable direct value",
+                src=src, out=out)
+    if _moved_or_reset(body, src):
+        return _capacity_failure(
+            writes, "body.source-stability", f"parameter.{src}", "stable source",
+            src=src, out=out)
+    output_failures = {
+        root: _proof_premise(
+            "body.output-stability", f"parameter.{root}", "stable output")
+        for root in outputs if _moved_or_reset(body, root)
+    }
+
+    return {
+        "state": "derived", "sites": writes, "src": src, "outputs": outputs,
+        "output_failures": output_failures,
+        "ivar": ivar, "ovar": ovar, "nvar": nvar, "rem": rem, "tail": tail,
+        "regions": [b[2:-2], one_body[:-1], two_body[:-1]],
+        "first_failed_premise": None,
+    }
+
+def _capacity_expr_total_for_exact(e, covered):
+    """Closed whitelist for expressions that cannot preempt the modeled sites."""
+    if not isinstance(e, dict): return False
+    kind = e.get("e")
+    if kind == "lit": return True
+    if kind in ("place", "move"):
+        p = e.get("p", {})
+        if p.get("index"):
+            return id(p["index"]) in covered \
+                and _capacity_expr_total_for_exact(p["index"].get("atom"), covered)
+        return not p.get("path") and not p.get("post")
+    if kind == "op" and e.get("op") in {
+            "len", "isub.wrap", "iadd.wrap", "ilt", "ieq"}:
+        return all(_capacity_expr_total_for_exact(arg, covered)
+                   for arg in e.get("args", []))
+    return False
+
+def _capacity_region_is_exact(region, coverage):
+    """Closed-fragment coverage part of exactness for one emitted group."""
+    return len(coverage) == 4 and set(coverage.values()) == {0, 1, 2, 3}
+
+def _capacity_body_is_exact(body, covered):
+    """Reject exact/minimal claims when any path may preempt a funded site."""
+    if any(id(ix) not in covered for ix in _indexed_access_nodes(body)):
+        return False
+    def explicit_preemption(node):
+        if isinstance(node, list):
+            return any(explicit_preemption(item) for item in node)
+        if not isinstance(node, dict): return False
+        if node.get("s") in ("check", "expr"): return True
+        return any(explicit_preemption(value) for value in node.values())
+    if explicit_preemption(body): return False
+    return all(_capacity_expr_total_for_exact(e, covered)
+               for st in body for e in _exprs_of(st))
+
+def _capacity_missing_fact(plan, out):
+    return {
+        "family": "output-capacity-lockstep",
+        "source": plan["src"], "output": out,
+        "input_stride": 3, "output_stride": 4,
+        "condition": "len(source) <= 3 * floor(len(output) / 4)",
+    }
+
+def _capacity_info(status, exactness=None, relation="unknown", missing=None, failed=None):
+    return {
+        "obligation": "output-capacity-lockstep",
+        "obligation_status": status,
+        "obligation_exactness": exactness,
+        "requirement_relation": relation,
+        "first_missing_fact": missing,
+        "first_failed_premise": failed,
+    }
+
+def _analyze_capacity_obligation(f, apply_proofs, annotate=True):
+    """Attach diagnostics and, only for the legacy exact match, proof markers."""
+    plan = _analyze_capacity_lockstep_body(f)
+    if plan["state"] == "not-applicable": return
+    if plan["state"] == "failed-premise":
+        info = _capacity_info(
+            "failed-premise", exactness="unknown", relation="unknown",
+            failed=plan["first_failed_premise"])
+        if annotate:
+            for ix in plan["sites"]: ix["obligation_info"] = info.copy()
         return
 
-    # Mark only accesses before each exact o increment.  Any unrecognized
-    # offset remains dynamically checked, yielding safe mixed classifications.
-    _mark_capacity_indexes(b[2:-2], out, ovar)
-    _mark_capacity_indexes(one_body[:-1], out, ovar)
-    _mark_capacity_indexes(two_body[:-1], out, ovar)
+    requirement = _normalize_capacity_requirement(f)
+    region_site_sets = [
+        {id(ix) for ix in _indexed_access_nodes(region)} for region in plan["regions"]
+    ]
+    region_sites = set().union(*region_site_sets)
+    for out in sorted(plan["outputs"]):
+        sites = [ix for ix in plan["sites"] if ix.get("place", {}).get("base") == out]
+        output_failure = plan["output_failures"].get(out)
+        if output_failure is not None:
+            if annotate:
+                info = _capacity_info(
+                    "failed-premise", exactness="unknown", relation="unknown",
+                    failed=output_failure)
+                for ix in sites: ix["obligation_info"] = info.copy()
+            continue
+
+        missing = None
+        failed = requirement["first_failed_premise"]
+        if requirement["state"] == "missing":
+            relation = "missing"; missing = _capacity_missing_fact(plan, out)
+        elif requirement["state"] == "mismatch":
+            relation = "mismatch"; missing = _capacity_missing_fact(plan, out)
+        else:
+            fact = requirement["fact"]
+            if fact["src"] != plan["src"]:
+                relation = "mismatch"; missing = _capacity_missing_fact(plan, out)
+                failed = _proof_premise(
+                    "requirement.matches-body-source", "requires.source",
+                    plan["src"], fact["src"])
+            elif fact["out"] != out:
+                relation = "mismatch"; missing = _capacity_missing_fact(plan, out)
+                failed = _proof_premise(
+                    "requirement.matches-body-output", "requires.output", out, fact["out"])
+            else:
+                relation = "equivalent"
+
+        region_coverage = [
+            _mark_capacity_indexes(region, out, plan["ovar"], apply_proof=False)
+            for region in plan["regions"]
+        ]
+        covered = {}
+        for region in region_coverage: covered.update(region)
+        exact = all(_capacity_region_is_exact(region, coverage)
+                    for region, coverage in zip(plan["regions"], region_coverage)) \
+            and _capacity_body_is_exact(f["body"], covered)
+
+        if relation == "equivalent" and apply_proofs:
+            for region in plan["regions"]:
+                _mark_capacity_indexes(region, out, plan["ovar"], apply_proof=True)
+
+        if not annotate: continue
+        for ix in sites:
+            if id(ix) in covered:
+                ix["obligation_info"] = _capacity_info(
+                    "derived", exactness="exact" if exact else "sufficient",
+                    relation=relation, missing=missing, failed=failed)
+            else:
+                name = _direct_place_name(ix.get("atom"))
+                unstable = name not in (None, plan["ovar"]) and any(
+                    id(ix) in site_ids and _moved_or_reset(region, name)
+                    for region, site_ids in zip(plan["regions"], region_site_sets)
+                )
+                if unstable:
+                    reason = "body.output-offset-stability"
+                elif id(ix) not in region_sites:
+                    reason = "body.output-site-unfunded"
+                else:
+                    reason = "body.output-offset-funded"
+                ix["obligation_info"] = _capacity_info(
+                    "failed-premise", exactness="unknown", relation="unknown",
+                    failed=_proof_premise(
+                        reason, "body.indexed-access",
+                        "direct output offset in [0, 3]"))
+
+def _prove_capacity_lockstep(f, fact=None):
+    """Compatibility entry: body-first analysis owns legacy marker application."""
+    _analyze_capacity_obligation(f, apply_proofs=True, annotate=False)
 
 def _prove_remainder_loops(stmts, lens, whole_body):
     """Pattern B: prove an exact fixed-stride remainder loop.
@@ -2190,9 +2692,7 @@ def prove_inbounds(fns, consts):
                     walk(st["body"])
         walk(body)
         _prove_remainder_loops(body, lens, body)
-        capacity = _capacity_requirement(f)
-        if capacity is not None:
-            _prove_capacity_lockstep(f, capacity)
+        _analyze_capacity_obligation(f, apply_proofs=True, annotate=False)
         # pattern C: const-table index masked to the table size (power of two)
         def _markc_expr(e, masks):
             if isinstance(e, list):
@@ -2336,6 +2836,11 @@ def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
     structs, enums, fns, contracts, conforms, consts = parse_program(src)
     check_program(build_prog(structs, enums, fns, consts))
     proved = discharge_laws(contracts, conforms, fns)
+    if proof_report is not None:
+        # Snapshot source-derived obligation diagnostics before any facts-only
+        # AST rewrite.  Later proof application may set markers but must not
+        # reinterpret this diagnostic control oracle.
+        for f in fns: _analyze_capacity_obligation(f, apply_proofs=False)
     if alias: reassociate_reductions(fns, proved)      # [FN-4] facts channel; --no-facts is the control
     payenums = {en for en, vs in enums.items() if _enum_payw(vs) > 0}
     _TAGONLY2.clear()
@@ -2366,7 +2871,8 @@ def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
         else:                                          # scalar const: fold to its literal at use sites
             cmap[c["name"]] = ("scalar", _litval(c["vals"][0]), _is_signed(c["ty"]))
     Gen._consts = cmap
-    if alias: prove_inbounds(fns, cmap)                # [OP-4 PROOF-1] facts channel
+    if alias:
+        prove_inbounds(fns, cmap)                      # [OP-4 PROOF-1/2] facts channel
     bodies = [Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr,
                   elide=elide_bounds, proof_report=proof_report).run() for f in fns]
     if cglobals: bodies.insert(0, "\n".join(cglobals) + "\n")

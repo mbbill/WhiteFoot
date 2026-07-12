@@ -521,3 +521,34 @@ The initial fixed-order base64 run correctly found that Rust's up-front assert r
 ## Controlled base64 adversary correction: practical parity, no 5% residual (2026-07-11)
 
 Rebuilt xlang PROOF-2 and four full-tail Rust candidates into one executable; the primary safe chunks candidate plus assert/unsafe use the same checked entry-capacity relation, while naive deliberately remains the ordinary-bounds-check control. The harness requires 27 proved / 0 retained sites, verifies exact-capacity output for every length 0..257, and retains the existing 139-case differential/foreign-boundary gate. Evidence protocol: 384MB, native M4 codegen, 30 fresh-process Williams blocks across three cycles, shared buffers/clock within each block, every ordinal position and ordered first-order pair balanced six times inside isolated blocks, deterministic block-order shuffle, all samples retained, descriptive 10,000-resample process-block bootstrap interval, and a predeclared plus-or-minus-2% practical-equivalence band. Medians: xlang-obvious+requires 4.285 GB/s; Rust naive 2.673; Rust assert-up-front 2.677; full-semantics safe Rust chunks 4.297; unsafe indexed Rust 4.111. Primary XL/Rust-chunks throughput ratio 0.997, descriptive interval 0.994..0.999; cycle medians 0.997/0.994/0.999 and XL-first/Rust-first medians 0.997/0.995. This is **practical parity under the 2% rule**, not exact equality and not a meaningful xlang codegen deficit. Assert-up-front remains refuted dynamically and in assembly; expert safe Rust still structurally removes the checks, so D9/QOI and W1 rulings are unchanged. Canonical evidence: `experiments/port-study/base64/RESULTS.md`; raw CSV SHA-256 `ebea523dda82e7e7d3156da1dbb982a58fa5672a1c2bf751dbfd5a488fca7a20`; metadata sidecar SHA-256 `1b83368d7127f96304c97bd65d29aa16406f0ea28387ca2c4a2fa1c651316f84`.
+
+## Obligation-driven PROOF-2 first slice implemented (2026-07-11)
+
+The reviewed first slice is now concrete. PROOF-2's dependency is reversed:
+the compiler derives the closed supported 3:4 lockstep obligation and candidate
+sites from the body, independently normalizes the checked FN-8 requirement,
+then compares the two. Only the same exact body + exact requirement pair
+accepted by the old recognizer may apply the existing
+`output-capacity-lockstep` marker. The external site report now carries
+obligation status/exactness, requirement relation, canonical first missing
+fact, and deterministic first failed premise. Facts-off runs the same analysis
+but applies no marker, so diagnostics—not only site enumeration—are a control
+oracle.
+
+All 37 output-capacity cases now pin those states and reasons in the existing
+parity gate, including exact mixed-site distributions and exact missing-fact
+objects. The real base64 gate separately pins 12 sufficient/equivalent output
+obligations plus 15 unrelated source/table sites. Pre/post compiler comparison
+over all 88 corpus programs in both facts modes found 176/176 identical
+acceptance results and byte-identical LLVM IR. Focused PROOF-2, all-bounds,
+base64's 139-case differential/foreign-boundary verifier, the facts-independent
+regression pin, and `make check` are green (224 conformance cases; 90/90 rules;
+all six layers). P9 in PATTERNS.md now teaches the reviewed doctrine: a
+`requires` predicate is an actual invalid-call boundary, not a common case or
+worst-case allocator hint; expected shortage is a recoverable value.
+
+Scope remains deliberately narrow: no warning has become a language error, no
+guard versioning or counterexample search was added, and no approval/promotion
+authority is implemented. The next major implementation is the obligation-
+backed checked-automation promotion gate from review B2, using the existing
+parity artifact rather than a parallel policy system.

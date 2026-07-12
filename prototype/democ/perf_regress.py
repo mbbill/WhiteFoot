@@ -57,3 +57,31 @@ assert _plain == _reported, "CODEGEN REGRESSION: proof accounting changed emitte
 assert len(_pr_sites) == 1 and _pr_sites[0]["status"] == "proved", \
     "PROOF REGRESSION: structured site accounting changed"
 print("OK: bounds-proof accounting is byte-transparent")
+
+# Sixth pin [OP-4 PROOF-2]: obligation discovery is body-derived and remains
+# identical in the facts-off control; only the old proof marker/codegen state
+# may differ.  Reporting itself must remain byte-transparent in both modes.
+_p2_src = Path("../../codegen-corpus/cases/bounds/output-capacity-lockstep/p05-complete-groups.xl").read_text()
+_p2_facts, _p2_nofacts = [], []
+_p2_plain_facts = _d.compile_program(_p2_src, alias=True)
+_p2_reported_facts = _d.compile_program(_p2_src, alias=True, proof_report=_p2_facts)
+_p2_plain_nofacts = _d.compile_program(_p2_src, alias=False)
+_p2_reported_nofacts = _d.compile_program(
+    _p2_src, alias=False, proof_report=_p2_nofacts)
+assert _p2_plain_facts == _p2_reported_facts \
+    and _p2_plain_nofacts == _p2_reported_nofacts, \
+    "CODEGEN REGRESSION: PROOF-2 obligation reporting changed emitted IR"
+_diag_fields = (
+    "obligation", "obligation_status", "obligation_exactness",
+    "requirement_relation", "first_missing_fact", "first_failed_premise",
+)
+_p2_fdiag = [{k: site[k] for k in _diag_fields} for site in _p2_facts]
+_p2_ndiag = [{k: site[k] for k in _diag_fields} for site in _p2_nofacts]
+assert len(_p2_facts) == 12 and _p2_fdiag == _p2_ndiag, \
+    "PROOF REGRESSION: PROOF-2 facts/no-facts diagnostics diverged"
+assert all(site["status"] == "proved" and site["obligation_exactness"] == "exact"
+           and site["requirement_relation"] == "equivalent" for site in _p2_facts), \
+    "PROOF REGRESSION: exact PROOF-2 sites changed"
+assert all(site["status"] == "retained" for site in _p2_nofacts), \
+    "PROOF REGRESSION: facts-off PROOF-2 sites were elided"
+print("OK: PROOF-2 obligations are byte-transparent and facts-independent")
