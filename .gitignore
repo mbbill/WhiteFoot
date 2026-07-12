@@ -40,6 +40,7 @@ experiments/**/probe_*
 experiments/**/kernel_bin
 experiments/**/memchr_ref
 experiments/**/rust_chunk_wc
+experiments/**/rust_adversary
 experiments/**/c_chunk_wc
 experiments/**/cref
 experiments/**/fuzzdiff

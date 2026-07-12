@@ -1,0 +1,55 @@
+{
+  "compile_flags": {
+    "clang": [
+      "-O3",
+      "-mcpu=native",
+      "-c"
+    ],
+    "rustc": [
+      "--edition=2024",
+      "-C opt-level=3",
+      "-C target-cpu=native",
+      "-C codegen-units=1",
+      "-C panic=abort"
+    ],
+    "xlang_ir": "democ.compile_program(default facts; asserted 27 proved, 0 retained)"
+  },
+  "generated_at": "2026-07-11T15:05:04.649507-07:00",
+  "git_commit": "adf2e3ebaf03277aa09690f64224de2265456aa8",
+  "git_status": [
+    " M experiments/port-study/base64/RESULTS.md",
+    " M experiments/port-study/base64/rust_adversary.rs",
+    " M optimizer-language-research/implementation/decision-gates.md",
+    "?? experiments/port-study/base64/adversary-rerun-2026-07-11.csv",
+    "?? experiments/port-study/base64/adversary-rerun-2026-07-11.metadata.json",
+    "?? experiments/port-study/base64/adversary_benchmark.py",
+    "?? experiments/port-study/base64/paired_adversary.rs"
+  ],
+  "host": "macOS-26.5.1-arm64-arm-64bit-Mach-O; arm64",
+  "proof_summary": {
+    "output_capacity_lockstep": 12,
+    "proved": 27,
+    "retained": 0
+  },
+  "protocol": {
+    "bootstrap_resamples": 10000,
+    "bytes": 384000000,
+    "cycles": 3,
+    "isolated_process_blocks": 30,
+    "order_seed": 2916,
+    "practical_equivalence_margin": 0.02,
+    "samples_per_variant": 30
+  },
+  "raw_csv": "adversary-rerun-2026-07-11.csv",
+  "raw_csv_sha256": "ebea523dda82e7e7d3156da1dbb982a58fa5672a1c2bf751dbfd5a488fca7a20",
+  "source_sha256": {
+    "experiments/port-study/base64/adversary_benchmark.py": "e566d0d8119db0c653871dac71cc25972f514c101901821b387e46a9327c3893",
+    "experiments/port-study/base64/b64.xl": "e3abbce3c8d1b24eba3471c5c0ea6800418d38c3d3d97ce64b7f15d2abfb9764",
+    "experiments/port-study/base64/paired_adversary.rs": "1544b310acd955d0af547a07e0d8ded4d10216b3b1f93e0607c4bfc770809c55",
+    "prototype/democ/democ.py": "7e1c30178cddbd0d0b899f2c25da354ddd16b8b55ebed5e426083da8742e5e05"
+  },
+  "toolchains": {
+    "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "rustc": "rustc 1.91.1 (ed61e7d7e 2025-11-07); binary: rustc; commit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb; commit-date: 2025-11-07; host: aarch64-apple-darwin; release: 1.91.1; LLVM version: 21.1.2"
+  }
+}

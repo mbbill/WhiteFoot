@@ -1,6 +1,9 @@
-// The pre-registered honest adversary for the base64 proof-tier result:
-// can safe Rust recover the check elision via the assert-up-front idiom?
-// Four variants, same 3:4 algorithm as b64.xl, plus the unsafe ceiling.
+// Historical first adversary harness for the base64 proof-tier result.
+// It runs variants in a fixed order, encodes full 3-byte groups only, and is
+// retained to reproduce the initial assert-recovery test.  Do not use it for
+// the controlled cross-language ranking: paired_adversary.rs adds padded tails,
+// matched capacity semantics, shared buffers/clock inside isolated process
+// blocks, and balanced timing order.
 use std::time::Instant;
 
 const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

@@ -1,8 +1,10 @@
 # base64 port (safe-direction pilot #2)
 
-Status: MEASURED 2026-07-10. First const-array consumer: byte-identical to the
-RFC 4648 alphabet, fuzz-verified, faster than GNU and the Rust rewrite, ~parity
-with the platform-tuned BSD tool.
+Status: MEASURED 2026-07-10; PROOF-2 and controlled-adversary update
+2026-07-11. First const-array consumer: byte-identical to the RFC 4648
+alphabet and fuzz-verified. The complete xlang CLI beats GNU, the uutils
+base64 CLI, and the platform BSD tool after proof elision; its scalar kernel
+is in practical parity with expert safe Rust.
 
 ## What it proves
 - The const-array feature (implemented this session) works on a real codec:
@@ -10,7 +12,7 @@ with the platform-tuned BSD tool.
 - Byte-identical to system base64 on all RFC 4648 test vectors and 300/300
   random fuzz cases (newline-normalized; both encode identically).
 
-## Performance (384MB random input, warm, medians, Apple M4)
+## Initial pre-proof performance (384MB random input, warm, medians, Apple M4)
 | implementation | time |
 |---|---:|
 | BSD base64 (macOS, platform-tuned) | **0.20s** |
@@ -19,12 +21,12 @@ with the platform-tuned BSD tool.
 | GNU base64 (gbase64) | 0.36s |
 | uutils base64 (Rust) | 0.36s |
 
-- xlang is 1.6x faster than GNU AND the Rust rewrite; ~15% behind BSD's
+- xlang is 1.6x faster than GNU and the uutils base64 CLI; ~15% behind BSD's
   hand-tuned encoder. A codec is the "fast shape is the obvious shape" case —
   parity-at-C-speed is the honest headline, not a speed win.
-- facts vs no-facts is neutral here (single owned src buffer + one out-borrow,
-  no cross-buffer aliasing pressure) — the story is codegen quality + safety,
-  not the alias channels.
+- Alias facts vs no alias facts were neutral in this pre-bounds-proof snapshot
+  (single owned src buffer + one out-borrow, no cross-buffer aliasing
+  pressure). PROOF-1/2 later made bounds facts strongly non-neutral.
 
 ## Language findings surfaced (fed to notes/pattern doctrine)
 1. ANF is verbose for bit-twiddling: base64's `(x >> 18) & 63` becomes two
@@ -135,29 +137,86 @@ Kernel: 4.05-4.12 GB/s with proofs vs 2.45-2.48 no-facts control (1.66x) —
 97% of the perfect-prover ceiling (4.2), with full trap-on-violation
 semantics and the boundary check intact. History: pre-proof checked build
 was 0.23s and LOST to BSD's 0.20; the proof tier flipped the ladder — now
-1.3x ahead of BSD, 2.25x ahead of GNU and the Rust rewrite.
+1.3x ahead of BSD and 2.25x ahead of GNU and the uutils base64 CLI.
 
-## Pre-registered adversary: Rust assert-up-front (2026-07-11)
+## Controlled Rust adversary correction (2026-07-11)
 
-Four Rust variants, same 384MB, same machine (kernel GB/s):
-| variant | GB/s |
-|---|---:|
-| rust naive indexed | 2.52 |
-| rust assert-up-front (the requires-equivalent) | **2.51 — recovers NOTHING** |
-| rust idiomatic chunks_exact/zip (expert shape) | 4.29 |
-| rust unsafe get_unchecked ceiling | 4.29 |
-| xlang obvious shape + requires (for reference) | 4.09 |
+The original adversary table mixed two fixed-order harnesses and compared the
+complete checked xlang encoder with a Rust `chunks_exact/zip` kernel that
+silently truncated short output and discarded one-/two-byte input tails. Its
+apparent ~5% Rust lead is superseded by this controlled rerun. The old 384MB
+input was divisible by three and its output was ample, so those API mismatches
+did not execute in the timed path; fixing them makes the comparison honest,
+while isolated balanced timing fixes the unsupported ranking.
 
-Verdicts: (1) The assert idiom is REFUTED as a recovery path — LLVM cannot
-connect the hoisted capacity assert to the coupled-counter bounds checks; the
-elision is genuinely checker-attributable, not heuristic-recoverable.
-(2) BUT expert Rust reaches the ceiling by RESTRUCTURING: chunks_exact/zip
-makes the checks structurally nonexistent (base64's fixed 3:4 shape is
-exactly iterator-friendly). Base64 therefore does NOT clear D9's strict
-"beats best-effort safe Rust" bar; the honest claim is distributional:
-xlang's obvious indexed shape + a one-line checked contract = 4.09; Rust's
-obvious indexed shape = 2.5 with NO local annotation fix — the writer must
-know the iterator rewrite. (3) Residual 4.29 vs 4.09 (~5%) is loop-shape
-quality, worth a look. (4) CONSEQUENCE: the decisive leg-B test moves to the
-class where iterator restructuring CANNOT sidestep checks — variable-size
-writes (QOI decode, the chosen decoder experiment).
+`adversary_benchmark.py` builds one executable containing xlang PROOF-2 and
+four Rust variants. Each of 30 timing blocks runs in a fresh process; within a
+block all five variants share the same source buffer, exact-capacity output
+buffer, and clock. Every Rust variant now emits RFC-padded tails. The assert,
+chunks, and unsafe candidates enforce the same entry-capacity relation as xlang;
+naive remains the deliberate ordinary-bounds-check control. Before timing,
+the harness checks all five outputs at exact capacity for every length 0..257;
+the independent 139-case differential and short-capacity trap gate also
+remains green. The build additionally requires the xlang proof report to stay
+at 27 proved, 0 retained, including 12 output-capacity-lockstep sites. Both
+toolchains target the native Apple M4: rustc 1.91.1 (LLVM 21.1.2) and Apple
+clang 21.0.0 at `-O3`/equivalent, one codegen unit, and aborting Rust panics.
+
+The evidence pass uses three cycles of ten isolated Williams-balanced process
+blocks: 30 samples per variant, every variant in every ordinal position six
+times, and every ordered first-order pair six times inside isolated blocks.
+Block execution order is deterministically shuffled; all samples are retained.
+The table reports normalized `MAD / median`. `XL/variant` is the median
+within-process throughput ratio with a descriptive deterministic
+10,000-resample process-block bootstrap interval, not a general-population
+confidence claim. The primary practical-equivalence margin was fixed at plus
+or minus 2% before the 384MB evidence run.
+
+| variant | median | MAD/median | throughput | XL/variant process-block ratio (row-bootstrap 95% interval) |
+|---|---:|---:|---:|---:|
+| xlang obvious shape + requires | 89.625 ms | 0.27% | **4.285 GB/s** | 1.000 |
+| Rust naive indexed | 143.670 ms | 0.30% | 2.673 GB/s | 1.602 (1.598..1.613) |
+| Rust assert-up-front | 143.427 ms | 0.25% | 2.677 GB/s | 1.604 (1.598..1.610) |
+| Rust safe `chunks_exact/zip`, full semantics | **89.355 ms** | 0.29% | **4.297 GB/s** | **0.997 (0.994..0.999)** |
+| Rust unsafe indexed | 93.407 ms | 0.90% | 4.111 GB/s | 1.040 (1.033..1.043) |
+
+Verdicts:
+
+1. The assert idiom remains refuted as a recovery path. Assert and naive are
+   indistinguishable at about 2.67 GB/s, and assembly inspection shows the same
+   inner source and output bounds branches. LLVM still cannot connect the
+   entry relation to the coupled `i += 3, o += 4` induction.
+2. Expert safe Rust still reaches the fastest measured check-free scalar
+   performance class by restructuring. Its
+   `chunks_exact/zip` loop computes one group count and contains no inner
+   bounds branches, so base64 still does **not** clear D9's strict
+   best-effort-safe-Rust bar.
+3. The corrected primary comparison is practical parity, not a 5% codegen
+   deficit: the observed paired Rust edge is about 0.3%, and the descriptive
+   row-bootstrap interval stays between 0.1% and 0.6%, entirely inside the
+   predeclared 2% band. Per-cycle medians are 0.997, 0.994, and 0.999;
+   XL-first and Rust-first medians are 0.997 and 0.995. The old "~5% residual
+   = loop-shape quality" attribution is withdrawn. The assembly shapes still
+   differ, but this experiment establishes no practically meaningful
+   throughput debt above the 2% margin.
+4. The durable W1 result is distributional: xlang's obvious indexed loop plus
+   one checked relation reaches expert-safe-Rust performance, whereas Rust's
+   obvious indexed loop stays near 2.7 GB/s and the local assert changes
+   nothing. The writer must know the iterator restructuring.
+5. QOI decode remains the decisive leg-B experiment because variable-size
+   token writes cannot be reduced to fixed `chunks_exact` pairs this way.
+
+Reproduce with:
+
+```sh
+python3 experiments/port-study/base64/verify.py
+python3 experiments/port-study/base64/adversary_benchmark.py 384000000 3
+```
+
+The 150 retained timing samples are in
+`adversary-rerun-2026-07-11.csv` (SHA-256
+`ebea523dda82e7e7d3156da1dbb982a58fa5672a1c2bf751dbfd5a488fca7a20`).
+`adversary-rerun-2026-07-11.metadata.json` pins the exact source hashes,
+toolchains, flags, host, proof accounting, protocol, base commit, and dirty
+state (sidecar SHA-256
+`1b83368d7127f96304c97bd65d29aa16406f0ea28387ca2c4a2fa1c651316f84`).
