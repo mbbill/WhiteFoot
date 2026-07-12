@@ -15,6 +15,7 @@ check:
 	$(PY) test_semantic_facts.py
 	$(PY) test_semantic_body.py
 	$(PY) test_semantic_buffer.py
+	$(PY) test_semantic_scanner.py
 	$(PY) test_semantic_types.py
 	$(PY) test_semantic_globals.py
 	$(PY) test_semantic_type_resolve.py
@@ -27,5 +28,6 @@ check:
 	$(PY) test_llvm_scalar.py
 	$(PY) test_llvm_linear.py
 	$(PY) test_llvm_buffer.py
+	$(PY) test_llvm_scanner.py
 
 .PHONY: check

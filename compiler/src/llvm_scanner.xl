@@ -1,0 +1,858 @@
+fn llvm_scanner_fail ['o] (out: &uniq 'o ByteTape) -> own unit writes('o) {
+  set deref(out).status = ByteInvalidState();
+  return unit;
+}
+
+fn llvm_scanner_predicate_call ['a] (ast: &'a AstTape, function: own u64) -> own u64 reads('a), traps {
+  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 9_u64);
+  let loop_node: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 1_u64);
+  let loop_block: own u64 = llvm_linear_child_at(ast: ast, node: loop_node, ordinal: 1_u64);
+  let keep_declaration: own u64 = llvm_linear_child_at(ast: ast, node: loop_block, ordinal: 2_u64);
+  return llvm_linear_child_at(ast: ast, node: keep_declaration, ordinal: 3_u64);
+}
+
+fn llvm_scanner_emit_predicate_name ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
+  let callee: own u64 = index<u64>(deref(facts).resolved_declarations, call);
+  let name: own u64 = llvm_linear_child_at(ast: ast, node: callee, ordinal: 0_u64);
+  let token: own u64 = index<u64>(deref(ast).heads, name);
+  region 'llvm_scanner_predicate_at {
+    llvm_text_emit_at(out: &uniq 'llvm_scanner_predicate_at deref(out));
+  }
+  region 'llvm_scanner_predicate_token {
+    llvm_text_emit_token(source: source, tokens: tokens, token: token, out: &uniq 'llvm_scanner_predicate_token deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_standalone_prelude ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
+  let call: own u64 = llvm_scanner_predicate_call(ast: ast, function: function);
+  region 'llvm_scanner_prelude_trap_declare {
+    llvm_text_emit_declare(out: &uniq 'llvm_scanner_prelude_trap_declare deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_prelude_trap_space0 deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_void {
+    llvm_text_emit_void(out: &uniq 'llvm_scanner_prelude_trap_void deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_prelude_trap_space1 deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_name {
+    llvm_text_emit_llvm_trap(out: &uniq 'llvm_scanner_prelude_trap_name deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_left {
+    llvm_text_emit_left_paren(out: &uniq 'llvm_scanner_prelude_trap_left deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_right {
+    llvm_text_emit_right_paren(out: &uniq 'llvm_scanner_prelude_trap_right deref(out));
+  }
+  region 'llvm_scanner_prelude_trap_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_prelude_trap_newline deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_declare {
+    llvm_text_emit_declare(out: &uniq 'llvm_scanner_prelude_predicate_declare deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_prelude_predicate_space0 deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_result {
+    llvm_text_emit_i1(out: &uniq 'llvm_scanner_prelude_predicate_result deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_prelude_predicate_space1 deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_name {
+    llvm_scanner_emit_predicate_name(source: source, tokens: tokens, ast: ast, facts: facts, call: call, out: &uniq 'llvm_scanner_prelude_predicate_name deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_left {
+    llvm_text_emit_left_paren(out: &uniq 'llvm_scanner_prelude_predicate_left deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_i8 {
+    llvm_text_emit_i8(out: &uniq 'llvm_scanner_prelude_predicate_i8 deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_right {
+    llvm_text_emit_right_paren(out: &uniq 'llvm_scanner_prelude_predicate_right deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_newline0 {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_prelude_predicate_newline0 deref(out));
+  }
+  region 'llvm_scanner_prelude_predicate_newline1 {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_prelude_predicate_newline1 deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_header ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'o), writes('o), traps {
+  let name: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 0_u64);
+  let token: own u64 = index<u64>(deref(ast).heads, name);
+  region 'llvm_scanner_header_define {
+    llvm_text_emit_define(out: &uniq 'llvm_scanner_header_define deref(out));
+  }
+  region 'llvm_scanner_header_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_header_space0 deref(out));
+  }
+  region 'llvm_scanner_header_result {
+    llvm_text_emit_i64(out: &uniq 'llvm_scanner_header_result deref(out));
+  }
+  region 'llvm_scanner_header_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_header_space1 deref(out));
+  }
+  region 'llvm_scanner_header_at {
+    llvm_text_emit_at(out: &uniq 'llvm_scanner_header_at deref(out));
+  }
+  region 'llvm_scanner_header_name {
+    llvm_text_emit_token(source: source, tokens: tokens, token: token, out: &uniq 'llvm_scanner_header_name deref(out));
+  }
+  region 'llvm_scanner_header_left {
+    llvm_text_emit_left_paren(out: &uniq 'llvm_scanner_header_left deref(out));
+  }
+  region 'llvm_scanner_header_buffer {
+    llvm_text_emit_buffer_type(out: &uniq 'llvm_scanner_header_buffer deref(out));
+  }
+  region 'llvm_scanner_header_space2 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_header_space2 deref(out));
+  }
+  region 'llvm_scanner_header_p0 {
+    llvm_text_emit_place(out: &uniq 'llvm_scanner_header_p0 deref(out), id: 0_u64);
+  }
+  let parameter: own u64 = 1_u64;
+  loop @llvm_scanner_header_u64_parameters {
+    region 'llvm_scanner_header_comma {
+      llvm_buffer_emit_comma_space(out: &uniq 'llvm_scanner_header_comma deref(out));
+    }
+    region 'llvm_scanner_header_i64 {
+      llvm_text_emit_i64(out: &uniq 'llvm_scanner_header_i64 deref(out));
+    }
+    region 'llvm_scanner_header_space3 {
+      llvm_text_emit_space(out: &uniq 'llvm_scanner_header_space3 deref(out));
+    }
+    region 'llvm_scanner_header_parameter {
+      llvm_text_emit_place(out: &uniq 'llvm_scanner_header_parameter deref(out), id: parameter);
+    }
+    match ieq<u64>(parameter, 2_u64) {
+      True() => {
+        break @llvm_scanner_header_u64_parameters;
+      }
+      False() => {
+        set parameter = iadd.trap<u64>(parameter, 1_u64);
+      }
+    }
+  }
+  region 'llvm_scanner_header_right {
+    llvm_text_emit_right_paren(out: &uniq 'llvm_scanner_header_right deref(out));
+  }
+  region 'llvm_scanner_header_space4 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_header_space4 deref(out));
+  }
+  region 'llvm_scanner_header_brace {
+    llvm_text_emit_left_brace(out: &uniq 'llvm_scanner_header_brace deref(out));
+  }
+  region 'llvm_scanner_header_newline0 {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_header_newline0 deref(out));
+  }
+  region 'llvm_scanner_header_entry {
+    llvm_text_emit_entry(out: &uniq 'llvm_scanner_header_entry deref(out));
+  }
+  region 'llvm_scanner_header_newline1 {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_header_newline1 deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_jump ['o] (out: &uniq 'o ByteTape, block: own u64) -> own unit reads('o), writes('o), traps {
+  region 'llvm_scanner_jump_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_scanner_jump_indent deref(out));
+  }
+  region 'llvm_scanner_jump_br {
+    llvm_text_emit_br(out: &uniq 'llvm_scanner_jump_br deref(out));
+  }
+  region 'llvm_scanner_jump_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_jump_space0 deref(out));
+  }
+  region 'llvm_scanner_jump_label {
+    llvm_text_emit_label(out: &uniq 'llvm_scanner_jump_label deref(out));
+  }
+  region 'llvm_scanner_jump_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_jump_space1 deref(out));
+  }
+  region 'llvm_scanner_jump_target {
+    llvm_text_emit_block_ref(out: &uniq 'llvm_scanner_jump_target deref(out), id: block);
+  }
+  region 'llvm_scanner_jump_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_jump_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_phi_cursor ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'llvm_scanner_phi_definition {
+    llvm_buffer_emit_definition(out: &uniq 'llvm_scanner_phi_definition deref(out), id: 2_u64);
+  }
+  region 'llvm_scanner_phi_operation {
+    llvm_text_emit_phi(out: &uniq 'llvm_scanner_phi_operation deref(out));
+  }
+  region 'llvm_scanner_phi_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_phi_space0 deref(out));
+  }
+  region 'llvm_scanner_phi_type {
+    llvm_text_emit_i64(out: &uniq 'llvm_scanner_phi_type deref(out));
+  }
+  region 'llvm_scanner_phi_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_phi_space1 deref(out));
+  }
+  region 'llvm_scanner_phi_left0 {
+    llvm_text_emit_left_square(out: &uniq 'llvm_scanner_phi_left0 deref(out));
+  }
+  region 'llvm_scanner_phi_space2 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_phi_space2 deref(out));
+  }
+  region 'llvm_scanner_phi_initial {
+    llvm_text_emit_place(out: &uniq 'llvm_scanner_phi_initial deref(out), id: 1_u64);
+  }
+  region 'llvm_scanner_phi_comma0 {
+    llvm_buffer_emit_comma_space(out: &uniq 'llvm_scanner_phi_comma0 deref(out));
+  }
+  region 'llvm_scanner_phi_entry {
+    llvm_text_emit_entry_ref(out: &uniq 'llvm_scanner_phi_entry deref(out));
+  }
+  region 'llvm_scanner_phi_space3 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_phi_space3 deref(out));
+  }
+  region 'llvm_scanner_phi_right0 {
+    llvm_text_emit_right_square(out: &uniq 'llvm_scanner_phi_right0 deref(out));
+  }
+  region 'llvm_scanner_phi_comma1 {
+    llvm_buffer_emit_comma_space(out: &uniq 'llvm_scanner_phi_comma1 deref(out));
+  }
+  region 'llvm_scanner_phi_left1 {
+    llvm_text_emit_left_square(out: &uniq 'llvm_scanner_phi_left1 deref(out));
+  }
+  region 'llvm_scanner_phi_space4 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_phi_space4 deref(out));
+  }
+  region 'llvm_scanner_phi_next {
+    llvm_text_emit_value(out: &uniq 'llvm_scanner_phi_next deref(out), id: 8_u64);
+  }
+  region 'llvm_scanner_phi_comma2 {
+    llvm_buffer_emit_comma_space(out: &uniq 'llvm_scanner_phi_comma2 deref(out));
+  }
+  region 'llvm_scanner_phi_backedge {
+    llvm_text_emit_block_ref(out: &uniq 'llvm_scanner_phi_backedge deref(out), id: 3_u64);
+  }
+  region 'llvm_scanner_phi_space5 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_phi_space5 deref(out));
+  }
+  region 'llvm_scanner_phi_right1 {
+    llvm_text_emit_right_square(out: &uniq 'llvm_scanner_phi_right1 deref(out));
+  }
+  region 'llvm_scanner_phi_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_phi_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_compare ['o] (out: &uniq 'o ByteTape, result: own u64, operation: own u64, right: own u64, right_place: own Bool) -> own unit reads('o), writes('o), traps {
+  region 'llvm_scanner_compare_definition {
+    llvm_buffer_emit_definition(out: &uniq 'llvm_scanner_compare_definition deref(out), id: result);
+  }
+  match ieq<u64>(operation, 0_u64) {
+    True() => {
+      region 'llvm_scanner_compare_uge {
+        llvm_text_emit_icmp_uge(out: &uniq 'llvm_scanner_compare_uge deref(out));
+      }
+    }
+    False() => {
+      region 'llvm_scanner_compare_ult {
+        llvm_text_emit_icmp_ult(out: &uniq 'llvm_scanner_compare_ult deref(out));
+      }
+    }
+  }
+  region 'llvm_scanner_compare_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_compare_space0 deref(out));
+  }
+  region 'llvm_scanner_compare_type {
+    llvm_text_emit_i64(out: &uniq 'llvm_scanner_compare_type deref(out));
+  }
+  region 'llvm_scanner_compare_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_compare_space1 deref(out));
+  }
+  region 'llvm_scanner_compare_cursor {
+    llvm_text_emit_value(out: &uniq 'llvm_scanner_compare_cursor deref(out), id: 2_u64);
+  }
+  region 'llvm_scanner_compare_comma {
+    llvm_buffer_emit_comma_space(out: &uniq 'llvm_scanner_compare_comma deref(out));
+  }
+  region 'llvm_scanner_compare_right {
+    llvm_buffer_emit_register(out: &uniq 'llvm_scanner_compare_right deref(out), id: right, place: right_place);
+  }
+  region 'llvm_scanner_compare_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_compare_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_predicate_call ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
+  region 'llvm_scanner_call_definition {
+    llvm_buffer_emit_definition(out: &uniq 'llvm_scanner_call_definition deref(out), id: 7_u64);
+  }
+  region 'llvm_scanner_call_call {
+    llvm_text_emit_call(out: &uniq 'llvm_scanner_call_call deref(out));
+  }
+  region 'llvm_scanner_call_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_call_space0 deref(out));
+  }
+  region 'llvm_scanner_call_result {
+    llvm_text_emit_i1(out: &uniq 'llvm_scanner_call_result deref(out));
+  }
+  region 'llvm_scanner_call_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_call_space1 deref(out));
+  }
+  region 'llvm_scanner_call_name {
+    llvm_scanner_emit_predicate_name(source: source, tokens: tokens, ast: ast, facts: facts, call: call, out: &uniq 'llvm_scanner_call_name deref(out));
+  }
+  region 'llvm_scanner_call_left {
+    llvm_text_emit_left_paren(out: &uniq 'llvm_scanner_call_left deref(out));
+  }
+  region 'llvm_scanner_call_type {
+    llvm_text_emit_i8(out: &uniq 'llvm_scanner_call_type deref(out));
+  }
+  region 'llvm_scanner_call_space2 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_call_space2 deref(out));
+  }
+  region 'llvm_scanner_call_value {
+    llvm_text_emit_value(out: &uniq 'llvm_scanner_call_value deref(out), id: 6_u64);
+  }
+  region 'llvm_scanner_call_right {
+    llvm_text_emit_right_paren(out: &uniq 'llvm_scanner_call_right deref(out));
+  }
+  region 'llvm_scanner_call_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_call_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_proved_increment ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'llvm_scanner_increment_definition {
+    llvm_buffer_emit_definition(out: &uniq 'llvm_scanner_increment_definition deref(out), id: 8_u64);
+  }
+  region 'llvm_scanner_increment_add {
+    llvm_text_emit_add_nuw(out: &uniq 'llvm_scanner_increment_add deref(out));
+  }
+  region 'llvm_scanner_increment_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_increment_space0 deref(out));
+  }
+  region 'llvm_scanner_increment_type {
+    llvm_text_emit_i64(out: &uniq 'llvm_scanner_increment_type deref(out));
+  }
+  region 'llvm_scanner_increment_space2 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_increment_space2 deref(out));
+  }
+  region 'llvm_scanner_increment_cursor {
+    llvm_text_emit_value(out: &uniq 'llvm_scanner_increment_cursor deref(out), id: 2_u64);
+  }
+  region 'llvm_scanner_increment_comma {
+    llvm_buffer_emit_comma_space(out: &uniq 'llvm_scanner_increment_comma deref(out));
+  }
+  region 'llvm_scanner_increment_one {
+    byte_tape_emit_u64(out: &uniq 'llvm_scanner_increment_one deref(out), value: 1_u64);
+  }
+  region 'llvm_scanner_increment_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_increment_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_return_and_trap ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'llvm_scanner_return_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_scanner_return_indent deref(out));
+  }
+  region 'llvm_scanner_return_ret {
+    llvm_text_emit_ret(out: &uniq 'llvm_scanner_return_ret deref(out));
+  }
+  region 'llvm_scanner_return_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_return_space0 deref(out));
+  }
+  region 'llvm_scanner_return_type {
+    llvm_text_emit_i64(out: &uniq 'llvm_scanner_return_type deref(out));
+  }
+  region 'llvm_scanner_return_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_return_space1 deref(out));
+  }
+  region 'llvm_scanner_return_value {
+    llvm_text_emit_value(out: &uniq 'llvm_scanner_return_value deref(out), id: 2_u64);
+  }
+  region 'llvm_scanner_return_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_return_newline deref(out));
+  }
+  region 'llvm_scanner_trap_block {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_scanner_trap_block deref(out), id: 5_u64);
+  }
+  region 'llvm_scanner_trap_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_scanner_trap_indent deref(out));
+  }
+  region 'llvm_scanner_trap_call {
+    llvm_text_emit_call(out: &uniq 'llvm_scanner_trap_call deref(out));
+  }
+  region 'llvm_scanner_trap_space0 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_trap_space0 deref(out));
+  }
+  region 'llvm_scanner_trap_void {
+    llvm_text_emit_void(out: &uniq 'llvm_scanner_trap_void deref(out));
+  }
+  region 'llvm_scanner_trap_space1 {
+    llvm_text_emit_space(out: &uniq 'llvm_scanner_trap_space1 deref(out));
+  }
+  region 'llvm_scanner_trap_name {
+    llvm_text_emit_llvm_trap(out: &uniq 'llvm_scanner_trap_name deref(out));
+  }
+  region 'llvm_scanner_trap_left {
+    llvm_text_emit_left_paren(out: &uniq 'llvm_scanner_trap_left deref(out));
+  }
+  region 'llvm_scanner_trap_right {
+    llvm_text_emit_right_paren(out: &uniq 'llvm_scanner_trap_right deref(out));
+  }
+  region 'llvm_scanner_trap_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_trap_newline deref(out));
+  }
+  region 'llvm_scanner_unreachable_indent {
+    llvm_linear_emit_indent(out: &uniq 'llvm_scanner_unreachable_indent deref(out));
+  }
+  region 'llvm_scanner_unreachable {
+    llvm_text_emit_unreachable(out: &uniq 'llvm_scanner_unreachable deref(out));
+  }
+  region 'llvm_scanner_unreachable_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_unreachable_newline deref(out));
+  }
+  region 'llvm_scanner_right_brace {
+    llvm_text_emit_right_brace(out: &uniq 'llvm_scanner_right_brace deref(out));
+  }
+  region 'llvm_scanner_final_newline {
+    llvm_text_emit_newline(out: &uniq 'llvm_scanner_final_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit_body ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
+  let call: own u64 = llvm_scanner_predicate_call(ast: ast, function: function);
+  region 'llvm_scanner_body_data {
+    llvm_buffer_emit_extract(out: &uniq 'llvm_scanner_body_data deref(out), result: 0_u64, aggregate_type: llvm_buffer_type_buffer, aggregate: 0_u64, aggregate_place: True(), field: 0_u64);
+  }
+  region 'llvm_scanner_body_length {
+    llvm_buffer_emit_extract(out: &uniq 'llvm_scanner_body_length deref(out), result: 1_u64, aggregate_type: llvm_buffer_type_buffer, aggregate: 0_u64, aggregate_place: True(), field: 1_u64);
+  }
+  region 'llvm_scanner_body_entry_jump {
+    llvm_scanner_emit_jump(out: &uniq 'llvm_scanner_body_entry_jump deref(out), block: 0_u64);
+  }
+  region 'llvm_scanner_body_loop_block {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_scanner_body_loop_block deref(out), id: 0_u64);
+  }
+  region 'llvm_scanner_body_phi {
+    llvm_scanner_emit_phi_cursor(out: &uniq 'llvm_scanner_body_phi deref(out));
+  }
+  region 'llvm_scanner_body_range_guard {
+    llvm_scanner_emit_compare(out: &uniq 'llvm_scanner_body_range_guard deref(out), result: 3_u64, operation: 0_u64, right: 2_u64, right_place: True());
+  }
+  region 'llvm_scanner_body_range_branch {
+    llvm_buffer_emit_branch(out: &uniq 'llvm_scanner_body_range_branch deref(out), condition: 3_u64, true_block: 4_u64, false_block: 1_u64);
+  }
+  region 'llvm_scanner_body_bounds_block {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_scanner_body_bounds_block deref(out), id: 1_u64);
+  }
+  region 'llvm_scanner_body_bounds {
+    llvm_scanner_emit_compare(out: &uniq 'llvm_scanner_body_bounds deref(out), result: 4_u64, operation: 1_u64, right: 1_u64, right_place: False());
+  }
+  region 'llvm_scanner_body_bounds_branch {
+    llvm_buffer_emit_branch(out: &uniq 'llvm_scanner_body_bounds_branch deref(out), condition: 4_u64, true_block: 2_u64, false_block: 5_u64);
+  }
+  region 'llvm_scanner_body_load_block {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_scanner_body_load_block deref(out), id: 2_u64);
+  }
+  region 'llvm_scanner_body_load {
+    llvm_buffer_emit_gep_load(out: &uniq 'llvm_scanner_body_load deref(out), pointer: 5_u64, result: 6_u64, index_id: 2_u64, index_place: False());
+  }
+  region 'llvm_scanner_body_call {
+    llvm_scanner_emit_predicate_call(source: source, tokens: tokens, ast: ast, facts: facts, call: call, out: &uniq 'llvm_scanner_body_call deref(out));
+  }
+  region 'llvm_scanner_body_keep_branch {
+    llvm_buffer_emit_branch(out: &uniq 'llvm_scanner_body_keep_branch deref(out), condition: 7_u64, true_block: 3_u64, false_block: 4_u64);
+  }
+  region 'llvm_scanner_body_increment_block {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_scanner_body_increment_block deref(out), id: 3_u64);
+  }
+  region 'llvm_scanner_body_increment {
+    llvm_scanner_emit_proved_increment(out: &uniq 'llvm_scanner_body_increment deref(out));
+  }
+  region 'llvm_scanner_body_backedge {
+    llvm_scanner_emit_jump(out: &uniq 'llvm_scanner_body_backedge deref(out), block: 0_u64);
+  }
+  region 'llvm_scanner_body_exit_block {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_scanner_body_exit_block deref(out), id: 4_u64);
+  }
+  region 'llvm_scanner_body_return_and_trap {
+    llvm_scanner_emit_return_and_trap(out: &uniq 'llvm_scanner_body_return_and_trap deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_control_fact_valid ['f] (facts: &'f NodeFacts, node: own u64, target: own u64) -> own Bool reads('f), traps {
+  return llvm_buffer_fact_row_valid(facts: facts, node: node, type_id: semantic_facts_none, resolution: semantic_facts_none, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: semantic_facts_none, target: target, mode: SemanticModeNone(), prelude: PreludeConstructorUnknown());
+}
+
+fn llvm_scanner_label_fact_valid ['f] (facts: &'f NodeFacts, node: own u64, declaration: own u64) -> own Bool reads('f), traps {
+  return llvm_buffer_fact_row_valid(facts: facts, node: node, type_id: semantic_facts_none, resolution: declaration, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeNone(), prelude: PreludeConstructorUnknown());
+}
+
+fn llvm_scanner_arm_fact_valid ['f] (facts: &'f NodeFacts, node: own u64, truth: own Bool, target: own u64) -> own Bool reads('f), traps {
+  let ordinal: own u64 = 1_u64;
+  let constant: own u64 = 0_u64;
+  let prelude: own PreludeConstructorCode = PreludeConstructorFalse();
+  match truth {
+    True() => {
+      set ordinal = 0_u64;
+      set constant = 1_u64;
+      set prelude = PreludeConstructorTrue();
+    }
+    False() => {
+    }
+  }
+  return llvm_buffer_fact_row_valid(facts: facts, node: node, type_id: semantic_buffer_type_bool, resolution: semantic_facts_none, ordinal: ordinal, operation: SemanticOperationNone(), constant: constant, target: target, mode: SemanticModeNone(), prelude: prelude);
+}
+
+fn llvm_scanner_iadd_facts_valid ['a, 'f] (ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, cursor_declaration: own u64, guard_call: own u64) -> own Bool reads('a 'f), traps {
+  let type_node: own u64 = llvm_linear_child_at(ast: ast, node: call, ordinal: 0_u64);
+  let left: own u64 = llvm_linear_child_at(ast: ast, node: call, ordinal: 1_u64);
+  let literal: own u64 = llvm_linear_child_at(ast: ast, node: call, ordinal: 2_u64);
+  let result_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: call, type_id: semantic_buffer_type_u64, resolution: semantic_facts_none, ordinal: 4_u64, operation: SemanticOperationIaddTrap(), constant: semantic_facts_none, target: guard_call, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let type_row: own Bool = llvm_buffer_typed_fact_row(facts: facts, node: type_node, type_id: semantic_buffer_type_u64);
+  let left_row: own Bool = llvm_buffer_place_fact_valid(facts: facts, node: left, type_id: semantic_buffer_type_u64, declaration: cursor_declaration, mode: SemanticModeOwn());
+  let literal_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: literal, type_id: semantic_buffer_type_u64, resolution: semantic_facts_none, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: 1_u64, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let root_rows: own Bool = band<Bool>(result_row, type_row);
+  let operand_rows: own Bool = band<Bool>(left_row, literal_row);
+  return band<Bool>(root_rows, operand_rows);
+}
+
+fn llvm_scanner_predicate_facts_valid ['s, 't, 'a, 'm, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, symbols: &'m SymbolTape, facts: &'f NodeFacts, call: own u64, byte_declaration: own u64) -> own Bool reads('s 't 'a 'm 'f), traps {
+  let call_head: own u64 = index<u64>(deref(ast).heads, call);
+  let lookup: own SymbolLookupResult = symbol_lookup_in_scope(source: source, tokens: tokens, symbols: symbols, space: SymbolValue(), scope: symbol_none, name_token: call_head);
+  let lookup_status: own SymbolLookupStatus = lookup.status;
+  match lookup_status {
+    SymbolLookupFound() => {
+    }
+    SymbolLookupNotFound() => {
+      return False();
+    }
+    SymbolLookupInvalidTape() => {
+      return False();
+    }
+    SymbolLookupInvalidToken() => {
+      return False();
+    }
+  }
+  let callee: own u64 = lookup.declaration;
+  let formal: own u64 = llvm_linear_child_at(ast: ast, node: callee, ordinal: 1_u64);
+  let named: own u64 = llvm_linear_child_at(ast: ast, node: call, ordinal: 0_u64);
+  let actual: own u64 = llvm_linear_child_at(ast: ast, node: named, ordinal: 0_u64);
+  let call_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: call, type_id: semantic_buffer_type_bool, resolution: callee, ordinal: 3_u64, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let named_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: named, type_id: semantic_buffer_type_u8, resolution: formal, ordinal: 0_u64, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let actual_row: own Bool = llvm_buffer_place_fact_valid(facts: facts, node: actual, type_id: semantic_buffer_type_u8, declaration: byte_declaration, mode: SemanticModeOwn());
+  let first_rows: own Bool = band<Bool>(call_row, named_row);
+  return band<Bool>(first_rows, actual_row);
+}
+
+fn llvm_scanner_tapes_valid ['a, 'y, 'f] (ast: &'a AstTape, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('a 'y 'f) {
+  let type_shape: own Bool = semantic_type_tape_shape_valid(types: types);
+  let fact_shape: own Bool = semantic_node_facts_shape_valid(facts: facts);
+  let clean_tag: own SemanticFactsStatus = SemanticFactsClean();
+  let types_clean: own Bool = ieq<SemanticFactsStatus>(deref(types).status, clean_tag);
+  let facts_clean: own Bool = ieq<SemanticFactsStatus>(deref(facts).status, clean_tag);
+  let facts_dense: own Bool = ieq<u64>(deref(facts).count, deref(ast).count);
+  let type_node_clean: own Bool = ieq<u64>(deref(types).node, semantic_facts_none);
+  let type_related_clean: own Bool = ieq<u64>(deref(types).related, semantic_facts_none);
+  let fact_node_clean: own Bool = ieq<u64>(deref(facts).node, semantic_facts_none);
+  let fact_related_clean: own Bool = ieq<u64>(deref(facts).related, semantic_facts_none);
+  let shapes: own Bool = band<Bool>(type_shape, fact_shape);
+  let statuses: own Bool = band<Bool>(types_clean, facts_clean);
+  let type_metadata: own Bool = band<Bool>(type_node_clean, type_related_clean);
+  let fact_metadata: own Bool = band<Bool>(fact_node_clean, fact_related_clean);
+  let shape_status: own Bool = band<Bool>(shapes, statuses);
+  let metadata: own Bool = band<Bool>(type_metadata, fact_metadata);
+  let clean: own Bool = band<Bool>(shape_status, metadata);
+  return band<Bool>(clean, facts_dense);
+}
+
+fn llvm_scanner_facts_valid ['s, 't, 'a, 'm, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, symbols: &'m SymbolTape, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'm 'y 'f), traps {
+  let signature_valid: own Bool = semantic_scanner_signature_valid(source: source, tokens: tokens, ast: ast, function: function);
+  match signature_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let body_valid: own Bool = semantic_scanner_body_valid(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols);
+  match body_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let tapes_valid: own Bool = llvm_scanner_tapes_valid(ast: ast, types: types, facts: facts);
+  let type_rows_valid: own Bool = llvm_buffer_type_rows_valid(types: types);
+  match band<Bool>(tapes_valid, type_rows_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let source_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 2_u64);
+  let start_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 3_u64);
+  let size_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 4_u64);
+  let return_mode: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 5_u64);
+  let return_type: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 6_u64);
+  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 9_u64);
+  let cursor_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 0_u64);
+  let loop_node: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 1_u64);
+  let return_node: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 2_u64);
+  let return_value: own u64 = llvm_linear_child_at(ast: ast, node: return_node, ordinal: 0_u64);
+  let loop_label: own u64 = llvm_linear_child_at(ast: ast, node: loop_node, ordinal: 0_u64);
+  let loop_block: own u64 = llvm_linear_child_at(ast: ast, node: loop_node, ordinal: 1_u64);
+  let guard_match: own u64 = llvm_linear_child_at(ast: ast, node: loop_block, ordinal: 0_u64);
+  let byte_declaration: own u64 = llvm_linear_child_at(ast: ast, node: loop_block, ordinal: 1_u64);
+  let keep_declaration: own u64 = llvm_linear_child_at(ast: ast, node: loop_block, ordinal: 2_u64);
+  let keep_match: own u64 = llvm_linear_child_at(ast: ast, node: loop_block, ordinal: 3_u64);
+
+  let source_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: source_parameter, type_id: semantic_buffer_type_u8_buffer, ordinal: 0_u64, mode: SemanticModeShared());
+  let start_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: start_parameter, type_id: semantic_buffer_type_u64, ordinal: 1_u64, mode: SemanticModeOwn());
+  let size_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: size_parameter, type_id: semantic_buffer_type_u64, ordinal: 2_u64, mode: SemanticModeOwn());
+  let return_mode_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: return_mode, type_id: semantic_buffer_type_u64, resolution: semantic_facts_none, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let return_type_row: own Bool = llvm_buffer_typed_fact_row(facts: facts, node: return_type, type_id: semantic_buffer_type_u64);
+  let parameter_rows0: own Bool = band<Bool>(source_rows, start_rows);
+  let parameter_rows1: own Bool = band<Bool>(size_rows, return_mode_row);
+  let parameter_rows01: own Bool = band<Bool>(parameter_rows0, parameter_rows1);
+  let signature_rows: own Bool = band<Bool>(parameter_rows01, return_type_row);
+  match signature_rows {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let cursor_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: cursor_declaration, type_id: semantic_buffer_type_u64, ordinal: 0_u64);
+  let cursor_initializer: own u64 = llvm_linear_child_at(ast: ast, node: cursor_declaration, ordinal: 3_u64);
+  let cursor_initializer_row: own Bool = llvm_buffer_place_fact_valid(facts: facts, node: cursor_initializer, type_id: semantic_buffer_type_u64, declaration: start_parameter, mode: SemanticModeOwn());
+  match band<Bool>(cursor_rows, cursor_initializer_row) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let guard_call: own u64 = llvm_linear_child_at(ast: ast, node: guard_match, ordinal: 0_u64);
+  let guard_type: own u64 = llvm_linear_child_at(ast: ast, node: guard_call, ordinal: 0_u64);
+  let guard_left: own u64 = llvm_linear_child_at(ast: ast, node: guard_call, ordinal: 1_u64);
+  let guard_right: own u64 = llvm_linear_child_at(ast: ast, node: guard_call, ordinal: 2_u64);
+  let guard_call_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: guard_call, type_id: semantic_buffer_type_bool, resolution: semantic_facts_none, ordinal: 1_u64, operation: SemanticOperationIge(), constant: semantic_facts_none, target: guard_match, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let guard_type_row: own Bool = llvm_buffer_typed_fact_row(facts: facts, node: guard_type, type_id: semantic_buffer_type_u64);
+  let guard_left_row: own Bool = llvm_buffer_place_fact_valid(facts: facts, node: guard_left, type_id: semantic_buffer_type_u64, declaration: cursor_declaration, mode: SemanticModeOwn());
+  let guard_right_row: own Bool = llvm_buffer_place_fact_valid(facts: facts, node: guard_right, type_id: semantic_buffer_type_u64, declaration: size_parameter, mode: SemanticModeOwn());
+  let guard_root_rows: own Bool = band<Bool>(guard_call_row, guard_type_row);
+  let guard_operand_rows: own Bool = band<Bool>(guard_left_row, guard_right_row);
+  match band<Bool>(guard_root_rows, guard_operand_rows) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let guard_true_arm: own u64 = llvm_linear_child_at(ast: ast, node: guard_match, ordinal: 1_u64);
+  let guard_false_arm: own u64 = llvm_linear_child_at(ast: ast, node: guard_match, ordinal: 2_u64);
+  let guard_true_block: own u64 = llvm_linear_child_at(ast: ast, node: guard_true_arm, ordinal: 0_u64);
+  let guard_false_block: own u64 = llvm_linear_child_at(ast: ast, node: guard_false_arm, ordinal: 0_u64);
+  let guard_break: own u64 = llvm_linear_child_at(ast: ast, node: guard_true_block, ordinal: 0_u64);
+  let guard_break_label: own u64 = llvm_linear_child_at(ast: ast, node: guard_break, ordinal: 0_u64);
+  let control0: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: loop_node, target: return_node);
+  let control1: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: loop_block, target: guard_match);
+  let control2: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: guard_match, target: byte_declaration);
+  let control3: own Bool = llvm_scanner_arm_fact_valid(facts: facts, node: guard_true_arm, truth: True(), target: guard_break);
+  let control4: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: guard_true_block, target: guard_break);
+  let control5: own Bool = llvm_scanner_arm_fact_valid(facts: facts, node: guard_false_arm, truth: False(), target: byte_declaration);
+  let control6: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: guard_false_block, target: byte_declaration);
+  let control7: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: guard_break, target: return_node);
+  let control8: own Bool = llvm_scanner_label_fact_valid(facts: facts, node: guard_break_label, declaration: loop_label);
+  let controls01: own Bool = band<Bool>(control0, control1);
+  let controls23: own Bool = band<Bool>(control2, control3);
+  let controls45: own Bool = band<Bool>(control4, control5);
+  let controls67: own Bool = band<Bool>(control6, control7);
+  let controls03: own Bool = band<Bool>(controls01, controls23);
+  let controls47: own Bool = band<Bool>(controls45, controls67);
+  let controls07: own Bool = band<Bool>(controls03, controls47);
+  let guard_controls: own Bool = band<Bool>(controls07, control8);
+  match guard_controls {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let byte_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: byte_declaration, type_id: semantic_buffer_type_u8, ordinal: 2_u64);
+  let byte_index: own u64 = llvm_linear_child_at(ast: ast, node: byte_declaration, ordinal: 3_u64);
+  let byte_index_rows: own Bool = llvm_buffer_index_facts_valid(ast: ast, facts: facts, node: byte_index, ordinal: 2_u64, source_declaration: source_parameter, subscript_declaration: cursor_declaration);
+  let keep_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: keep_declaration, type_id: semantic_buffer_type_bool, ordinal: 3_u64);
+  let predicate_call: own u64 = llvm_linear_child_at(ast: ast, node: keep_declaration, ordinal: 3_u64);
+  let predicate_rows: own Bool = llvm_scanner_predicate_facts_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, facts: facts, call: predicate_call, byte_declaration: byte_declaration);
+  let values0: own Bool = band<Bool>(byte_rows, byte_index_rows);
+  let values1: own Bool = band<Bool>(keep_rows, predicate_rows);
+  match band<Bool>(values0, values1) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let keep_scrutinee: own u64 = llvm_linear_child_at(ast: ast, node: keep_match, ordinal: 0_u64);
+  let keep_true_arm: own u64 = llvm_linear_child_at(ast: ast, node: keep_match, ordinal: 1_u64);
+  let keep_false_arm: own u64 = llvm_linear_child_at(ast: ast, node: keep_match, ordinal: 2_u64);
+  let keep_true_block: own u64 = llvm_linear_child_at(ast: ast, node: keep_true_arm, ordinal: 0_u64);
+  let keep_false_block: own u64 = llvm_linear_child_at(ast: ast, node: keep_false_arm, ordinal: 0_u64);
+  let set_node: own u64 = llvm_linear_child_at(ast: ast, node: keep_true_block, ordinal: 0_u64);
+  let set_target: own u64 = llvm_linear_child_at(ast: ast, node: set_node, ordinal: 0_u64);
+  let increment: own u64 = llvm_linear_child_at(ast: ast, node: set_node, ordinal: 1_u64);
+  let keep_break: own u64 = llvm_linear_child_at(ast: ast, node: keep_false_block, ordinal: 0_u64);
+  let keep_break_label: own u64 = llvm_linear_child_at(ast: ast, node: keep_break, ordinal: 0_u64);
+  let keep_scrutinee_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: keep_scrutinee, type_id: semantic_buffer_type_bool, resolution: keep_declaration, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: semantic_facts_none, target: keep_match, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let keep_control0: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: keep_match, target: loop_node);
+  let keep_control1: own Bool = llvm_scanner_arm_fact_valid(facts: facts, node: keep_true_arm, truth: True(), target: set_node);
+  let keep_control2: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: keep_true_block, target: set_node);
+  let keep_control3: own Bool = llvm_scanner_arm_fact_valid(facts: facts, node: keep_false_arm, truth: False(), target: keep_break);
+  let keep_control4: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: keep_false_block, target: keep_break);
+  let keep_control5: own Bool = llvm_scanner_control_fact_valid(facts: facts, node: keep_break, target: return_node);
+  let keep_control6: own Bool = llvm_scanner_label_fact_valid(facts: facts, node: keep_break_label, declaration: loop_label);
+  let keep_controls01: own Bool = band<Bool>(keep_control0, keep_control1);
+  let keep_controls23: own Bool = band<Bool>(keep_control2, keep_control3);
+  let keep_controls45: own Bool = band<Bool>(keep_control4, keep_control5);
+  let keep_controls03: own Bool = band<Bool>(keep_controls01, keep_controls23);
+  let keep_controls46: own Bool = band<Bool>(keep_controls45, keep_control6);
+  let keep_controls: own Bool = band<Bool>(keep_controls03, keep_controls46);
+  match band<Bool>(keep_scrutinee_row, keep_controls) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let set_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: set_node, type_id: semantic_buffer_type_u64, resolution: semantic_facts_none, ordinal: 4_u64, operation: SemanticOperationNone(), constant: semantic_facts_none, target: loop_node, mode: SemanticModeNone(), prelude: PreludeConstructorUnknown());
+  let set_target_row: own Bool = llvm_buffer_place_fact_valid(facts: facts, node: set_target, type_id: semantic_buffer_type_u64, declaration: cursor_declaration, mode: SemanticModeOwn());
+  let increment_rows: own Bool = llvm_scanner_iadd_facts_valid(ast: ast, facts: facts, call: increment, cursor_declaration: cursor_declaration, guard_call: guard_call);
+  let set_rows: own Bool = band<Bool>(set_row, set_target_row);
+  match band<Bool>(set_rows, increment_rows) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let return_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: return_node, type_id: semantic_buffer_type_u64, resolution: semantic_facts_none, ordinal: 0_u64, operation: SemanticOperationNone(), constant: semantic_facts_none, target: function, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  let return_value_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: return_value, type_id: semantic_buffer_type_u64, resolution: cursor_declaration, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: semantic_facts_none, target: return_node, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  match band<Bool>(return_row, return_value_row) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let nondefault: own u64 = llvm_buffer_nondefault_fact_count(facts: facts);
+  return ieq<u64>(nondefault, 62_u64);
+}
+
+fn llvm_scanner_output_ready ['s, 't, 'a, 'm, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, symbols: &'m SymbolTape, types: &'y TypeTape, facts: &'f NodeFacts, out: &'o ByteTape) -> own Bool reads('s 't 'a 'm 'y 'f 'o), traps {
+  let appendable: own Bool = False();
+  let source_size: own u64 = len<u8>(deref(source));
+  let ast_nodes: own u64 = deref(ast).count;
+  region 'llvm_scanner_ready_output {
+    set appendable = llvm_linear_output_appendable(out: &'llvm_scanner_ready_output deref(out), source_size: source_size, ast_nodes: ast_nodes);
+  }
+  match appendable {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  return llvm_scanner_facts_valid(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols, types: types, facts: facts);
+}
+
+fn llvm_scanner_emit_validated_function ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
+  region 'llvm_scanner_validated_header {
+    llvm_scanner_emit_header(source: source, tokens: tokens, ast: ast, function: function, out: &uniq 'llvm_scanner_validated_header deref(out));
+  }
+  region 'llvm_scanner_validated_body {
+    llvm_scanner_emit_body(source: source, tokens: tokens, ast: ast, function: function, facts: facts, out: &uniq 'llvm_scanner_validated_body deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_append_function ['s, 't, 'a, 'm, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, symbols: &'m SymbolTape, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'm 'y 'f 'o), writes('o), traps {
+  match ieq<ByteStatus>(deref(out).status, ByteInvalidState()) {
+    True() => {
+      return unit;
+    }
+    False() => {
+    }
+  }
+  let ready: own Bool = False();
+  region 'llvm_scanner_append_ready {
+    set ready = llvm_scanner_output_ready(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols, types: types, facts: facts, out: &'llvm_scanner_append_ready deref(out));
+  }
+  match ready {
+    True() => {
+    }
+    False() => {
+      region 'llvm_scanner_append_fail {
+        llvm_scanner_fail(out: &uniq 'llvm_scanner_append_fail deref(out));
+      }
+      return unit;
+    }
+  }
+  region 'llvm_scanner_append_validated {
+    llvm_scanner_emit_validated_function(source: source, tokens: tokens, ast: ast, function: function, facts: facts, out: &uniq 'llvm_scanner_append_validated deref(out));
+  }
+  return unit;
+}
+
+fn llvm_scanner_emit ['s, 't, 'a, 'm, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, symbols: &'m SymbolTape, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'm 'y 'f 'o), writes('o), traps {
+  region 'llvm_scanner_emit_reset {
+    byte_tape_reset(out: &uniq 'llvm_scanner_emit_reset deref(out));
+  }
+  let ready: own Bool = False();
+  region 'llvm_scanner_emit_ready {
+    set ready = llvm_scanner_output_ready(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols, types: types, facts: facts, out: &'llvm_scanner_emit_ready deref(out));
+  }
+  match ready {
+    True() => {
+    }
+    False() => {
+      region 'llvm_scanner_emit_fail {
+        llvm_scanner_fail(out: &uniq 'llvm_scanner_emit_fail deref(out));
+      }
+      return unit;
+    }
+  }
+  region 'llvm_scanner_emit_prelude {
+    llvm_scanner_emit_standalone_prelude(source: source, tokens: tokens, ast: ast, function: function, facts: facts, out: &uniq 'llvm_scanner_emit_prelude deref(out));
+  }
+  region 'llvm_scanner_emit_function {
+    llvm_scanner_emit_validated_function(source: source, tokens: tokens, ast: ast, function: function, facts: facts, out: &uniq 'llvm_scanner_emit_function deref(out));
+  }
+  return unit;
+}
