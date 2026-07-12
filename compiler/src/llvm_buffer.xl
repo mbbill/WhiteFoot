@@ -274,9 +274,9 @@ fn llvm_buffer_emit_checked_add ['o] (out: &uniq 'o ByteTape, pair: own u64, res
   return unit;
 }
 
-fn llvm_buffer_emit_proved_p2_bounds ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+fn llvm_buffer_emit_proved_max_bounds ['o] (out: &uniq 'o ByteTape, bounds: own u64, maximum: own u64) -> own unit reads('o), writes('o), traps {
   region 'llvm_buffer_bounds_definition {
-    llvm_buffer_emit_definition(out: &uniq 'llvm_buffer_bounds_definition deref(out), id: 8_u64);
+    llvm_buffer_emit_definition(out: &uniq 'llvm_buffer_bounds_definition deref(out), id: bounds);
   }
   region 'llvm_buffer_bounds_operation {
     llvm_text_emit_icmp_ult(out: &uniq 'llvm_buffer_bounds_operation deref(out));
@@ -291,7 +291,7 @@ fn llvm_buffer_emit_proved_p2_bounds ['o] (out: &uniq 'o ByteTape) -> own unit r
     llvm_text_emit_space(out: &uniq 'llvm_buffer_bounds_space1 deref(out));
   }
   region 'llvm_buffer_bounds_p2 {
-    llvm_text_emit_value(out: &uniq 'llvm_buffer_bounds_p2 deref(out), id: 6_u64);
+    llvm_text_emit_value(out: &uniq 'llvm_buffer_bounds_p2 deref(out), id: maximum);
   }
   region 'llvm_buffer_bounds_comma {
     llvm_buffer_emit_comma_space(out: &uniq 'llvm_buffer_bounds_comma deref(out));
@@ -480,7 +480,7 @@ fn llvm_buffer_emit_prelude ['o] (out: &uniq 'o ByteTape) -> own unit reads('o),
   return unit;
 }
 
-fn llvm_buffer_emit_header ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'o), writes('o), traps {
+fn llvm_buffer_emit_header ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'o), writes('o), traps {
   let name: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 0_u64);
   let token: own u64 = index<u64>(deref(ast).heads, name);
   region 'llvm_buffer_header_define {
@@ -526,6 +526,7 @@ fn llvm_buffer_emit_header ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t
     llvm_text_emit_place(out: &uniq 'llvm_buffer_header_p1 deref(out), id: 1_u64);
   }
   let parameter: own u64 = 2_u64;
+  let last_parameter: own u64 = iadd.trap<u64>(width, 1_u64);
   loop @llvm_buffer_header_u8_parameters {
     region 'llvm_buffer_header_comma_u8 {
       llvm_buffer_emit_comma_space(out: &uniq 'llvm_buffer_header_comma_u8 deref(out));
@@ -539,7 +540,7 @@ fn llvm_buffer_emit_header ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t
     region 'llvm_buffer_header_parameter_u8 {
       llvm_text_emit_place(out: &uniq 'llvm_buffer_header_parameter_u8 deref(out), id: parameter);
     }
-    match ieq<u64>(parameter, 4_u64) {
+    match ieq<u64>(parameter, last_parameter) {
       True() => {
         break @llvm_buffer_header_u8_parameters;
       }
@@ -569,64 +570,27 @@ fn llvm_buffer_emit_header ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t
   return unit;
 }
 
-fn llvm_buffer_emit_match3_body ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
-  region 'llvm_buffer_body_data {
-    llvm_buffer_emit_extract(out: &uniq 'llvm_buffer_body_data deref(out), result: 0_u64, aggregate_type: llvm_buffer_type_buffer, aggregate: 0_u64, aggregate_place: True(), field: 0_u64);
+fn llvm_buffer_bool_register ['f] (facts: &'f NodeFacts, declaration: own u64, width: own u64) -> own u64 reads('f), traps {
+  let logical: own u64 = index<u64>(deref(facts).ordinals, declaration);
+  let two_width: own u64 = imul.trap<u64>(width, 2_u64);
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let five_width: own u64 = imul.trap<u64>(width, 5_u64);
+  let six_width: own u64 = imul.trap<u64>(width, 6_u64);
+  let eq_base: own u64 = isub.trap<u64>(two_width, 1_u64);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  match ilt<u64>(logical, band_base) {
+    True() => {
+      let offset: own u64 = isub.trap<u64>(logical, eq_base);
+      return iadd.trap<u64>(five_width, offset);
+    }
+    False() => {
+      let offset: own u64 = isub.trap<u64>(logical, band_base);
+      return iadd.trap<u64>(six_width, offset);
+    }
   }
-  region 'llvm_buffer_body_length {
-    llvm_buffer_emit_extract(out: &uniq 'llvm_buffer_body_length deref(out), result: 1_u64, aggregate_type: llvm_buffer_type_buffer, aggregate: 0_u64, aggregate_place: True(), field: 1_u64);
-  }
-  region 'llvm_buffer_body_add1 {
-    llvm_buffer_emit_checked_add(out: &uniq 'llvm_buffer_body_add1 deref(out), pair: 2_u64, result: 3_u64, overflow: 4_u64, addend: 1_u64);
-  }
-  region 'llvm_buffer_body_branch1 {
-    llvm_buffer_emit_branch(out: &uniq 'llvm_buffer_body_branch1 deref(out), condition: 4_u64, true_block: 3_u64, false_block: 0_u64);
-  }
-  region 'llvm_buffer_body_block0 {
-    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_block0 deref(out), id: 0_u64);
-  }
-  region 'llvm_buffer_body_add2 {
-    llvm_buffer_emit_checked_add(out: &uniq 'llvm_buffer_body_add2 deref(out), pair: 5_u64, result: 6_u64, overflow: 7_u64, addend: 2_u64);
-  }
-  region 'llvm_buffer_body_branch2 {
-    llvm_buffer_emit_branch(out: &uniq 'llvm_buffer_body_branch2 deref(out), condition: 7_u64, true_block: 3_u64, false_block: 1_u64);
-  }
-  region 'llvm_buffer_body_block1 {
-    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_block1 deref(out), id: 1_u64);
-  }
-  region 'llvm_buffer_body_bounds {
-    llvm_buffer_emit_proved_p2_bounds(out: &uniq 'llvm_buffer_body_bounds deref(out));
-  }
-  region 'llvm_buffer_body_bounds_branch {
-    llvm_buffer_emit_branch(out: &uniq 'llvm_buffer_body_bounds_branch deref(out), condition: 8_u64, true_block: 2_u64, false_block: 3_u64);
-  }
-  region 'llvm_buffer_body_block2 {
-    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_block2 deref(out), id: 2_u64);
-  }
-  region 'llvm_buffer_body_load0 {
-    llvm_buffer_emit_gep_load(out: &uniq 'llvm_buffer_body_load0 deref(out), pointer: 9_u64, result: 10_u64, index_id: 1_u64, index_place: True());
-  }
-  region 'llvm_buffer_body_load1 {
-    llvm_buffer_emit_gep_load(out: &uniq 'llvm_buffer_body_load1 deref(out), pointer: 11_u64, result: 12_u64, index_id: 3_u64, index_place: False());
-  }
-  region 'llvm_buffer_body_load2 {
-    llvm_buffer_emit_gep_load(out: &uniq 'llvm_buffer_body_load2 deref(out), pointer: 13_u64, result: 14_u64, index_id: 6_u64, index_place: False());
-  }
-  region 'llvm_buffer_body_eq0 {
-    llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_eq0 deref(out), result: 15_u64, operation: 0_u64, type_code: llvm_buffer_type_i8, left: 10_u64, right: 2_u64, right_place: True());
-  }
-  region 'llvm_buffer_body_eq1 {
-    llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_eq1 deref(out), result: 16_u64, operation: 0_u64, type_code: llvm_buffer_type_i8, left: 12_u64, right: 3_u64, right_place: True());
-  }
-  region 'llvm_buffer_body_eq2 {
-    llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_eq2 deref(out), result: 17_u64, operation: 0_u64, type_code: llvm_buffer_type_i8, left: 14_u64, right: 4_u64, right_place: True());
-  }
-  region 'llvm_buffer_body_and0 {
-    llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_and0 deref(out), result: 18_u64, operation: 1_u64, type_code: llvm_buffer_type_i1, left: 15_u64, right: 16_u64, right_place: False());
-  }
-  region 'llvm_buffer_body_and1 {
-    llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_and1 deref(out), result: 19_u64, operation: 1_u64, type_code: llvm_buffer_type_i1, left: 18_u64, right: 17_u64, right_place: False());
-  }
+}
+
+fn llvm_buffer_emit_return_and_trap ['o] (out: &uniq 'o ByteTape, result: own u64, trap_block: own u64) -> own unit reads('o), writes('o), traps {
   region 'llvm_buffer_body_return_indent {
     llvm_linear_emit_indent(out: &uniq 'llvm_buffer_body_return_indent deref(out));
   }
@@ -643,13 +607,13 @@ fn llvm_buffer_emit_match3_body ['o] (out: &uniq 'o ByteTape) -> own unit reads(
     llvm_text_emit_space(out: &uniq 'llvm_buffer_body_return_space1 deref(out));
   }
   region 'llvm_buffer_body_return_value {
-    llvm_text_emit_value(out: &uniq 'llvm_buffer_body_return_value deref(out), id: 19_u64);
+    llvm_text_emit_value(out: &uniq 'llvm_buffer_body_return_value deref(out), id: result);
   }
   region 'llvm_buffer_body_return_newline {
     llvm_text_emit_newline(out: &uniq 'llvm_buffer_body_return_newline deref(out));
   }
   region 'llvm_buffer_body_trap_block {
-    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_trap_block deref(out), id: 3_u64);
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_trap_block deref(out), id: trap_block);
   }
   region 'llvm_buffer_body_trap_indent {
     llvm_linear_emit_indent(out: &uniq 'llvm_buffer_body_trap_indent deref(out));
@@ -692,6 +656,158 @@ fn llvm_buffer_emit_match3_body ['o] (out: &uniq 'o ByteTape) -> own unit reads(
   }
   region 'llvm_buffer_body_final_newline {
     llvm_text_emit_newline(out: &uniq 'llvm_buffer_body_final_newline deref(out));
+  }
+  return unit;
+}
+
+fn llvm_buffer_emit_matcher_body ['a, 'f, 'o] (ast: &'a AstTape, function: own u64, width: own u64, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('a 'f 'o), writes('o), traps {
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let five_width: own u64 = imul.trap<u64>(width, 5_u64);
+  let six_width: own u64 = imul.trap<u64>(width, 6_u64);
+  let bounds: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let maximum: own u64 = isub.trap<u64>(three_width, 3_u64);
+  let pass_block: own u64 = isub.trap<u64>(width, 1_u64);
+  let final_add_block: own u64 = isub.trap<u64>(width, 2_u64);
+  let last_addend: own u64 = isub.trap<u64>(width, 1_u64);
+  region 'llvm_buffer_body_data {
+    llvm_buffer_emit_extract(out: &uniq 'llvm_buffer_body_data deref(out), result: 0_u64, aggregate_type: llvm_buffer_type_buffer, aggregate: 0_u64, aggregate_place: True(), field: 0_u64);
+  }
+  region 'llvm_buffer_body_length {
+    llvm_buffer_emit_extract(out: &uniq 'llvm_buffer_body_length deref(out), result: 1_u64, aggregate_type: llvm_buffer_type_buffer, aggregate: 0_u64, aggregate_place: True(), field: 1_u64);
+  }
+
+  let addend: own u64 = 1_u64;
+  loop @llvm_buffer_body_adds {
+    let add_offset: own u64 = isub.trap<u64>(addend, 1_u64);
+    let triple_offset: own u64 = imul.trap<u64>(add_offset, 3_u64);
+    let pair: own u64 = iadd.trap<u64>(2_u64, triple_offset);
+    let sum: own u64 = iadd.trap<u64>(pair, 1_u64);
+    let overflow: own u64 = iadd.trap<u64>(pair, 2_u64);
+    let continuation: own u64 = isub.trap<u64>(addend, 1_u64);
+    region 'llvm_buffer_body_checked_add {
+      llvm_buffer_emit_checked_add(out: &uniq 'llvm_buffer_body_checked_add deref(out), pair: pair, result: sum, overflow: overflow, addend: addend);
+    }
+    region 'llvm_buffer_body_add_branch {
+      llvm_buffer_emit_branch(out: &uniq 'llvm_buffer_body_add_branch deref(out), condition: overflow, true_block: width, false_block: continuation);
+    }
+    match ieq<u64>(addend, last_addend) {
+      True() => {
+        break @llvm_buffer_body_adds;
+      }
+      False() => {
+        region 'llvm_buffer_body_add_continuation {
+          llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_add_continuation deref(out), id: continuation);
+        }
+        set addend = iadd.trap<u64>(addend, 1_u64);
+      }
+    }
+  }
+  region 'llvm_buffer_body_final_add_continuation {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_final_add_continuation deref(out), id: final_add_block);
+  }
+  region 'llvm_buffer_body_bounds {
+    llvm_buffer_emit_proved_max_bounds(out: &uniq 'llvm_buffer_body_bounds deref(out), bounds: bounds, maximum: maximum);
+  }
+  region 'llvm_buffer_body_bounds_branch {
+    llvm_buffer_emit_branch(out: &uniq 'llvm_buffer_body_bounds_branch deref(out), condition: bounds, true_block: pass_block, false_block: width);
+  }
+  region 'llvm_buffer_body_pass {
+    llvm_buffer_emit_block_label(out: &uniq 'llvm_buffer_body_pass deref(out), id: pass_block);
+  }
+
+  let byte: own u64 = 0_u64;
+  loop @llvm_buffer_body_loads {
+    let double_byte: own u64 = imul.trap<u64>(byte, 2_u64);
+    let pointer: own u64 = iadd.trap<u64>(three_width, double_byte);
+    let loaded: own u64 = iadd.trap<u64>(pointer, 1_u64);
+    let index_id: own u64 = 1_u64;
+    let index_place: own Bool = True();
+    match ieq<u64>(byte, 0_u64) {
+      True() => {
+      }
+      False() => {
+        set index_id = imul.trap<u64>(byte, 3_u64);
+        set index_place = False();
+      }
+    }
+    region 'llvm_buffer_body_load {
+      llvm_buffer_emit_gep_load(out: &uniq 'llvm_buffer_body_load deref(out), pointer: pointer, result: loaded, index_id: index_id, index_place: index_place);
+    }
+    match ieq<u64>(byte, pass_block) {
+      True() => {
+        break @llvm_buffer_body_loads;
+      }
+      False() => {
+        set byte = iadd.trap<u64>(byte, 1_u64);
+      }
+    }
+  }
+
+  let comparison: own u64 = 0_u64;
+  loop @llvm_buffer_body_comparisons {
+    let double_comparison: own u64 = imul.trap<u64>(comparison, 2_u64);
+    let loaded_base: own u64 = iadd.trap<u64>(three_width, double_comparison);
+    let compared_value: own u64 = iadd.trap<u64>(loaded_base, 1_u64);
+    let result: own u64 = iadd.trap<u64>(five_width, comparison);
+    let parameter: own u64 = iadd.trap<u64>(comparison, 2_u64);
+    region 'llvm_buffer_body_comparison {
+      llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_comparison deref(out), result: result, operation: 0_u64, type_code: llvm_buffer_type_i8, left: compared_value, right: parameter, right_place: True());
+    }
+    match ieq<u64>(comparison, pass_block) {
+      True() => {
+        break @llvm_buffer_body_comparisons;
+      }
+      False() => {
+        set comparison = iadd.trap<u64>(comparison, 1_u64);
+      }
+    }
+  }
+
+  let block_ordinal: own u64 = iadd.trap<u64>(width, 8_u64);
+  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: block_ordinal);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let four_width: own u64 = imul.trap<u64>(width, 4_u64);
+  let final_statement_ordinal: own u64 = isub.trap<u64>(four_width, 3_u64);
+  let intermediate_count: own u64 = isub.trap<u64>(width, 2_u64);
+  let final_band: own u64 = isub.trap<u64>(width, 2_u64);
+  let band_index: own u64 = 0_u64;
+  let final_call: own u64 = ast_none;
+  loop @llvm_buffer_body_bands {
+    let call: own u64 = ast_none;
+    match ilt<u64>(band_index, intermediate_count) {
+      True() => {
+        let statement_ordinal: own u64 = iadd.trap<u64>(band_base, band_index);
+        let declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: statement_ordinal);
+        set call = llvm_linear_child_at(ast: ast, node: declaration, ordinal: 3_u64);
+      }
+      False() => {
+        let statement: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: final_statement_ordinal);
+        set call = llvm_linear_child_at(ast: ast, node: statement, ordinal: 0_u64);
+        set final_call = call;
+      }
+    }
+    let left: own u64 = llvm_linear_child_at(ast: ast, node: call, ordinal: 1_u64);
+    let right: own u64 = llvm_linear_child_at(ast: ast, node: call, ordinal: 2_u64);
+    let left_declaration: own u64 = index<u64>(deref(facts).resolved_declarations, left);
+    let right_declaration: own u64 = index<u64>(deref(facts).resolved_declarations, right);
+    let result_register: own u64 = llvm_buffer_bool_register(facts: facts, declaration: call, width: width);
+    let left_register: own u64 = llvm_buffer_bool_register(facts: facts, declaration: left_declaration, width: width);
+    let right_register: own u64 = llvm_buffer_bool_register(facts: facts, declaration: right_declaration, width: width);
+    region 'llvm_buffer_body_band {
+      llvm_buffer_emit_binary(out: &uniq 'llvm_buffer_body_band deref(out), result: result_register, operation: 1_u64, type_code: llvm_buffer_type_i1, left: left_register, right: right_register, right_place: False());
+    }
+    match ieq<u64>(band_index, final_band) {
+      True() => {
+        break @llvm_buffer_body_bands;
+      }
+      False() => {
+        set band_index = iadd.trap<u64>(band_index, 1_u64);
+      }
+    }
+  }
+  let final_register: own u64 = llvm_buffer_bool_register(facts: facts, declaration: final_call, width: width);
+  region 'llvm_buffer_body_return_and_trap {
+    llvm_buffer_emit_return_and_trap(out: &uniq 'llvm_buffer_body_return_and_trap deref(out), result: final_register, trap_block: width);
   }
   return unit;
 }
@@ -892,8 +1008,144 @@ fn llvm_buffer_type_rows_valid ['y] (types: &'y TypeTape) -> own Bool reads('y),
   }
 }
 
-fn llvm_buffer_match3_facts_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'y 'f), traps {
-  let body_valid: own Bool = semantic_buffer_match3_body_valid(source: source, tokens: tokens, ast: ast, function: function);
+fn llvm_buffer_fixed_width_supported (width: own u64) -> own Bool pure {
+  let is3: own Bool = ieq<u64>(width, 3_u64);
+  let is4: own Bool = ieq<u64>(width, 4_u64);
+  let is6: own Bool = ieq<u64>(width, 6_u64);
+  let is7: own Bool = ieq<u64>(width, 7_u64);
+  let low: own Bool = bor<Bool>(is3, is4);
+  let high: own Bool = bor<Bool>(is6, is7);
+  return bor<Bool>(low, high);
+}
+
+fn llvm_buffer_nondefault_fact_count ['f] (facts: &'f NodeFacts) -> own u64 reads('f), traps {
+  let node: own u64 = 0_u64;
+  let nondefault: own u64 = 0_u64;
+  loop @llvm_buffer_nondefault_fact_rows {
+    let row_default: own Bool = llvm_buffer_default_fact_row(facts: facts, node: node);
+    match row_default {
+      True() => {
+      }
+      False() => {
+        set nondefault = iadd.trap<u64>(nondefault, 1_u64);
+      }
+    }
+    let next: own u64 = iadd.trap<u64>(node, 1_u64);
+    match ieq<u64>(next, deref(facts).count) {
+      True() => {
+        return nondefault;
+      }
+      False() => {
+        set node = next;
+      }
+    }
+  }
+}
+
+fn llvm_buffer_band_left_declaration ['a] (ast: &'a AstTape, block: own u64, width: own u64, band_index: own u64) -> own u64 reads('a), traps {
+  let pair_count: own u64 = idiv.trap<u64>(width, 2_u64);
+  let two_width: own u64 = imul.trap<u64>(width, 2_u64);
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let eq_base: own u64 = isub.trap<u64>(two_width, 1_u64);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let statement: own u64 = band_base;
+  match ilt<u64>(band_index, pair_count) {
+    True() => {
+      let doubled: own u64 = imul.trap<u64>(band_index, 2_u64);
+      set statement = iadd.trap<u64>(eq_base, doubled);
+    }
+    False() => {
+      match ieq<u64>(band_index, pair_count) {
+        True() => {
+        }
+        False() => {
+          let prior: own u64 = isub.trap<u64>(band_index, 1_u64);
+          set statement = iadd.trap<u64>(band_base, prior);
+        }
+      }
+    }
+  }
+  return llvm_linear_child_at(ast: ast, node: block, ordinal: statement);
+}
+
+fn llvm_buffer_band_right_declaration ['a] (ast: &'a AstTape, block: own u64, width: own u64, band_index: own u64) -> own u64 reads('a), traps {
+  let pair_count: own u64 = idiv.trap<u64>(width, 2_u64);
+  let two_width: own u64 = imul.trap<u64>(width, 2_u64);
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let eq_base: own u64 = isub.trap<u64>(two_width, 1_u64);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let statement: own u64 = band_base;
+  match ilt<u64>(band_index, pair_count) {
+    True() => {
+      let doubled: own u64 = imul.trap<u64>(band_index, 2_u64);
+      let left_statement: own u64 = iadd.trap<u64>(eq_base, doubled);
+      set statement = iadd.trap<u64>(left_statement, 1_u64);
+    }
+    False() => {
+      let reduced: own u64 = isub.trap<u64>(band_index, pair_count);
+      let right_index: own u64 = iadd.trap<u64>(reduced, 1_u64);
+      set statement = iadd.trap<u64>(band_base, right_index);
+    }
+  }
+  return llvm_linear_child_at(ast: ast, node: block, ordinal: statement);
+}
+
+fn llvm_buffer_final_band_left_declaration ['a] (ast: &'a AstTape, block: own u64, width: own u64) -> own u64 reads('a), traps {
+  let pair_count: own u64 = idiv.trap<u64>(width, 2_u64);
+  let band_count: own u64 = isub.trap<u64>(width, 2_u64);
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let band_index: own u64 = 0_u64;
+  match igt<u64>(band_count, pair_count) {
+    True() => {
+      set band_index = isub.trap<u64>(band_count, 1_u64);
+    }
+    False() => {
+    }
+  }
+  let statement: own u64 = iadd.trap<u64>(band_base, band_index);
+  return llvm_linear_child_at(ast: ast, node: block, ordinal: statement);
+}
+
+fn llvm_buffer_final_band_right_declaration ['a] (ast: &'a AstTape, block: own u64, width: own u64) -> own u64 reads('a), traps {
+  let pair_count: own u64 = idiv.trap<u64>(width, 2_u64);
+  let two_width: own u64 = imul.trap<u64>(width, 2_u64);
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let eq_base: own u64 = isub.trap<u64>(two_width, 1_u64);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let remainder: own u64 = irem.trap<u64>(width, 2_u64);
+  let statement: own u64 = band_base;
+  match ieq<u64>(remainder, 1_u64) {
+    True() => {
+      let last_eq: own u64 = isub.trap<u64>(width, 1_u64);
+      set statement = iadd.trap<u64>(eq_base, last_eq);
+    }
+    False() => {
+      let last_pair: own u64 = isub.trap<u64>(pair_count, 1_u64);
+      set statement = iadd.trap<u64>(band_base, last_pair);
+    }
+  }
+  return llvm_linear_child_at(ast: ast, node: block, ordinal: statement);
+}
+
+fn llvm_buffer_fixed_width_facts_valid_at ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'y 'f), traps {
+  let supported: own Bool = llvm_buffer_fixed_width_supported(width: width);
+  match supported {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let profile: own u64 = semantic_buffer_fixed_width_profile(source: source, tokens: tokens, ast: ast, function: function);
+  match ieq<u64>(profile, width) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let body_valid: own Bool = semantic_buffer_fixed_width_body_valid(source: source, tokens: tokens, ast: ast, function: function);
   match body_valid {
     True() => {
     }
@@ -917,8 +1169,8 @@ fn llvm_buffer_match3_facts_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, 
   let fact_metadata: own Bool = band<Bool>(fact_node_clean, fact_related_clean);
   let shape_status: own Bool = band<Bool>(shapes, statuses);
   let clean_metadata: own Bool = band<Bool>(type_metadata, fact_metadata);
-  let tapes_clean: own Bool = band<Bool>(shape_status, clean_metadata);
-  let tapes_valid: own Bool = band<Bool>(tapes_clean, facts_dense);
+  let clean_tapes: own Bool = band<Bool>(shape_status, clean_metadata);
+  let tapes_valid: own Bool = band<Bool>(clean_tapes, facts_dense);
   match tapes_valid {
     True() => {
     }
@@ -935,61 +1187,47 @@ fn llvm_buffer_match3_facts_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, 
     }
   }
 
-  let root: own u64 = deref(ast).root;
-  let name: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 0_u64);
-  let regions: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 1_u64);
   let source_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 2_u64);
   let start_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 3_u64);
-  let a_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 4_u64);
-  let b_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 5_u64);
-  let c_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 6_u64);
-  let return_mode: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 7_u64);
-  let return_type: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 8_u64);
-  let reads_effect: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 9_u64);
-  let traps_effect: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 10_u64);
-  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 11_u64);
-  let declared_region: own u64 = llvm_linear_child_at(ast: ast, node: regions, ordinal: 0_u64);
-  let read_region: own u64 = llvm_linear_child_at(ast: ast, node: reads_effect, ordinal: 0_u64);
-
-  let root_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: root);
-  let function_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: function);
-  let name_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: name);
-  let regions_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: regions);
-  let declared_region_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: declared_region);
-  let reads_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: reads_effect);
-  let read_region_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: read_region);
-  let traps_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: traps_effect);
-  let block_row: own Bool = llvm_buffer_default_fact_row(facts: facts, node: block);
-  let header0: own Bool = band<Bool>(root_row, function_row);
-  let header1: own Bool = band<Bool>(name_row, regions_row);
-  let header2: own Bool = band<Bool>(declared_region_row, reads_row);
-  let header3: own Bool = band<Bool>(read_region_row, traps_row);
-  let header01: own Bool = band<Bool>(header0, header1);
-  let header23: own Bool = band<Bool>(header2, header3);
-  let header03: own Bool = band<Bool>(header01, header23);
-  let structural_header: own Bool = band<Bool>(header03, block_row);
-  match structural_header {
+  let source_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: source_parameter, type_id: semantic_buffer_type_u8_buffer, ordinal: 0_u64, mode: SemanticModeShared());
+  let start_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: start_parameter, type_id: semantic_buffer_type_u64, ordinal: 1_u64, mode: SemanticModeOwn());
+  match band<Bool>(source_rows, start_rows) {
     True() => {
     }
     False() => {
       return False();
     }
   }
-
-  let source_parameter_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: source_parameter, type_id: semantic_buffer_type_u8_buffer, ordinal: 0_u64, mode: SemanticModeShared());
-  let start_parameter_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: start_parameter, type_id: semantic_buffer_type_u64, ordinal: 1_u64, mode: SemanticModeOwn());
-  let a_parameter_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: a_parameter, type_id: semantic_buffer_type_u8, ordinal: 2_u64, mode: SemanticModeOwn());
-  let b_parameter_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: b_parameter, type_id: semantic_buffer_type_u8, ordinal: 3_u64, mode: SemanticModeOwn());
-  let c_parameter_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: c_parameter, type_id: semantic_buffer_type_u8, ordinal: 4_u64, mode: SemanticModeOwn());
+  let character: own u64 = 0_u64;
+  loop @llvm_buffer_character_parameter_rows {
+    let character_parameter_position: own u64 = iadd.trap<u64>(character, 4_u64);
+    let character_parameter_ordinal: own u64 = iadd.trap<u64>(character, 2_u64);
+    let character_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: character_parameter_position);
+    let character_parameter_rows: own Bool = llvm_buffer_parameter_facts_valid(ast: ast, facts: facts, parameter: character_parameter, type_id: semantic_buffer_type_u8, ordinal: character_parameter_ordinal, mode: SemanticModeOwn());
+    match character_parameter_rows {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next_character: own u64 = iadd.trap<u64>(character, 1_u64);
+    match ieq<u64>(next_character, width) {
+      True() => {
+        break @llvm_buffer_character_parameter_rows;
+      }
+      False() => {
+        set character = next_character;
+      }
+    }
+  }
+  let return_mode_position: own u64 = iadd.trap<u64>(width, 4_u64);
+  let return_type_position: own u64 = iadd.trap<u64>(width, 5_u64);
+  let return_mode: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: return_mode_position);
+  let return_type: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: return_type_position);
   let return_mode_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: return_mode, type_id: semantic_buffer_type_bool, resolution: semantic_facts_none, ordinal: semantic_facts_none, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
   let return_type_row: own Bool = llvm_buffer_typed_fact_row(facts: facts, node: return_type, type_id: semantic_buffer_type_bool);
-  let parameters0: own Bool = band<Bool>(source_parameter_rows, start_parameter_rows);
-  let parameters1: own Bool = band<Bool>(a_parameter_rows, b_parameter_rows);
-  let parameters2: own Bool = band<Bool>(c_parameter_rows, return_mode_row);
-  let parameters01: own Bool = band<Bool>(parameters0, parameters1);
-  let parameters23: own Bool = band<Bool>(parameters2, return_type_row);
-  let signature_rows: own Bool = band<Bool>(parameters01, parameters23);
-  match signature_rows {
+  match band<Bool>(return_mode_row, return_type_row) {
     True() => {
     }
     False() => {
@@ -997,77 +1235,188 @@ fn llvm_buffer_match3_facts_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, 
     }
   }
 
-  let p1_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 0_u64);
-  let p2_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 1_u64);
-  let b0_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 2_u64);
-  let b1_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 3_u64);
-  let b2_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 4_u64);
-  let e0_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 5_u64);
-  let e1_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 6_u64);
-  let e2_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 7_u64);
-  let first_let: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 8_u64);
-  let final_return: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 9_u64);
+  let block_position: own u64 = iadd.trap<u64>(width, 8_u64);
+  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: block_position);
+  let four_width: own u64 = imul.trap<u64>(width, 4_u64);
+  let let_count: own u64 = isub.trap<u64>(four_width, 3_u64);
+  let last_let: own u64 = isub.trap<u64>(let_count, 1_u64);
+  let add_count: own u64 = isub.trap<u64>(width, 1_u64);
+  let two_width: own u64 = imul.trap<u64>(width, 2_u64);
+  let byte_limit: own u64 = isub.trap<u64>(two_width, 1_u64);
+  let statement_ordinal: own u64 = 0_u64;
+  loop @llvm_buffer_let_rows {
+    let let_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: statement_ordinal);
+    let let_type_id: own u64 = semantic_buffer_type_bool;
+    match ilt<u64>(statement_ordinal, add_count) {
+      True() => {
+        set let_type_id = semantic_buffer_type_u64;
+      }
+      False() => {
+        match ilt<u64>(statement_ordinal, byte_limit) {
+          True() => {
+            set let_type_id = semantic_buffer_type_u8;
+          }
+          False() => {
+          }
+        }
+      }
+    }
+    let let_declaration_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: let_declaration, type_id: let_type_id, ordinal: statement_ordinal);
+    match let_declaration_rows {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    match ieq<u64>(statement_ordinal, last_let) {
+      True() => {
+        break @llvm_buffer_let_rows;
+      }
+      False() => {
+        set statement_ordinal = iadd.trap<u64>(statement_ordinal, 1_u64);
+      }
+    }
+  }
 
-  let p1_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: p1_let, type_id: semantic_buffer_type_u64, ordinal: 0_u64);
-  let p2_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: p2_let, type_id: semantic_buffer_type_u64, ordinal: 1_u64);
-  let b0_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: b0_let, type_id: semantic_buffer_type_u8, ordinal: 2_u64);
-  let b1_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: b1_let, type_id: semantic_buffer_type_u8, ordinal: 3_u64);
-  let b2_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: b2_let, type_id: semantic_buffer_type_u8, ordinal: 4_u64);
-  let e0_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: e0_let, type_id: semantic_buffer_type_bool, ordinal: 5_u64);
-  let e1_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: e1_let, type_id: semantic_buffer_type_bool, ordinal: 6_u64);
-  let e2_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: e2_let, type_id: semantic_buffer_type_bool, ordinal: 7_u64);
-  let first_let_rows: own Bool = llvm_buffer_let_facts_valid(ast: ast, facts: facts, declaration: first_let, type_id: semantic_buffer_type_bool, ordinal: 8_u64);
-  let lets0: own Bool = band<Bool>(p1_let_rows, p2_let_rows);
-  let lets1: own Bool = band<Bool>(b0_let_rows, b1_let_rows);
-  let lets2: own Bool = band<Bool>(b2_let_rows, e0_let_rows);
-  let lets3: own Bool = band<Bool>(e1_let_rows, e2_let_rows);
-  let lets01: own Bool = band<Bool>(lets0, lets1);
-  let lets23: own Bool = band<Bool>(lets2, lets3);
-  let lets07: own Bool = band<Bool>(lets01, lets23);
-  let let_rows: own Bool = band<Bool>(lets07, first_let_rows);
-  match let_rows {
+  let addend: own u64 = 1_u64;
+  loop @llvm_buffer_add_fact_rows {
+    let add_declaration_ordinal: own u64 = isub.trap<u64>(addend, 1_u64);
+    let add_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: add_declaration_ordinal);
+    let add_call: own u64 = llvm_linear_child_at(ast: ast, node: add_declaration, ordinal: 3_u64);
+    let add_rows: own Bool = llvm_buffer_iadd_facts_valid(ast: ast, facts: facts, call: add_call, ordinal: add_declaration_ordinal, left_declaration: start_parameter, literal_value: addend);
+    match add_rows {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    match ieq<u64>(addend, add_count) {
+      True() => {
+        break @llvm_buffer_add_fact_rows;
+      }
+      False() => {
+        set addend = iadd.trap<u64>(addend, 1_u64);
+      }
+    }
+  }
+
+  let byte: own u64 = 0_u64;
+  loop @llvm_buffer_index_fact_rows {
+    let index_ordinal: own u64 = iadd.trap<u64>(add_count, byte);
+    let index_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: index_ordinal);
+    let index_call: own u64 = llvm_linear_child_at(ast: ast, node: index_declaration, ordinal: 3_u64);
+    let index_subscript_declaration: own u64 = start_parameter;
+    match ieq<u64>(byte, 0_u64) {
+      True() => {
+      }
+      False() => {
+        let index_add_ordinal: own u64 = isub.trap<u64>(byte, 1_u64);
+        set index_subscript_declaration = llvm_linear_child_at(ast: ast, node: block, ordinal: index_add_ordinal);
+      }
+    }
+    let index_rows: own Bool = llvm_buffer_index_facts_valid(ast: ast, facts: facts, node: index_call, ordinal: index_ordinal, source_declaration: source_parameter, subscript_declaration: index_subscript_declaration);
+    match index_rows {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next_byte: own u64 = iadd.trap<u64>(byte, 1_u64);
+    match ieq<u64>(next_byte, width) {
+      True() => {
+        break @llvm_buffer_index_fact_rows;
+      }
+      False() => {
+        set byte = next_byte;
+      }
+    }
+  }
+
+  let eq_base: own u64 = byte_limit;
+  let comparison: own u64 = 0_u64;
+  loop @llvm_buffer_eq_fact_rows {
+    let eq_ordinal: own u64 = iadd.trap<u64>(eq_base, comparison);
+    let eq_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: eq_ordinal);
+    let eq_call: own u64 = llvm_linear_child_at(ast: ast, node: eq_declaration, ordinal: 3_u64);
+    let eq_byte_ordinal: own u64 = iadd.trap<u64>(add_count, comparison);
+    let eq_byte_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: eq_byte_ordinal);
+    let eq_parameter_position: own u64 = iadd.trap<u64>(comparison, 4_u64);
+    let eq_parameter: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: eq_parameter_position);
+    let eq_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: eq_call, ordinal: eq_ordinal, operand_type: semantic_buffer_type_u8, operation: SemanticOperationIeq(), left_declaration: eq_byte_declaration, right_declaration: eq_parameter);
+    match eq_rows {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next_comparison: own u64 = iadd.trap<u64>(comparison, 1_u64);
+    match ieq<u64>(next_comparison, width) {
+      True() => {
+        break @llvm_buffer_eq_fact_rows;
+      }
+      False() => {
+        set comparison = next_comparison;
+      }
+    }
+  }
+
+  let three_width: own u64 = imul.trap<u64>(width, 3_u64);
+  let band_base: own u64 = isub.trap<u64>(three_width, 1_u64);
+  let intermediate_count: own u64 = isub.trap<u64>(width, 2_u64);
+  let band_index: own u64 = 0_u64;
+  loop @llvm_buffer_band_fact_rows {
+    let band_ordinal: own u64 = iadd.trap<u64>(band_base, band_index);
+    let band_declaration: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: band_ordinal);
+    let band_call: own u64 = llvm_linear_child_at(ast: ast, node: band_declaration, ordinal: 3_u64);
+    let band_left_declaration: own u64 = llvm_buffer_band_left_declaration(ast: ast, block: block, width: width, band_index: band_index);
+    let band_right_declaration: own u64 = llvm_buffer_band_right_declaration(ast: ast, block: block, width: width, band_index: band_index);
+    let band_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: band_call, ordinal: band_ordinal, operand_type: semantic_buffer_type_bool, operation: SemanticOperationBand(), left_declaration: band_left_declaration, right_declaration: band_right_declaration);
+    match band_rows {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next_band: own u64 = iadd.trap<u64>(band_index, 1_u64);
+    match ieq<u64>(next_band, intermediate_count) {
+      True() => {
+        break @llvm_buffer_band_fact_rows;
+      }
+      False() => {
+        set band_index = next_band;
+      }
+    }
+  }
+  let final_return: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: let_count);
+  let final_call: own u64 = llvm_linear_child_at(ast: ast, node: final_return, ordinal: 0_u64);
+  let final_left_declaration: own u64 = llvm_buffer_final_band_left_declaration(ast: ast, block: block, width: width);
+  let final_right_declaration: own u64 = llvm_buffer_final_band_right_declaration(ast: ast, block: block, width: width);
+  let final_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: final_call, ordinal: let_count, operand_type: semantic_buffer_type_bool, operation: SemanticOperationBand(), left_declaration: final_left_declaration, right_declaration: final_right_declaration);
+  let final_return_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: final_return, type_id: semantic_buffer_type_bool, resolution: semantic_facts_none, ordinal: let_count, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
+  match band<Bool>(final_rows, final_return_row) {
     True() => {
     }
     False() => {
       return False();
     }
   }
-
-  let p1_value: own u64 = llvm_linear_child_at(ast: ast, node: p1_let, ordinal: 3_u64);
-  let p2_value: own u64 = llvm_linear_child_at(ast: ast, node: p2_let, ordinal: 3_u64);
-  let b0_value: own u64 = llvm_linear_child_at(ast: ast, node: b0_let, ordinal: 3_u64);
-  let b1_value: own u64 = llvm_linear_child_at(ast: ast, node: b1_let, ordinal: 3_u64);
-  let b2_value: own u64 = llvm_linear_child_at(ast: ast, node: b2_let, ordinal: 3_u64);
-  let e0_value: own u64 = llvm_linear_child_at(ast: ast, node: e0_let, ordinal: 3_u64);
-  let e1_value: own u64 = llvm_linear_child_at(ast: ast, node: e1_let, ordinal: 3_u64);
-  let e2_value: own u64 = llvm_linear_child_at(ast: ast, node: e2_let, ordinal: 3_u64);
-  let first_value: own u64 = llvm_linear_child_at(ast: ast, node: first_let, ordinal: 3_u64);
-  let final_value: own u64 = llvm_linear_child_at(ast: ast, node: final_return, ordinal: 0_u64);
-
-  let p1_rows: own Bool = llvm_buffer_iadd_facts_valid(ast: ast, facts: facts, call: p1_value, ordinal: 0_u64, left_declaration: start_parameter, literal_value: 1_u64);
-  let p2_rows: own Bool = llvm_buffer_iadd_facts_valid(ast: ast, facts: facts, call: p2_value, ordinal: 1_u64, left_declaration: start_parameter, literal_value: 2_u64);
-  let b0_rows: own Bool = llvm_buffer_index_facts_valid(ast: ast, facts: facts, node: b0_value, ordinal: 2_u64, source_declaration: source_parameter, subscript_declaration: start_parameter);
-  let b1_rows: own Bool = llvm_buffer_index_facts_valid(ast: ast, facts: facts, node: b1_value, ordinal: 3_u64, source_declaration: source_parameter, subscript_declaration: p1_let);
-  let b2_rows: own Bool = llvm_buffer_index_facts_valid(ast: ast, facts: facts, node: b2_value, ordinal: 4_u64, source_declaration: source_parameter, subscript_declaration: p2_let);
-  let e0_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: e0_value, ordinal: 5_u64, operand_type: semantic_buffer_type_u8, operation: SemanticOperationIeq(), left_declaration: b0_let, right_declaration: a_parameter);
-  let e1_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: e1_value, ordinal: 6_u64, operand_type: semantic_buffer_type_u8, operation: SemanticOperationIeq(), left_declaration: b1_let, right_declaration: b_parameter);
-  let e2_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: e2_value, ordinal: 7_u64, operand_type: semantic_buffer_type_u8, operation: SemanticOperationIeq(), left_declaration: b2_let, right_declaration: c_parameter);
-  let first_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: first_value, ordinal: 8_u64, operand_type: semantic_buffer_type_bool, operation: SemanticOperationBand(), left_declaration: e0_let, right_declaration: e1_let);
-  let final_rows: own Bool = llvm_buffer_binary_facts_valid(ast: ast, facts: facts, call: final_value, ordinal: 9_u64, operand_type: semantic_buffer_type_bool, operation: SemanticOperationBand(), left_declaration: first_let, right_declaration: e2_let);
-  let final_return_row: own Bool = llvm_buffer_fact_row_valid(facts: facts, node: final_return, type_id: semantic_buffer_type_bool, resolution: semantic_facts_none, ordinal: 9_u64, operation: SemanticOperationNone(), constant: semantic_facts_none, target: semantic_facts_none, mode: SemanticModeOwn(), prelude: PreludeConstructorUnknown());
-  let values0: own Bool = band<Bool>(p1_rows, p2_rows);
-  let values1: own Bool = band<Bool>(b0_rows, b1_rows);
-  let values2: own Bool = band<Bool>(b2_rows, e0_rows);
-  let values3: own Bool = band<Bool>(e1_rows, e2_rows);
-  let values4: own Bool = band<Bool>(first_rows, final_rows);
-  let values01: own Bool = band<Bool>(values0, values1);
-  let values23: own Bool = band<Bool>(values2, values3);
-  let values03: own Bool = band<Bool>(values01, values23);
-  let values49: own Bool = band<Bool>(values4, final_return_row);
-  return band<Bool>(values03, values49);
+  let expected_nondefault_product: own u64 = imul.trap<u64>(width, 36_u64);
+  let expected_nondefault: own u64 = isub.trap<u64>(expected_nondefault_product, 10_u64);
+  let observed_nondefault: own u64 = llvm_buffer_nondefault_fact_count(facts: facts);
+  return ieq<u64>(observed_nondefault, expected_nondefault);
 }
 
-fn llvm_buffer_match3_append_ready ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &'o ByteTape) -> own Bool reads('s 't 'a 'y 'f 'o), traps {
+fn llvm_buffer_fixed_width_facts_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'y 'f), traps {
+  let width: own u64 = semantic_buffer_fixed_width_profile(source: source, tokens: tokens, ast: ast, function: function);
+  return llvm_buffer_fixed_width_facts_valid_at(source: source, tokens: tokens, ast: ast, function: function, width: width, types: types, facts: facts);
+}
+
+fn llvm_buffer_fixed_width_append_ready ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &'o ByteTape) -> own Bool reads('s 't 'a 'y 'f 'o), traps {
   let appendable: own Bool = False();
   let source_size: own u64 = len<u8>(deref(source));
   let ast_nodes: own u64 = deref(ast).count;
@@ -1081,20 +1430,20 @@ fn llvm_buffer_match3_append_ready ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<
       return False();
     }
   }
-  return llvm_buffer_match3_facts_valid(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts);
+  return llvm_buffer_fixed_width_facts_valid_at(source: source, tokens: tokens, ast: ast, function: function, width: width, types: types, facts: facts);
 }
 
-fn llvm_buffer_emit_validated_match3_function ['s, 't, 'a, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'o), writes('o), traps {
+fn llvm_buffer_emit_validated_fixed_width_function ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {
   region 'llvm_buffer_validated_header {
-    llvm_buffer_emit_header(source: source, tokens: tokens, ast: ast, function: function, out: &uniq 'llvm_buffer_validated_header deref(out));
+    llvm_buffer_emit_header(source: source, tokens: tokens, ast: ast, function: function, width: width, out: &uniq 'llvm_buffer_validated_header deref(out));
   }
   region 'llvm_buffer_validated_body {
-    llvm_buffer_emit_match3_body(out: &uniq 'llvm_buffer_validated_body deref(out));
+    llvm_buffer_emit_matcher_body(ast: ast, function: function, width: width, facts: facts, out: &uniq 'llvm_buffer_validated_body deref(out));
   }
   return unit;
 }
 
-fn llvm_buffer_append_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+fn llvm_buffer_append_fixed_width_at ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
   match ieq<ByteStatus>(deref(out).status, ByteInvalidState()) {
     True() => {
       return unit;
@@ -1104,7 +1453,7 @@ fn llvm_buffer_append_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, t
   }
   let ready: own Bool = False();
   region 'llvm_buffer_append_ready {
-    set ready = llvm_buffer_match3_append_ready(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts, out: &'llvm_buffer_append_ready deref(out));
+    set ready = llvm_buffer_fixed_width_append_ready(source: source, tokens: tokens, ast: ast, function: function, width: width, types: types, facts: facts, out: &'llvm_buffer_append_ready deref(out));
   }
   match ready {
     True() => {
@@ -1117,18 +1466,18 @@ fn llvm_buffer_append_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, t
     }
   }
   region 'llvm_buffer_append_function {
-    llvm_buffer_emit_validated_match3_function(source: source, tokens: tokens, ast: ast, function: function, out: &uniq 'llvm_buffer_append_function deref(out));
+    llvm_buffer_emit_validated_fixed_width_function(source: source, tokens: tokens, ast: ast, function: function, width: width, facts: facts, out: &uniq 'llvm_buffer_append_function deref(out));
   }
   return unit;
 }
 
-fn llvm_buffer_emit_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+fn llvm_buffer_emit_fixed_width_at ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
   region 'llvm_buffer_emit_reset {
     byte_tape_reset(out: &uniq 'llvm_buffer_emit_reset deref(out));
   }
   let ready: own Bool = False();
   region 'llvm_buffer_emit_ready {
-    set ready = llvm_buffer_match3_append_ready(source: source, tokens: tokens, ast: ast, function: function, types: types, facts: facts, out: &'llvm_buffer_emit_ready deref(out));
+    set ready = llvm_buffer_fixed_width_append_ready(source: source, tokens: tokens, ast: ast, function: function, width: width, types: types, facts: facts, out: &'llvm_buffer_emit_ready deref(out));
   }
   match ready {
     True() => {
@@ -1144,7 +1493,41 @@ fn llvm_buffer_emit_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tok
     llvm_buffer_emit_prelude(out: &uniq 'llvm_buffer_emit_prelude deref(out));
   }
   region 'llvm_buffer_emit_function {
-    llvm_buffer_emit_validated_match3_function(source: source, tokens: tokens, ast: ast, function: function, out: &uniq 'llvm_buffer_emit_function deref(out));
+    llvm_buffer_emit_validated_fixed_width_function(source: source, tokens: tokens, ast: ast, function: function, width: width, facts: facts, out: &uniq 'llvm_buffer_emit_function deref(out));
+  }
+  return unit;
+}
+
+fn llvm_buffer_append_fixed_width ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+  let width: own u64 = semantic_buffer_fixed_width_profile(source: source, tokens: tokens, ast: ast, function: function);
+  region 'llvm_buffer_append_profile {
+    llvm_buffer_append_fixed_width_at(source: source, tokens: tokens, ast: ast, function: function, width: width, types: types, facts: facts, out: &uniq 'llvm_buffer_append_profile deref(out));
+  }
+  return unit;
+}
+
+fn llvm_buffer_emit_fixed_width ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+  let width: own u64 = semantic_buffer_fixed_width_profile(source: source, tokens: tokens, ast: ast, function: function);
+  region 'llvm_buffer_emit_profile {
+    llvm_buffer_emit_fixed_width_at(source: source, tokens: tokens, ast: ast, function: function, width: width, types: types, facts: facts, out: &uniq 'llvm_buffer_emit_profile deref(out));
+  }
+  return unit;
+}
+
+fn llvm_buffer_match3_facts_valid ['s, 't, 'a, 'y, 'f] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts) -> own Bool reads('s 't 'a 'y 'f), traps {
+  return llvm_buffer_fixed_width_facts_valid_at(source: source, tokens: tokens, ast: ast, function: function, width: 3_u64, types: types, facts: facts);
+}
+
+fn llvm_buffer_append_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+  region 'llvm_buffer_append_match3_profile {
+    llvm_buffer_append_fixed_width_at(source: source, tokens: tokens, ast: ast, function: function, width: 3_u64, types: types, facts: facts, out: &uniq 'llvm_buffer_append_match3_profile deref(out));
+  }
+  return unit;
+}
+
+fn llvm_buffer_emit_match3 ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
+  region 'llvm_buffer_emit_match3_profile {
+    llvm_buffer_emit_fixed_width_at(source: source, tokens: tokens, ast: ast, function: function, width: 3_u64, types: types, facts: facts, out: &uniq 'llvm_buffer_emit_match3_profile deref(out));
   }
   return unit;
 }
