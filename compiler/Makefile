@@ -29,5 +29,6 @@ check:
 	$(PY) test_llvm_linear.py
 	$(PY) test_llvm_buffer.py
 	$(PY) test_llvm_scanner.py
+	$(PY) test_llvm_supported.py
 
 .PHONY: check

@@ -28,3 +28,4 @@ src/llvm_scalar.xl
 src/llvm_linear.xl
 src/llvm_buffer.xl
 src/llvm_scanner.xl
+src/llvm_supported.xl
