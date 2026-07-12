@@ -12,6 +12,12 @@ struct ByteTape {
 
 const byte_tape_digits: array<u8, 10> = [48_u8, 49_u8, 50_u8, 51_u8, 52_u8, 53_u8, 54_u8, 55_u8, 56_u8, 57_u8];
 
+fn byte_tape_reset ['o] (out: &uniq 'o ByteTape) -> own unit writes('o) {
+  set deref(out).count = 0_u64;
+  set deref(out).status = ByteClean();
+  return unit;
+}
+
 fn byte_tape_push ['o] (out: &uniq 'o ByteTape, byte: own u8) -> own unit reads('o), writes('o), traps {
   let slot: own u64 = deref(out).count;
   let capacity: own u64 = len<u8>(deref(out).bytes);
@@ -64,9 +70,52 @@ fn byte_tape_emit_u64 ['o] (out: &uniq 'o ByteTape, value: own u64) -> own unit 
   return unit;
 }
 
+fn byte_tape_emit_span ['s, 'o] (source: &'s buffer<u8>, start: own u64, end: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 'o), writes('o), traps {
+  let ordered: own Bool = ile<u64>(start, end);
+  let source_size: own u64 = len<u8>(deref(source));
+  let in_source: own Bool = ile<u64>(end, source_size);
+  let valid: own Bool = band<Bool>(ordered, in_source);
+  match valid {
+    True() => {
+    }
+    False() => {
+      set deref(out).status = ByteInvalidState();
+      return unit;
+    }
+  }
+
+  let cursor: own u64 = start;
+  loop @span_bytes {
+    let done: own Bool = ieq<u64>(cursor, end);
+    match done {
+      True() => {
+        return unit;
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    region 'span_byte {
+      byte_tape_push(out: &uniq 'span_byte deref(out), byte: byte);
+    }
+    set cursor = iadd.trap<u64>(cursor, 1_u64);
+  }
+}
+
+fn byte_tape_emit_span_probe ['s, 'o] (source: &'s buffer<u8>, start: own u64, end: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 'o), writes('o), traps {
+  region 'reset {
+    byte_tape_reset(out: &uniq 'reset deref(out));
+  }
+  region 'emit {
+    byte_tape_emit_span(source: source, start: start, end: end, out: &uniq 'emit deref(out));
+  }
+  return unit;
+}
+
 fn byte_tape_emit_probe ['o] (out: &uniq 'o ByteTape, value: own u64) -> own unit reads('o), writes('o), traps {
-  set deref(out).count = 0_u64;
-  set deref(out).status = ByteClean();
+  region 'reset {
+    byte_tape_reset(out: &uniq 'reset deref(out));
+  }
   region 'prefix {
     byte_tape_emit_prefix(out: &uniq 'prefix deref(out));
   }

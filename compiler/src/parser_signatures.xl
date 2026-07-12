@@ -1,0 +1,624 @@
+fn parser_word5 ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, a: own u8, b: own u8, c: own u8, d: own u8, e: own u8) -> own Bool reads('s 't), traps {
+  let span: own Bool = parser_word_span(tokens: tokens, token: token, width: 5_u64);
+  match span {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let e0: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 0_u64, want: a);
+  let e1: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 1_u64, want: b);
+  let e2: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 2_u64, want: c);
+  let e3: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 3_u64, want: d);
+  let e4: own Bool = parser_word_byte(source: source, tokens: tokens, token: token, offset: 4_u64, want: e);
+  let first: own Bool = band<Bool>(e0, e1);
+  let second: own Bool = band<Bool>(e2, e3);
+  let first_four: own Bool = band<Bool>(first, second);
+  return band<Bool>(first_four, e4);
+}
+
+fn parser_signature_primitive_type ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64) -> own Bool reads('s 't), traps {
+  let i8_type: own Bool = parser_word2(source: source, tokens: tokens, token: token, a: 105_u8, b: 56_u8);
+  match i8_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let u8_type: own Bool = parser_word2(source: source, tokens: tokens, token: token, a: 117_u8, b: 56_u8);
+  match u8_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let i16_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 105_u8, b: 49_u8, c: 54_u8);
+  match i16_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let i32_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 105_u8, b: 51_u8, c: 50_u8);
+  match i32_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let i64_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 105_u8, b: 54_u8, c: 52_u8);
+  match i64_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let u16_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 117_u8, b: 49_u8, c: 54_u8);
+  match u16_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let u32_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 117_u8, b: 51_u8, c: 50_u8);
+  match u32_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let u64_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 117_u8, b: 54_u8, c: 52_u8);
+  match u64_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let f32_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 102_u8, b: 51_u8, c: 50_u8);
+  match f32_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let f64_type: own Bool = parser_word3(source: source, tokens: tokens, token: token, a: 102_u8, b: 54_u8, c: 52_u8);
+  match f64_type {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  return parser_word4(source: source, tokens: tokens, token: token, a: 117_u8, b: 110_u8, c: 105_u8, d: 116_u8);
+}
+
+fn parser_signature_const_argument ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64) -> own Bool reads('s 't), traps {
+  let word: own Bool = parser_kind_at_is(tokens: tokens, token: token, want: 1_u64);
+  match word {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let number: own Bool = parser_kind_at_is(tokens: tokens, token: token, want: 6_u64);
+  match number {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let end: own u64 = index<u64>(deref(tokens).ends, token);
+  let cursor: own u64 = start;
+  loop @const_digits {
+    let done: own Bool = ige<u64>(cursor, end);
+    match done {
+      True() => {
+        return igt<u64>(end, start);
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(deref(source), cursor);
+    let digit: own Bool = lexer_is_digit(c: byte);
+    match digit {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+}
+
+fn parser_parse_signature_type ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t TokenTape, out: &uniq 'a AstTape, cursor: own u64, kind: own AstKind) -> own ParserNodeResult reads('s 't 'a), writes('a), traps {
+  let primitive: own Bool = parser_signature_primitive_type(source: source, tokens: tokens, token: cursor);
+  let named: own Bool = parser_kind_at_is(tokens: tokens, token: cursor, want: 3_u64);
+  let leaf: own Bool = bor<Bool>(primitive, named);
+  match leaf {
+    True() => {
+      let leaf_node: own u64 = ast_none;
+      region 'type_leaf_alloc {
+        set leaf_node = parser_push_token(tokens: tokens, out: &uniq 'type_leaf_alloc deref(out), kind: kind, token: cursor);
+      }
+      let after_leaf: own u64 = iadd.trap<u64>(cursor, 1_u64);
+      return ParserNodeResult(node: leaf_node, next: after_leaf);
+    }
+    False() => {
+    }
+  }
+  let buffer_type: own Bool = parser_word6(source: source, tokens: tokens, token: cursor, a: 98_u8, b: 117_u8, c: 102_u8, d: 102_u8, e: 101_u8, f: 114_u8);
+  let array_type: own Bool = parser_word5(source: source, tokens: tokens, token: cursor, a: 97_u8, b: 114_u8, c: 114_u8, d: 97_u8, e: 121_u8);
+  let composite: own Bool = bor<Bool>(buffer_type, array_type);
+  match composite {
+    True() => {
+    }
+    False() => {
+      region 'signature_type_error {
+        parser_fail(tokens: tokens, out: &uniq 'signature_type_error deref(out), status: ParseExpectedType(), token: cursor);
+      }
+      return ParserNodeResult(node: ast_none, next: cursor);
+    }
+  }
+  let type_node: own u64 = ast_none;
+  region 'type_composite_alloc {
+    set type_node = parser_push_token(tokens: tokens, out: &uniq 'type_composite_alloc deref(out), kind: kind, token: cursor);
+  }
+  match ieq<u64>(type_node, ast_none) {
+    True() => {
+      return ParserNodeResult(node: ast_none, next: cursor);
+    }
+    False() => {
+    }
+  }
+  let left_angle_cursor: own u64 = iadd.trap<u64>(cursor, 1_u64);
+  let left_angle: own Bool = parser_symbol_is(source: source, tokens: tokens, token: left_angle_cursor, want: 60_u8);
+  match left_angle {
+    True() => {
+    }
+    False() => {
+      region 'type_left_angle_error {
+        parser_fail(tokens: tokens, out: &uniq 'type_left_angle_error deref(out), status: ParseExpectedLeftAngle(), token: left_angle_cursor);
+      }
+      return ParserNodeResult(node: ast_none, next: left_angle_cursor);
+    }
+  }
+  let nested_cursor: own u64 = iadd.trap<u64>(left_angle_cursor, 1_u64);
+  let nested_node: own u64 = ast_none;
+  let nested_next: own u64 = nested_cursor;
+  region 'nested_type_parse {
+    let nested_result: own ParserNodeResult = parser_parse_signature_type(source: source, tokens: tokens, out: &uniq 'nested_type_parse deref(out), cursor: nested_cursor, kind: AstNestedType());
+    set nested_node = nested_result.node;
+    set nested_next = nested_result.next;
+  }
+  match ieq<u64>(nested_node, ast_none) {
+    True() => {
+      return ParserNodeResult(node: ast_none, next: nested_next);
+    }
+    False() => {
+    }
+  }
+  region 'nested_type_attach {
+    parser_append_child(out: &uniq 'nested_type_attach deref(out), parent: type_node, child: nested_node);
+  }
+  match array_type {
+    True() => {
+      let comma: own Bool = parser_symbol_is(source: source, tokens: tokens, token: nested_next, want: 44_u8);
+      match comma {
+        True() => {
+        }
+        False() => {
+          region 'array_comma_error {
+            parser_fail(tokens: tokens, out: &uniq 'array_comma_error deref(out), status: ParseExpectedCommaOrRightParen(), token: nested_next);
+          }
+          return ParserNodeResult(node: ast_none, next: nested_next);
+        }
+      }
+      let const_cursor: own u64 = iadd.trap<u64>(nested_next, 1_u64);
+      let const_ok: own Bool = parser_signature_const_argument(source: source, tokens: tokens, token: const_cursor);
+      match const_ok {
+        True() => {
+        }
+        False() => {
+          region 'array_const_error {
+            parser_fail(tokens: tokens, out: &uniq 'array_const_error deref(out), status: ParseExpectedConstArgument(), token: const_cursor);
+          }
+          return ParserNodeResult(node: ast_none, next: const_cursor);
+        }
+      }
+      let const_node: own u64 = ast_none;
+      region 'array_const_alloc {
+        set const_node = parser_push_token(tokens: tokens, out: &uniq 'array_const_alloc deref(out), kind: AstConstArgument(), token: const_cursor);
+      }
+      match ieq<u64>(const_node, ast_none) {
+        True() => {
+          return ParserNodeResult(node: ast_none, next: const_cursor);
+        }
+        False() => {
+        }
+      }
+      region 'array_const_attach {
+        parser_append_child(out: &uniq 'array_const_attach deref(out), parent: type_node, child: const_node);
+      }
+      set nested_next = iadd.trap<u64>(const_cursor, 1_u64);
+    }
+    False() => {
+    }
+  }
+  let right_angle: own Bool = parser_symbol_is(source: source, tokens: tokens, token: nested_next, want: 62_u8);
+  match right_angle {
+    True() => {
+    }
+    False() => {
+      region 'type_right_angle_error {
+        parser_fail(tokens: tokens, out: &uniq 'type_right_angle_error deref(out), status: ParseExpectedRightAngle(), token: nested_next);
+      }
+      return ParserNodeResult(node: ast_none, next: nested_next);
+    }
+  }
+  let type_end: own u64 = index<u64>(deref(tokens).ends, nested_next);
+  set index<u64>(deref(out).ends, type_node) = type_end;
+  let after_type: own u64 = iadd.trap<u64>(nested_next, 1_u64);
+  return ParserNodeResult(node: type_node, next: after_type);
+}
+
+fn parser_parse_signature_mode ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t TokenTape, out: &uniq 'a AstTape, cursor: own u64) -> own ParserNodeResult reads('s 't 'a), writes('a), traps {
+  let own_word: own Bool = parser_word3(source: source, tokens: tokens, token: cursor, a: 111_u8, b: 119_u8, c: 110_u8);
+  match own_word {
+    True() => {
+      let own_node: own u64 = ast_none;
+      region 'signature_own_alloc {
+        set own_node = parser_push_token(tokens: tokens, out: &uniq 'signature_own_alloc deref(out), kind: AstOwnMode(), token: cursor);
+      }
+      let after_own: own u64 = iadd.trap<u64>(cursor, 1_u64);
+      return ParserNodeResult(node: own_node, next: after_own);
+    }
+    False() => {
+    }
+  }
+  let shared: own Bool = parser_kind_at_is(tokens: tokens, token: cursor, want: 10_u64);
+  let unique: own Bool = parser_kind_at_is(tokens: tokens, token: cursor, want: 11_u64);
+  let borrowed: own Bool = bor<Bool>(shared, unique);
+  match borrowed {
+    True() => {
+    }
+    False() => {
+      region 'signature_mode_error {
+        parser_fail(tokens: tokens, out: &uniq 'signature_mode_error deref(out), status: ParseExpectedMode(), token: cursor);
+      }
+      return ParserNodeResult(node: ast_none, next: cursor);
+    }
+  }
+  let mode_kind: own AstKind = AstSharedMode();
+  match unique {
+    True() => {
+      set mode_kind = AstUniqMode();
+    }
+    False() => {
+    }
+  }
+  let mode_node: own u64 = ast_none;
+  region 'borrow_mode_alloc {
+    set mode_node = parser_push_token(tokens: tokens, out: &uniq 'borrow_mode_alloc deref(out), kind: mode_kind, token: cursor);
+  }
+  match ieq<u64>(mode_node, ast_none) {
+    True() => {
+      return ParserNodeResult(node: ast_none, next: cursor);
+    }
+    False() => {
+    }
+  }
+  let region_cursor: own u64 = iadd.trap<u64>(cursor, 1_u64);
+  let region_ok: own Bool = parser_kind_at_is(tokens: tokens, token: region_cursor, want: 4_u64);
+  match region_ok {
+    True() => {
+    }
+    False() => {
+      region 'borrow_region_error {
+        parser_fail(tokens: tokens, out: &uniq 'borrow_region_error deref(out), status: ParseExpectedRegion(), token: region_cursor);
+      }
+      return ParserNodeResult(node: ast_none, next: region_cursor);
+    }
+  }
+  let region_node: own u64 = ast_none;
+  region 'borrow_region_alloc {
+    set region_node = parser_push_token(tokens: tokens, out: &uniq 'borrow_region_alloc deref(out), kind: AstRegion(), token: region_cursor);
+  }
+  match ieq<u64>(region_node, ast_none) {
+    True() => {
+      return ParserNodeResult(node: ast_none, next: region_cursor);
+    }
+    False() => {
+    }
+  }
+  region 'borrow_region_attach {
+    parser_append_child(out: &uniq 'borrow_region_attach deref(out), parent: mode_node, child: region_node);
+  }
+  let mode_end: own u64 = index<u64>(deref(tokens).ends, region_cursor);
+  set index<u64>(deref(out).ends, mode_node) = mode_end;
+  let after_borrow: own u64 = iadd.trap<u64>(region_cursor, 1_u64);
+  return ParserNodeResult(node: mode_node, next: after_borrow);
+}
+
+fn parser_parse_region_parameters ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t TokenTape, out: &uniq 'a AstTape, parent: own u64, cursor: own u64) -> own u64 reads('s 't 'a), writes('a), traps {
+  let region_parameters: own u64 = ast_none;
+  region 'region_parameters_alloc {
+    set region_parameters = parser_push_token(tokens: tokens, out: &uniq 'region_parameters_alloc deref(out), kind: AstRegionParameters(), token: cursor);
+  }
+  match ieq<u64>(region_parameters, ast_none) {
+    True() => {
+      return ast_none;
+    }
+    False() => {
+    }
+  }
+  region 'region_parameters_attach {
+    parser_append_child(out: &uniq 'region_parameters_attach deref(out), parent: parent, child: region_parameters);
+  }
+  let region_cursor: own u64 = iadd.trap<u64>(cursor, 1_u64);
+  loop @region_parameters {
+    let region_ok: own Bool = parser_kind_at_is(tokens: tokens, token: region_cursor, want: 4_u64);
+    match region_ok {
+      True() => {
+      }
+      False() => {
+        region 'region_parameter_error {
+          parser_fail(tokens: tokens, out: &uniq 'region_parameter_error deref(out), status: ParseExpectedRegion(), token: region_cursor);
+        }
+        return ast_none;
+      }
+    }
+    let region_node: own u64 = ast_none;
+    region 'region_parameter_alloc {
+      set region_node = parser_push_token(tokens: tokens, out: &uniq 'region_parameter_alloc deref(out), kind: AstRegion(), token: region_cursor);
+    }
+    match ieq<u64>(region_node, ast_none) {
+      True() => {
+        return ast_none;
+      }
+      False() => {
+      }
+    }
+    region 'region_parameter_attach {
+      parser_append_child(out: &uniq 'region_parameter_attach deref(out), parent: region_parameters, child: region_node);
+    }
+    set region_cursor = iadd.trap<u64>(region_cursor, 1_u64);
+    let comma: own Bool = parser_symbol_is(source: source, tokens: tokens, token: region_cursor, want: 44_u8);
+    match comma {
+      True() => {
+        let after_comma: own u64 = iadd.trap<u64>(region_cursor, 1_u64);
+        let trailing_comma: own Bool = parser_symbol_is(source: source, tokens: tokens, token: after_comma, want: 93_u8);
+        match trailing_comma {
+          True() => {
+            region 'region_trailing_comma_error {
+              parser_fail(tokens: tokens, out: &uniq 'region_trailing_comma_error deref(out), status: ParseExpectedRegion(), token: after_comma);
+            }
+            return ast_none;
+          }
+          False() => {
+          }
+        }
+        set region_cursor = after_comma;
+      }
+      False() => {
+        let right_square: own Bool = parser_symbol_is(source: source, tokens: tokens, token: region_cursor, want: 93_u8);
+        match right_square {
+          True() => {
+            let parameters_end: own u64 = index<u64>(deref(tokens).ends, region_cursor);
+            set index<u64>(deref(out).ends, region_parameters) = parameters_end;
+            return iadd.trap<u64>(region_cursor, 1_u64);
+          }
+          False() => {
+            region 'region_right_square_error {
+              parser_fail(tokens: tokens, out: &uniq 'region_right_square_error deref(out), status: ParseExpectedRightSquare(), token: region_cursor);
+            }
+            return ast_none;
+          }
+        }
+      }
+    }
+  }
+}
+
+fn parser_parse_region_effect ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t TokenTape, out: &uniq 'a AstTape, cursor: own u64, kind: own AstKind) -> own ParserNodeResult reads('s 't 'a), writes('a), traps {
+  let effect_node: own u64 = ast_none;
+  region 'region_effect_alloc {
+    set effect_node = parser_push_token(tokens: tokens, out: &uniq 'region_effect_alloc deref(out), kind: kind, token: cursor);
+  }
+  match ieq<u64>(effect_node, ast_none) {
+    True() => {
+      return ParserNodeResult(node: ast_none, next: cursor);
+    }
+    False() => {
+    }
+  }
+  let left_paren_cursor: own u64 = iadd.trap<u64>(cursor, 1_u64);
+  let left_paren: own Bool = parser_symbol_is(source: source, tokens: tokens, token: left_paren_cursor, want: 40_u8);
+  match left_paren {
+    True() => {
+    }
+    False() => {
+      region 'region_effect_left_paren_error {
+        parser_fail(tokens: tokens, out: &uniq 'region_effect_left_paren_error deref(out), status: ParseExpectedLeftParen(), token: left_paren_cursor);
+      }
+      return ParserNodeResult(node: ast_none, next: left_paren_cursor);
+    }
+  }
+  let region_cursor: own u64 = iadd.trap<u64>(left_paren_cursor, 1_u64);
+  let have_region: own Bool = False();
+  loop @effect_regions {
+    let right_paren: own Bool = parser_symbol_is(source: source, tokens: tokens, token: region_cursor, want: 41_u8);
+    match right_paren {
+      True() => {
+        match have_region {
+          True() => {
+            let effect_end: own u64 = index<u64>(deref(tokens).ends, region_cursor);
+            set index<u64>(deref(out).ends, effect_node) = effect_end;
+            let after_effect: own u64 = iadd.trap<u64>(region_cursor, 1_u64);
+            return ParserNodeResult(node: effect_node, next: after_effect);
+          }
+          False() => {
+            region 'empty_region_effect_error {
+              parser_fail(tokens: tokens, out: &uniq 'empty_region_effect_error deref(out), status: ParseExpectedRegion(), token: region_cursor);
+            }
+            return ParserNodeResult(node: ast_none, next: region_cursor);
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    let region_ok: own Bool = parser_kind_at_is(tokens: tokens, token: region_cursor, want: 4_u64);
+    match region_ok {
+      True() => {
+      }
+      False() => {
+        region 'effect_region_error {
+          parser_fail(tokens: tokens, out: &uniq 'effect_region_error deref(out), status: ParseExpectedRegion(), token: region_cursor);
+        }
+        return ParserNodeResult(node: ast_none, next: region_cursor);
+      }
+    }
+    let region_node: own u64 = ast_none;
+    region 'effect_region_alloc {
+      set region_node = parser_push_token(tokens: tokens, out: &uniq 'effect_region_alloc deref(out), kind: AstRegion(), token: region_cursor);
+    }
+    match ieq<u64>(region_node, ast_none) {
+      True() => {
+        return ParserNodeResult(node: ast_none, next: region_cursor);
+      }
+      False() => {
+      }
+    }
+    region 'effect_region_attach {
+      parser_append_child(out: &uniq 'effect_region_attach deref(out), parent: effect_node, child: region_node);
+    }
+    set have_region = True();
+    set region_cursor = iadd.trap<u64>(region_cursor, 1_u64);
+  }
+}
+
+fn parser_parse_effect_row ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t TokenTape, out: &uniq 'a AstTape, parent: own u64, cursor: own u64) -> own u64 reads('s 't 'a), writes('a), traps {
+  let pure_effect: own Bool = parser_word4(source: source, tokens: tokens, token: cursor, a: 112_u8, b: 117_u8, c: 114_u8, d: 101_u8);
+  match pure_effect {
+    True() => {
+      let pure_node: own u64 = ast_none;
+      region 'signature_pure_alloc {
+        set pure_node = parser_push_token(tokens: tokens, out: &uniq 'signature_pure_alloc deref(out), kind: AstPureEffect(), token: cursor);
+      }
+      match ieq<u64>(pure_node, ast_none) {
+        True() => {
+          return ast_none;
+        }
+        False() => {
+        }
+      }
+      region 'signature_pure_attach {
+        parser_append_child(out: &uniq 'signature_pure_attach deref(out), parent: parent, child: pure_node);
+      }
+      let after_pure: own u64 = iadd.trap<u64>(cursor, 1_u64);
+      let pure_comma: own Bool = parser_symbol_is(source: source, tokens: tokens, token: after_pure, want: 44_u8);
+      match pure_comma {
+        True() => {
+          let after_pure_comma: own u64 = iadd.trap<u64>(after_pure, 1_u64);
+          region 'pure_comma_error {
+            parser_fail(tokens: tokens, out: &uniq 'pure_comma_error deref(out), status: ParseExpectedEffect(), token: after_pure_comma);
+          }
+          return ast_none;
+        }
+        False() => {
+          return after_pure;
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let effect_cursor: own u64 = cursor;
+  let effect_stage: own u64 = 0_u64;
+  loop @effects {
+    let reads_word: own Bool = parser_word5(source: source, tokens: tokens, token: effect_cursor, a: 114_u8, b: 101_u8, c: 97_u8, d: 100_u8, e: 115_u8);
+    let writes_word: own Bool = parser_word6(source: source, tokens: tokens, token: effect_cursor, a: 119_u8, b: 114_u8, c: 105_u8, d: 116_u8, e: 101_u8, f: 115_u8);
+    let traps_word: own Bool = parser_word5(source: source, tokens: tokens, token: effect_cursor, a: 116_u8, b: 114_u8, c: 97_u8, d: 112_u8, e: 115_u8);
+    let reads_stage: own Bool = ieq<u64>(effect_stage, 0_u64);
+    let writes_stage: own Bool = ile<u64>(effect_stage, 1_u64);
+    let traps_stage: own Bool = ile<u64>(effect_stage, 2_u64);
+    let reads_allowed: own Bool = band<Bool>(reads_word, reads_stage);
+    let writes_allowed: own Bool = band<Bool>(writes_word, writes_stage);
+    let traps_allowed: own Bool = band<Bool>(traps_word, traps_stage);
+    let parsed_effect_node: own u64 = ast_none;
+    let parsed_effect_next: own u64 = effect_cursor;
+    match reads_allowed {
+      True() => {
+        region 'reads_effect_parse {
+          let reads_result: own ParserNodeResult = parser_parse_region_effect(source: source, tokens: tokens, out: &uniq 'reads_effect_parse deref(out), cursor: effect_cursor, kind: AstReadsEffect());
+          set parsed_effect_node = reads_result.node;
+          set parsed_effect_next = reads_result.next;
+        }
+        set effect_stage = 1_u64;
+      }
+      False() => {
+        match writes_allowed {
+          True() => {
+            region 'writes_effect_parse {
+              let writes_result: own ParserNodeResult = parser_parse_region_effect(source: source, tokens: tokens, out: &uniq 'writes_effect_parse deref(out), cursor: effect_cursor, kind: AstWritesEffect());
+              set parsed_effect_node = writes_result.node;
+              set parsed_effect_next = writes_result.next;
+            }
+            set effect_stage = 2_u64;
+          }
+          False() => {
+            match traps_allowed {
+              True() => {
+                region 'traps_effect_alloc {
+                  set parsed_effect_node = parser_push_token(tokens: tokens, out: &uniq 'traps_effect_alloc deref(out), kind: AstTrapsEffect(), token: effect_cursor);
+                }
+                set parsed_effect_next = iadd.trap<u64>(effect_cursor, 1_u64);
+                set effect_stage = 3_u64;
+              }
+              False() => {
+                region 'effect_row_error {
+                  parser_fail(tokens: tokens, out: &uniq 'effect_row_error deref(out), status: ParseExpectedEffect(), token: effect_cursor);
+                }
+                return ast_none;
+              }
+            }
+          }
+        }
+      }
+    }
+    match ieq<u64>(parsed_effect_node, ast_none) {
+      True() => {
+        return ast_none;
+      }
+      False() => {
+      }
+    }
+    region 'effect_attach {
+      parser_append_child(out: &uniq 'effect_attach deref(out), parent: parent, child: parsed_effect_node);
+    }
+    set effect_cursor = parsed_effect_next;
+    let comma: own Bool = parser_symbol_is(source: source, tokens: tokens, token: effect_cursor, want: 44_u8);
+    match comma {
+      True() => {
+        set effect_cursor = iadd.trap<u64>(effect_cursor, 1_u64);
+      }
+      False() => {
+        return effect_cursor;
+      }
+    }
+  }
+}

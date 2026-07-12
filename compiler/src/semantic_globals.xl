@@ -1,0 +1,507 @@
+enum SemanticGlobalsStatus {
+  SemanticGlobalsClean();
+  SemanticGlobalsInvalidTokenTape();
+  SemanticGlobalsInvalidAstTape();
+  SemanticGlobalsExpectedProgram();
+  SemanticGlobalsMalformedDeclaration();
+  SemanticGlobalsInvalidNameToken();
+  SemanticGlobalsDuplicate();
+  SemanticGlobalsCapacity();
+  SemanticGlobalsInvalidSymbolTape();
+}
+
+struct SemanticGlobalsReport {
+  status: SemanticGlobalsStatus;
+  declaration: u64;
+  related: u64;
+}
+
+fn semantic_globals_ast_tape_valid ['a] (ast: &'a AstTape) -> own Bool reads('a), traps {
+  let clean_status: own ParseStatus = ParseClean();
+  let clean: own Bool = ieq<ParseStatus>(deref(ast).status, clean_status);
+  match clean {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let count: own u64 = deref(ast).count;
+  match ieq<u64>(count, 0_u64) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let kinds_length: own u64 = len<AstKind>(deref(ast).kinds);
+  let heads_length: own u64 = len<u64>(deref(ast).heads);
+  let starts_length: own u64 = len<u64>(deref(ast).starts);
+  let ends_length: own u64 = len<u64>(deref(ast).ends);
+  let first_length: own u64 = len<u64>(deref(ast).first_children);
+  let last_length: own u64 = len<u64>(deref(ast).last_children);
+  let next_length: own u64 = len<u64>(deref(ast).next_siblings);
+  let kinds_ok: own Bool = ige<u64>(kinds_length, count);
+  let heads_ok: own Bool = ige<u64>(heads_length, count);
+  let starts_ok: own Bool = ige<u64>(starts_length, count);
+  let ends_ok: own Bool = ige<u64>(ends_length, count);
+  let first_ok: own Bool = ige<u64>(first_length, count);
+  let last_ok: own Bool = ige<u64>(last_length, count);
+  let next_ok: own Bool = ige<u64>(next_length, count);
+  let columns0: own Bool = band<Bool>(kinds_ok, heads_ok);
+  let columns1: own Bool = band<Bool>(starts_ok, ends_ok);
+  let columns2: own Bool = band<Bool>(first_ok, last_ok);
+  let columns3: own Bool = band<Bool>(columns0, columns1);
+  let columns4: own Bool = band<Bool>(columns2, next_ok);
+  let columns_ok: own Bool = band<Bool>(columns3, columns4);
+  match columns_ok {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let root: own u64 = deref(ast).root;
+  match ilt<u64>(root, count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let root_next: own u64 = index<u64>(deref(ast).next_siblings, root);
+  return ieq<u64>(root_next, ast_none);
+}
+
+fn semantic_globals_is_value_declaration (kind: own AstKind) -> own Bool pure {
+  let function_tag: own AstKind = AstFunction();
+  let const_tag: own AstKind = AstConstDecl();
+  let function_kind: own Bool = ieq<AstKind>(kind, function_tag);
+  let const_kind: own Bool = ieq<AstKind>(kind, const_tag);
+  return bor<Bool>(function_kind, const_kind);
+}
+
+fn semantic_globals_is_type_declaration (kind: own AstKind) -> own Bool pure {
+  let enum_tag: own AstKind = AstEnumDecl();
+  let struct_tag: own AstKind = AstStructDecl();
+  let enum_kind: own Bool = ieq<AstKind>(kind, enum_tag);
+  let struct_kind: own Bool = ieq<AstKind>(kind, struct_tag);
+  return bor<Bool>(enum_kind, struct_kind);
+}
+
+fn semantic_globals_name_kind_valid (declaration_kind: own AstKind, name_kind: own AstKind) -> own Bool pure {
+  let function_tag: own AstKind = AstFunction();
+  let function_kind: own Bool = ieq<AstKind>(declaration_kind, function_tag);
+  match function_kind {
+    True() => {
+      let function_name_tag: own AstKind = AstFunctionName();
+      return ieq<AstKind>(name_kind, function_name_tag);
+    }
+    False() => {
+    }
+  }
+  let enum_tag: own AstKind = AstEnumDecl();
+  let enum_kind: own Bool = ieq<AstKind>(declaration_kind, enum_tag);
+  match enum_kind {
+    True() => {
+      let enum_name_tag: own AstKind = AstEnumName();
+      return ieq<AstKind>(name_kind, enum_name_tag);
+    }
+    False() => {
+    }
+  }
+  let struct_tag: own AstKind = AstStructDecl();
+  let struct_kind: own Bool = ieq<AstKind>(declaration_kind, struct_tag);
+  match struct_kind {
+    True() => {
+      let struct_name_tag: own AstKind = AstStructName();
+      return ieq<AstKind>(name_kind, struct_name_tag);
+    }
+    False() => {
+    }
+  }
+  let const_tag: own AstKind = AstConstDecl();
+  let const_kind: own Bool = ieq<AstKind>(declaration_kind, const_tag);
+  match const_kind {
+    True() => {
+      let const_name_tag: own AstKind = AstConstName();
+      return ieq<AstKind>(name_kind, const_name_tag);
+    }
+    False() => {
+    }
+  }
+  return False();
+}
+
+fn semantic_globals_prior_duplicate ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, current: own u64, current_name_token: own u64, current_is_type: own Bool) -> own u64 reads('c), traps {
+  let root: own u64 = deref(ast).root;
+  let prior: own u64 = index<u64>(deref(ast).first_children, root);
+  loop @prior_globals {
+    match ieq<u64>(prior, current) {
+      True() => {
+        return symbol_none;
+      }
+      False() => {
+      }
+    }
+    match ieq<u64>(prior, ast_none) {
+      True() => {
+        return symbol_none;
+      }
+      False() => {
+      }
+    }
+    let prior_kind: own AstKind = index<AstKind>(deref(ast).kinds, prior);
+    let prior_is_type: own Bool = semantic_globals_is_type_declaration(kind: prior_kind);
+    let same_namespace: own Bool = ieq<Bool>(prior_is_type, current_is_type);
+    match same_namespace {
+      True() => {
+        let prior_name_node: own u64 = index<u64>(deref(ast).first_children, prior);
+        let prior_name_token: own u64 = index<u64>(deref(ast).heads, prior_name_node);
+        let same_name: own Bool = token_text_equal(source: source, tokens: tokens, left: prior_name_token, right: current_name_token);
+        match same_name {
+          True() => {
+            return prior;
+          }
+          False() => {
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    set prior = index<u64>(deref(ast).next_siblings, prior);
+  }
+}
+
+fn semantic_globals_capacity_valid ['y] (symbols: &uniq 'y SymbolTape, needed: own u64) -> own Bool reads('y) {
+  let base: own u64 = deref(symbols).count;
+  let namespaces_length: own u64 = len<SymbolNamespace>(deref(symbols).namespaces);
+  let scopes_length: own u64 = len<u64>(deref(symbols).scopes);
+  let names_length: own u64 = len<u64>(deref(symbols).name_tokens);
+  let declarations_length: own u64 = len<u64>(deref(symbols).declarations);
+  let namespaces_available: own u64 = isub.wrap<u64>(namespaces_length, base);
+  let scopes_available: own u64 = isub.wrap<u64>(scopes_length, base);
+  let names_available: own u64 = isub.wrap<u64>(names_length, base);
+  let declarations_available: own u64 = isub.wrap<u64>(declarations_length, base);
+  let namespaces_fit: own Bool = ile<u64>(needed, namespaces_available);
+  let scopes_fit: own Bool = ile<u64>(needed, scopes_available);
+  let names_fit: own Bool = ile<u64>(needed, names_available);
+  let declarations_fit: own Bool = ile<u64>(needed, declarations_available);
+  let first: own Bool = band<Bool>(namespaces_fit, scopes_fit);
+  let second: own Bool = band<Bool>(names_fit, declarations_fit);
+  return band<Bool>(first, second);
+}
+
+fn semantic_index_globals ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &uniq 'w SymbolTape, report: &uniq 'w SemanticGlobalsReport) -> own unit reads('c 'w), writes('w), traps {
+  set deref(report).status = SemanticGlobalsInvalidTokenTape();
+  set deref(report).declaration = ast_none;
+  set deref(report).related = symbol_none;
+
+  let token_tape_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  match token_tape_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).related = deref(tokens).count;
+      return unit;
+    }
+  }
+
+  let ast_tape_valid: own Bool = semantic_globals_ast_tape_valid(ast: ast);
+  match ast_tape_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticGlobalsInvalidAstTape();
+      set deref(report).related = deref(ast).count;
+      return unit;
+    }
+  }
+
+  let root: own u64 = deref(ast).root;
+  let root_kind: own AstKind = index<AstKind>(deref(ast).kinds, root);
+  let program_tag: own AstKind = AstProgram();
+  let is_program: own Bool = ieq<AstKind>(root_kind, program_tag);
+  match is_program {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticGlobalsExpectedProgram();
+      set deref(report).declaration = root;
+      set deref(report).related = root;
+      return unit;
+    }
+  }
+
+  let symbols_valid: own Bool = False();
+  region 'semantic_symbol_validate {
+    set symbols_valid = symbol_tape_entries_valid(source: source, tokens: tokens, symbols: &uniq 'semantic_symbol_validate deref(symbols));
+  }
+  match symbols_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticGlobalsInvalidSymbolTape();
+      set deref(report).related = deref(symbols).count;
+      return unit;
+    }
+  }
+
+  let first_global: own u64 = index<u64>(deref(ast).first_children, root);
+  let last_global: own u64 = index<u64>(deref(ast).last_children, root);
+  let first_none: own Bool = ieq<u64>(first_global, ast_none);
+  let last_none: own Bool = ieq<u64>(last_global, ast_none);
+  let child_pair_valid: own Bool = ieq<Bool>(first_none, last_none);
+  match child_pair_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticGlobalsInvalidAstTape();
+      set deref(report).declaration = root;
+      set deref(report).related = last_global;
+      return unit;
+    }
+  }
+
+  let cursor: own u64 = first_global;
+  let previous: own u64 = ast_none;
+  let needed: own u64 = 0_u64;
+  let traversed: own u64 = 0_u64;
+  let ast_count: own u64 = deref(ast).count;
+  loop @validate_globals {
+    match ieq<u64>(cursor, ast_none) {
+      True() => {
+        break @validate_globals;
+      }
+      False() => {
+      }
+    }
+    match ilt<u64>(traversed, ast_count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsInvalidAstTape();
+        set deref(report).declaration = previous;
+        set deref(report).related = cursor;
+        return unit;
+      }
+    }
+    match ilt<u64>(cursor, ast_count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsInvalidAstTape();
+        set deref(report).declaration = previous;
+        set deref(report).related = cursor;
+        return unit;
+      }
+    }
+
+    let declaration_kind: own AstKind = index<AstKind>(deref(ast).kinds, cursor);
+    let is_value: own Bool = semantic_globals_is_value_declaration(kind: declaration_kind);
+    let is_type: own Bool = semantic_globals_is_type_declaration(kind: declaration_kind);
+    let recognized: own Bool = bor<Bool>(is_value, is_type);
+    match recognized {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsMalformedDeclaration();
+        set deref(report).declaration = cursor;
+        set deref(report).related = cursor;
+        return unit;
+      }
+    }
+
+    let name_node: own u64 = index<u64>(deref(ast).first_children, cursor);
+    match ilt<u64>(name_node, ast_count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsMalformedDeclaration();
+        set deref(report).declaration = cursor;
+        set deref(report).related = name_node;
+        return unit;
+      }
+    }
+    let name_kind: own AstKind = index<AstKind>(deref(ast).kinds, name_node);
+    let name_kind_valid: own Bool = semantic_globals_name_kind_valid(declaration_kind: declaration_kind, name_kind: name_kind);
+    match name_kind_valid {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsMalformedDeclaration();
+        set deref(report).declaration = cursor;
+        set deref(report).related = name_node;
+        return unit;
+      }
+    }
+    let name_first: own u64 = index<u64>(deref(ast).first_children, name_node);
+    let name_last: own u64 = index<u64>(deref(ast).last_children, name_node);
+    let name_first_none: own Bool = ieq<u64>(name_first, ast_none);
+    let name_last_none: own Bool = ieq<u64>(name_last, ast_none);
+    let name_leaf: own Bool = band<Bool>(name_first_none, name_last_none);
+    match name_leaf {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsMalformedDeclaration();
+        set deref(report).declaration = cursor;
+        set deref(report).related = name_node;
+        return unit;
+      }
+    }
+
+    let name_token: own u64 = index<u64>(deref(ast).heads, name_node);
+    let want_token_kind: own u64 = 1_u64;
+    match is_type {
+      True() => {
+        set want_token_kind = 3_u64;
+      }
+      False() => {
+      }
+    }
+    let name_token_valid: own Bool = symbol_name_token_valid(source: source, tokens: tokens, token: name_token, want_kind: want_token_kind);
+    match name_token_valid {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsInvalidNameToken();
+        set deref(report).declaration = cursor;
+        set deref(report).related = name_token;
+        return unit;
+      }
+    }
+
+    let prior_duplicate: own u64 = semantic_globals_prior_duplicate(source: source, tokens: tokens, ast: ast, current: cursor, current_name_token: name_token, current_is_type: is_type);
+    match ieq<u64>(prior_duplicate, symbol_none) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticGlobalsDuplicate();
+        set deref(report).declaration = cursor;
+        set deref(report).related = prior_duplicate;
+        return unit;
+      }
+    }
+
+    let space_code: own u64 = 0_u64;
+    match is_type {
+      True() => {
+        set space_code = 1_u64;
+      }
+      False() => {
+      }
+    }
+    let existing: own u64 = symbol_none;
+    region 'semantic_existing_find {
+      set existing = symbol_find_slot(source: source, tokens: tokens, symbols: &uniq 'semantic_existing_find deref(symbols), space_code: space_code, scope: symbol_none, name_token: name_token);
+    }
+    match ieq<u64>(existing, symbol_none) {
+      True() => {
+      }
+      False() => {
+        let existing_declaration: own u64 = index<u64>(deref(symbols).declarations, existing);
+        set deref(report).status = SemanticGlobalsDuplicate();
+        set deref(report).declaration = cursor;
+        set deref(report).related = existing_declaration;
+        return unit;
+      }
+    }
+
+    let next_global: own u64 = index<u64>(deref(ast).next_siblings, cursor);
+    match ieq<u64>(next_global, ast_none) {
+      True() => {
+      }
+      False() => {
+        match ilt<u64>(next_global, ast_count) {
+          True() => {
+          }
+          False() => {
+            set deref(report).status = SemanticGlobalsInvalidAstTape();
+            set deref(report).declaration = cursor;
+            set deref(report).related = next_global;
+            return unit;
+          }
+        }
+      }
+    }
+    set previous = cursor;
+    set cursor = next_global;
+    set needed = iadd.trap<u64>(needed, 1_u64);
+    set traversed = iadd.trap<u64>(traversed, 1_u64);
+  }
+
+  match first_none {
+    True() => {
+    }
+    False() => {
+      let last_matches: own Bool = ieq<u64>(previous, last_global);
+      match last_matches {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticGlobalsInvalidAstTape();
+          set deref(report).declaration = root;
+          set deref(report).related = last_global;
+          return unit;
+        }
+      }
+    }
+  }
+
+  let capacity_valid: own Bool = False();
+  region 'semantic_capacity_check {
+    set capacity_valid = semantic_globals_capacity_valid(symbols: &uniq 'semantic_capacity_check deref(symbols), needed: needed);
+  }
+  match capacity_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticGlobalsCapacity();
+      set deref(report).declaration = ast_none;
+      set deref(report).related = needed;
+      return unit;
+    }
+  }
+
+  let base: own u64 = deref(symbols).count;
+  set cursor = first_global;
+  let inserted: own u64 = 0_u64;
+  loop @commit_globals {
+    match ige<u64>(inserted, needed) {
+      True() => {
+        break @commit_globals;
+      }
+      False() => {
+      }
+    }
+    let commit_declaration_kind: own AstKind = index<AstKind>(deref(ast).kinds, cursor);
+    let commit_is_type: own Bool = semantic_globals_is_type_declaration(kind: commit_declaration_kind);
+    let commit_name_node: own u64 = index<u64>(deref(ast).first_children, cursor);
+    let commit_name_token: own u64 = index<u64>(deref(ast).heads, commit_name_node);
+    let slot: own u64 = iadd.trap<u64>(base, inserted);
+    let namespace: own SymbolNamespace = SymbolValue();
+    match commit_is_type {
+      True() => {
+        set namespace = SymbolType();
+      }
+      False() => {
+      }
+    }
+    set index<SymbolNamespace>(deref(symbols).namespaces, slot) = namespace;
+    set index<u64>(deref(symbols).scopes, slot) = symbol_none;
+    set index<u64>(deref(symbols).name_tokens, slot) = commit_name_token;
+    set index<u64>(deref(symbols).declarations, slot) = cursor;
+    set cursor = index<u64>(deref(ast).next_siblings, cursor);
+    set inserted = iadd.trap<u64>(inserted, 1_u64);
+  }
+  let final_count: own u64 = iadd.trap<u64>(base, needed);
+  set deref(symbols).count = final_count;
+  set deref(symbols).status = SymbolClean();
+  set deref(symbols).related = symbol_none;
+  set deref(report).status = SemanticGlobalsClean();
+  set deref(report).declaration = ast_none;
+  set deref(report).related = symbol_none;
+  return unit;
+}

@@ -1,0 +1,14 @@
+# source<TAB>root AstKind
+value	AstPlaceUse
+source.length	AstFieldPlace
+deref(tokens).starts	AstFieldPlace
+index<u64>(deref(tokens).starts, token)	AstIndexPlace
+42_u64	AstNumericLiteral
+unit	AstUnitLiteral
+&'s source	AstSharedBorrow
+&uniq 'a deref(out).kinds	AstUniqBorrow
+True()	AstConstructor
+ParserNodeResult(node: value, next: 1_u64)	AstConstructor
+iadd.trap<u64>(left, right)	AstTableCall
+len<u64>(deref(out).heads)	AstTableCall
+parser_word2(source: source, token: token)	AstUserCall

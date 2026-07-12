@@ -30,6 +30,15 @@ AST_TABLE_CALL = 16
 AST_TYPE_ARGUMENT = 17
 AST_USER_CALL = 18
 AST_NAMED_ARGUMENT = 19
+AST_SHARED_MODE = 20
+AST_UNIQ_MODE = 21
+AST_REGION = 22
+AST_NESTED_TYPE = 23
+AST_CONST_ARGUMENT = 24
+AST_REGION_PARAMETERS = 25
+AST_READS_EFFECT = 26
+AST_WRITES_EFFECT = 27
+AST_TRAPS_EFFECT = 28
 
 PARSE_CLEAN = 0
 PARSE_LEX_ERROR = 1
@@ -50,6 +59,12 @@ PARSE_EXPECTED_EXPRESSION = 23
 PARSE_EXPECTED_ATOM = 24
 PARSE_EXPECTED_LEFT_ANGLE = 25
 PARSE_EXPECTED_RIGHT_ANGLE = 26
+PARSE_EXPECTED_TYPE = 27
+PARSE_EXPECTED_MODE = 28
+PARSE_EXPECTED_REGION = 29
+PARSE_EXPECTED_CONST_ARGUMENT = 30
+PARSE_EXPECTED_EFFECT = 31
+PARSE_EXPECTED_RIGHT_SQUARE = 32
 
 
 class AstTape(ctypes.Structure):
@@ -320,6 +335,58 @@ def assert_scalar_add_tree(library):
         assert data[token_starts[token]:token_ends[token]] == expected
 
 
+def assert_signature_tree(library):
+    data = (Path(__file__).resolve().parent / "examples" / "signature_slice.xl").read_bytes()
+    _, token_storage, tokens, columns, ast = parse(library, data)
+    kinds, heads, starts, ends, _, _, _ = columns
+    _, token_starts, token_ends = token_storage
+    assert ast.status == PARSE_CLEAN
+    assert ast.count == 50
+    assert_head_invariant(tokens, columns, ast)
+    for node in range(ast.count):
+        token = heads[node]
+        assert starts[node] <= token_starts[token]
+        assert token_ends[token] <= ends[node]
+    assert children_of(columns, 0) == [1, 34]
+    assert children_of(columns, 1) == [2, 3, 6, 11, 15, 18, 23, 24, 25, 28, 30, 31]
+    assert children_of(columns, 3) == [4, 5]
+    assert children_of(columns, 6) == [7, 9]
+    assert children_of(columns, 7) == [8]
+    assert children_of(columns, 9) == [10]
+    assert children_of(columns, 11) == [12, 14]
+    assert children_of(columns, 12) == [13]
+    assert children_of(columns, 18) == [19, 20]
+    assert children_of(columns, 20) == [21, 22]
+    assert children_of(columns, 25) == [26, 27]
+    assert children_of(columns, 28) == [29]
+    assert children_of(columns, 34) == [35, 36, 38, 42, 44, 45, 47]
+    assert kinds[3] == AST_REGION_PARAMETERS
+    assert kinds[7] == AST_SHARED_MODE
+    assert kinds[12] == AST_UNIQ_MODE
+    assert kinds[20] == AST_PARAMETER_TYPE
+    assert kinds[21] == AST_NESTED_TYPE
+    assert kinds[22] == AST_CONST_ARGUMENT
+    assert kinds[25] == AST_READS_EFFECT
+    assert kinds[28] == AST_WRITES_EFFECT
+    assert kinds[30] == AST_TRAPS_EFFECT
+    expected_spans = {
+        3: b"['s, 'o]",
+        6: b"source: &'s buffer<u8>",
+        7: b"&'s",
+        9: b"buffer<u8>",
+        11: b"out: &uniq 'o TokenTape",
+        12: b"&uniq 'o",
+        20: b"array<u8, 10>",
+        25: b"reads('s 'o)",
+        28: b"writes('o)",
+        30: b"traps",
+        42: b"&'r",
+        44: b"ByteTape",
+    }
+    for node, expected in expected_spans.items():
+        assert data[starts[node]:ends[node]] == expected
+
+
 def assert_failures(library):
     cases = [
         (
@@ -409,7 +476,7 @@ def assert_scalar_failures(library):
     data = function(b"return x;", params=b"x own i32")
     cases.append((data, PARSE_EXPECTED_COLON, span(data, b"own")))
     data = function(b"return x;", params=b"x: own thing")
-    cases.append((data, PARSE_EXPECTED_RETURN_TYPE, span(data, b"thing")))
+    cases.append((data, PARSE_EXPECTED_TYPE, span(data, b"thing")))
     data = function(b"return x;", params=b"x: own i32 y: own i32")
     cases.append((data, PARSE_EXPECTED_COMMA_OR_RIGHT_PAREN, span(data, b"y")))
     data = function(b"return x;", params=b"x: own i32,")
@@ -419,8 +486,6 @@ def assert_scalar_failures(library):
     cases.append((data, PARSE_EXPECTED_EQUALS, span(data, b"1_i32")))
     data = function(b"return ;")
     cases.append((data, PARSE_EXPECTED_EXPRESSION, span(data, b";")))
-    data = function(b"unknown;")
-    cases.append((data, PARSE_EXPECTED_STATEMENT, span(data, b"unknown")))
     data = function(b"return iadd.wrap<i32(x, y);")
     missing_angle = data.index(b"i32(") + 3
     cases.append((data, PARSE_EXPECTED_RIGHT_ANGLE, (missing_angle, missing_angle + 1)))
@@ -431,11 +496,61 @@ def assert_scalar_failures(library):
     trailing_table = data.index(b",)", data.index(b"return")) + 1
     cases.append((data, PARSE_EXPECTED_ATOM, (trailing_table, trailing_table + 1)))
     data = function(b"return add(x: add(x: x, y: y), y: y);")
-    nested_user = data.index(b"add(x: add(") + len(b"add(x: add")
-    cases.append((data, PARSE_EXPECTED_COMMA_OR_RIGHT_PAREN, (nested_user, nested_user + 1)))
+    nested_user = data.index(b"add", data.index(b"add") + 1)
+    cases.append((data, PARSE_EXPECTED_ATOM, (nested_user, nested_user + len(b"add"))))
     data = function(b"return add(x: x,);")
     trailing_user = data.index(b",)", data.index(b"return")) + 1
     cases.append((data, PARSE_EXPECTED_NAME, (trailing_user, trailing_user + 1)))
+
+    for data, status, expected_error in cases:
+        _, _, tokens, columns, ast = parse(library, data)
+        assert ast.status == status, (data, ast.status, status)
+        assert (ast.error_start, ast.error_end) == expected_error, data
+        assert_head_invariant(tokens, columns, ast)
+
+
+def assert_signature_failures(library):
+    def function(regions=b"", params=b"value: own u8", result=b"own u8", effects=b"pure"):
+        region_text = b" " + regions if regions else b""
+        return b"fn sample" + region_text + b" (" + params + b") -> " + result + b" " + effects + b" { return value; }"
+
+    def located(data, needle, marker=b""):
+        start = data.index(needle, data.index(marker) if marker else 0)
+        return start, start + len(needle)
+
+    cases = []
+    data = function(regions=b"[]")
+    cases.append((data, PARSE_EXPECTED_REGION, located(data, b"]")))
+    data = function(regions=b"['s,]")
+    cases.append((data, PARSE_EXPECTED_REGION, located(data, b"]")))
+    data = function(regions=b"['s")
+    cases.append((data, PARSE_EXPECTED_RIGHT_SQUARE, located(data, b"(")))
+    data = function(regions=b"['s 't]")
+    cases.append((data, PARSE_EXPECTED_RIGHT_SQUARE, located(data, b"'t")))
+    data = function(params=b"value: & u8")
+    cases.append((data, PARSE_EXPECTED_REGION, located(data, b"u8")))
+    data = function(params=b"value: &uniq u8")
+    cases.append((data, PARSE_EXPECTED_REGION, located(data, b"u8")))
+    data = function(params=b"value: own unknown")
+    cases.append((data, PARSE_EXPECTED_TYPE, located(data, b"unknown")))
+    data = function(params=b"value: own buffer<>")
+    cases.append((data, PARSE_EXPECTED_TYPE, located(data, b">", b"buffer")))
+    data = function(params=b"value: own buffer<u8,>")
+    cases.append((data, PARSE_EXPECTED_RIGHT_ANGLE, located(data, b",", b"buffer")))
+    data = function(params=b"value: own array<u8,>")
+    cases.append((data, PARSE_EXPECTED_CONST_ARGUMENT, located(data, b">", b"array")))
+    data = function(params=b"value: own array<u8, 10_u64>")
+    cases.append((data, PARSE_EXPECTED_CONST_ARGUMENT, located(data, b"10_u64")))
+    data = function(regions=b"['r]", effects=b"reads()")
+    cases.append((data, PARSE_EXPECTED_REGION, located(data, b")", b"reads")))
+    data = function(regions=b"['r]", effects=b"reads('r,)")
+    cases.append((data, PARSE_EXPECTED_REGION, located(data, b",", b"reads")))
+    data = function(effects=b"traps,")
+    cases.append((data, PARSE_EXPECTED_EFFECT, located(data, b"{")))
+    data = function(regions=b"['r]", effects=b"writes('r), reads('r)")
+    cases.append((data, PARSE_EXPECTED_EFFECT, located(data, b"reads")))
+    data = function(effects=b"pure,")
+    cases.append((data, PARSE_EXPECTED_EFFECT, located(data, b"{")))
 
     for data, status, expected_error in cases:
         _, _, tokens, columns, ast = parse(library, data)
@@ -452,9 +567,11 @@ def main():
         assert_first_tree(library)
         assert_multiple_functions(library)
         assert_scalar_add_tree(library)
+        assert_signature_tree(library)
         assert_failures(library)
         assert_malformed_tapes(library)
         assert_scalar_failures(library)
+        assert_signature_failures(library)
         print("self-hosted parser: token-anchored trees, exact spans, fail-closed diagnostics, and capacity guard pass")
 
 

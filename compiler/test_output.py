@@ -47,11 +47,28 @@ def call(library, value, capacity):
     return storage, tape, written, guard
 
 
+def call_span(library, source_bytes, start, end, capacity):
+    source_storage = (ctypes.c_uint8 * max(1, len(source_bytes)))(*source_bytes)
+    source = Buffer(ctypes.cast(source_storage, ctypes.c_void_p), len(source_bytes))
+    storage, tape = make_tape(capacity)
+    library.byte_tape_emit_span_probe(
+        source, start, end, ctypes.byref(tape)
+    )
+    return storage, tape, bytes(storage[:capacity]), storage[capacity]
+
+
 def main():
     with tempfile.TemporaryDirectory() as raw_directory:
         library = build_library(Path(raw_directory))
         library.byte_tape_emit_probe.argtypes = [ctypes.POINTER(ByteTape), ctypes.c_uint64]
         library.byte_tape_emit_probe.restype = None
+        library.byte_tape_emit_span_probe.argtypes = [
+            Buffer,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.POINTER(ByteTape),
+        ]
+        library.byte_tape_emit_span_probe.restype = None
 
         for value in (0, 42, U64_MAX):
             want = expected(value)
@@ -87,7 +104,38 @@ def main():
         assert second == first
         assert storage[len(storage) - 1] == 0xD3
 
-        print("self-hosted output: canonical u64 decimal, exact/short capacity, OOB guard, and repeat pass")
+        source = b"prefix::payload::suffix"
+        want_span = b"payload"
+        _, span, observed, guard = call_span(
+            library, source, 8, 15, len(want_span)
+        )
+        assert span.status == BYTE_CLEAN
+        assert span.count == len(want_span)
+        assert observed == want_span
+        assert guard == 0xD3
+
+        _, measured, observed, guard = call_span(library, source, 8, 15, 0)
+        assert measured.status == BYTE_NEED_CAPACITY
+        assert measured.count == len(want_span)
+        assert observed == b""
+        assert guard == 0xD3
+
+        _, short_span, observed, guard = call_span(library, source, 8, 15, 3)
+        assert short_span.status == BYTE_NEED_CAPACITY
+        assert short_span.count == len(want_span)
+        assert observed == b"pay"
+        assert guard == 0xD3
+
+        for start, end in ((7, 6), (0, len(source) + 1), (U64_MAX, U64_MAX)):
+            _, invalid, observed, guard = call_span(
+                library, source, start, end, len(source)
+            )
+            assert invalid.status == 2, (start, end, invalid.status)
+            assert invalid.count == 0, (start, end, invalid.count)
+            assert observed == bytes([0xA5]) * len(source)
+            assert guard == 0xD3
+
+        print("self-hosted output: decimal and spans, measure/exact/short capacity, invalid ranges, OOB guard, and repeat pass")
 
 
 if __name__ == "__main__":

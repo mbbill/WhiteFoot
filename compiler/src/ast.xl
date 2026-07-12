@@ -19,6 +19,41 @@ enum AstKind {
   AstTypeArgument();
   AstUserCall();
   AstNamedArgument();
+  AstSharedMode();
+  AstUniqMode();
+  AstRegion();
+  AstNestedType();
+  AstConstArgument();
+  AstRegionParameters();
+  AstReadsEffect();
+  AstWritesEffect();
+  AstTrapsEffect();
+  AstEnumDecl();
+  AstEnumName();
+  AstVariant();
+  AstStructDecl();
+  AstStructName();
+  AstField();
+  AstFieldType();
+  AstConstDecl();
+  AstConstName();
+  AstConstType();
+  AstConstArrayValue();
+  AstFieldPlace();
+  AstDerefPlace();
+  AstIndexPlace();
+  AstSharedBorrow();
+  AstUniqBorrow();
+  AstConstructor();
+  AstSet();
+  AstExpressionStatement();
+  AstLoop();
+  AstLoopLabel();
+  AstBreak();
+  AstBreakLabel();
+  AstRegionBlock();
+  AstMatch();
+  AstMatchArm();
 }
 
 enum ParseStatus {
@@ -49,6 +84,19 @@ enum ParseStatus {
   ParseExpectedAtom();
   ParseExpectedLeftAngle();
   ParseExpectedRightAngle();
+  ParseExpectedType();
+  ParseExpectedMode();
+  ParseExpectedRegion();
+  ParseExpectedConstArgument();
+  ParseExpectedEffect();
+  ParseExpectedRightSquare();
+  ParseExpectedTopLevelItem();
+  ParseExpectedTypeName();
+  ParseExpectedConstValue();
+  ParseExpectedCommaOrRightSquare();
+  ParseExpectedPlace();
+  ParseExpectedLabel();
+  ParseExpectedFatArrow();
 }
 
 const ast_none: u64 = 18446744073709551615_u64;

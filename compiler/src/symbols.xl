@@ -1,0 +1,473 @@
+enum SymbolNamespace {
+  SymbolValue();
+  SymbolType();
+  SymbolRegion();
+  SymbolLabel();
+}
+
+enum SymbolStatus {
+  SymbolClean();
+  SymbolNotFound();
+  SymbolInvalidTape();
+  SymbolInvalidToken();
+  SymbolCapacity();
+  SymbolDuplicate();
+}
+
+const symbol_none: u64 = 18446744073709551615_u64;
+
+struct SymbolTape {
+  namespaces: buffer<SymbolNamespace>;
+  scopes: buffer<u64>;
+  name_tokens: buffer<u64>;
+  declarations: buffer<u64>;
+  count: u64;
+  status: SymbolStatus;
+  related: u64;
+}
+
+fn symbol_namespace_code (space: own SymbolNamespace) -> own u64 pure {
+  match space {
+    SymbolValue() => {
+      return 0_u64;
+    }
+    SymbolType() => {
+      return 1_u64;
+    }
+    SymbolRegion() => {
+      return 2_u64;
+    }
+    SymbolLabel() => {
+      return 3_u64;
+    }
+  }
+}
+
+fn symbol_namespace_from_code (code: own u64) -> own SymbolNamespace pure {
+  match ieq<u64>(code, 0_u64) {
+    True() => {
+      return SymbolValue();
+    }
+    False() => {
+    }
+  }
+  match ieq<u64>(code, 1_u64) {
+    True() => {
+      return SymbolType();
+    }
+    False() => {
+    }
+  }
+  match ieq<u64>(code, 2_u64) {
+    True() => {
+      return SymbolRegion();
+    }
+    False() => {
+    }
+  }
+  return SymbolLabel();
+}
+
+fn symbol_namespace_token_kind_code (space_code: own u64) -> own u64 pure {
+  match ieq<u64>(space_code, 0_u64) {
+    True() => {
+      return 1_u64;
+    }
+    False() => {
+    }
+  }
+  match ieq<u64>(space_code, 1_u64) {
+    True() => {
+      return 3_u64;
+    }
+    False() => {
+    }
+  }
+  match ieq<u64>(space_code, 2_u64) {
+    True() => {
+      return 4_u64;
+    }
+    False() => {
+    }
+  }
+  return 5_u64;
+}
+
+fn symbol_token_kind_code (kind: own TokenKind) -> own u64 pure {
+  match kind {
+    TokEnd() => {
+      return 0_u64;
+    }
+    TokWord() => {
+      return 1_u64;
+    }
+    TokOpName() => {
+      return 2_u64;
+    }
+    TokTypeId() => {
+      return 3_u64;
+    }
+    TokRegionId() => {
+      return 4_u64;
+    }
+    TokLabel() => {
+      return 5_u64;
+    }
+    TokNumber() => {
+      return 6_u64;
+    }
+    TokString() => {
+      return 7_u64;
+    }
+    TokArrow() => {
+      return 8_u64;
+    }
+    TokFatArrow() => {
+      return 9_u64;
+    }
+    TokAmp() => {
+      return 10_u64;
+    }
+    TokAmpUniq() => {
+      return 11_u64;
+    }
+    TokSymbol() => {
+      return 12_u64;
+    }
+  }
+}
+
+fn symbol_lex_status_clean (status: own LexStatus) -> own Bool pure {
+  match status {
+    LexClean() => {
+      return True();
+    }
+    LexUnknownByte() => {
+      return False();
+    }
+    LexInvalidString() => {
+      return False();
+    }
+    LexUnterminatedString() => {
+      return False();
+    }
+    LexInvalidRegionId() => {
+      return False();
+    }
+    LexInvalidLabel() => {
+      return False();
+    }
+    LexComment() => {
+      return False();
+    }
+    LexCapacity() => {
+      return False();
+    }
+  }
+}
+
+fn symbol_token_tape_shape_valid ['t] (tokens: &'t TokenTape) -> own Bool reads('t) {
+  let clean: own Bool = symbol_lex_status_clean(status: deref(tokens).status);
+  match clean {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let count: own u64 = deref(tokens).count;
+  let kinds_length: own u64 = len<TokenKind>(deref(tokens).kinds);
+  let starts_length: own u64 = len<u64>(deref(tokens).starts);
+  let ends_length: own u64 = len<u64>(deref(tokens).ends);
+  let kinds_ok: own Bool = ige<u64>(kinds_length, count);
+  let starts_ok: own Bool = ige<u64>(starts_length, count);
+  let ends_ok: own Bool = ige<u64>(ends_length, count);
+  let offsets_ok: own Bool = band<Bool>(starts_ok, ends_ok);
+  return band<Bool>(kinds_ok, offsets_ok);
+}
+
+fn symbol_name_token_valid ['s, 't] (source: &'s buffer<u8>, tokens: &'t TokenTape, token: own u64, want_kind: own u64) -> own Bool reads('s 't), traps {
+  let ordinal_valid: own Bool = token_ordinal_valid(source: source, tokens: tokens, token: token);
+  match ordinal_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let start: own u64 = index<u64>(deref(tokens).starts, token);
+  let end: own u64 = index<u64>(deref(tokens).ends, token);
+  let nonempty: own Bool = ilt<u64>(start, end);
+  match nonempty {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let kind: own TokenKind = index<TokenKind>(deref(tokens).kinds, token);
+  let kind_code: own u64 = symbol_token_kind_code(kind: kind);
+  return ieq<u64>(kind_code, want_kind);
+}
+
+fn symbol_tape_columns_valid ['y] (symbols: &uniq 'y SymbolTape) -> own Bool reads('y) {
+  let count: own u64 = deref(symbols).count;
+  let namespaces_length: own u64 = len<SymbolNamespace>(deref(symbols).namespaces);
+  let scopes_length: own u64 = len<u64>(deref(symbols).scopes);
+  let names_length: own u64 = len<u64>(deref(symbols).name_tokens);
+  let declarations_length: own u64 = len<u64>(deref(symbols).declarations);
+  let namespaces_ok: own Bool = ige<u64>(namespaces_length, count);
+  let scopes_ok: own Bool = ige<u64>(scopes_length, count);
+  let names_ok: own Bool = ige<u64>(names_length, count);
+  let declarations_ok: own Bool = ige<u64>(declarations_length, count);
+  let first: own Bool = band<Bool>(namespaces_ok, scopes_ok);
+  let second: own Bool = band<Bool>(names_ok, declarations_ok);
+  return band<Bool>(first, second);
+}
+
+fn symbol_tape_entries_valid ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &uniq 'y SymbolTape) -> own Bool reads('s 't 'y), traps {
+  let columns_valid: own Bool = False();
+  region 'symbol_columns_check {
+    set columns_valid = symbol_tape_columns_valid(symbols: &uniq 'symbol_columns_check deref(symbols));
+  }
+  match columns_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let cursor: own u64 = 0_u64;
+  let count: own u64 = deref(symbols).count;
+  loop @symbol_entries {
+    match ige<u64>(cursor, count) {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+    let space: own SymbolNamespace = index<SymbolNamespace>(deref(symbols).namespaces, cursor);
+    let space_code: own u64 = symbol_namespace_code(space: space);
+    let want_kind: own u64 = symbol_namespace_token_kind_code(space_code: space_code);
+    let name_token: own u64 = index<u64>(deref(symbols).name_tokens, cursor);
+    let name_valid: own Bool = symbol_name_token_valid(source: source, tokens: tokens, token: name_token, want_kind: want_kind);
+    match name_valid {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+}
+
+fn symbol_find_slot ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &uniq 'y SymbolTape, space_code: own u64, scope: own u64, name_token: own u64) -> own u64 reads('s 't 'y), traps {
+  let cursor: own u64 = 0_u64;
+  let count: own u64 = deref(symbols).count;
+  loop @symbol_find {
+    match ige<u64>(cursor, count) {
+      True() => {
+        return symbol_none;
+      }
+      False() => {
+      }
+    }
+    let stored_space: own SymbolNamespace = index<SymbolNamespace>(deref(symbols).namespaces, cursor);
+    let stored_space_code: own u64 = symbol_namespace_code(space: stored_space);
+    let same_space: own Bool = ieq<u64>(stored_space_code, space_code);
+    let stored_scope: own u64 = index<u64>(deref(symbols).scopes, cursor);
+    let same_scope: own Bool = ieq<u64>(stored_scope, scope);
+    let same_key_prefix: own Bool = band<Bool>(same_space, same_scope);
+    match same_key_prefix {
+      True() => {
+        let stored_name: own u64 = index<u64>(deref(symbols).name_tokens, cursor);
+        let same_name: own Bool = token_text_equal(source: source, tokens: tokens, left: stored_name, right: name_token);
+        match same_name {
+          True() => {
+            return cursor;
+          }
+          False() => {
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    set cursor = iadd.trap<u64>(cursor, 1_u64);
+  }
+}
+
+fn symbol_insert_capacity_valid ['y] (symbols: &uniq 'y SymbolTape) -> own Bool reads('y) {
+  let slot: own u64 = deref(symbols).count;
+  let namespaces_length: own u64 = len<SymbolNamespace>(deref(symbols).namespaces);
+  let scopes_length: own u64 = len<u64>(deref(symbols).scopes);
+  let names_length: own u64 = len<u64>(deref(symbols).name_tokens);
+  let declarations_length: own u64 = len<u64>(deref(symbols).declarations);
+  let namespaces_fit: own Bool = ilt<u64>(slot, namespaces_length);
+  let scopes_fit: own Bool = ilt<u64>(slot, scopes_length);
+  let names_fit: own Bool = ilt<u64>(slot, names_length);
+  let declarations_fit: own Bool = ilt<u64>(slot, declarations_length);
+  let first: own Bool = band<Bool>(namespaces_fit, scopes_fit);
+  let second: own Bool = band<Bool>(names_fit, declarations_fit);
+  return band<Bool>(first, second);
+}
+
+fn symbol_report ['y] (symbols: &uniq 'y SymbolTape, status: own SymbolStatus, related: own u64) -> own unit writes('y) {
+  set deref(symbols).status = status;
+  set deref(symbols).related = related;
+  return unit;
+}
+
+fn symbol_tape_reset ['y] (symbols: &uniq 'y SymbolTape) -> own unit writes('y) {
+  set deref(symbols).count = 0_u64;
+  set deref(symbols).status = SymbolClean();
+  set deref(symbols).related = symbol_none;
+  return unit;
+}
+
+fn symbol_find_in_scope ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &uniq 'y SymbolTape, space: own SymbolNamespace, scope: own u64, name_token: own u64) -> own unit reads('s 't 'y), writes('y), traps {
+  region 'find_begin {
+    symbol_report(symbols: &uniq 'find_begin deref(symbols), status: SymbolClean(), related: symbol_none);
+  }
+  let token_tape_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  match token_tape_valid {
+    True() => {
+    }
+    False() => {
+      region 'find_invalid_tokens {
+        symbol_report(symbols: &uniq 'find_invalid_tokens deref(symbols), status: SymbolInvalidTape(), related: symbol_none);
+      }
+      return unit;
+    }
+  }
+  let entries_valid: own Bool = False();
+  region 'find_validate_entries {
+    set entries_valid = symbol_tape_entries_valid(source: source, tokens: tokens, symbols: &uniq 'find_validate_entries deref(symbols));
+  }
+  match entries_valid {
+    True() => {
+    }
+    False() => {
+      region 'find_invalid_symbols {
+        symbol_report(symbols: &uniq 'find_invalid_symbols deref(symbols), status: SymbolInvalidTape(), related: symbol_none);
+      }
+      return unit;
+    }
+  }
+  let space_code: own u64 = symbol_namespace_code(space: space);
+  let want_kind: own u64 = symbol_namespace_token_kind_code(space_code: space_code);
+  let query_valid: own Bool = symbol_name_token_valid(source: source, tokens: tokens, token: name_token, want_kind: want_kind);
+  match query_valid {
+    True() => {
+    }
+    False() => {
+      region 'find_invalid_query {
+        symbol_report(symbols: &uniq 'find_invalid_query deref(symbols), status: SymbolInvalidToken(), related: name_token);
+      }
+      return unit;
+    }
+  }
+  let found: own u64 = symbol_none;
+  region 'find_scan {
+    set found = symbol_find_slot(source: source, tokens: tokens, symbols: &uniq 'find_scan deref(symbols), space_code: space_code, scope: scope, name_token: name_token);
+  }
+  match ieq<u64>(found, symbol_none) {
+    True() => {
+      region 'find_missing {
+        symbol_report(symbols: &uniq 'find_missing deref(symbols), status: SymbolNotFound(), related: symbol_none);
+      }
+    }
+    False() => {
+      region 'find_success {
+        symbol_report(symbols: &uniq 'find_success deref(symbols), status: SymbolClean(), related: found);
+      }
+    }
+  }
+  return unit;
+}
+
+fn symbol_insert_unique ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &uniq 'y SymbolTape, space: own SymbolNamespace, scope: own u64, name_token: own u64, declaration: own u64) -> own unit reads('s 't 'y), writes('y), traps {
+  region 'insert_begin {
+    symbol_report(symbols: &uniq 'insert_begin deref(symbols), status: SymbolClean(), related: symbol_none);
+  }
+  let token_tape_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  match token_tape_valid {
+    True() => {
+    }
+    False() => {
+      region 'insert_invalid_tokens {
+        symbol_report(symbols: &uniq 'insert_invalid_tokens deref(symbols), status: SymbolInvalidTape(), related: symbol_none);
+      }
+      return unit;
+    }
+  }
+  let entries_valid: own Bool = False();
+  region 'insert_validate_entries {
+    set entries_valid = symbol_tape_entries_valid(source: source, tokens: tokens, symbols: &uniq 'insert_validate_entries deref(symbols));
+  }
+  match entries_valid {
+    True() => {
+    }
+    False() => {
+      region 'insert_invalid_symbols {
+        symbol_report(symbols: &uniq 'insert_invalid_symbols deref(symbols), status: SymbolInvalidTape(), related: symbol_none);
+      }
+      return unit;
+    }
+  }
+  let space_code: own u64 = symbol_namespace_code(space: space);
+  let want_kind: own u64 = symbol_namespace_token_kind_code(space_code: space_code);
+  let query_valid: own Bool = symbol_name_token_valid(source: source, tokens: tokens, token: name_token, want_kind: want_kind);
+  match query_valid {
+    True() => {
+    }
+    False() => {
+      region 'insert_invalid_query {
+        symbol_report(symbols: &uniq 'insert_invalid_query deref(symbols), status: SymbolInvalidToken(), related: name_token);
+      }
+      return unit;
+    }
+  }
+  let existing: own u64 = symbol_none;
+  region 'insert_find_duplicate {
+    set existing = symbol_find_slot(source: source, tokens: tokens, symbols: &uniq 'insert_find_duplicate deref(symbols), space_code: space_code, scope: scope, name_token: name_token);
+  }
+  match ieq<u64>(existing, symbol_none) {
+    True() => {
+    }
+    False() => {
+      region 'insert_duplicate {
+        symbol_report(symbols: &uniq 'insert_duplicate deref(symbols), status: SymbolDuplicate(), related: existing);
+      }
+      return unit;
+    }
+  }
+  let capacity_valid: own Bool = False();
+  region 'insert_capacity_check {
+    set capacity_valid = symbol_insert_capacity_valid(symbols: &uniq 'insert_capacity_check deref(symbols));
+  }
+  match capacity_valid {
+    True() => {
+    }
+    False() => {
+      let needed_slot: own u64 = deref(symbols).count;
+      region 'insert_capacity_error {
+        symbol_report(symbols: &uniq 'insert_capacity_error deref(symbols), status: SymbolCapacity(), related: needed_slot);
+      }
+      return unit;
+    }
+  }
+  let slot: own u64 = deref(symbols).count;
+  let stored_space: own SymbolNamespace = symbol_namespace_from_code(code: space_code);
+  set index<SymbolNamespace>(deref(symbols).namespaces, slot) = stored_space;
+  set index<u64>(deref(symbols).scopes, slot) = scope;
+  set index<u64>(deref(symbols).name_tokens, slot) = name_token;
+  set index<u64>(deref(symbols).declarations, slot) = declaration;
+  set deref(symbols).count = iadd.trap<u64>(slot, 1_u64);
+  region 'insert_success {
+    symbol_report(symbols: &uniq 'insert_success deref(symbols), status: SymbolClean(), related: slot);
+  }
+  return unit;
+}

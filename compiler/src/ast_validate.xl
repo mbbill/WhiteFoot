@@ -1,0 +1,353 @@
+enum AstValidationStatus {
+  AstValidationClean();
+  AstValidationColumnCapacity();
+  AstValidationScratchCapacity();
+  AstValidationCountExceedsTokens();
+  AstValidationEmpty();
+  AstValidationRootReference();
+  AstValidationHeadReference();
+  AstValidationDuplicateHead();
+  AstValidationSpan();
+  AstValidationChildPair();
+  AstValidationChildReference();
+  AstValidationSiblingReference();
+  AstValidationLastChild();
+  AstValidationDuplicateReach();
+  AstValidationUnreachable();
+}
+
+struct AstValidationReport {
+  marks: buffer<u64>;
+  stack: buffer<u64>;
+  status: AstValidationStatus;
+  node: u64;
+  related: u64;
+}
+
+fn ast_validate ['a, 'r] (source_length: own u64, token_count: own u64, ast: &'a AstTape, report: &uniq 'r AstValidationReport) -> own unit reads('a 'r), writes('r), traps {
+  set deref(report).status = AstValidationColumnCapacity();
+  set deref(report).node = ast_none;
+  set deref(report).related = ast_none;
+
+  let count: own u64 = deref(ast).count;
+  let kinds_length: own u64 = len<AstKind>(deref(ast).kinds);
+  let heads_length: own u64 = len<u64>(deref(ast).heads);
+  let starts_length: own u64 = len<u64>(deref(ast).starts);
+  let ends_length: own u64 = len<u64>(deref(ast).ends);
+  let first_length: own u64 = len<u64>(deref(ast).first_children);
+  let last_length: own u64 = len<u64>(deref(ast).last_children);
+  let next_length: own u64 = len<u64>(deref(ast).next_siblings);
+  let kinds_ok: own Bool = ige<u64>(kinds_length, count);
+  let heads_ok: own Bool = ige<u64>(heads_length, count);
+  let starts_ok: own Bool = ige<u64>(starts_length, count);
+  let ends_ok: own Bool = ige<u64>(ends_length, count);
+  let first_ok: own Bool = ige<u64>(first_length, count);
+  let last_ok: own Bool = ige<u64>(last_length, count);
+  let next_ok: own Bool = ige<u64>(next_length, count);
+  let columns0: own Bool = band<Bool>(kinds_ok, heads_ok);
+  let columns1: own Bool = band<Bool>(starts_ok, ends_ok);
+  let columns2: own Bool = band<Bool>(first_ok, last_ok);
+  let columns3: own Bool = band<Bool>(columns0, columns1);
+  let columns4: own Bool = band<Bool>(columns2, next_ok);
+  let columns_ok: own Bool = band<Bool>(columns3, columns4);
+  match columns_ok {
+    True() => {
+    }
+    False() => {
+      set deref(report).related = count;
+      return unit;
+    }
+  }
+
+  match ieq<u64>(count, 0_u64) {
+    True() => {
+      set deref(report).status = AstValidationEmpty();
+      return unit;
+    }
+    False() => {
+    }
+  }
+
+  match ile<u64>(count, token_count) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = AstValidationCountExceedsTokens();
+      set deref(report).node = count;
+      set deref(report).related = token_count;
+      return unit;
+    }
+  }
+
+  let root: own u64 = deref(ast).root;
+  match ilt<u64>(root, count) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = AstValidationRootReference();
+      set deref(report).node = root;
+      set deref(report).related = count;
+      return unit;
+    }
+  }
+  let root_next: own u64 = index<u64>(deref(ast).next_siblings, root);
+  match ieq<u64>(root_next, ast_none) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = AstValidationRootReference();
+      set deref(report).node = root;
+      set deref(report).related = root_next;
+      return unit;
+    }
+  }
+
+  let marks_length: own u64 = len<u64>(deref(report).marks);
+  let stack_length: own u64 = len<u64>(deref(report).stack);
+  let marks_ok: own Bool = ige<u64>(marks_length, token_count);
+  let stack_ok: own Bool = ige<u64>(stack_length, count);
+  let scratch_ok: own Bool = band<Bool>(marks_ok, stack_ok);
+  match scratch_ok {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = AstValidationScratchCapacity();
+      set deref(report).node = token_count;
+      set deref(report).related = count;
+      return unit;
+    }
+  }
+
+  let cursor: own u64 = 0_u64;
+  loop @clear_head_marks {
+    match ige<u64>(cursor, token_count) {
+      True() => {
+        break @clear_head_marks;
+      }
+      False() => {
+      }
+    }
+    set index<u64>(deref(report).marks, cursor) = 0_u64;
+    set cursor = iadd.trap<u64>(cursor, 1_u64);
+  }
+
+  set cursor = 0_u64;
+  loop @validate_nodes {
+    match ige<u64>(cursor, count) {
+      True() => {
+        break @validate_nodes;
+      }
+      False() => {
+      }
+    }
+
+    let head: own u64 = index<u64>(deref(ast).heads, cursor);
+    match ilt<u64>(head, token_count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = AstValidationHeadReference();
+        set deref(report).node = cursor;
+        set deref(report).related = head;
+        return unit;
+      }
+    }
+    let head_used: own u64 = index<u64>(deref(report).marks, head);
+    match ieq<u64>(head_used, 0_u64) {
+      True() => {
+        set index<u64>(deref(report).marks, head) = 1_u64;
+      }
+      False() => {
+        set deref(report).status = AstValidationDuplicateHead();
+        set deref(report).node = cursor;
+        set deref(report).related = head;
+        return unit;
+      }
+    }
+
+    let start: own u64 = index<u64>(deref(ast).starts, cursor);
+    let end: own u64 = index<u64>(deref(ast).ends, cursor);
+    let ordered: own Bool = ile<u64>(start, end);
+    let within_source: own Bool = ile<u64>(end, source_length);
+    let span_ok: own Bool = band<Bool>(ordered, within_source);
+    match span_ok {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = AstValidationSpan();
+        set deref(report).node = cursor;
+        set deref(report).related = end;
+        return unit;
+      }
+    }
+
+    let first: own u64 = index<u64>(deref(ast).first_children, cursor);
+    let last: own u64 = index<u64>(deref(ast).last_children, cursor);
+    let first_none: own Bool = ieq<u64>(first, ast_none);
+    let last_none: own Bool = ieq<u64>(last, ast_none);
+    match first_none {
+      True() => {
+        match last_none {
+          True() => {
+          }
+          False() => {
+            set deref(report).status = AstValidationChildPair();
+            set deref(report).node = cursor;
+            set deref(report).related = last;
+            return unit;
+          }
+        }
+      }
+      False() => {
+        match last_none {
+          True() => {
+            set deref(report).status = AstValidationChildPair();
+            set deref(report).node = cursor;
+            set deref(report).related = first;
+            return unit;
+          }
+          False() => {
+          }
+        }
+        let first_valid: own Bool = ilt<u64>(first, count);
+        let last_valid: own Bool = ilt<u64>(last, count);
+        let children_valid: own Bool = band<Bool>(first_valid, last_valid);
+        match children_valid {
+          True() => {
+          }
+          False() => {
+            set deref(report).status = AstValidationChildReference();
+            set deref(report).node = cursor;
+            set deref(report).related = first;
+            return unit;
+          }
+        }
+      }
+    }
+
+    let sibling: own u64 = index<u64>(deref(ast).next_siblings, cursor);
+    match ieq<u64>(sibling, ast_none) {
+      True() => {
+      }
+      False() => {
+        match ilt<u64>(sibling, count) {
+          True() => {
+          }
+          False() => {
+            set deref(report).status = AstValidationSiblingReference();
+            set deref(report).node = cursor;
+            set deref(report).related = sibling;
+            return unit;
+          }
+        }
+      }
+    }
+
+    set cursor = iadd.trap<u64>(cursor, 1_u64);
+  }
+
+  set cursor = 0_u64;
+  loop @clear_node_marks {
+    match ige<u64>(cursor, count) {
+      True() => {
+        break @clear_node_marks;
+      }
+      False() => {
+      }
+    }
+    set index<u64>(deref(report).marks, cursor) = 0_u64;
+    set cursor = iadd.trap<u64>(cursor, 1_u64);
+  }
+
+  set index<u64>(deref(report).marks, root) = 1_u64;
+  set index<u64>(deref(report).stack, 0_u64) = root;
+  let stack_count: own u64 = 1_u64;
+  let reached: own u64 = 1_u64;
+  loop @walk_tree {
+    match ieq<u64>(stack_count, 0_u64) {
+      True() => {
+        break @walk_tree;
+      }
+      False() => {
+      }
+    }
+
+    set stack_count = isub.wrap<u64>(stack_count, 1_u64);
+    let parent: own u64 = index<u64>(deref(report).stack, stack_count);
+    let first_child: own u64 = index<u64>(deref(ast).first_children, parent);
+    match ieq<u64>(first_child, ast_none) {
+      True() => {
+      }
+      False() => {
+        let child: own u64 = first_child;
+        let observed_last: own u64 = ast_none;
+        loop @walk_children {
+          let seen: own u64 = index<u64>(deref(report).marks, child);
+          match ieq<u64>(seen, 0_u64) {
+            True() => {
+            }
+            False() => {
+              set deref(report).status = AstValidationDuplicateReach();
+              set deref(report).node = child;
+              set deref(report).related = parent;
+              return unit;
+            }
+          }
+          set index<u64>(deref(report).marks, child) = 1_u64;
+          set index<u64>(deref(report).stack, stack_count) = child;
+          set stack_count = iadd.trap<u64>(stack_count, 1_u64);
+          set reached = iadd.trap<u64>(reached, 1_u64);
+          set observed_last = child;
+
+          let following: own u64 = index<u64>(deref(ast).next_siblings, child);
+          match ieq<u64>(following, ast_none) {
+            True() => {
+              break @walk_children;
+            }
+            False() => {
+              set child = following;
+            }
+          }
+        }
+        let declared_last: own u64 = index<u64>(deref(ast).last_children, parent);
+        match ieq<u64>(observed_last, declared_last) {
+          True() => {
+          }
+          False() => {
+            set deref(report).status = AstValidationLastChild();
+            set deref(report).node = parent;
+            set deref(report).related = observed_last;
+            return unit;
+          }
+        }
+      }
+    }
+  }
+
+  match ieq<u64>(reached, count) {
+    True() => {
+    }
+    False() => {
+      set cursor = 0_u64;
+      loop @find_unreachable {
+        let mark: own u64 = index<u64>(deref(report).marks, cursor);
+        match ieq<u64>(mark, 0_u64) {
+          True() => {
+            set deref(report).status = AstValidationUnreachable();
+            set deref(report).node = cursor;
+            set deref(report).related = reached;
+            return unit;
+          }
+          False() => {
+            set cursor = iadd.trap<u64>(cursor, 1_u64);
+          }
+        }
+      }
+    }
+  }
+
+  set deref(report).status = AstValidationClean();
+  set deref(report).node = ast_none;
+  set deref(report).related = ast_none;
+  return unit;
+}

@@ -1,0 +1,259 @@
+struct TypeShapeScratch {
+  left_stack: buffer<u64>;
+  right_stack: buffer<u64>;
+  left_marks: buffer<u64>;
+  right_marks: buffer<u64>;
+  generation: u64;
+}
+
+fn semantic_type_ast_columns_valid ['c] (tokens: &'c TokenTape, ast: &'c AstTape) -> own Bool reads('c) {
+  let count: own u64 = deref(ast).count;
+  let token_count: own u64 = deref(tokens).count;
+  let heads_length: own u64 = len<u64>(deref(ast).heads);
+  let first_length: own u64 = len<u64>(deref(ast).first_children);
+  let last_length: own u64 = len<u64>(deref(ast).last_children);
+  let next_length: own u64 = len<u64>(deref(ast).next_siblings);
+  let heads_ok: own Bool = ige<u64>(heads_length, count);
+  let first_ok: own Bool = ige<u64>(first_length, count);
+  let last_ok: own Bool = ige<u64>(last_length, count);
+  let next_ok: own Bool = ige<u64>(next_length, count);
+  let child_columns: own Bool = band<Bool>(first_ok, last_ok);
+  let link_columns: own Bool = band<Bool>(child_columns, next_ok);
+  let columns_ok: own Bool = band<Bool>(heads_ok, link_columns);
+  let count_ok: own Bool = ile<u64>(count, token_count);
+  return band<Bool>(columns_ok, count_ok);
+}
+
+fn semantic_types_equal ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, left: own u64, right: own u64, scratch: &uniq 'w TypeShapeScratch) -> own Bool reads('c 'w), writes('w), traps {
+  let columns_valid: own Bool = semantic_type_ast_columns_valid(tokens: tokens, ast: ast);
+  match columns_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let count: own u64 = deref(ast).count;
+  let left_valid: own Bool = ilt<u64>(left, count);
+  let right_valid: own Bool = ilt<u64>(right, count);
+  let roots_valid: own Bool = band<Bool>(left_valid, right_valid);
+  match roots_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let left_stack_length: own u64 = len<u64>(deref(scratch).left_stack);
+  let right_stack_length: own u64 = len<u64>(deref(scratch).right_stack);
+  let left_marks_length: own u64 = len<u64>(deref(scratch).left_marks);
+  let right_marks_length: own u64 = len<u64>(deref(scratch).right_marks);
+  let left_stack_ok: own Bool = ige<u64>(left_stack_length, count);
+  let right_stack_ok: own Bool = ige<u64>(right_stack_length, count);
+  let left_marks_ok: own Bool = ige<u64>(left_marks_length, count);
+  let right_marks_ok: own Bool = ige<u64>(right_marks_length, count);
+  let stacks_ok: own Bool = band<Bool>(left_stack_ok, right_stack_ok);
+  let marks_ok: own Bool = band<Bool>(left_marks_ok, right_marks_ok);
+  let scratch_ok: own Bool = band<Bool>(stacks_ok, marks_ok);
+  match scratch_ok {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let generation: own u64 = deref(scratch).generation;
+  let first_use: own Bool = ieq<u64>(generation, 0_u64);
+  let wrapped: own Bool = ieq<u64>(generation, ast_none);
+  let clear_marks: own Bool = bor<Bool>(first_use, wrapped);
+  match clear_marks {
+    True() => {
+      let clear_cursor: own u64 = 0_u64;
+      loop @clear_type_marks {
+        match ige<u64>(clear_cursor, count) {
+          True() => {
+            break @clear_type_marks;
+          }
+          False() => {
+          }
+        }
+        set index<u64>(deref(scratch).left_marks, clear_cursor) = 0_u64;
+        set index<u64>(deref(scratch).right_marks, clear_cursor) = 0_u64;
+        set clear_cursor = iadd.trap<u64>(clear_cursor, 1_u64);
+      }
+      set generation = 1_u64;
+    }
+    False() => {
+      set generation = iadd.trap<u64>(generation, 1_u64);
+    }
+  }
+  set deref(scratch).generation = generation;
+
+  set index<u64>(deref(scratch).left_stack, 0_u64) = left;
+  set index<u64>(deref(scratch).right_stack, 0_u64) = right;
+  set index<u64>(deref(scratch).left_marks, left) = generation;
+  set index<u64>(deref(scratch).right_marks, right) = generation;
+  let stack_count: own u64 = 1_u64;
+
+  loop @compare_type_nodes {
+    match ieq<u64>(stack_count, 0_u64) {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+
+    set stack_count = isub.wrap<u64>(stack_count, 1_u64);
+    let left_node: own u64 = index<u64>(deref(scratch).left_stack, stack_count);
+    let right_node: own u64 = index<u64>(deref(scratch).right_stack, stack_count);
+    let left_head: own u64 = index<u64>(deref(ast).heads, left_node);
+    let right_head: own u64 = index<u64>(deref(ast).heads, right_node);
+    let same_head: own Bool = token_text_equal(source: source, tokens: tokens, left: left_head, right: right_head);
+    match same_head {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+
+    let left_first: own u64 = index<u64>(deref(ast).first_children, left_node);
+    let left_last: own u64 = index<u64>(deref(ast).last_children, left_node);
+    let right_first: own u64 = index<u64>(deref(ast).first_children, right_node);
+    let right_last: own u64 = index<u64>(deref(ast).last_children, right_node);
+    let left_first_none: own Bool = ieq<u64>(left_first, ast_none);
+    let left_last_none: own Bool = ieq<u64>(left_last, ast_none);
+    let right_first_none: own Bool = ieq<u64>(right_first, ast_none);
+    let right_last_none: own Bool = ieq<u64>(right_last, ast_none);
+    let left_pair_ok: own Bool = ieq<Bool>(left_first_none, left_last_none);
+    let right_pair_ok: own Bool = ieq<Bool>(right_first_none, right_last_none);
+    let child_pairs_ok: own Bool = band<Bool>(left_pair_ok, right_pair_ok);
+    match child_pairs_ok {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let same_leaf_shape: own Bool = ieq<Bool>(left_first_none, right_first_none);
+    match same_leaf_shape {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    match left_first_none {
+      True() => {
+      }
+      False() => {
+        let left_first_valid: own Bool = ilt<u64>(left_first, count);
+        let left_last_valid: own Bool = ilt<u64>(left_last, count);
+        let right_first_valid: own Bool = ilt<u64>(right_first, count);
+        let right_last_valid: own Bool = ilt<u64>(right_last, count);
+        let left_children_valid: own Bool = band<Bool>(left_first_valid, left_last_valid);
+        let right_children_valid: own Bool = band<Bool>(right_first_valid, right_last_valid);
+        let children_valid: own Bool = band<Bool>(left_children_valid, right_children_valid);
+        match children_valid {
+          True() => {
+          }
+          False() => {
+            return False();
+          }
+        }
+
+        let left_child: own u64 = left_first;
+        let right_child: own u64 = right_first;
+        let chain_steps: own u64 = 0_u64;
+        loop @compare_type_children {
+          match ige<u64>(chain_steps, count) {
+            True() => {
+              return False();
+            }
+            False() => {
+            }
+          }
+
+          let left_at_last: own Bool = ieq<u64>(left_child, left_last);
+          let right_at_last: own Bool = ieq<u64>(right_child, right_last);
+          let same_chain_end: own Bool = ieq<Bool>(left_at_last, right_at_last);
+          match same_chain_end {
+            True() => {
+            }
+            False() => {
+              return False();
+            }
+          }
+
+          let left_mark: own u64 = index<u64>(deref(scratch).left_marks, left_child);
+          let right_mark: own u64 = index<u64>(deref(scratch).right_marks, right_child);
+          let left_seen: own Bool = ieq<u64>(left_mark, generation);
+          match left_seen {
+            True() => {
+              return False();
+            }
+            False() => {
+            }
+          }
+          let right_seen: own Bool = ieq<u64>(right_mark, generation);
+          match right_seen {
+            True() => {
+              return False();
+            }
+            False() => {
+            }
+          }
+          match ilt<u64>(stack_count, count) {
+            True() => {
+            }
+            False() => {
+              return False();
+            }
+          }
+          set index<u64>(deref(scratch).left_marks, left_child) = generation;
+          set index<u64>(deref(scratch).right_marks, right_child) = generation;
+          set index<u64>(deref(scratch).left_stack, stack_count) = left_child;
+          set index<u64>(deref(scratch).right_stack, stack_count) = right_child;
+          set stack_count = iadd.trap<u64>(stack_count, 1_u64);
+
+          let left_next: own u64 = index<u64>(deref(ast).next_siblings, left_child);
+          let right_next: own u64 = index<u64>(deref(ast).next_siblings, right_child);
+          match left_at_last {
+            True() => {
+              let left_terminated: own Bool = ieq<u64>(left_next, ast_none);
+              let right_terminated: own Bool = ieq<u64>(right_next, ast_none);
+              let chains_terminated: own Bool = band<Bool>(left_terminated, right_terminated);
+              match chains_terminated {
+                True() => {
+                  break @compare_type_children;
+                }
+                False() => {
+                  return False();
+                }
+              }
+            }
+            False() => {
+              let left_next_valid: own Bool = ilt<u64>(left_next, count);
+              let right_next_valid: own Bool = ilt<u64>(right_next, count);
+              let next_valid: own Bool = band<Bool>(left_next_valid, right_next_valid);
+              match next_valid {
+                True() => {
+                }
+                False() => {
+                  return False();
+                }
+              }
+              set left_child = left_next;
+              set right_child = right_next;
+              set chain_steps = iadd.trap<u64>(chain_steps, 1_u64);
+            }
+          }
+        }
+      }
+    }
+  }
+}

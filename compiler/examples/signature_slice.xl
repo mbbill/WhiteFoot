@@ -1,0 +1,7 @@
+fn inspect ['s, 'o] (source: &'s buffer<u8>, out: &uniq 'o TokenTape, flag: own Bool, table: own array<u8, 10>) -> own ParseStatus reads('s 'o), writes('o), traps {
+  return flag;
+}
+
+fn borrow ['r] (value: &'r ByteTape) -> &'r ByteTape reads('r) {
+  return value;
+}

@@ -3,5 +3,13 @@ src/lexer.xl
 src/ast.xl
 src/parser.xl
 src/parser_scalar.xl
+src/parser_signatures.xl
+src/parser_items.xl
+src/parser_expressions.xl
+src/parser_control.xl
+src/ast_validate.xl
 src/output.xl
 src/source_names.xl
+src/symbols.xl
+src/semantic_types.xl
+src/semantic_globals.xl
