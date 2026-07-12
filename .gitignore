@@ -11,6 +11,11 @@ htmlcov/
 .venv/
 venv/
 
+# Frequency-study downloaded corpora and raw/generated evidence
+experiments/frequency-study/corpus/
+experiments/frequency-study/work/
+experiments/frequency-study/results/raw/
+
 # OS/editor litter
 .DS_Store
 *.swp

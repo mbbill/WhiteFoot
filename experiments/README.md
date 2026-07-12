@@ -13,6 +13,8 @@ and gitignored. Chronology and decisions live in
   long trips (Rust recovers via runtime checks).
 - `checked-law-channel/` — channel 3: FN-4 discharged laws license
   reassociation. 3.3x over the obvious fold; refutes false laws compile-time.
+- `frequency-study/` — completed one-time directional scan of popular Rust
+  sources/applications; points the next real port at relational bounds proofs.
 
 ## Port studies (real programs; D9 confidence-gate evidence)
 - `port-study/binary-trees/` — floor-raising result: the slow shape is
