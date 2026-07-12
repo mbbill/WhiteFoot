@@ -24,5 +24,6 @@ check:
 	$(PY) test_frontend_retained.py
 	$(PY) test_llvm_text.py
 	$(PY) test_llvm_scalar.py
+	$(PY) test_llvm_linear.py
 
 .PHONY: check

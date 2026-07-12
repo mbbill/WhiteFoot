@@ -23,3 +23,4 @@ src/semantic_type_members.xl
 src/frontend.xl
 src/llvm_text.xl
 src/llvm_scalar.xl
+src/llvm_linear.xl
