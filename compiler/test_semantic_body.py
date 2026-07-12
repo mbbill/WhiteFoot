@@ -70,6 +70,9 @@ OP_BAND = 10
 OP_BOR = 11
 PRELUDE_TYPE_UNKNOWN = 0
 PRELUDE_TYPE_BOOL = 1
+PRELUDE_CONSTRUCTOR_UNKNOWN = 0
+PRELUDE_CONSTRUCTOR_TRUE = 1
+PRELUDE_CONSTRUCTOR_FALSE = 2
 
 
 class SemanticBodyScratch(ctypes.Structure):
@@ -570,6 +573,91 @@ def linear_body_nodes(columns, function):
     }
 
 
+def symbol_body_nodes(columns, function):
+    direct = children_of(columns, function)
+    assert len(direct) == 6
+    parameter = direct[1]
+    block = direct[5]
+    statements = children_of(columns, block)
+    assert len(statements) == 26
+
+    guards = []
+    for ordinal in range(12):
+        let_node = statements[ordinal * 2]
+        match_node = statements[ordinal * 2 + 1]
+        continuation = statements[ordinal * 2 + 2]
+        assert columns[0][let_node] == AST["AstLet"]
+        assert columns[0][match_node] == AST["AstMatch"]
+        let_children = children_of(columns, let_node)
+        assert len(let_children) == 4
+        call = let_children[3]
+        assert columns[0][call] == AST["AstTableCall"]
+        call_children = children_of(columns, call)
+        assert len(call_children) == 3
+
+        match_children = children_of(columns, match_node)
+        assert len(match_children) == 3
+        scrutinee, true_arm, false_arm = match_children
+        assert columns[0][scrutinee] == AST["AstPlaceUse"]
+        assert columns[0][true_arm] == AST["AstMatchArm"]
+        assert columns[0][false_arm] == AST["AstMatchArm"]
+        (true_block,) = children_of(columns, true_arm)
+        (false_block,) = children_of(columns, false_arm)
+        assert columns[0][true_block] == AST["AstBlock"]
+        assert columns[0][false_block] == AST["AstBlock"]
+        (early_return,) = children_of(columns, true_block)
+        assert children_of(columns, false_block) == []
+        assert columns[0][early_return] == AST["AstReturn"]
+        (constructor,) = children_of(columns, early_return)
+        assert columns[0][constructor] == AST["AstConstructor"]
+        assert children_of(columns, constructor) == []
+        guards.append(
+            {
+                "ordinal": ordinal,
+                "let": let_node,
+                "call": call,
+                "type_argument": call_children[0],
+                "parameter_use": call_children[1],
+                "literal": call_children[2],
+                "match": match_node,
+                "scrutinee": scrutinee,
+                "true_arm": true_arm,
+                "true_block": true_block,
+                "early_return": early_return,
+                "constructor": constructor,
+                "false_arm": false_arm,
+                "false_block": false_block,
+                "continuation": continuation,
+            }
+        )
+
+    dot_let = statements[24]
+    final_return = statements[25]
+    assert columns[0][dot_let] == AST["AstLet"]
+    assert columns[0][final_return] == AST["AstReturn"]
+    dot_children = children_of(columns, dot_let)
+    assert len(dot_children) == 4
+    dot_call = dot_children[3]
+    dot_call_children = children_of(columns, dot_call)
+    assert columns[0][dot_call] == AST["AstTableCall"]
+    assert len(dot_call_children) == 3
+    (final_place,) = children_of(columns, final_return)
+    assert columns[0][final_place] == AST["AstPlaceUse"]
+    return {
+        "parameter": parameter,
+        "block": block,
+        "statements": statements,
+        "guards": guards,
+        "dot_let": dot_let,
+        "dot_call": dot_call,
+        "dot_type_argument": dot_call_children[0],
+        "dot_parameter_use": dot_call_children[1],
+        "dot_literal": dot_call_children[2],
+        "final_return": final_return,
+        "final_place": final_place,
+    }
+
+
 def user_call_nodes(columns, function):
     nodes = linear_body_nodes(columns, function)
     user_pairs = [
@@ -818,6 +906,307 @@ def assert_space_failures(library):
         assert outputs[1].status == FACTS_CAPACITY
         assert outputs[3].status == FACTS_CAPACITY
         assert_output_guards(outputs)
+
+
+def assert_symbol_clean_facts(library):
+    data = (Path(__file__).resolve().parent / "src" / "lexer.xl").read_bytes()
+    case = parsed(library, data)
+    function = find_function_by_text(
+        data, case[4], case[5], b"lexer_is_symbol"
+    )
+    nodes = symbol_body_nodes(case[4], function)
+    outputs = make_outputs(
+        library,
+        case[5].count,
+        scratch_caps=(14,) * len(SCRATCH_COLUMNS),
+    )
+    report = invoke(library, case, function, outputs)
+    assert report_tuple(report) == (BODY_CLEAN, U64_MAX, U64_MAX)
+    assert_output_guards(outputs)
+
+    _, types, fact_storage, facts, _, _, scratch, _, _ = outputs
+    assert (types.count, types.status, types.node, types.related) == (
+        2,
+        FACTS_CLEAN,
+        U64_MAX,
+        U64_MAX,
+    )
+    assert (facts.count, facts.status, facts.node, facts.related) == (
+        case[5].count,
+        FACTS_CLEAN,
+        U64_MAX,
+        U64_MAX,
+    )
+    assert scratch.count == 14
+
+    (
+        type_ids,
+        resolved,
+        ordinals,
+        operations,
+        constants,
+        targets,
+        modes,
+        constructors,
+    ) = fact_storage
+    expected_literals = (40, 41, 123, 125, 60, 62, 58, 59, 44, 61, 91, 93)
+    for guard, literal_value in zip(nodes["guards"], expected_literals):
+        ordinal = guard["ordinal"]
+        for node in (guard["let"], guard["call"]):
+            assert (
+                type_ids[node],
+                ordinals[node],
+                modes[node],
+            ) == (1, ordinal, MODE_OWN)
+            assert targets[node] == U64_MAX
+            assert constructors[node] == PRELUDE_CONSTRUCTOR_UNKNOWN
+        assert operations[guard["let"]] == OP_NONE
+        assert operations[guard["call"]] == OP_IEQ
+        assert constants[guard["literal"]] == literal_value
+        assert resolved[guard["parameter_use"]] == nodes["parameter"]
+
+        assert (
+            type_ids[guard["scrutinee"]],
+            resolved[guard["scrutinee"]],
+            ordinals[guard["scrutinee"]],
+            operations[guard["scrutinee"]],
+            constants[guard["scrutinee"]],
+            targets[guard["scrutinee"]],
+            modes[guard["scrutinee"]],
+            constructors[guard["scrutinee"]],
+        ) == (
+            1,
+            guard["let"],
+            U64_MAX,
+            OP_NONE,
+            U64_MAX,
+            guard["match"],
+            MODE_OWN,
+            PRELUDE_CONSTRUCTOR_UNKNOWN,
+        )
+        assert (
+            type_ids[guard["match"]],
+            ordinals[guard["match"]],
+            constants[guard["match"]],
+            targets[guard["match"]],
+            modes[guard["match"]],
+            constructors[guard["match"]],
+        ) == (
+            U64_MAX,
+            U64_MAX,
+            U64_MAX,
+            guard["continuation"],
+            MODE_NONE,
+            PRELUDE_CONSTRUCTOR_UNKNOWN,
+        )
+
+        expected_arms = (
+            (
+                guard["true_arm"],
+                guard["true_block"],
+                0,
+                1,
+                PRELUDE_CONSTRUCTOR_TRUE,
+                guard["early_return"],
+            ),
+            (
+                guard["false_arm"],
+                guard["false_block"],
+                1,
+                0,
+                PRELUDE_CONSTRUCTOR_FALSE,
+                guard["continuation"],
+            ),
+        )
+        for arm, block, arm_ordinal, constant, constructor, target in expected_arms:
+            assert (
+                type_ids[arm],
+                resolved[arm],
+                ordinals[arm],
+                operations[arm],
+                constants[arm],
+                targets[arm],
+                modes[arm],
+                constructors[arm],
+            ) == (
+                1,
+                U64_MAX,
+                arm_ordinal,
+                OP_NONE,
+                constant,
+                target,
+                MODE_NONE,
+                constructor,
+            )
+            assert (
+                type_ids[block],
+                resolved[block],
+                ordinals[block],
+                operations[block],
+                constants[block],
+                targets[block],
+                modes[block],
+                constructors[block],
+            ) == (
+                U64_MAX,
+                U64_MAX,
+                U64_MAX,
+                OP_NONE,
+                U64_MAX,
+                target,
+                MODE_NONE,
+                PRELUDE_CONSTRUCTOR_UNKNOWN,
+            )
+
+        assert (
+            type_ids[guard["early_return"]],
+            resolved[guard["early_return"]],
+            ordinals[guard["early_return"]],
+            operations[guard["early_return"]],
+            constants[guard["early_return"]],
+            targets[guard["early_return"]],
+            modes[guard["early_return"]],
+            constructors[guard["early_return"]],
+        ) == (
+            1,
+            U64_MAX,
+            U64_MAX,
+            OP_NONE,
+            U64_MAX,
+            function,
+            MODE_OWN,
+            PRELUDE_CONSTRUCTOR_UNKNOWN,
+        )
+        assert (
+            type_ids[guard["constructor"]],
+            resolved[guard["constructor"]],
+            ordinals[guard["constructor"]],
+            operations[guard["constructor"]],
+            constants[guard["constructor"]],
+            targets[guard["constructor"]],
+            modes[guard["constructor"]],
+            constructors[guard["constructor"]],
+        ) == (
+            1,
+            U64_MAX,
+            U64_MAX,
+            OP_NONE,
+            1,
+            guard["early_return"],
+            MODE_OWN,
+            PRELUDE_CONSTRUCTOR_TRUE,
+        )
+
+    for node in (nodes["dot_let"], nodes["dot_call"]):
+        assert (type_ids[node], ordinals[node], modes[node]) == (
+            1,
+            12,
+            MODE_OWN,
+        )
+    assert operations[nodes["dot_let"]] == OP_NONE
+    assert operations[nodes["dot_call"]] == OP_IEQ
+    assert constants[nodes["dot_literal"]] == 46
+    assert resolved[nodes["dot_parameter_use"]] == nodes["parameter"]
+    assert (
+        type_ids[nodes["final_place"]],
+        resolved[nodes["final_place"]],
+        ordinals[nodes["final_place"]],
+        operations[nodes["final_place"]],
+        constants[nodes["final_place"]],
+        targets[nodes["final_place"]],
+        modes[nodes["final_place"]],
+        constructors[nodes["final_place"]],
+    ) == (
+        1,
+        nodes["dot_let"],
+        U64_MAX,
+        OP_NONE,
+        U64_MAX,
+        nodes["final_return"],
+        MODE_OWN,
+        PRELUDE_CONSTRUCTOR_UNKNOWN,
+    )
+    assert (
+        type_ids[nodes["final_return"]],
+        resolved[nodes["final_return"]],
+        ordinals[nodes["final_return"]],
+        operations[nodes["final_return"]],
+        constants[nodes["final_return"]],
+        targets[nodes["final_return"]],
+        modes[nodes["final_return"]],
+        constructors[nodes["final_return"]],
+    ) == (
+        1,
+        U64_MAX,
+        12,
+        OP_NONE,
+        U64_MAX,
+        function,
+        MODE_OWN,
+        PRELUDE_CONSTRUCTOR_UNKNOWN,
+    )
+
+    second = make_outputs(
+        library,
+        case[5].count,
+        scratch_caps=(14,) * len(SCRATCH_COLUMNS),
+    )
+    second_report = invoke(library, case, function, second)
+    assert report_tuple(second_report) == report_tuple(report)
+    assert output_snapshot(second) == output_snapshot(outputs)
+    assert_output_guards(second)
+    return case[5].count
+
+
+def assert_symbol_failures(library):
+    data = (Path(__file__).resolve().parent / "src" / "lexer.xl").read_bytes()
+
+    def rejected(mutate):
+        case = parsed(library, data)
+        function = find_function_by_text(
+            data, case[4], case[5], b"lexer_is_symbol"
+        )
+        nodes = symbol_body_nodes(case[4], function)
+        mutate(case, nodes)
+        outputs = make_outputs(
+            library,
+            case[5].count,
+            scratch_caps=(14,) * len(SCRATCH_COLUMNS),
+        )
+        report = invoke(library, case, function, outputs)
+        assert report.status != BODY_CLEAN, report_tuple(report)
+        assert report.node != U64_MAX
+        assert outputs[1].status == FACTS_INVALID_SHAPE
+        assert outputs[3].status == FACTS_INVALID_SHAPE
+        assert_output_guards(outputs)
+        assert_symbol_guards(case[7], case[8])
+
+    def swap_arm_tags(case, nodes):
+        first = nodes["guards"][0]
+        heads = case[4][1]
+        heads[first["true_arm"]], heads[first["false_arm"]] = (
+            heads[first["false_arm"]],
+            heads[first["true_arm"]],
+        )
+
+    def wrong_target(case, nodes):
+        first = nodes["guards"][0]
+        case[4][6][first["match"]] = first["match"]
+
+    def wrong_scrutinee_resolution(case, nodes):
+        first = nodes["guards"][0]
+        case[4][1][first["scrutinee"]] = case[4][1][nodes["parameter"]]
+
+    def wrong_final_resolution(case, nodes):
+        case[4][1][nodes["final_place"]] = case[4][1][nodes["parameter"]]
+
+    for mutate in (
+        swap_arm_tags,
+        wrong_target,
+        wrong_scrutinee_resolution,
+        wrong_final_resolution,
+    ):
+        rejected(mutate)
 
 
 def assert_user_call_clean_facts(library):
@@ -1290,9 +1679,11 @@ def main():
         focused_nodes = assert_clean_facts(library)
         focused_space_nodes = assert_space_clean_facts(library)
         focused_user_nodes = assert_user_call_clean_facts(library)
+        symbol_nodes = assert_symbol_clean_facts(library)
         assert_semantic_failures(library)
         assert_space_failures(library)
         assert_user_call_failures(library)
+        assert_symbol_failures(library)
         assert_hostile_symbol_tapes(library)
         assert_capacity_and_input_guards(library)
         compiler_counts = assert_current_compiler(library)
@@ -1301,8 +1692,9 @@ def main():
             "typed/resolved deterministically; "
             f"focused nodes={focused_nodes}/{focused_space_nodes}; "
             f"user-call nodes={focused_user_nodes}; "
+            f"symbol nodes={symbol_nodes}; "
             f"compiler tokens/nodes={compiler_counts}; "
-            "current ident/type/number tails resolved; "
+            "current ident/type/number/symbol predicates resolved; "
             "hostile names/types/ops/order/literals/symbols/capacities fail closed"
         )
 

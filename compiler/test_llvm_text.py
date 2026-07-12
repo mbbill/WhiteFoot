@@ -42,6 +42,7 @@ NO_ARG_EMITTERS = (
     "llvm_text_emit_right_paren",
     "llvm_text_emit_comma",
     "llvm_text_emit_equal",
+    "llvm_text_emit_colon",
     "llvm_text_emit_left_brace",
     "llvm_text_emit_right_brace",
     "llvm_text_emit_define",
@@ -49,6 +50,9 @@ NO_ARG_EMITTERS = (
     "llvm_text_emit_alloca",
     "llvm_text_emit_store",
     "llvm_text_emit_load",
+    "llvm_text_emit_br",
+    "llvm_text_emit_label",
+    "llvm_text_emit_true",
     "llvm_text_emit_icmp_uge",
     "llvm_text_emit_icmp_ule",
     "llvm_text_emit_icmp_eq",
@@ -61,6 +65,7 @@ ID_EMITTERS = (
     "llvm_text_emit_value",
     "llvm_text_emit_place",
     "llvm_text_emit_block",
+    "llvm_text_emit_block_ref",
 )
 
 
@@ -78,6 +83,16 @@ entry:
   %v8 = icmp ule i64 %v6, 9
   %v9 = and i1 %v7, %v8
   ret i64 %v6
+}
+"""
+
+BRANCH_EXPECTED = b"""define i1 @branch(i1 %p0) {
+entry:
+  br i1 %p0, label %bb0, label %bb1
+bb0:
+  ret i1 true
+bb1:
+  ret i1 %p0
 }
 """
 
@@ -282,11 +297,88 @@ def emit_skeleton(library, source, tokens, out):
     atom("llvm_text_emit_newline")
 
 
+def emit_branch_skeleton(library, source, tokens, out):
+    out_pointer = ctypes.byref(out)
+
+    def atom(name):
+        getattr(library, name)(out_pointer)
+
+    def identifier(name, value):
+        getattr(library, name)(out_pointer, value)
+
+    def space():
+        atom("llvm_text_emit_space")
+
+    def indent():
+        space()
+        space()
+
+    atom("llvm_text_emit_define")
+    space()
+    atom("llvm_text_emit_i1")
+    space()
+    atom("llvm_text_emit_at")
+    library.llvm_text_emit_token(source, ctypes.byref(tokens), 0, out_pointer)
+    atom("llvm_text_emit_left_paren")
+    atom("llvm_text_emit_i1")
+    space()
+    identifier("llvm_text_emit_place", 0)
+    atom("llvm_text_emit_right_paren")
+    space()
+    atom("llvm_text_emit_left_brace")
+    atom("llvm_text_emit_newline")
+
+    atom("llvm_text_emit_entry")
+    atom("llvm_text_emit_newline")
+    indent()
+    atom("llvm_text_emit_br")
+    space()
+    atom("llvm_text_emit_i1")
+    space()
+    identifier("llvm_text_emit_place", 0)
+    atom("llvm_text_emit_comma")
+    space()
+    atom("llvm_text_emit_label")
+    space()
+    identifier("llvm_text_emit_block_ref", 0)
+    atom("llvm_text_emit_comma")
+    space()
+    atom("llvm_text_emit_label")
+    space()
+    identifier("llvm_text_emit_block_ref", 1)
+    atom("llvm_text_emit_newline")
+
+    identifier("llvm_text_emit_block", 0)
+    atom("llvm_text_emit_colon")
+    atom("llvm_text_emit_newline")
+    indent()
+    atom("llvm_text_emit_ret")
+    space()
+    atom("llvm_text_emit_i1")
+    space()
+    atom("llvm_text_emit_true")
+    atom("llvm_text_emit_newline")
+
+    identifier("llvm_text_emit_block", 1)
+    atom("llvm_text_emit_colon")
+    atom("llvm_text_emit_newline")
+    indent()
+    atom("llvm_text_emit_ret")
+    space()
+    atom("llvm_text_emit_i1")
+    space()
+    identifier("llvm_text_emit_place", 0)
+    atom("llvm_text_emit_newline")
+    atom("llvm_text_emit_right_brace")
+    atom("llvm_text_emit_newline")
+
+
 def assert_id_vocabulary(library):
     cases = (
         ("llvm_text_emit_value", U64_MAX, b"%v18446744073709551615"),
         ("llvm_text_emit_place", 42, b"%p42"),
         ("llvm_text_emit_block", 7, b"bb7"),
+        ("llvm_text_emit_block_ref", U64_MAX, b"%bb18446744073709551615"),
     )
     for name, value, expected in cases:
         storage, tape = make_output(len(expected))
@@ -300,6 +392,10 @@ def assert_operation_vocabulary(library):
     cases = (
         ("llvm_text_emit_icmp_eq", b"icmp eq"),
         ("llvm_text_emit_or", b"or"),
+        ("llvm_text_emit_br", b"br"),
+        ("llvm_text_emit_label", b"label"),
+        ("llvm_text_emit_colon", b":"),
+        ("llvm_text_emit_true", b"true"),
     )
     for name, expected in cases:
         storage, tape = make_output(len(expected))
@@ -332,9 +428,9 @@ def assert_invalid_tokens(library, source):
         assert token_storage
 
 
-def assert_assembled_ir(directory, expected):
-    source_path = directory / "llvm_text_skeleton.ll"
-    object_path = directory / "llvm_text_skeleton.o"
+def assert_assembled_ir(directory, expected, stem="llvm_text_skeleton"):
+    source_path = directory / f"{stem}.ll"
+    object_path = directory / f"{stem}.o"
     source_path.write_bytes(expected)
     cc = "/usr/bin/clang" if Path("/usr/bin/clang").exists() else "clang"
     result = subprocess.run(
@@ -344,6 +440,38 @@ def assert_assembled_ir(directory, expected):
     )
     if result.returncode:
         raise AssertionError(f"LLVM rejected the composed skeleton:\n{result.stderr}")
+
+
+def assert_branch_skeleton(library, directory):
+    source_storage, source = make_source(b"branch")
+    token_storage, tokens = make_tokens([(0, 6)])
+
+    measured_storage, measured = make_output(0)
+    emit_branch_skeleton(library, source, tokens, measured)
+    assert (measured.status, measured.count) == (
+        BYTE_NEED_CAPACITY,
+        len(BRANCH_EXPECTED),
+    )
+    assert measured_storage[0] == GUARD
+
+    exact_storage, exact = make_output(len(BRANCH_EXPECTED))
+    emit_branch_skeleton(library, source, tokens, exact)
+    assert (exact.status, exact.count) == (BYTE_CLEAN, len(BRANCH_EXPECTED))
+    assert bytes(exact_storage[:exact.count]) == BRANCH_EXPECTED
+    assert exact_storage[len(BRANCH_EXPECTED)] == GUARD
+
+    short_capacity = len(BRANCH_EXPECTED) - 7
+    short_storage, short = make_output(short_capacity)
+    emit_branch_skeleton(library, source, tokens, short)
+    assert (short.status, short.count) == (
+        BYTE_NEED_CAPACITY,
+        len(BRANCH_EXPECTED),
+    )
+    assert bytes(short_storage[:short_capacity]) == BRANCH_EXPECTED[:short_capacity]
+    assert short_storage[short_capacity] == GUARD
+
+    assert_assembled_ir(directory, BRANCH_EXPECTED, "llvm_text_branch")
+    assert source_storage and token_storage
 
 
 def main():
@@ -393,13 +521,15 @@ def main():
 
         assert_id_vocabulary(library)
         assert_operation_vocabulary(library)
+        assert_branch_skeleton(library, directory)
         assert_invalid_tokens(library, source)
         assert_assembled_ir(directory, EXPECTED)
 
         assert source_storage and token_storage
         print(
-            "self-hosted LLVM text: compositional vocabulary, exact skeleton, "
-            "measure/exact/short capacity, invalid tokens/spans, repeat, and LLVM parse pass"
+            "self-hosted LLVM text: compositional vocabulary, exact straight-line/branch "
+            "skeletons, measure/exact/short capacity, invalid tokens/spans, repeat, "
+            "and LLVM parse pass"
         )
 
 

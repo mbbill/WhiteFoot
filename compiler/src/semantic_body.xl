@@ -1291,6 +1291,170 @@ fn semantic_body_analyze_expression ['c, 'w] (source: &'c buffer<u8>, tokens: &'
   }
 }
 
+fn semantic_body_analyze_bool_match ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, node: own u64, continuation: own u64, expected_let: own u64, value_ordinal: own u64, bool_type: own u64, facts: &uniq 'w NodeFacts, scratch: &'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own Bool reads('c 'w), writes('w), traps {
+  let ast_count: own u64 = deref(ast).count;
+  let function_valid: own Bool = ilt<u64>(function, ast_count);
+  let continuation_valid: own Bool = ilt<u64>(continuation, ast_count);
+  let expected_valid: own Bool = ilt<u64>(expected_let, ast_count);
+  let targets_first: own Bool = band<Bool>(function_valid, continuation_valid);
+  let targets_valid: own Bool = band<Bool>(targets_first, expected_valid);
+  let match_kind: own Bool = semantic_body_kind_is(ast: ast, node: node, want: AstMatch());
+  let match_shape: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 3_u64);
+  let expected_kind: own Bool = semantic_body_kind_is(ast: ast, node: expected_let, want: AstLet());
+  let root_first: own Bool = band<Bool>(targets_valid, match_kind);
+  let root_second: own Bool = band<Bool>(match_shape, expected_kind);
+  match band<Bool>(root_first, root_second) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = continuation;
+      return False();
+    }
+  }
+
+  let scrutinee: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 0_u64);
+  let true_arm: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 1_u64);
+  let false_arm: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 2_u64);
+  let scrutinee_kind: own Bool = semantic_body_kind_is(ast: ast, node: scrutinee, want: AstPlaceUse());
+  let scrutinee_leaf: own Bool = semantic_body_exact_children(ast: ast, node: scrutinee, want: 0_u64);
+  let true_arm_kind: own Bool = semantic_body_kind_is(ast: ast, node: true_arm, want: AstMatchArm());
+  let false_arm_kind: own Bool = semantic_body_kind_is(ast: ast, node: false_arm, want: AstMatchArm());
+  let true_arm_shape: own Bool = semantic_body_exact_children(ast: ast, node: true_arm, want: 1_u64);
+  let false_arm_shape: own Bool = semantic_body_exact_children(ast: ast, node: false_arm, want: 1_u64);
+  let scrutinee_ok: own Bool = band<Bool>(scrutinee_kind, scrutinee_leaf);
+  let arm_kinds: own Bool = band<Bool>(true_arm_kind, false_arm_kind);
+  let arm_shapes: own Bool = band<Bool>(true_arm_shape, false_arm_shape);
+  let arms_ok: own Bool = band<Bool>(arm_kinds, arm_shapes);
+  match band<Bool>(scrutinee_ok, arms_ok) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = scrutinee;
+      return False();
+    }
+  }
+
+  let true_block: own u64 = semantic_body_child_at(ast: ast, node: true_arm, ordinal: 0_u64);
+  let false_block: own u64 = semantic_body_child_at(ast: ast, node: false_arm, ordinal: 0_u64);
+  let true_block_kind: own Bool = semantic_body_kind_is(ast: ast, node: true_block, want: AstBlock());
+  let false_block_kind: own Bool = semantic_body_kind_is(ast: ast, node: false_block, want: AstBlock());
+  let true_block_shape: own Bool = semantic_body_exact_children(ast: ast, node: true_block, want: 1_u64);
+  let false_block_shape: own Bool = semantic_body_exact_children(ast: ast, node: false_block, want: 0_u64);
+  let block_kinds: own Bool = band<Bool>(true_block_kind, false_block_kind);
+  let block_shapes: own Bool = band<Bool>(true_block_shape, false_block_shape);
+  match band<Bool>(block_kinds, block_shapes) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = true_block;
+      return False();
+    }
+  }
+
+  let early_return: own u64 = semantic_body_child_at(ast: ast, node: true_block, ordinal: 0_u64);
+  let return_kind: own Bool = semantic_body_kind_is(ast: ast, node: early_return, want: AstReturn());
+  let return_shape: own Bool = semantic_body_exact_children(ast: ast, node: early_return, want: 1_u64);
+  let constructor: own u64 = semantic_body_child_at(ast: ast, node: early_return, ordinal: 0_u64);
+  let constructor_kind: own Bool = semantic_body_kind_is(ast: ast, node: constructor, want: AstConstructor());
+  let constructor_shape: own Bool = semantic_body_exact_children(ast: ast, node: constructor, want: 0_u64);
+  let return_ok: own Bool = band<Bool>(return_kind, return_shape);
+  let constructor_ok: own Bool = band<Bool>(constructor_kind, constructor_shape);
+  match band<Bool>(return_ok, constructor_ok) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = early_return;
+      return False();
+    }
+  }
+
+  let true_head: own u64 = index<u64>(deref(ast).heads, true_arm);
+  let false_head: own u64 = index<u64>(deref(ast).heads, false_arm);
+  let constructor_head: own u64 = index<u64>(deref(ast).heads, constructor);
+  let true_code: own PreludeConstructorCode = semantic_prelude_constructor_code(source: source, tokens: tokens, token: true_head);
+  let false_code: own PreludeConstructorCode = semantic_prelude_constructor_code(source: source, tokens: tokens, token: false_head);
+  let constructor_code: own PreludeConstructorCode = semantic_prelude_constructor_code(source: source, tokens: tokens, token: constructor_head);
+  let true_tag: own PreludeConstructorCode = PreludeConstructorTrue();
+  let false_tag: own PreludeConstructorCode = PreludeConstructorFalse();
+  let true_pattern: own Bool = ieq<PreludeConstructorCode>(true_code, true_tag);
+  let false_pattern: own Bool = ieq<PreludeConstructorCode>(false_code, false_tag);
+  let return_true: own Bool = ieq<PreludeConstructorCode>(constructor_code, true_tag);
+  let patterns: own Bool = band<Bool>(true_pattern, false_pattern);
+  match band<Bool>(patterns, return_true) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = true_arm;
+      return False();
+    }
+  }
+
+  let scrutinee_type: own u64 = semantic_facts_none;
+  region 'semantic_body_match_scrutinee {
+    set scrutinee_type = semantic_body_analyze_atom(source: source, tokens: tokens, ast: ast, node: scrutinee, u8_type: 0_u64, facts: &uniq 'semantic_body_match_scrutinee deref(facts), scratch: scratch, report: &uniq 'semantic_body_match_scrutinee deref(report));
+  }
+  let scrutinee_declaration: own u64 = index<u64>(deref(facts).resolved_declarations, scrutinee);
+  let scrutinee_mode: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, scrutinee);
+  let scrutinee_own: own Bool = ieq<SemanticValueMode>(scrutinee_mode, SemanticModeOwn());
+  let declaration_matches: own Bool = ieq<u64>(scrutinee_declaration, expected_let);
+  let declaration_ordinal: own u64 = index<u64>(deref(facts).ordinals, expected_let);
+  let ordinal_dominates: own Bool = ilt<u64>(declaration_ordinal, value_ordinal);
+  let type_matches: own Bool = ieq<u64>(scrutinee_type, bool_type);
+  let resolution_ok: own Bool = band<Bool>(declaration_matches, ordinal_dominates);
+  let scrutinee_facts: own Bool = band<Bool>(type_matches, scrutinee_own);
+  match band<Bool>(resolution_ok, scrutinee_facts) {
+    True() => {
+    }
+    False() => {
+      match ieq<u64>(scrutinee_type, semantic_facts_none) {
+        True() => {
+          return False();
+        }
+        False() => {
+          set deref(report).status = SemanticBodyTypeMismatch();
+          set deref(report).node = scrutinee;
+          set deref(report).related = expected_let;
+          return False();
+        }
+      }
+    }
+  }
+
+  set index<u64>(deref(facts).control_targets, node) = continuation;
+  set index<u64>(deref(facts).control_targets, scrutinee) = node;
+  set index<u64>(deref(facts).type_ids, true_arm) = bool_type;
+  set index<u64>(deref(facts).ordinals, true_arm) = 0_u64;
+  set index<u64>(deref(facts).constant_values, true_arm) = 1_u64;
+  set index<u64>(deref(facts).control_targets, true_arm) = early_return;
+  set index<PreludeConstructorCode>(deref(facts).prelude_constructors, true_arm) = true_tag;
+  set index<u64>(deref(facts).type_ids, false_arm) = bool_type;
+  set index<u64>(deref(facts).ordinals, false_arm) = 1_u64;
+  set index<u64>(deref(facts).constant_values, false_arm) = 0_u64;
+  set index<u64>(deref(facts).control_targets, false_arm) = continuation;
+  set index<PreludeConstructorCode>(deref(facts).prelude_constructors, false_arm) = false_tag;
+  set index<u64>(deref(facts).control_targets, true_block) = early_return;
+  set index<u64>(deref(facts).control_targets, false_block) = continuation;
+  set index<u64>(deref(facts).type_ids, early_return) = bool_type;
+  set index<SemanticValueMode>(deref(facts).modes, early_return) = SemanticModeOwn();
+  set index<u64>(deref(facts).control_targets, early_return) = function;
+  set index<u64>(deref(facts).type_ids, constructor) = bool_type;
+  set index<u64>(deref(facts).constant_values, constructor) = 1_u64;
+  set index<u64>(deref(facts).control_targets, constructor) = early_return;
+  set index<SemanticValueMode>(deref(facts).modes, constructor) = SemanticModeOwn();
+  set index<PreludeConstructorCode>(deref(facts).prelude_constructors, constructor) = true_tag;
+  return True();
+}
+
 fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, validation: &'c AstValidationReport, symbols: &'c SymbolTape, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own unit reads('c 'w), writes('w), traps {
   set deref(types).status = SemanticFactsInvalidShape();
   set deref(types).node = semantic_facts_none;
@@ -1566,6 +1730,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
   let body_scan_statement: own u64 = body_first_statement;
   let body_scan_steps: own u64 = 0_u64;
   let body_let_count: own u64 = 0_u64;
+  let body_match_count: own u64 = 0_u64;
   loop @semantic_body_preflight_statements {
     match ilt<u64>(body_scan_statement, body_count) {
       True() => {
@@ -1581,6 +1746,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
     }
     let body_scan_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_scan_statement);
     let body_scan_is_let: own Bool = ieq<AstKind>(body_scan_kind, AstLet());
+    let body_scan_is_match: own Bool = ieq<AstKind>(body_scan_kind, AstMatch());
     let body_scan_is_return: own Bool = ieq<AstKind>(body_scan_kind, AstReturn());
     let body_scan_at_last: own Bool = ieq<u64>(body_scan_statement, body_last_statement);
     match body_scan_is_let {
@@ -1600,19 +1766,46 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
         set body_let_count = iadd.trap<u64>(body_let_count, 1_u64);
       }
       False() => {
-        match body_scan_is_return {
+        match body_scan_is_match {
           True() => {
             match body_scan_at_last {
               True() => {
-                let body_return_termination: own u64 = index<u64>(deref(ast).next_siblings, body_scan_statement);
-                match ieq<u64>(body_return_termination, ast_none) {
+                set deref(report).status = SemanticBodyMalformed();
+                set deref(report).node = body_scan_statement;
+                set deref(report).related = body_block_node;
+                set deref(types).status = SemanticFactsInvalidShape();
+                set deref(facts).status = SemanticFactsInvalidShape();
+                return unit;
+              }
+              False() => {
+                set body_match_count = iadd.trap<u64>(body_match_count, 1_u64);
+              }
+            }
+          }
+          False() => {
+            match body_scan_is_return {
+              True() => {
+                match body_scan_at_last {
                   True() => {
-                    break @semantic_body_preflight_statements;
+                    let body_return_termination: own u64 = index<u64>(deref(ast).next_siblings, body_scan_statement);
+                    match ieq<u64>(body_return_termination, ast_none) {
+                      True() => {
+                        break @semantic_body_preflight_statements;
+                      }
+                      False() => {
+                        set deref(report).status = SemanticBodyMalformed();
+                        set deref(report).node = body_scan_statement;
+                        set deref(report).related = body_return_termination;
+                        set deref(types).status = SemanticFactsInvalidShape();
+                        set deref(facts).status = SemanticFactsInvalidShape();
+                        return unit;
+                      }
+                    }
                   }
                   False() => {
                     set deref(report).status = SemanticBodyMalformed();
                     set deref(report).node = body_scan_statement;
-                    set deref(report).related = body_return_termination;
+                    set deref(report).related = body_last_statement;
                     set deref(types).status = SemanticFactsInvalidShape();
                     set deref(facts).status = SemanticFactsInvalidShape();
                     return unit;
@@ -1620,22 +1813,14 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
                 }
               }
               False() => {
-                set deref(report).status = SemanticBodyMalformed();
+                set deref(report).status = SemanticBodyUnsupported();
                 set deref(report).node = body_scan_statement;
-                set deref(report).related = body_last_statement;
+                set deref(report).related = index<u64>(deref(ast).heads, body_scan_statement);
                 set deref(types).status = SemanticFactsInvalidShape();
                 set deref(facts).status = SemanticFactsInvalidShape();
                 return unit;
               }
             }
-          }
-          False() => {
-            set deref(report).status = SemanticBodyUnsupported();
-            set deref(report).node = body_scan_statement;
-            set deref(report).related = index<u64>(deref(ast).heads, body_scan_statement);
-            set deref(types).status = SemanticFactsInvalidShape();
-            set deref(facts).status = SemanticFactsInvalidShape();
-            return unit;
           }
         }
       }
@@ -1654,6 +1839,89 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
         set deref(facts).status = SemanticFactsInvalidShape();
         return unit;
       }
+    }
+  }
+
+  match igt<u64>(body_match_count, 0_u64) {
+    True() => {
+      let expected_let_count: own u64 = iadd.trap<u64>(body_match_count, 1_u64);
+      match ieq<u64>(body_let_count, expected_let_count) {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticBodyMalformed();
+          set deref(report).node = body_block_node;
+          set deref(report).related = body_match_count;
+          set deref(types).status = SemanticFactsInvalidShape();
+          set deref(facts).status = SemanticFactsInvalidShape();
+          return unit;
+        }
+      }
+      let pair_let: own u64 = body_first_statement;
+      let pair_index: own u64 = 0_u64;
+      loop @semantic_body_preflight_match_pairs {
+        match ige<u64>(pair_index, body_match_count) {
+          True() => {
+            break @semantic_body_preflight_match_pairs;
+          }
+          False() => {
+          }
+        }
+        let pair_let_kind: own Bool = semantic_body_kind_is(ast: ast, node: pair_let, want: AstLet());
+        let pair_match: own u64 = index<u64>(deref(ast).next_siblings, pair_let);
+        let pair_match_kind: own Bool = semantic_body_kind_is(ast: ast, node: pair_match, want: AstMatch());
+        let pair_continuation: own u64 = semantic_facts_none;
+        match ilt<u64>(pair_match, body_count) {
+          True() => {
+            set pair_continuation = index<u64>(deref(ast).next_siblings, pair_match);
+          }
+          False() => {
+          }
+        }
+        let pair_continuation_valid: own Bool = ilt<u64>(pair_continuation, body_count);
+        let pair_first: own Bool = band<Bool>(pair_let_kind, pair_match_kind);
+        let pair_valid: own Bool = band<Bool>(pair_first, pair_continuation_valid);
+        match pair_valid {
+          True() => {
+            set pair_let = pair_continuation;
+            set pair_index = iadd.trap<u64>(pair_index, 1_u64);
+          }
+          False() => {
+            set deref(report).status = SemanticBodyMalformed();
+            set deref(report).node = pair_let;
+            set deref(report).related = pair_match;
+            set deref(types).status = SemanticFactsInvalidShape();
+            set deref(facts).status = SemanticFactsInvalidShape();
+            return unit;
+          }
+        }
+      }
+      let final_let_kind: own Bool = semantic_body_kind_is(ast: ast, node: pair_let, want: AstLet());
+      let final_return: own u64 = semantic_facts_none;
+      match ilt<u64>(pair_let, body_count) {
+        True() => {
+          set final_return = index<u64>(deref(ast).next_siblings, pair_let);
+        }
+        False() => {
+        }
+      }
+      let final_return_kind: own Bool = semantic_body_kind_is(ast: ast, node: final_return, want: AstReturn());
+      let final_return_last: own Bool = ieq<u64>(final_return, body_last_statement);
+      let final_pair: own Bool = band<Bool>(final_let_kind, final_return_kind);
+      match band<Bool>(final_pair, final_return_last) {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticBodyMalformed();
+          set deref(report).node = pair_let;
+          set deref(report).related = final_return;
+          set deref(types).status = SemanticFactsInvalidShape();
+          set deref(facts).status = SemanticFactsInvalidShape();
+          return unit;
+        }
+      }
+    }
+    False() => {
     }
   }
 
@@ -1727,6 +1995,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
 
   let body_statement: own u64 = body_first_statement;
   let body_value_ordinal: own u64 = 0_u64;
+  let body_previous_let: own u64 = semantic_facts_none;
   loop @semantic_body_analyze_statements {
     let body_statement_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_statement);
     let body_statement_is_let: own Bool = ieq<AstKind>(body_statement_kind, AstLet());
@@ -1816,46 +2085,118 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
             return unit;
           }
         }
+        set body_previous_let = body_statement;
         set body_value_ordinal = iadd.trap<u64>(body_value_ordinal, 1_u64);
         set body_statement = index<u64>(deref(ast).next_siblings, body_statement);
       }
       False() => {
-        let body_return_arity: own Bool = semantic_body_exact_children(ast: ast, node: body_statement, want: 1_u64);
-        match body_return_arity {
+        let body_statement_is_match: own Bool = ieq<AstKind>(body_statement_kind, AstMatch());
+        match body_statement_is_match {
           True() => {
+            let body_match_continuation: own u64 = index<u64>(deref(ast).next_siblings, body_statement);
+            let body_match_clean: own Bool = False();
+            region 'semantic_body_analyze_match {
+              set body_match_clean = semantic_body_analyze_bool_match(source: source, tokens: tokens, ast: ast, function: function, node: body_statement, continuation: body_match_continuation, expected_let: body_previous_let, value_ordinal: body_value_ordinal, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_match deref(facts), scratch: &'semantic_body_analyze_match deref(scratch), report: &uniq 'semantic_body_analyze_match deref(report));
+            }
+            match body_match_clean {
+              True() => {
+                set body_statement = body_match_continuation;
+              }
+              False() => {
+                set deref(types).status = SemanticFactsInvalidShape();
+                set deref(types).node = deref(report).node;
+                set deref(types).related = deref(report).related;
+                set deref(facts).status = SemanticFactsInvalidShape();
+                set deref(facts).node = deref(report).node;
+                set deref(facts).related = deref(report).related;
+                return unit;
+              }
+            }
           }
           False() => {
-            set deref(report).status = SemanticBodyMalformed();
-            set deref(report).node = body_statement;
-            set deref(report).related = 1_u64;
-            set deref(types).status = SemanticFactsInvalidShape();
-            set deref(facts).status = SemanticFactsInvalidShape();
-            return unit;
+            let body_return_arity: own Bool = semantic_body_exact_children(ast: ast, node: body_statement, want: 1_u64);
+            match body_return_arity {
+              True() => {
+              }
+              False() => {
+                set deref(report).status = SemanticBodyMalformed();
+                set deref(report).node = body_statement;
+                set deref(report).related = 1_u64;
+                set deref(types).status = SemanticFactsInvalidShape();
+                set deref(facts).status = SemanticFactsInvalidShape();
+                return unit;
+              }
+            }
+            let body_return_value: own u64 = semantic_body_child_at(ast: ast, node: body_statement, ordinal: 0_u64);
+            let body_return_value_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_return_value);
+            let body_return_is_place: own Bool = ieq<AstKind>(body_return_value_kind, AstPlaceUse());
+            let body_return_value_type: own u64 = semantic_facts_none;
+            let body_return_ordinal: own u64 = semantic_facts_none;
+            match body_return_is_place {
+              True() => {
+                region 'semantic_body_analyze_return_place {
+                  set body_return_value_type = semantic_body_analyze_atom(source: source, tokens: tokens, ast: ast, node: body_return_value, u8_type: 0_u64, facts: &uniq 'semantic_body_analyze_return_place deref(facts), scratch: &'semantic_body_analyze_return_place deref(scratch), report: &uniq 'semantic_body_analyze_return_place deref(report));
+                }
+                let body_return_declaration: own u64 = index<u64>(deref(facts).resolved_declarations, body_return_value);
+                let body_return_mode: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, body_return_value);
+                let body_return_own: own Bool = ieq<SemanticValueMode>(body_return_mode, SemanticModeOwn());
+                let body_return_expected: own Bool = ieq<u64>(body_return_declaration, body_previous_let);
+                match ilt<u64>(body_return_declaration, body_count) {
+                  True() => {
+                    set body_return_ordinal = index<u64>(deref(facts).ordinals, body_return_declaration);
+                  }
+                  False() => {
+                  }
+                }
+                let body_return_dominates: own Bool = ilt<u64>(body_return_ordinal, body_value_ordinal);
+                let body_return_place_type_ok: own Bool = ieq<u64>(body_return_value_type, 1_u64);
+                let body_return_resolution: own Bool = band<Bool>(body_return_expected, body_return_dominates);
+                let body_return_place_ok: own Bool = band<Bool>(body_return_place_type_ok, body_return_own);
+                match band<Bool>(body_return_resolution, body_return_place_ok) {
+                  True() => {
+                    set index<u64>(deref(facts).control_targets, body_return_value) = body_statement;
+                    set index<u64>(deref(facts).control_targets, body_statement) = function;
+                  }
+                  False() => {
+                    match ieq<u64>(body_return_value_type, semantic_facts_none) {
+                      True() => {
+                      }
+                      False() => {
+                        set deref(report).status = SemanticBodyTypeMismatch();
+                        set deref(report).node = body_return_value;
+                        set deref(report).related = body_previous_let;
+                        set body_return_value_type = semantic_facts_none;
+                      }
+                    }
+                  }
+                }
+              }
+              False() => {
+                region 'semantic_body_analyze_return_value {
+                  set body_return_value_type = semantic_body_analyze_expression(source: source, tokens: tokens, ast: ast, symbols: symbols, node: body_return_value, value_ordinal: body_value_ordinal, u8_type: 0_u64, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_return_value deref(facts), scratch: &'semantic_body_analyze_return_value deref(scratch), report: &uniq 'semantic_body_analyze_return_value deref(report));
+                }
+                set body_return_ordinal = index<u64>(deref(facts).ordinals, body_return_value);
+              }
+            }
+            match ieq<u64>(body_return_value_type, 1_u64) {
+              True() => {
+              }
+              False() => {
+                set deref(types).status = SemanticFactsInvalidShape();
+                set deref(types).node = deref(report).node;
+                set deref(types).related = deref(report).related;
+                set deref(facts).status = SemanticFactsInvalidShape();
+                set deref(facts).node = deref(report).node;
+                set deref(facts).related = deref(report).related;
+                return unit;
+              }
+            }
+            set index<u64>(deref(facts).type_ids, body_statement) = 1_u64;
+            set index<u64>(deref(facts).ordinals, body_statement) = body_return_ordinal;
+            set index<SemanticValueMode>(deref(facts).modes, body_statement) = SemanticModeOwn();
+            break @semantic_body_analyze_statements;
           }
         }
-        let body_return_value: own u64 = semantic_body_child_at(ast: ast, node: body_statement, ordinal: 0_u64);
-        let body_return_value_type: own u64 = semantic_facts_none;
-        region 'semantic_body_analyze_return_value {
-          set body_return_value_type = semantic_body_analyze_expression(source: source, tokens: tokens, ast: ast, symbols: symbols, node: body_return_value, value_ordinal: body_value_ordinal, u8_type: 0_u64, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_return_value deref(facts), scratch: &'semantic_body_analyze_return_value deref(scratch), report: &uniq 'semantic_body_analyze_return_value deref(report));
-        }
-        match ieq<u64>(body_return_value_type, 1_u64) {
-          True() => {
-          }
-          False() => {
-            set deref(types).status = SemanticFactsInvalidShape();
-            set deref(types).node = deref(report).node;
-            set deref(types).related = deref(report).related;
-            set deref(facts).status = SemanticFactsInvalidShape();
-            set deref(facts).node = deref(report).node;
-            set deref(facts).related = deref(report).related;
-            return unit;
-          }
-        }
-        set index<u64>(deref(facts).type_ids, body_statement) = 1_u64;
-        let body_return_ordinal: own u64 = index<u64>(deref(facts).ordinals, body_return_value);
-        set index<u64>(deref(facts).ordinals, body_statement) = body_return_ordinal;
-        set index<SemanticValueMode>(deref(facts).modes, body_statement) = SemanticModeOwn();
-        break @semantic_body_analyze_statements;
       }
     }
   }
