@@ -1,4 +1,4 @@
-# THE PLAN (consolidated 2026-07-10)
+# THE PLAN (consolidated 2026-07-12)
 
 The single current-state document: what this project believes, what it has
 proven, and what it does next. Supersedes DECISION_SPRINT.md's phase plan
@@ -59,6 +59,13 @@ Measured non-wins (equally load-bearing):
   Rust (D9 leg B open). Same-algorithm safe Rust reaches parity wherever the
   algorithm is expressible (chunk-summary wc: parity; binary-trees: Rust
   slightly ahead same-shape).
+- D9 leg A now has a **directional, non-gating pilot**, not a population result:
+  30 popular source crates and 12 command-line applications. Manual review found
+  no current checked-law or scoped-alias win. Three optimized-IR builds found
+  hot surviving bounds checks in `comrak` and `inferno`; a single-check
+  `comrak` intervention was byte-identical but neutral. The useful signal is a
+  family of relational/precondition proofs to test in a real port. D9 remains
+  open.
 - facts on/off is neutral on single-buffer byte kernels (wc, base64) — the
   channels need aliasing/effect pressure to matter.
 - uutils' -l (bytecount SIMD) beats our naive scan 2-3x; GNU memchr too.
@@ -117,10 +124,13 @@ Measured non-wins (equally load-bearing):
    promotion. Guard versioning and variable-output work remain staged by
    `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`;
    no normative language rule changed.
-2. **Leg-A frequency study** — never run, cheap, decision-relevant: how often
-   do the channel patterns (alias-guard versioning, opaque hot calls, manual
-   reassociation idioms) occur in real Rust corpora. Directly answers the
-   niche-vs-common doubt.
+2. **Leg-A frequency pilot** — complete; stop building analysis infrastructure.
+   Raw source heuristics substantially overcounted alias and saturating-law
+   opportunities, while optimized `comrak` exposed many surviving checks in
+   genuinely hot parser paths. The pilot therefore redirects the next bounded
+   experiment toward generalized relational/precondition proof in one real
+   workload. It does not clear D9, estimate ecosystem prevalence, or justify
+   further frequency-tool investment.
 3. **Channel 4: blessed interpreter dispatch** (carded): lower naive
    loop+match to threaded/musttail dispatch — structural delta over Rust,
    parity with expert C from the obvious shape. Eventual benchmark: the
@@ -131,14 +141,17 @@ Measured non-wins (equally load-bearing):
 
 ## 5. The pivot clause (pre-registered)
 
-If bets 1 and 2 both come back thin, the honest conclusion is xlang ~= Rust
+The pivot remains binding, but the throwaway frequency pilot cannot trigger it:
+it was directional and not powered to establish rarity. The pivot requires
+either that the bounded leg-B program finds no qualifying win, or that every
+qualifying winner's own matching study establishes that mechanism as thin. If
+that bar is met, the honest conclusion is xlang ~= Rust
 on raw speed for expressible algorithms, and the pitch formally becomes:
 **C-class speed with everything checked, everything reproducible, written by
 AI under a checker that makes cheating unrepresentable** — safety-at-parity
-plus floor-raising plus build economics, not "faster than Rust." R0's
-fallback options (verified-facts frontend; linted-Rust) get a fair hearing.
-That outcome changes the pitch, not the honesty; it is a finding, not a
-failure.
+plus floor-raising plus build economics, not "faster than Rust." R0's fallback
+options (verified-facts frontend; linted-Rust) get a fair hearing. That outcome
+changes the pitch, not the honesty; it is a finding, not a failure.
 
 ## 6. Standing process rules
 

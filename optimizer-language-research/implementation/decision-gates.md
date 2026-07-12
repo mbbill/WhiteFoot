@@ -610,3 +610,28 @@ counterexamples remain deferred. There is also no automated known-hot-outside-
 scope tripwire or approval-governance telemetry; root reconciliation is manual
 and approvals remain absent. The next experiment remains caller-owned streaming
 QOI decode.
+
+## Leg-A throwaway pilot complete; bounds proof remains the bet (2026-07-12)
+
+The owner explicitly chose a quick directional estimate over a publication-
+grade frequency platform. The completed pilot scanned 30 popular source crates
+and 12 download-ranked command-line crates. Raw source signals were common but
+overinclusive: manual review accepted no current xlang scoped-alias or
+checked-law opportunity, and the strict reassociation miner found zero
+qualifying sites.
+
+The useful positive result came from optimized IR. Of three selected builds,
+`comrak` retained 101 first-party bounds-panic edges across 40 functions and
+`inferno` retained 15 across two first-party functions; `crc64fast-nvme` was a
+zero control. A sampled `comrak` workload put `Parser::process_line`,
+`Parser::open_new_blocks`, and `html::escape` above 2% self CPU, all with
+surviving checks. Audit found a few current-PROOF-1-shaped cases and a larger
+family needing generalized relational or callee-postcondition proofs.
+
+One byte-identical `html::escape` intervention removed a logically redundant
+check but was neutral over 35 alternating measurements (172.971 ms checked vs
+173.909 ms unchecked median). Thus the pilot is **not** a whole-program win and
+does not clear D9. It is a provisional go to stop frequency analysis and test a
+cluster of relational proofs in a real workload; alias/law frequency is not the
+next priority. Full caveats and raw directional counts are in
+`experiments/frequency-study/RESULTS.md`.
