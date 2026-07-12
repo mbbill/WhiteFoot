@@ -10,6 +10,7 @@ from pathlib import Path
 from test_lexer import Buffer, TokenTape
 from test_parser import AST_NONE, AstTape, children_of, parse
 from test_ast_validate import AstValidationReport, validate
+from test_semantic_body import configure as configure_semantic_body, index_symbols
 from test_semantic_facts import (
     NODE_COLUMNS,
     TYPE_COLUMNS,
@@ -18,6 +19,7 @@ from test_semantic_facts import (
     assert_guards,
     make_tape,
 )
+from test_symbols import SymbolTape
 from test_llvm_text import (
     BYTE_CLEAN,
     BYTE_INVALID_STATE,
@@ -147,6 +149,7 @@ def build_scalar_library(directory):
 
 
 def configure(library):
+    configure_semantic_body(library)
     library.lexer_run.argtypes = [Buffer, ctypes.POINTER(TokenTape)]
     library.lexer_run.restype = None
     library.parser_run.argtypes = [
@@ -168,6 +171,7 @@ def configure(library):
         ctypes.POINTER(AstTape),
         ctypes.c_uint64,
         ctypes.POINTER(AstValidationReport),
+        ctypes.POINTER(SymbolTape),
         ctypes.POINTER(TypeTape),
         ctypes.POINTER(NodeFacts),
         ctypes.POINTER(SemanticBodyScratch),
@@ -258,6 +262,10 @@ def analyze_semantic_body(
         AST_NONE,
         AST_NONE,
     )
+    source = source_buffer(source_storage)
+    symbol_storage, symbol_physical, symbols = index_symbols(
+        library, source, tokens, ast_storage, ast
+    )
 
     type_capacities = (2,) * len(TYPE_COLUMNS)
     type_storage, types = make_tape(TypeTape, TYPE_COLUMNS, type_capacities)
@@ -290,11 +298,12 @@ def analyze_semantic_body(
     )
     report = SemanticBodyReport(99, 123, 456)
     library.semantic_body_run(
-        source_buffer(source_storage),
+        source,
         ctypes.byref(tokens),
         ctypes.byref(ast),
         nodes["function"],
         ctypes.byref(validation),
+        ctypes.byref(symbols),
         ctypes.byref(types),
         ctypes.byref(facts),
         ctypes.byref(scratch),
@@ -316,6 +325,7 @@ def analyze_semantic_body(
     assert declarations[scratch_capacity] == SCRATCH_U64_GUARD
     assert type_ids[scratch_capacity] == SCRATCH_U64_GUARD
     assert modes[scratch_capacity] == SCRATCH_MODE_GUARD
+    assert symbol_storage and symbol_physical >= symbols.count
     assert_guards(type_storage, TYPE_COLUMNS, type_capacities)
     assert_guards(fact_storage, NODE_COLUMNS, fact_capacities)
     return (

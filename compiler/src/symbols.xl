@@ -15,6 +15,13 @@ enum SymbolStatus {
   SymbolDuplicate();
 }
 
+enum SymbolLookupStatus {
+  SymbolLookupFound();
+  SymbolLookupNotFound();
+  SymbolLookupInvalidTape();
+  SymbolLookupInvalidToken();
+}
+
 const symbol_none: u64 = 18446744073709551615_u64;
 
 struct SymbolTape {
@@ -25,6 +32,11 @@ struct SymbolTape {
   count: u64;
   status: SymbolStatus;
   related: u64;
+}
+
+struct SymbolLookupResult {
+  status: SymbolLookupStatus;
+  declaration: u64;
 }
 
 fn symbol_namespace_code (space: own SymbolNamespace) -> own u64 pure {
@@ -241,6 +253,162 @@ fn symbol_tape_columns_valid ['y] (symbols: &uniq 'y SymbolTape) -> own Bool rea
   let first: own Bool = band<Bool>(namespaces_ok, scopes_ok);
   let second: own Bool = band<Bool>(names_ok, declarations_ok);
   return band<Bool>(first, second);
+}
+
+fn symbol_lookup_tape_status_clean (status: own SymbolStatus) -> own Bool pure {
+  match status {
+    SymbolClean() => {
+      return True();
+    }
+    SymbolNotFound() => {
+      return False();
+    }
+    SymbolInvalidTape() => {
+      return False();
+    }
+    SymbolInvalidToken() => {
+      return False();
+    }
+    SymbolCapacity() => {
+      return False();
+    }
+    SymbolDuplicate() => {
+      return False();
+    }
+  }
+}
+
+fn symbol_lookup_columns_valid ['y] (symbols: &'y SymbolTape) -> own Bool reads('y) {
+  let count: own u64 = deref(symbols).count;
+  let namespaces_length: own u64 = len<SymbolNamespace>(deref(symbols).namespaces);
+  let scopes_length: own u64 = len<u64>(deref(symbols).scopes);
+  let names_length: own u64 = len<u64>(deref(symbols).name_tokens);
+  let declarations_length: own u64 = len<u64>(deref(symbols).declarations);
+  let namespaces_ok: own Bool = ige<u64>(namespaces_length, count);
+  let scopes_ok: own Bool = ige<u64>(scopes_length, count);
+  let names_ok: own Bool = ige<u64>(names_length, count);
+  let declarations_ok: own Bool = ige<u64>(declarations_length, count);
+  let first: own Bool = band<Bool>(namespaces_ok, scopes_ok);
+  let second: own Bool = band<Bool>(names_ok, declarations_ok);
+  return band<Bool>(first, second);
+}
+
+fn symbol_lookup_entries_valid ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &'y SymbolTape) -> own Bool reads('s 't 'y), traps {
+  let clean: own Bool = symbol_lookup_tape_status_clean(status: deref(symbols).status);
+  match clean {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let columns_valid: own Bool = symbol_lookup_columns_valid(symbols: symbols);
+  match columns_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let cursor: own u64 = 0_u64;
+  let count: own u64 = deref(symbols).count;
+  loop @symbol_lookup_entries {
+    match ige<u64>(cursor, count) {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+    let space: own SymbolNamespace = index<SymbolNamespace>(deref(symbols).namespaces, cursor);
+    let space_code: own u64 = symbol_namespace_code(space: space);
+    let want_kind: own u64 = symbol_namespace_token_kind_code(space_code: space_code);
+    let name_token: own u64 = index<u64>(deref(symbols).name_tokens, cursor);
+    let name_valid: own Bool = symbol_name_token_valid(source: source, tokens: tokens, token: name_token, want_kind: want_kind);
+    match name_valid {
+      True() => {
+        set cursor = iadd.trap<u64>(cursor, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+}
+
+fn symbol_lookup_find_slot ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &'y SymbolTape, space_code: own u64, scope: own u64, name_token: own u64) -> own u64 reads('s 't 'y), traps {
+  let cursor: own u64 = 0_u64;
+  let count: own u64 = deref(symbols).count;
+  loop @symbol_lookup_find {
+    match ige<u64>(cursor, count) {
+      True() => {
+        return symbol_none;
+      }
+      False() => {
+      }
+    }
+    let stored_space: own SymbolNamespace = index<SymbolNamespace>(deref(symbols).namespaces, cursor);
+    let stored_space_code: own u64 = symbol_namespace_code(space: stored_space);
+    let same_space: own Bool = ieq<u64>(stored_space_code, space_code);
+    let stored_scope: own u64 = index<u64>(deref(symbols).scopes, cursor);
+    let same_scope: own Bool = ieq<u64>(stored_scope, scope);
+    let same_key_prefix: own Bool = band<Bool>(same_space, same_scope);
+    match same_key_prefix {
+      True() => {
+        let stored_name: own u64 = index<u64>(deref(symbols).name_tokens, cursor);
+        let same_name: own Bool = token_text_equal(source: source, tokens: tokens, left: stored_name, right: name_token);
+        match same_name {
+          True() => {
+            return cursor;
+          }
+          False() => {
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    set cursor = iadd.trap<u64>(cursor, 1_u64);
+  }
+}
+
+fn symbol_lookup_in_scope ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &'y SymbolTape, space: own SymbolNamespace, scope: own u64, name_token: own u64) -> own SymbolLookupResult reads('s 't 'y), traps {
+  let token_tape_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  match token_tape_valid {
+    True() => {
+    }
+    False() => {
+      return SymbolLookupResult(status: SymbolLookupInvalidTape(), declaration: symbol_none);
+    }
+  }
+  let entries_valid: own Bool = symbol_lookup_entries_valid(source: source, tokens: tokens, symbols: symbols);
+  match entries_valid {
+    True() => {
+    }
+    False() => {
+      return SymbolLookupResult(status: SymbolLookupInvalidTape(), declaration: symbol_none);
+    }
+  }
+  let space_code: own u64 = symbol_namespace_code(space: space);
+  let want_kind: own u64 = symbol_namespace_token_kind_code(space_code: space_code);
+  let query_valid: own Bool = symbol_name_token_valid(source: source, tokens: tokens, token: name_token, want_kind: want_kind);
+  match query_valid {
+    True() => {
+    }
+    False() => {
+      return SymbolLookupResult(status: SymbolLookupInvalidToken(), declaration: symbol_none);
+    }
+  }
+  let found: own u64 = symbol_lookup_find_slot(source: source, tokens: tokens, symbols: symbols, space_code: space_code, scope: scope, name_token: name_token);
+  match ieq<u64>(found, symbol_none) {
+    True() => {
+      return SymbolLookupResult(status: SymbolLookupNotFound(), declaration: symbol_none);
+    }
+    False() => {
+    }
+  }
+  let declaration: own u64 = index<u64>(deref(symbols).declarations, found);
+  return SymbolLookupResult(status: SymbolLookupFound(), declaration: declaration);
 }
 
 fn symbol_tape_entries_valid ['s, 't, 'y] (source: &'s buffer<u8>, tokens: &'t TokenTape, symbols: &uniq 'y SymbolTape) -> own Bool reads('s 't 'y), traps {

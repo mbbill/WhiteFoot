@@ -210,9 +210,23 @@ fn llvm_text_emit_icmp_ule ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), 
   return unit;
 }
 
+fn llvm_text_emit_icmp_eq ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'icmp_eq_text {
+    byte_tape_emit_chunk(out: &uniq 'icmp_eq_text deref(out), count: 7_u64, b0: 105_u8, b1: 99_u8, b2: 109_u8, b3: 112_u8, b4: 32_u8, b5: 101_u8, b6: 113_u8, b7: 32_u8);
+  }
+  return unit;
+}
+
 fn llvm_text_emit_and ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
   region 'and_text {
     byte_tape_emit_chunk(out: &uniq 'and_text deref(out), count: 3_u64, b0: 97_u8, b1: 110_u8, b2: 100_u8, b3: 32_u8, b4: 32_u8, b5: 32_u8, b6: 32_u8, b7: 32_u8);
+  }
+  return unit;
+}
+
+fn llvm_text_emit_or ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
+  region 'or_text {
+    byte_tape_emit_chunk(out: &uniq 'or_text deref(out), count: 2_u64, b0: 111_u8, b1: 114_u8, b2: 32_u8, b3: 32_u8, b4: 32_u8, b5: 32_u8, b6: 32_u8, b7: 32_u8);
   }
   return unit;
 }

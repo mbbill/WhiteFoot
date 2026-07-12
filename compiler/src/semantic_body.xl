@@ -13,6 +13,7 @@ enum SemanticBodyStatus {
   SemanticBodyUnknownName();
   SemanticBodyTypeMismatch();
   SemanticBodyInvalidLiteral();
+  SemanticBodyInvalidSymbolTape();
 }
 
 struct SemanticBodyReport {
@@ -684,7 +685,7 @@ fn semantic_body_analyze_atom ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   return semantic_facts_none;
 }
 
-fn semantic_body_analyze_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, u8_type: own u64, bool_type: own u64, facts: &uniq 'w NodeFacts, scratch: &'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own u64 reads('c 'w), writes('w), traps {
+fn semantic_body_analyze_table_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, value_ordinal: own u64, u8_type: own u64, bool_type: own u64, facts: &uniq 'w NodeFacts, scratch: &'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own u64 reads('c 'w), writes('w), traps {
   let call_kind_ok: own Bool = semantic_body_kind_is(ast: ast, node: node, want: AstTableCall());
   let call_children_ok: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 3_u64);
   let call_token_ok: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: node);
@@ -716,11 +717,21 @@ fn semantic_body_analyze_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   }
 
   let call_head: own u64 = index<u64>(deref(ast).heads, node);
+  let call_is_ieq: own Bool = parser_word3(source: source, tokens: tokens, token: call_head, a: 105_u8, b: 101_u8, c: 113_u8);
   let call_is_ige: own Bool = parser_word3(source: source, tokens: tokens, token: call_head, a: 105_u8, b: 103_u8, c: 101_u8);
   let call_is_ile: own Bool = parser_word3(source: source, tokens: tokens, token: call_head, a: 105_u8, b: 108_u8, c: 101_u8);
   let call_is_band: own Bool = parser_word4(source: source, tokens: tokens, token: call_head, a: 98_u8, b: 97_u8, c: 110_u8, d: 100_u8);
+  let call_is_bor: own Bool = parser_word3(source: source, tokens: tokens, token: call_head, a: 98_u8, b: 111_u8, c: 114_u8);
   let call_operation: own SemanticOperation = SemanticOperationNone();
   let call_operand_type: own u64 = semantic_facts_none;
+  match call_is_ieq {
+    True() => {
+      set call_operation = SemanticOperationIeq();
+      set call_operand_type = u8_type;
+    }
+    False() => {
+    }
+  }
   match call_is_ige {
     True() => {
       set call_operation = SemanticOperationIge();
@@ -740,6 +751,14 @@ fn semantic_body_analyze_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   match call_is_band {
     True() => {
       set call_operation = SemanticOperationBand();
+      set call_operand_type = bool_type;
+    }
+    False() => {
+    }
+  }
+  match call_is_bor {
+    True() => {
+      set call_operation = SemanticOperationBor();
       set call_operand_type = bool_type;
     }
     False() => {
@@ -822,12 +841,457 @@ fn semantic_body_analyze_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   }
 
   set index<u64>(deref(facts).type_ids, node) = bool_type;
+  set index<u64>(deref(facts).ordinals, node) = value_ordinal;
   set index<SemanticOperation>(deref(facts).operations, node) = call_operation;
   set index<SemanticValueMode>(deref(facts).modes, node) = SemanticModeOwn();
   return bool_type;
 }
 
-fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, validation: &'c AstValidationReport, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own unit reads('c 'w), writes('w), traps {
+fn semantic_body_validate_callee ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, call: own u64, call_head: own u64, callee: own u64, report: &uniq 'w SemanticBodyReport) -> own u64 reads('c), writes('w), traps {
+  let callee_valid: own Bool = ilt<u64>(callee, deref(ast).count);
+  match callee_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = callee;
+      return semantic_facts_none;
+    }
+  }
+  let callee_kind: own AstKind = index<AstKind>(deref(ast).kinds, callee);
+  let function_tag: own AstKind = AstFunction();
+  match ieq<AstKind>(callee_kind, function_tag) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyTypeMismatch();
+      set deref(report).node = call;
+      set deref(report).related = callee;
+      return semantic_facts_none;
+    }
+  }
+
+  let callee_arity: own Bool = semantic_body_exact_children(ast: ast, node: callee, want: 6_u64);
+  match callee_arity {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyTypeMismatch();
+      set deref(report).node = call;
+      set deref(report).related = callee;
+      return semantic_facts_none;
+    }
+  }
+  let callee_name: own u64 = semantic_body_child_at(ast: ast, node: callee, ordinal: 0_u64);
+  let formal: own u64 = semantic_body_child_at(ast: ast, node: callee, ordinal: 1_u64);
+  let return_mode: own u64 = semantic_body_child_at(ast: ast, node: callee, ordinal: 2_u64);
+  let return_type: own u64 = semantic_body_child_at(ast: ast, node: callee, ordinal: 3_u64);
+  let effect: own u64 = semantic_body_child_at(ast: ast, node: callee, ordinal: 4_u64);
+  let block: own u64 = semantic_body_child_at(ast: ast, node: callee, ordinal: 5_u64);
+
+  let name_kind: own Bool = semantic_body_kind_is(ast: ast, node: callee_name, want: AstFunctionName());
+  let name_leaf: own Bool = semantic_body_exact_children(ast: ast, node: callee_name, want: 0_u64);
+  let name_token_valid: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: callee_name);
+  let name_first: own Bool = band<Bool>(name_kind, name_leaf);
+  let name_shape: own Bool = band<Bool>(name_first, name_token_valid);
+  match name_shape {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = callee;
+      return semantic_facts_none;
+    }
+  }
+  let callee_name_head: own u64 = index<u64>(deref(ast).heads, callee_name);
+  let name_matches: own Bool = token_text_equal(source: source, tokens: tokens, left: callee_name_head, right: call_head);
+  match name_matches {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = callee;
+      return semantic_facts_none;
+    }
+  }
+
+  let formal_kind: own Bool = semantic_body_kind_is(ast: ast, node: formal, want: AstParameter());
+  let formal_arity: own Bool = semantic_body_exact_children(ast: ast, node: formal, want: 2_u64);
+  let formal_token: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: formal);
+  let formal_first: own Bool = band<Bool>(formal_kind, formal_arity);
+  let formal_shape: own Bool = band<Bool>(formal_first, formal_token);
+  match formal_shape {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyTypeMismatch();
+      set deref(report).node = call;
+      set deref(report).related = formal;
+      return semantic_facts_none;
+    }
+  }
+  let formal_mode: own u64 = semantic_body_child_at(ast: ast, node: formal, ordinal: 0_u64);
+  let formal_type: own u64 = semantic_body_child_at(ast: ast, node: formal, ordinal: 1_u64);
+  let formal_mode_kind: own Bool = semantic_body_kind_is(ast: ast, node: formal_mode, want: AstOwnMode());
+  let formal_mode_leaf: own Bool = semantic_body_exact_children(ast: ast, node: formal_mode, want: 0_u64);
+  let formal_mode_ok: own Bool = band<Bool>(formal_mode_kind, formal_mode_leaf);
+  let formal_type_kind: own Bool = semantic_body_kind_is(ast: ast, node: formal_type, want: AstParameterType());
+  let formal_type_text: own Bool = semantic_body_node_is_u8(source: source, tokens: tokens, ast: ast, node: formal_type);
+  let formal_type_ok: own Bool = band<Bool>(formal_type_kind, formal_type_text);
+  let return_mode_kind: own Bool = semantic_body_kind_is(ast: ast, node: return_mode, want: AstOwnMode());
+  let return_mode_leaf: own Bool = semantic_body_exact_children(ast: ast, node: return_mode, want: 0_u64);
+  let return_mode_ok: own Bool = band<Bool>(return_mode_kind, return_mode_leaf);
+  let return_type_kind: own Bool = semantic_body_kind_is(ast: ast, node: return_type, want: AstReturnType());
+  let return_type_text: own Bool = semantic_body_node_is_bool(source: source, tokens: tokens, ast: ast, node: return_type);
+  let return_type_ok: own Bool = band<Bool>(return_type_kind, return_type_text);
+  let effect_kind: own Bool = semantic_body_kind_is(ast: ast, node: effect, want: AstPureEffect());
+  let effect_leaf: own Bool = semantic_body_exact_children(ast: ast, node: effect, want: 0_u64);
+  let effect_ok: own Bool = band<Bool>(effect_kind, effect_leaf);
+  let block_kind: own Bool = semantic_body_kind_is(ast: ast, node: block, want: AstBlock());
+  let signature_first: own Bool = band<Bool>(formal_mode_ok, formal_type_ok);
+  let signature_second: own Bool = band<Bool>(return_mode_ok, return_type_ok);
+  let signature_third: own Bool = band<Bool>(effect_ok, block_kind);
+  let signature_four: own Bool = band<Bool>(signature_first, signature_second);
+  let signature_ok: own Bool = band<Bool>(signature_four, signature_third);
+  match signature_ok {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyTypeMismatch();
+      set deref(report).node = call;
+      set deref(report).related = callee;
+      return semantic_facts_none;
+    }
+  }
+
+  let formal_head: own u64 = index<u64>(deref(ast).heads, formal);
+  let formal_lookup: own SymbolLookupResult = symbol_lookup_in_scope(source: source, tokens: tokens, symbols: symbols, space: SymbolValue(), scope: callee, name_token: formal_head);
+  let formal_lookup_status: own SymbolLookupStatus = formal_lookup.status;
+  match formal_lookup_status {
+    SymbolLookupFound() => {
+    }
+    SymbolLookupNotFound() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = formal;
+      return semantic_facts_none;
+    }
+    SymbolLookupInvalidTape() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = deref(symbols).count;
+      return semantic_facts_none;
+    }
+    SymbolLookupInvalidToken() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = formal_head;
+      return semantic_facts_none;
+    }
+  }
+  match ieq<u64>(formal_lookup.declaration, formal) {
+    True() => {
+      return formal;
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = call;
+      set deref(report).related = formal_lookup.declaration;
+      return semantic_facts_none;
+    }
+  }
+}
+
+fn semantic_body_analyze_user_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, node: own u64, value_ordinal: own u64, u8_type: own u64, bool_type: own u64, facts: &uniq 'w NodeFacts, scratch: &'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own u64 reads('c 'w), writes('w), traps {
+  let call_kind_ok: own Bool = semantic_body_kind_is(ast: ast, node: node, want: AstUserCall());
+  let call_token_ok: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: node);
+  let call_shape_ok: own Bool = band<Bool>(call_kind_ok, call_token_ok);
+  match call_shape_ok {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = node;
+      return semantic_facts_none;
+    }
+  }
+  let call_head: own u64 = index<u64>(deref(ast).heads, node);
+  let callee_lookup: own SymbolLookupResult = symbol_lookup_in_scope(source: source, tokens: tokens, symbols: symbols, space: SymbolValue(), scope: symbol_none, name_token: call_head);
+  let callee_lookup_status: own SymbolLookupStatus = callee_lookup.status;
+  match callee_lookup_status {
+    SymbolLookupFound() => {
+    }
+    SymbolLookupNotFound() => {
+      set deref(report).status = SemanticBodyUnknownName();
+      set deref(report).node = node;
+      set deref(report).related = call_head;
+      return semantic_facts_none;
+    }
+    SymbolLookupInvalidTape() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = node;
+      set deref(report).related = deref(symbols).count;
+      return semantic_facts_none;
+    }
+    SymbolLookupInvalidToken() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = call_head;
+      return semantic_facts_none;
+    }
+  }
+  let callee: own u64 = callee_lookup.declaration;
+  let formal: own u64 = semantic_facts_none;
+  region 'semantic_body_validate_user_callee {
+    set formal = semantic_body_validate_callee(source: source, tokens: tokens, ast: ast, symbols: symbols, call: node, call_head: call_head, callee: callee, report: &uniq 'semantic_body_validate_user_callee deref(report));
+  }
+  match ieq<u64>(formal, semantic_facts_none) {
+    True() => {
+      return semantic_facts_none;
+    }
+    False() => {
+    }
+  }
+
+  let first_argument: own u64 = index<u64>(deref(ast).first_children, node);
+  let last_argument: own u64 = index<u64>(deref(ast).last_children, node);
+  let first_none: own Bool = ieq<u64>(first_argument, ast_none);
+  let last_none: own Bool = ieq<u64>(last_argument, ast_none);
+  let pair_valid: own Bool = ieq<Bool>(first_none, last_none);
+  match pair_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = first_argument;
+      return semantic_facts_none;
+    }
+  }
+  match first_none {
+    True() => {
+      set deref(report).status = SemanticBodyTypeMismatch();
+      set deref(report).node = node;
+      set deref(report).related = formal;
+      return semantic_facts_none;
+    }
+    False() => {
+    }
+  }
+
+  let argument: own u64 = first_argument;
+  let argument_seen: own Bool = False();
+  let argument_steps: own u64 = 0_u64;
+  let ast_count: own u64 = deref(ast).count;
+  loop @semantic_body_user_arguments {
+    match ilt<u64>(argument, ast_count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticBodyMalformed();
+        set deref(report).node = node;
+        set deref(report).related = argument;
+        return semantic_facts_none;
+      }
+    }
+    let argument_kind: own Bool = semantic_body_kind_is(ast: ast, node: argument, want: AstNamedArgument());
+    let argument_arity: own Bool = semantic_body_exact_children(ast: ast, node: argument, want: 1_u64);
+    let argument_token: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: argument);
+    let argument_first: own Bool = band<Bool>(argument_kind, argument_arity);
+    let argument_shape: own Bool = band<Bool>(argument_first, argument_token);
+    match argument_shape {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticBodyMalformed();
+        set deref(report).node = argument;
+        set deref(report).related = node;
+        return semantic_facts_none;
+      }
+    }
+    let argument_head: own u64 = index<u64>(deref(ast).heads, argument);
+    let argument_lookup: own SymbolLookupResult = symbol_lookup_in_scope(source: source, tokens: tokens, symbols: symbols, space: SymbolValue(), scope: callee, name_token: argument_head);
+    let argument_lookup_status: own SymbolLookupStatus = argument_lookup.status;
+    match argument_lookup_status {
+      SymbolLookupFound() => {
+      }
+      SymbolLookupNotFound() => {
+        set deref(report).status = SemanticBodyUnknownName();
+        set deref(report).node = argument;
+        set deref(report).related = argument_head;
+        return semantic_facts_none;
+      }
+      SymbolLookupInvalidTape() => {
+        set deref(report).status = SemanticBodyInvalidSymbolTape();
+        set deref(report).node = argument;
+        set deref(report).related = deref(symbols).count;
+        return semantic_facts_none;
+      }
+      SymbolLookupInvalidToken() => {
+        set deref(report).status = SemanticBodyMalformed();
+        set deref(report).node = argument;
+        set deref(report).related = argument_head;
+        return semantic_facts_none;
+      }
+    }
+    match ieq<u64>(argument_lookup.declaration, formal) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticBodyInvalidSymbolTape();
+        set deref(report).node = argument;
+        set deref(report).related = argument_lookup.declaration;
+        return semantic_facts_none;
+      }
+    }
+    match argument_seen {
+      True() => {
+        set deref(report).status = SemanticBodyMalformed();
+        set deref(report).node = argument;
+        set deref(report).related = formal;
+        return semantic_facts_none;
+      }
+      False() => {
+        set argument_seen = True();
+      }
+    }
+    let actual: own u64 = semantic_body_child_at(ast: ast, node: argument, ordinal: 0_u64);
+    let actual_type: own u64 = semantic_facts_none;
+    region 'semantic_body_user_actual {
+      set actual_type = semantic_body_analyze_atom(source: source, tokens: tokens, ast: ast, node: actual, u8_type: u8_type, facts: &uniq 'semantic_body_user_actual deref(facts), scratch: scratch, report: &uniq 'semantic_body_user_actual deref(report));
+    }
+    match ieq<u64>(actual_type, u8_type) {
+      True() => {
+      }
+      False() => {
+        match ieq<u64>(actual_type, semantic_facts_none) {
+          True() => {
+            return semantic_facts_none;
+          }
+          False() => {
+            set deref(report).status = SemanticBodyTypeMismatch();
+            set deref(report).node = actual;
+            set deref(report).related = u8_type;
+            return semantic_facts_none;
+          }
+        }
+      }
+    }
+    let actual_mode: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, actual);
+    match actual_mode {
+      SemanticModeOwn() => {
+      }
+      SemanticModeNone() => {
+        set deref(report).status = SemanticBodyTypeMismatch();
+        set deref(report).node = actual;
+        set deref(report).related = formal;
+        return semantic_facts_none;
+      }
+      SemanticModeShared() => {
+        set deref(report).status = SemanticBodyTypeMismatch();
+        set deref(report).node = actual;
+        set deref(report).related = formal;
+        return semantic_facts_none;
+      }
+      SemanticModeUniq() => {
+        set deref(report).status = SemanticBodyTypeMismatch();
+        set deref(report).node = actual;
+        set deref(report).related = formal;
+        return semantic_facts_none;
+      }
+    }
+    set index<u64>(deref(facts).type_ids, argument) = u8_type;
+    set index<u64>(deref(facts).resolved_declarations, argument) = formal;
+    set index<u64>(deref(facts).ordinals, argument) = 0_u64;
+    set index<SemanticValueMode>(deref(facts).modes, argument) = SemanticModeOwn();
+
+    let at_last: own Bool = ieq<u64>(argument, last_argument);
+    let next_argument: own u64 = index<u64>(deref(ast).next_siblings, argument);
+    match at_last {
+      True() => {
+        match ieq<u64>(next_argument, ast_none) {
+          True() => {
+            break @semantic_body_user_arguments;
+          }
+          False() => {
+            set deref(report).status = SemanticBodyMalformed();
+            set deref(report).node = argument;
+            set deref(report).related = next_argument;
+            return semantic_facts_none;
+          }
+        }
+      }
+      False() => {
+        set argument = next_argument;
+      }
+    }
+    set argument_steps = iadd.trap<u64>(argument_steps, 1_u64);
+    match ilt<u64>(argument_steps, ast_count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticBodyMalformed();
+        set deref(report).node = node;
+        set deref(report).related = argument_steps;
+        return semantic_facts_none;
+      }
+    }
+  }
+
+  set index<u64>(deref(facts).type_ids, node) = bool_type;
+  set index<u64>(deref(facts).resolved_declarations, node) = callee;
+  set index<u64>(deref(facts).ordinals, node) = value_ordinal;
+  set index<SemanticValueMode>(deref(facts).modes, node) = SemanticModeOwn();
+  return bool_type;
+}
+
+fn semantic_body_analyze_expression ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, node: own u64, value_ordinal: own u64, u8_type: own u64, bool_type: own u64, facts: &uniq 'w NodeFacts, scratch: &'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own u64 reads('c 'w), writes('w), traps {
+  match ilt<u64>(node, deref(ast).count) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyMalformed();
+      set deref(report).node = node;
+      set deref(report).related = deref(ast).count;
+      return semantic_facts_none;
+    }
+  }
+  let kind: own AstKind = index<AstKind>(deref(ast).kinds, node);
+  let table_tag: own AstKind = AstTableCall();
+  match ieq<AstKind>(kind, table_tag) {
+    True() => {
+      let table_result: own u64 = semantic_facts_none;
+      region 'semantic_body_dispatch_table {
+        set table_result = semantic_body_analyze_table_call(source: source, tokens: tokens, ast: ast, node: node, value_ordinal: value_ordinal, u8_type: u8_type, bool_type: bool_type, facts: &uniq 'semantic_body_dispatch_table deref(facts), scratch: scratch, report: &uniq 'semantic_body_dispatch_table deref(report));
+      }
+      return table_result;
+    }
+    False() => {
+    }
+  }
+  let user_tag: own AstKind = AstUserCall();
+  match ieq<AstKind>(kind, user_tag) {
+    True() => {
+      let user_result: own u64 = semantic_facts_none;
+      region 'semantic_body_dispatch_user {
+        set user_result = semantic_body_analyze_user_call(source: source, tokens: tokens, ast: ast, symbols: symbols, node: node, value_ordinal: value_ordinal, u8_type: u8_type, bool_type: bool_type, facts: &uniq 'semantic_body_dispatch_user deref(facts), scratch: scratch, report: &uniq 'semantic_body_dispatch_user deref(report));
+      }
+      return user_result;
+    }
+    False() => {
+      set deref(report).status = SemanticBodyUnsupported();
+      set deref(report).node = node;
+      set deref(report).related = index<u64>(deref(ast).heads, node);
+      return semantic_facts_none;
+    }
+  }
+}
+
+fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, validation: &'c AstValidationReport, symbols: &'c SymbolTape, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w SemanticBodyReport) -> own unit reads('c 'w), writes('w), traps {
   set deref(types).status = SemanticFactsInvalidShape();
   set deref(types).node = semantic_facts_none;
   set deref(types).related = semantic_facts_none;
@@ -873,6 +1337,20 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
       set deref(report).status = SemanticBodyInvalidValidation();
       set deref(report).node = deref(validation).node;
       set deref(report).related = deref(validation).related;
+      set deref(types).status = SemanticFactsInvalidShape();
+      set deref(facts).status = SemanticFactsInvalidShape();
+      return unit;
+    }
+  }
+
+  let body_symbols_valid: own Bool = symbol_lookup_entries_valid(source: source, tokens: tokens, symbols: symbols);
+  match body_symbols_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).node = function;
+      set deref(report).related = deref(symbols).count;
       set deref(types).status = SemanticFactsInvalidShape();
       set deref(facts).status = SemanticFactsInvalidShape();
       return unit;
@@ -1248,7 +1726,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
   }
 
   let body_statement: own u64 = body_first_statement;
-  let body_let_ordinal: own u64 = 0_u64;
+  let body_value_ordinal: own u64 = 0_u64;
   loop @semantic_body_analyze_statements {
     let body_statement_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_statement);
     let body_statement_is_let: own Bool = ieq<AstKind>(body_statement_kind, AstLet());
@@ -1298,7 +1776,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
         }
         let body_binding_value_type: own u64 = semantic_facts_none;
         region 'semantic_body_analyze_binding_value {
-          set body_binding_value_type = semantic_body_analyze_call(source: source, tokens: tokens, ast: ast, node: body_binding_value, u8_type: 0_u64, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_binding_value deref(facts), scratch: &'semantic_body_analyze_binding_value deref(scratch), report: &uniq 'semantic_body_analyze_binding_value deref(report));
+          set body_binding_value_type = semantic_body_analyze_expression(source: source, tokens: tokens, ast: ast, symbols: symbols, node: body_binding_value, value_ordinal: body_value_ordinal, u8_type: 0_u64, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_binding_value deref(facts), scratch: &'semantic_body_analyze_binding_value deref(scratch), report: &uniq 'semantic_body_analyze_binding_value deref(report));
         }
         match ieq<u64>(body_binding_value_type, 1_u64) {
           True() => {
@@ -1314,7 +1792,8 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
           }
         }
         set index<u64>(deref(facts).type_ids, body_statement) = 1_u64;
-        set index<u64>(deref(facts).ordinals, body_statement) = body_let_ordinal;
+        let body_initializer_ordinal: own u64 = index<u64>(deref(facts).ordinals, body_binding_value);
+        set index<u64>(deref(facts).ordinals, body_statement) = body_initializer_ordinal;
         set index<SemanticValueMode>(deref(facts).modes, body_statement) = SemanticModeOwn();
         set index<u64>(deref(facts).type_ids, body_binding_name) = 1_u64;
         set index<u64>(deref(facts).type_ids, body_binding_mode) = 1_u64;
@@ -1337,7 +1816,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
             return unit;
           }
         }
-        set body_let_ordinal = iadd.trap<u64>(body_let_ordinal, 1_u64);
+        set body_value_ordinal = iadd.trap<u64>(body_value_ordinal, 1_u64);
         set body_statement = index<u64>(deref(ast).next_siblings, body_statement);
       }
       False() => {
@@ -1357,7 +1836,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
         let body_return_value: own u64 = semantic_body_child_at(ast: ast, node: body_statement, ordinal: 0_u64);
         let body_return_value_type: own u64 = semantic_facts_none;
         region 'semantic_body_analyze_return_value {
-          set body_return_value_type = semantic_body_analyze_call(source: source, tokens: tokens, ast: ast, node: body_return_value, u8_type: 0_u64, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_return_value deref(facts), scratch: &'semantic_body_analyze_return_value deref(scratch), report: &uniq 'semantic_body_analyze_return_value deref(report));
+          set body_return_value_type = semantic_body_analyze_expression(source: source, tokens: tokens, ast: ast, symbols: symbols, node: body_return_value, value_ordinal: body_value_ordinal, u8_type: 0_u64, bool_type: 1_u64, facts: &uniq 'semantic_body_analyze_return_value deref(facts), scratch: &'semantic_body_analyze_return_value deref(scratch), report: &uniq 'semantic_body_analyze_return_value deref(report));
         }
         match ieq<u64>(body_return_value_type, 1_u64) {
           True() => {
@@ -1373,6 +1852,8 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
           }
         }
         set index<u64>(deref(facts).type_ids, body_statement) = 1_u64;
+        let body_return_ordinal: own u64 = index<u64>(deref(facts).ordinals, body_return_value);
+        set index<u64>(deref(facts).ordinals, body_statement) = body_return_ordinal;
         set index<SemanticValueMode>(deref(facts).modes, body_statement) = SemanticModeOwn();
         break @semantic_body_analyze_statements;
       }

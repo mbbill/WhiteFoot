@@ -28,6 +28,11 @@ SYMBOL_CAPACITY = 4
 SYMBOL_DUPLICATE = 5
 SYMBOL_NONE = (1 << 64) - 1
 
+SYMBOL_LOOKUP_FOUND = 0
+SYMBOL_LOOKUP_NOT_FOUND = 1
+SYMBOL_LOOKUP_INVALID_TAPE = 2
+SYMBOL_LOOKUP_INVALID_TOKEN = 3
+
 KIND_POISON = 0x55555555
 KIND_GUARD = 0x66666666
 U64_POISON = 0x7777777777777777
@@ -43,6 +48,13 @@ class SymbolTape(ctypes.Structure):
         ("count", ctypes.c_uint64),
         ("status", ctypes.c_int32),
         ("related", ctypes.c_uint64),
+    ]
+
+
+class SymbolLookupResult(ctypes.Structure):
+    _fields_ = [
+        ("status", ctypes.c_int32),
+        ("declaration", ctypes.c_uint64),
     ]
 
 
@@ -98,6 +110,15 @@ def column_snapshot(storage, physical):
     return tuple(tuple(column[:physical]) for column in storage)
 
 
+def tape_snapshot(storage, physical, tape):
+    return (
+        tape.count,
+        tape.status,
+        tape.related,
+        column_snapshot(storage, physical),
+    )
+
+
 def assert_guards(storage, physical):
     assert storage[0][physical] == KIND_GUARD
     assert storage[1][physical] == U64_GUARD
@@ -119,6 +140,18 @@ def find(library, source, tokens, tape, space, scope, name_token):
         name_token,
     )
     return tape.status, tape.related
+
+
+def lookup(library, source, tokens, tape, space, scope, name_token):
+    result = library.symbol_lookup_in_scope(
+        source,
+        ctypes.byref(tokens),
+        ctypes.byref(tape),
+        space,
+        scope,
+        name_token,
+    )
+    return result.status, result.declaration
 
 
 def insert(library, source, tokens, tape, space, scope, name_token, declaration):
@@ -338,6 +371,140 @@ def assert_hostile_tapes(library, source, token_storage, tokens):
     assert_guards(storage, physical)
 
 
+def assert_shared_lookup(library):
+    data = b"encode encode encoder c C 'r @loop missing"
+    source_storage, source, token_storage, tokens = lex(library, data)
+    observed = [
+        (
+            token_storage[0][ordinal],
+            data[token_storage[1][ordinal] : token_storage[2][ordinal]],
+        )
+        for ordinal in range(tokens.count)
+    ]
+    assert observed[:8] == [
+        (TOK_WORD, b"encode"),
+        (TOK_WORD, b"encode"),
+        (TOK_WORD, b"encoder"),
+        (TOK_WORD, b"c"),
+        (TOK_TYPE_ID, b"C"),
+        (TOK_REGION_ID, b"'r"),
+        (TOK_LABEL, b"@loop"),
+        (TOK_WORD, b"missing"),
+    ]
+
+    storage, physical, symbols = make_symbols()
+    reset(library, symbols)
+
+    # Global functions live in the value namespace at the sentinel scope.
+    assert insert(
+        library,
+        source,
+        tokens,
+        symbols,
+        SYMBOL_VALUE,
+        SYMBOL_NONE,
+        0,
+        100,
+    ) == (SYMBOL_CLEAN, 0)
+    # Parameters live in the value namespace at their function declaration.
+    assert insert(
+        library, source, tokens, symbols, SYMBOL_VALUE, 100, 3, 300
+    ) == (SYMBOL_CLEAN, 1)
+    clean = tape_snapshot(storage, physical, symbols)
+
+    cases = (
+        # The second `encode` has a different span but identical bytes.
+        (SYMBOL_VALUE, SYMBOL_NONE, 1, (SYMBOL_LOOKUP_FOUND, 100)),
+        (SYMBOL_VALUE, 100, 3, (SYMBOL_LOOKUP_FOUND, 300)),
+        # Exact matching rejects both a longer prefix-match and another word.
+        (SYMBOL_VALUE, SYMBOL_NONE, 2, (SYMBOL_LOOKUP_NOT_FOUND, SYMBOL_NONE)),
+        (SYMBOL_VALUE, SYMBOL_NONE, 7, (SYMBOL_LOOKUP_NOT_FOUND, SYMBOL_NONE)),
+        # Namespace and scope remain part of the key.
+        (SYMBOL_VALUE, 101, 3, (SYMBOL_LOOKUP_NOT_FOUND, SYMBOL_NONE)),
+        (SYMBOL_CONSTRUCTOR, SYMBOL_NONE, 4, (SYMBOL_LOOKUP_NOT_FOUND, SYMBOL_NONE)),
+    )
+    for _ in range(2):
+        for space, scope, name_token, expected in cases:
+            observed_lookup = lookup(
+                library, source, tokens, symbols, space, scope, name_token
+            )
+            assert observed_lookup == expected, (
+                space,
+                scope,
+                name_token,
+                expected,
+                observed_lookup,
+            )
+            assert tape_snapshot(storage, physical, symbols) == clean
+            assert_guards(storage, physical)
+
+    # Bad queries are distinguished from misses, still through the shared tape.
+    for space, name_token in (
+        (SYMBOL_TYPE, 0),
+        (SYMBOL_VALUE, 4),
+        (SYMBOL_VALUE, tokens.count - 1),
+        (SYMBOL_VALUE, 999),
+    ):
+        for _ in range(2):
+            assert lookup(
+                library, source, tokens, symbols, space, SYMBOL_NONE, name_token
+            ) == (SYMBOL_LOOKUP_INVALID_TOKEN, SYMBOL_NONE)
+            assert tape_snapshot(storage, physical, symbols) == clean
+            assert_guards(storage, physical)
+
+    # Every malformed logical column shape fails closed before scanning.
+    fields = ("namespaces", "scopes", "name_tokens", "declarations")
+    for field in fields:
+        original = getattr(symbols, field)
+        setattr(symbols, field, Buffer(original.data, symbols.count - 1))
+        malformed = tape_snapshot(storage, physical, symbols)
+        for _ in range(2):
+            assert lookup(
+                library, source, tokens, symbols, SYMBOL_VALUE, SYMBOL_NONE, 1
+            ) == (SYMBOL_LOOKUP_INVALID_TAPE, SYMBOL_NONE)
+            assert tape_snapshot(storage, physical, symbols) == malformed
+            assert_guards(storage, physical)
+        setattr(symbols, field, original)
+    assert tape_snapshot(storage, physical, symbols) == clean
+
+    original_count = symbols.count
+    symbols.count = physical + 1
+    malformed_count = tape_snapshot(storage, physical, symbols)
+    for _ in range(2):
+        assert lookup(
+            library, source, tokens, symbols, SYMBOL_VALUE, SYMBOL_NONE, 1
+        ) == (SYMBOL_LOOKUP_INVALID_TAPE, SYMBOL_NONE)
+        assert tape_snapshot(storage, physical, symbols) == malformed_count
+        assert_guards(storage, physical)
+    symbols.count = original_count
+
+    # A read-only consumer accepts only a clean producer tape. Both an existing
+    # error status and an impossible enum representation are invalid, not misses.
+    for status in (SYMBOL_NOT_FOUND, 99):
+        symbols.status = status
+        malformed_status = tape_snapshot(storage, physical, symbols)
+        for _ in range(2):
+            assert lookup(
+                library, source, tokens, symbols, SYMBOL_VALUE, SYMBOL_NONE, 1
+            ) == (SYMBOL_LOOKUP_INVALID_TAPE, SYMBOL_NONE)
+            assert tape_snapshot(storage, physical, symbols) == malformed_status
+            assert_guards(storage, physical)
+    symbols.status = SYMBOL_CLEAN
+
+    original_name = storage[2][0]
+    storage[2][0] = 999
+    malformed_entry = tape_snapshot(storage, physical, symbols)
+    for _ in range(2):
+        assert lookup(
+            library, source, tokens, symbols, SYMBOL_VALUE, SYMBOL_NONE, 1
+        ) == (SYMBOL_LOOKUP_INVALID_TAPE, SYMBOL_NONE)
+        assert tape_snapshot(storage, physical, symbols) == malformed_entry
+        assert_guards(storage, physical)
+    storage[2][0] = original_name
+    assert tape_snapshot(storage, physical, symbols) == clean
+    assert source_storage
+
+
 def main():
     with tempfile.TemporaryDirectory() as raw_directory:
         library = build_library(Path(raw_directory))
@@ -352,6 +519,15 @@ def main():
             ctypes.c_uint64,
         ]
         library.symbol_find_in_scope.restype = None
+        library.symbol_lookup_in_scope.argtypes = [
+            Buffer,
+            ctypes.POINTER(TokenTape),
+            ctypes.POINTER(SymbolTape),
+            ctypes.c_int32,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+        ]
+        library.symbol_lookup_in_scope.restype = SymbolLookupResult
         library.symbol_insert_unique.argtypes = [
             Buffer,
             ctypes.POINTER(TokenTape),
@@ -381,12 +557,14 @@ def main():
         assert_basic_semantics(library, source, tokens)
         assert_atomic_capacity(library, source, tokens)
         assert_hostile_tapes(library, source, token_storage, tokens)
+        assert_shared_lookup(library)
 
         # Keep the source allocation alive until every native call returns.
         assert source_storage
         print(
             "symbols: exact names, namespaces, scopes, duplicate slots, "
-            "hostile tapes, atomic capacity, guards, reset, and retry pass"
+            "hostile tapes, atomic capacity, guards, reset, retry, and "
+            "nonmutating shared lookup pass"
         )
 
 

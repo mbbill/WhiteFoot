@@ -51,7 +51,9 @@ NO_ARG_EMITTERS = (
     "llvm_text_emit_load",
     "llvm_text_emit_icmp_uge",
     "llvm_text_emit_icmp_ule",
+    "llvm_text_emit_icmp_eq",
     "llvm_text_emit_and",
+    "llvm_text_emit_or",
     "llvm_text_emit_ret",
 )
 
@@ -294,6 +296,19 @@ def assert_id_vocabulary(library):
         assert storage[len(expected)] == GUARD
 
 
+def assert_operation_vocabulary(library):
+    cases = (
+        ("llvm_text_emit_icmp_eq", b"icmp eq"),
+        ("llvm_text_emit_or", b"or"),
+    )
+    for name, expected in cases:
+        storage, tape = make_output(len(expected))
+        getattr(library, name)(ctypes.byref(tape))
+        assert (tape.status, tape.count) == (BYTE_CLEAN, len(expected))
+        assert bytes(storage[:tape.count]) == expected
+        assert storage[len(expected)] == GUARD
+
+
 def assert_invalid_tokens(library, source):
     cases = (
         ([(0, 6)], 1, {}, 1),
@@ -377,6 +392,7 @@ def main():
         assert exact_storage[len(EXPECTED)] == GUARD
 
         assert_id_vocabulary(library)
+        assert_operation_vocabulary(library)
         assert_invalid_tokens(library, source)
         assert_assembled_ir(directory, EXPECTED)
 
