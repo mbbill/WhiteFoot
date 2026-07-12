@@ -28,7 +28,11 @@ and gitignored. Chronology and decisions live in
   ~parity BSD (table-width algorithm gap); PROOF-1 discharges 15/27 bounds
   sites and improves the kernel 2.50 -> 2.93 GB/s, with PROOF-2 debt isolated.
 
+## Gate fixtures
+- `codegen-vs-rust-c/` — the splitmix scalar-backend-parity fixture (LIVE:
+  referenced by the parity gate; do not archive).
+
 ## Earlier corpus-era studies
-Moved to `../archive/experiments/` (noalias collapse, scatter residual,
-guarded-plan measurements); conclusions absorbed into the corpus notes and
-THE-PLAN's evidence ledger.
+Moved to `../archive/experiments/` (scatter residual, guarded-plan
+measurements); conclusions absorbed into the corpus notes and THE-PLAN's
+evidence ledger.
