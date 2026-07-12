@@ -1,0 +1,14 @@
+- Every unproved D1-critical checkable fact carries a runtime check in every build mode; there is no debug/release semantic divergence.
+- A check is removed only by a deterministic machine-verified proof; a solver may promote performance facts but never licenses elision; nothing writer-stated is trusted unchecked.
+- No writer-accessible syntax removes, weakens, or silences a check; explicit `check` statements are never elided, even when tautological.
+- Check accounting can fail a build subgate for unaccounted provable debt, but it never changes source acceptance and never removes a runtime check — its findings speak only about performance.
+- Proof reporting is observational: compilation with and without the per-site report is byte-identical.
+- The structural bounds prover (PROOF-1) discharges dominating length guards, fixed-stride remainder induction with tails, and masked constant-table indexes through unsigned widening; everything else is retained, fail-closed.
+
+## Facts
+
+- 2026-07-10 measurement: the elision ceiling on base64 encode — removing every bounds check took the kernel from 2.44 to 4.2 GB/s (1.7x), branches 41 to 9, byte-identical outputs, and still zero SIMD (the shuffle algorithm is not vectorizer-discoverable); the ceiling justified building the proof tier, and its value is scalar. (sourced)
+- 2026-07-10 statement: provably-in-range trapping reductions stay scalar and the base64 hot loop retained ~18 bounds branches blocking vectorization — recorded as the evidence that earned the tier before any code was written; the doctrine answer is that writers keep `.trap` and the compiler earns the speed via proof, never by pushing writers to `.wrap`. (sourced)
+- 2026-07-10 statement: the `rem = len - i` derived-range proof is sound only because the induction variable provably starts at zero and its sole mutation is the exact stride increment; the guard alone is unsound under unsigned wrap. (code)
+- 2026-07-11 statement: the accounting review's governing principle — at the performance gate, unresolved accounting resolves to failure, never to credit (reject-when-unsure applied to accounting); and an unused explicit check must never be a hard failure, because that would incentivize deleting defensive checks, the one incentive this language exists to make impossible. (sourced)
+- 2026-07-11 statement: guard versioning was kept out of the accounting slice as the cheapest-route-to-credit hazard, with the measured 17x code-size delta of Rust's versioned loops cited as the warning precedent. (sourced)

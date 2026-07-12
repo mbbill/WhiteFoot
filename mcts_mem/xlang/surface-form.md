@@ -1,0 +1,13 @@
+- There is exactly one spelling per semantic construct and one legal byte-level formatting; non-canonical input is a hard error and the toolchain never auto-formats.
+- There are no comments; documentation lives in a declaration doc field.
+- Computation is flat three-address form: calls and constructions appear only at expression position, every argument is an atom, and intermediates are named by let with explicit mode and type (GRAM-9).
+- All computation is mode-suffixed prefix table-operation calls; there are no infix operators and no if/while/for — match is the sole conditional and loop-plus-break the sole iteration, with an explicit give terminator delivering a value from a let-init match.
+- Bool is a prelude enum with no boolean literals; numeric literals are decimal-only with a mandatory type suffix.
+
+## Facts
+
+- 2026-07-05 statement: the constitution audit's R3-provisional register marks most surface forms (loop form, no-if, prefix arithmetic, no-comments, decimal-only literals, deref/index prefix places, and more) as minimality-selected, not evidence-selected — they await writer-tier experiments, and canonical-form makes any later evidence-driven switch a breaking change, so the register is time-urgent, not decorative. (sourced)
+- 2026-07-08 rationale: flat three-address form is performance-neutral by measurement (a named local and the nested subexpression become the identical SSA value; byte-identical ARM64 on the probe), and the "more optimizer-visible facts than rustc" claim for it was struck as illusory — the form stands on one-spelling and weak-writer grounds alone. (sourced)
+- 2026-07-08 rationale: the give value-match was adopted while deleting the helper-function idiom because the statement-only match form's recorded provenance was the literal R3 disqualifier ("cheapest to specify") and the critique record's own weak-writer signal favored value delivery — conditional initialization is the most common pattern an AI writer needs. (sourced)
+- 2026-07-10 statement: base64 port findings for advertising honesty — flat form is verbose for bit-twiddling (about 90 lines versus C's ~15) and whole-function no-shadowing forces globally unique locals across sibling match arms. Program verbosity is an accepted cost by ruling; these are recorded as writer-experience findings, not defects. (sourced)
+- 2026-07-09 pitfall: the lexer silently read `-1_i64` as positive one and had never lexed the label token class until a hard-error catch-all for unknown bytes was added — canonical form is only as strong as the lexer's refusal to guess. (code)

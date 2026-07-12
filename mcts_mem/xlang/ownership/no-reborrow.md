@@ -1,0 +1,11 @@
+- Every borrow's provenance is a singleton for its entire life (theorem T-A): borrows bind once, never rebind at control-flow merges, and `set` through a ref-mode binding writes through it rather than retargeting it.
+- Uniq borrows are affine: passing one to a callee consumes it; there is no implicit reborrow, no reborrow-through-holder, and no result reborrow.
+- Exclusive access flows through a call chain by linear threading — the borrow (or the owned value) passes in and comes back out — or the code restructures.
+- Scattered deep writes are modeled as returned write intents: deep functions stay read-only and one shallow function applies the intents under the single exclusive borrow (the command-buffer pattern, P1).
+
+## Facts
+
+- 2026-07-07 rationale: T-A is the load-bearing simplification of the whole frontend-scale-checker bet — Featherweight Rust needs lval-set borrow types and retyping machinery solely to support borrow reassignment; banning reassignment (it serves writer flexibility only) collapses that apparatus to singletons. A language choice, not a checker shortcut. (sourced)
+- 2026-07-09 statement: owner review conceded v0 is stricter than Rust on exactly one axis — deep call chains cannot implicitly carry an exclusive borrow down and keep it; the genuine dissolves are also on record (no receiver methods means no whole-object borrows, and cross-call disjoint field borrows are permitted), with the honest residue that in-place mutation interleaved with traversal of the same structure stays awkward-or-rejected. (sourced)
+- 2026-07-10 measurement: the binary-trees port hit the no-reborrow wall and was forced to a bottom-up struct-of-arrays build at no measured cost — the forced shape ran 0.71 s with facts while the Rust expert recursive &mut-reborrow arena build, inexpressible in v0, ran 1.54 s; identical-shape Rust at 0.64 s shows the remaining gap is checked-semantics tax, not shape. (sourced)
+- 2026-07-08 statement: relief valves are carded evidence-first, and two are already greenlit as recorded spec deltas awaiting implementation — reborrow-through-holder (OWN-6 delta) and result reborrows (OWN-14) — which would legalize the recursive arena shape; the binary-trees pilot is flagged for re-run when they land. This is the standing revival candidate for reborrowing. (sourced)

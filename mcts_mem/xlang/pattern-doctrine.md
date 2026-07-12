@@ -1,0 +1,4 @@
+- The language ships a closed, taught catalog of architecture-level design patterns; writers model tasks inside the catalog, and the teaching pack presents it up front.
+- The catalog's acceptance test is two-fold: complete (every task modelable inside the blessed patterns — a gap is a finding that earns a new pattern or a recorded rejection) and efficient (blessed patterns hit the fast paths).
+- Each catalog entry names the problem shape, the blessed pattern, why it is fast here, and what mainstream construct it replaces; known gaps are listed alongside as findings.
+- A writer hitting an unrepresentable familiar architecture mid-design is classified as a documentation def
