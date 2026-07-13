@@ -17,9 +17,11 @@ and gitignored. Chronology and decisions live in
   sources/applications; points the next real port at relational bounds proofs.
 
 ## Port studies (real programs; D9 confidence-gate evidence)
-- `default-floor/` — active D9a protocol: a fixed low-tier model's first
+- `default-floor/` — D9a protocol: a fixed low-tier model's first
   correctness-green xlang artifact versus an exact unmodified shipped Rust
-  library. The first target is `percent-encoding` 2.3.2 `percent_decode`.
+  library. First result: Terra xlang beats `percent-encoding` 2.3.2
+  `percent_decode` by 1.653x [1.631, 1.667], with facts-on/off practical parity;
+  see `default-floor/percent-decode/RESULTS.md`.
 - `port-study/binary-trees/` — floor-raising result: the slow shape is
   unrepresentable; ~11% checked-semantics tax vs identical-shape Rust.
 - `port-study/wc/` — full-counts 0.23s vs GNU 0.48 / uutils-Rust 0.56 on a

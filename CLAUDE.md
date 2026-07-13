@@ -60,11 +60,12 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 ## Current focus (2026-07-12)
 
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
-- D9a confidence gate: `percent-encoding` 2.3.2 `percent_decode` versus one
-  exact `gpt-5.6-terra`/medium trajectory. Freeze the first correctness-green
-  xlang source before timing; facts-on/off is attribution. Expert Rust is
-  post-freeze ceiling evidence, not the primary score. Base64 is excluded
-  because xlang's proof tier was developed on it.
+- D9a first target is complete: one exact `gpt-5.6-terra`/medium trajectory's
+  first-green `percent_decode` beats shipped `percent-encoding` 2.3.2 by
+  1.653x [1.631, 1.667]. Facts-on/off is practical parity with all six checks
+  retained, so this is default-shape evidence, not proof-elision evidence.
+  Next: independently preregister one fresh shipped-library replication before
+  broadening the claim; do not tune the completed candidate or protocol.
 - Proof tier: PROOF-1/2 shipped and adversarially reviewed; the accounting
   design's approved first slice is in
   `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`.

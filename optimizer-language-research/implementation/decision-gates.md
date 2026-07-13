@@ -771,3 +771,33 @@ identity.  An independent post-freeze evaluator invocation again reports
 compile green and `correct cases=153014`.  At this entry no proof report, IR,
 assembly, or performance result has been used to alter the source, and the
 preregistered scoring campaign has not yet run.
+
+## D9a percent-decode primary score: default xlang wins, facts neutral (2026-07-12)
+
+The one preregistered campaign completed without rerun: 30 fresh processes,
+all 90 samples retained, 256 MiB fixed corpus, AC power identity stable, and no
+recorded power/thermal transition (the thermal probe was consistently
+unavailable).  Median throughput was 629.484 MiB/s xlang facts-on, 620.343
+MiB/s facts-off, and 383.456 MiB/s shipped Rust.  The paired facts-on/Rust
+median ratio is 1.6533 with stratified bootstrap interval [1.6309, 1.6668]: a
+predeclared **meaningful xlang win**.  Facts-on/facts-off is 1.0100 with interval
+[1.0047, 1.0196], inside the ±2% **practical parity** band.
+
+Attribution matters: facts-on and facts-off proof reports are byte-identical,
+with all six bounds sites retained and none proved.  This is therefore not a
+proof-elision win.  It is the intended default-floor result: the first green
+low-tier-AI xlang shape beat the ordinary released `percent-encoding` 2.3.2
+public-iterator path.  Post-result assembly shows the Rust adapter making an
+out-of-line `PercentDecode::next` call per yielded byte while the xlang helpers
+fold into one call-free loop.  Expert Rust could plausibly close that gap with
+inlining/LTO/restructuring, but those are ceiling experiments and cannot alter
+this primary score.  Canonical evidence and caveats are in
+`experiments/default-floor/percent-decode/RESULTS.md`; raw SHA-256
+`a659855f0d3fa909874f861f6d7ec7401653a877a7c0bd0d1544d4333054324b`,
+analysis SHA-256
+`24cfe1e9a3aed9d647d7ae9f684f178fe62c363bff1afa405a1dc245376bd5b9`.
+
+D9a is satisfied for this target, not generalized.  The next evidence step is
+one independently preregistered shipped-library replication; an optional
+post-primary Rust inlining ceiling may explain mechanism but is not required
+to preserve the default-floor conclusion.

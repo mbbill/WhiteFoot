@@ -52,6 +52,11 @@ Measured wins (real, replicable, with caveats in each RESULTS.md):
   Rust loops; parity at long trips (runtime checks amortize).
 - Utility ports: wc full counts 2.1x GNU / 2.4x uutils-Rust; base64 1.6x
   GNU/uutils at RFC-identical output; both at full checked semantics.
+- D9a default floor: one `gpt-5.6-terra` trajectory's first correctness-green
+  `percent_decode` is 1.653x the shipped `percent-encoding` 2.3.2 path
+  (bootstrap interval 1.631..1.667). Facts-on/off is practical parity and both
+  retain all six bounds sites, so this is a default implementation-shape win,
+  not a proof-elision win. One fresh-library replication is still required.
 - Codegen debt retired: OWN-1 Bool-copy amendment -> i1 dataflow -> C/Rust
   parity on the classifier kernel (was 1.6-1.8x behind); 2-variant enums i1.
 
@@ -84,12 +89,11 @@ Measured non-wins (equally load-bearing):
    correctness-green source and full trace; then measure that same source with
    facts on/off against the ordinary Rust release build. No Rust/prior-xlang
    source, performance feedback, human edits, or fastest-of-N selection enters
-   the generation trajectory. STATUS: target and model are selected; protocol,
-   correctness gate, and shipped-Rust adapter are being frozen before the
-   corrected official prompt is sent. A disclosed pre-freeze launcher mistake
-   sent an older prompt but produced zero model-output bytes, no candidate, and
-   no evaluator result; its identity is retired. Base64 remains excluded
-   because it shaped PROOF-1/2.
+   the generation trajectory. STATUS: COMPLETE for this target. Round 2 was
+   first green and froze at source SHA-256 `b67dd291...00bd`; the sole 30-block
+   score is a meaningful xlang win at 1.653x [1.631, 1.667]. Facts-on/off is
+   practical parity at 1.010x [1.005, 1.020], with identical all-retained proof
+   reports. Full evidence is in `experiments/default-floor/percent-decode/RESULTS.md`.
 2. **Second shipped-library replication** — only after the first result is
    frozen. Pre-register a fresh task rather than tuning the protocol from the
    result. `utf8parse` is the leading independent state-machine candidate; QOI
@@ -161,12 +165,11 @@ Measured non-wins (equally load-bearing):
    frame (first D4 FFI instance) and chunked-driver parity. The AI-authorship
    headline runs through the shelved trial harness when the time comes.
 
-STATUS UPDATE (2026-07-12): D9a supersedes the expert-Rust decider. The expert
-base64 iterator result is preserved as a ceiling measurement, but base64 is
-not eligible as the fresh primary workload. The owner selected
-`percent-encoding` 2.3.2 `percent_decode`: a previously untuned, variable-output
-workload expressible by the current language without experiment-driven compiler
-work. The protocol must freeze before generation.
+STATUS UPDATE (2026-07-12): D9a's first target is complete. Default Terra xlang
+beats shipped `percent-encoding` 2.3.2 by 1.653x on the locked workload; facts
+are neutral, so the result supports the default-shape thesis rather than the
+proof-elision thesis. The next evidence action is a separately preregistered
+shipped-library replication, not tuning this candidate or protocol.
 THE BUILD TRACK IS ACTIVE: `compiler/` hosts xlc, the production compiler
 written in xlang itself (SoA-tape architecture per P2, fixed-capacity
 buffers, no generics needed), bootstrapped by prototype/democ as stage 0,

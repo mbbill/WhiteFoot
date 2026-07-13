@@ -1,0 +1,143 @@
+{
+  "identity_order": [
+    "facts-on",
+    "facts-off",
+    "rust"
+  ],
+  "mode": "score",
+  "not_a_score": false,
+  "orders": [
+    {
+      "block_index": 0,
+      "order": "facts-off,rust,facts-on"
+    },
+    {
+      "block_index": 1,
+      "order": "rust,facts-on,facts-off"
+    },
+    {
+      "block_index": 2,
+      "order": "rust,facts-on,facts-off"
+    },
+    {
+      "block_index": 3,
+      "order": "facts-on,rust,facts-off"
+    },
+    {
+      "block_index": 4,
+      "order": "facts-on,facts-off,rust"
+    },
+    {
+      "block_index": 5,
+      "order": "rust,facts-off,facts-on"
+    },
+    {
+      "block_index": 6,
+      "order": "rust,facts-off,facts-on"
+    },
+    {
+      "block_index": 7,
+      "order": "rust,facts-on,facts-off"
+    },
+    {
+      "block_index": 8,
+      "order": "facts-on,facts-off,rust"
+    },
+    {
+      "block_index": 9,
+      "order": "facts-on,rust,facts-off"
+    },
+    {
+      "block_index": 10,
+      "order": "facts-off,facts-on,rust"
+    },
+    {
+      "block_index": 11,
+      "order": "facts-on,rust,facts-off"
+    },
+    {
+      "block_index": 12,
+      "order": "facts-off,rust,facts-on"
+    },
+    {
+      "block_index": 13,
+      "order": "facts-on,facts-off,rust"
+    },
+    {
+      "block_index": 14,
+      "order": "rust,facts-on,facts-off"
+    },
+    {
+      "block_index": 15,
+      "order": "facts-on,rust,facts-off"
+    },
+    {
+      "block_index": 16,
+      "order": "facts-off,facts-on,rust"
+    },
+    {
+      "block_index": 17,
+      "order": "facts-off,rust,facts-on"
+    },
+    {
+      "block_index": 18,
+      "order": "facts-on,facts-off,rust"
+    },
+    {
+      "block_index": 19,
+      "order": "facts-off,facts-on,rust"
+    },
+    {
+      "block_index": 20,
+      "order": "facts-on,facts-off,rust"
+    },
+    {
+      "block_index": 21,
+      "order": "rust,facts-off,facts-on"
+    },
+    {
+      "block_index": 22,
+      "order": "rust,facts-on,facts-off"
+    },
+    {
+      "block_index": 23,
+      "order": "facts-off,rust,facts-on"
+    },
+    {
+      "block_index": 24,
+      "order": "rust,facts-off,facts-on"
+    },
+    {
+      "block_index": 25,
+      "order": "rust,facts-off,facts-on"
+    },
+    {
+      "block_index": 26,
+      "order": "facts-on,rust,facts-off"
+    },
+    {
+      "block_index": 27,
+      "order": "facts-off,facts-on,rust"
+    },
+    {
+      "block_index": 28,
+      "order": "facts-off,facts-on,rust"
+    },
+    {
+      "block_index": 29,
+      "order": "facts-off,rust,facts-on"
+    }
+  ],
+  "repetitions_per_stratum": 5,
+  "schema_version": 1,
+  "seed_hex": "0x50444f5244455233",
+  "shuffle": "descending Fisher-Yates; i=n-1..1, j=next()%(i+1)",
+  "strata_order": [
+    "facts-on,facts-off,rust",
+    "facts-on,rust,facts-off",
+    "facts-off,facts-on,rust",
+    "facts-off,rust,facts-on",
+    "rust,facts-on,facts-off",
+    "rust,facts-off,facts-on"
+  ]
+}
