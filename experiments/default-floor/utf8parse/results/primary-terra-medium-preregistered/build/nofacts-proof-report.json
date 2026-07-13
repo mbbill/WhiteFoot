@@ -1,0 +1,284 @@
+[
+  {
+    "first_failed_premise": null,
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "i",
+    "kind": "buffer",
+    "obligation": null,
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": null,
+    "obligation_status": "not-applicable",
+    "proof": null,
+    "requirement_relation": "not-applicable",
+    "site": 0,
+    "status": "retained",
+    "target": "src"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 1,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 2,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 3,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 4,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 5,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 6,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 7,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 8,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 9,
+    "status": "retained",
+    "target": "out"
+  },
+  {
+    "first_failed_premise": {
+      "expected": "recognized capacity shape or explicit exclusion",
+      "path": "body.indexed-access",
+      "reason": "body.obligation-candidate"
+    },
+    "first_missing_fact": null,
+    "function": "parse",
+    "index": "count",
+    "kind": "buffer",
+    "obligation": "output-capacity-lockstep",
+    "obligation_analysis": {
+      "analyzers": [
+        "output-capacity-lockstep-v1"
+      ],
+      "complete": true,
+      "scope": "frontend-implicit-bounds-v1"
+    },
+    "obligation_exactness": "unknown",
+    "obligation_status": "failed-premise",
+    "proof": null,
+    "requirement_relation": "unknown",
+    "site": 10,
+    "status": "retained",
+    "target": "out"
+  }
+]

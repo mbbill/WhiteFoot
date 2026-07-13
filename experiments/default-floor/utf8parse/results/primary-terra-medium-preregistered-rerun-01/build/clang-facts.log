@@ -1,0 +1,8 @@
+argv: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang", "--no-default-config", "-isysroot", "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk", "-O3", "-c", "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered-rerun-01/build/facts.ll", "-o", "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered-rerun-01/build/facts.o"]
+
+stdout:
+
+
+stderr:
+warning: overriding the module target triple with arm64-apple-macosx26.0.0 [-Woverride-module]
+1 warning generated.

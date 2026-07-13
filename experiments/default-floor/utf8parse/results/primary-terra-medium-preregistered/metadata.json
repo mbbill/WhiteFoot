@@ -1,0 +1,931 @@
+{
+  "benchmark_executable": {
+    "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/cargo-target/aarch64-apple-darwin/release/bench",
+    "sha256": "8c5a076e4e16f5366cb0ed56c881837cd96f5fc75b308902b849508c81be6300"
+  },
+  "blocks_expected": 30,
+  "build_artifact_sha256": {
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/cargo-target/aarch64-apple-darwin/release/bench": "8c5a076e4e16f5366cb0ed56c881837cd96f5fc75b308902b849508c81be6300",
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts-proof-report.json": "000fddb6ab82494555439aecd873bb96c5f4ecd0c1527f562b09b24610c76c72",
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts.ll": "0987835ef1bd32c51d8673009b43ac47f035e1c014cf2d73fbb364f3d2fee22f",
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts.o": "395b6a80c49f1d5d58efea8d73f504668af42e08fb52251c277f4eea8de645c5",
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts-proof-report.json": "000fddb6ab82494555439aecd873bb96c5f4ecd0c1527f562b09b24610c76c72",
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts.ll": "509733f96baf257c73c7de1d8b79a7debb3f08c3a24bfbe75933a54bf7d3a0e9",
+    "experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts.o": "ed8a64bc04a3ec0a39bd78ebff2c010c2e38d4f61f32b0f9afc462645c8b1995"
+  },
+  "build_commands": [
+    [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+      "--no-default-config",
+      "-isysroot",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+      "-O3",
+      "-c",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts.ll",
+      "-o",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts.o"
+    ],
+    [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+      "--no-default-config",
+      "-isysroot",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+      "-O3",
+      "-c",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts.ll",
+      "-o",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts.o"
+    ],
+    [
+      "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+      "--config",
+      "build.rustc=\"/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc\"",
+      "--config",
+      "build.rustc-wrapper=\"\"",
+      "--config",
+      "build.rustc-workspace-wrapper=\"\"",
+      "--config",
+      "build.rustflags=[]",
+      "--config",
+      "build.rustdocflags=[]",
+      "--config",
+      "build.incremental=false",
+      "--config",
+      "build.target=\"aarch64-apple-darwin\"",
+      "--config",
+      "target.aarch64-apple-darwin.linker=\"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang\"",
+      "--config",
+      "target.aarch64-apple-darwin.rustflags=[]",
+      "rustc",
+      "--manifest-path",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/harness/Cargo.toml",
+      "--target-dir",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/cargo-target",
+      "--bin",
+      "bench",
+      "--release",
+      "--locked",
+      "--offline",
+      "--target",
+      "aarch64-apple-darwin",
+      "-vv",
+      "--",
+      "-C",
+      "link-arg=/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts.o",
+      "-C",
+      "link-arg=/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts.o"
+    ]
+  ],
+  "build_environment": {
+    "cargo_cli_neutralization": [
+      "--config",
+      "build.rustc=\"/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc\"",
+      "--config",
+      "build.rustc-wrapper=\"\"",
+      "--config",
+      "build.rustc-workspace-wrapper=\"\"",
+      "--config",
+      "build.rustflags=[]",
+      "--config",
+      "build.rustdocflags=[]",
+      "--config",
+      "build.incremental=false",
+      "--config",
+      "build.target=\"aarch64-apple-darwin\"",
+      "--config",
+      "target.aarch64-apple-darwin.linker=\"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang\"",
+      "--config",
+      "target.aarch64-apple-darwin.rustflags=[]"
+    ],
+    "cargo_config_absence": {
+      "cargo_home": "/Users/bytedance/.cargo",
+      "schema_version": 1,
+      "search_cwd": "/Users/bytedance/Dev/xlang",
+      "searched_paths": [
+        "/Users/bytedance/Dev/xlang/.cargo/config.toml",
+        "/Users/bytedance/Dev/xlang/.cargo/config",
+        "/Users/bytedance/Dev/.cargo/config.toml",
+        "/Users/bytedance/Dev/.cargo/config",
+        "/Users/bytedance/.cargo/config.toml",
+        "/Users/bytedance/.cargo/config",
+        "/Users/.cargo/config.toml",
+        "/Users/.cargo/config",
+        "/.cargo/config.toml",
+        "/.cargo/config"
+      ],
+      "status": "all-search-paths-absent"
+    },
+    "clang_default_configs": {
+      "cfg_files_sha256": {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa"
+      },
+      "cfg_symlink_targets": {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "aarch64-swift-linux-musl-clang.cfg",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "x86_64-swift-linux-musl-clang.cfg"
+      },
+      "direct_clang_policy": "--no-default-config",
+      "schema_version": 1,
+      "search_directories": {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin": "present",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/etc/clang": "absent",
+        "/Users/bytedance/.config/clang": "absent",
+        "/Users/bytedance/Library/Preferences/clang": "absent",
+        "/etc/clang": "absent"
+      },
+      "status": "only-hash-locked-swift-linux-configs-no-macos-match"
+    },
+    "enforced": {
+      "CARGO_HOME": "/Users/bytedance/.cargo",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+      "CC": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+      "RUSTC": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+      "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+    },
+    "generic_cpu_policy": "no native CPU flags; explicit generic aarch64-apple-darwin target",
+    "removed_override_variable_names": []
+  },
+  "clock": "std::time::Instant for every timed variant",
+  "corpus": {
+    "bytes": 134217728,
+    "command": [
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/cargo-target/aarch64-apple-darwin/release/bench",
+      "prepare-corpus",
+      "--mode",
+      "score",
+      "--bytes",
+      "134217728",
+      "--output",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/corpus.bin"
+    ],
+    "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/corpus.bin",
+    "sha256": "e7387acef66a3a0ca0cfa88cd7b57c18625cc9713bc16a41827c4899cb39ce18"
+  },
+  "created_at": "2026-07-13T07:18:22.068380+00:00",
+  "fresh_process_per_block": true,
+  "frozen_source": {
+    "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl",
+    "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535"
+  },
+  "generation_archive": {
+    "index": {
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/generation-freeze-index.json",
+      "sha256": "41c01c2b3dba79e5ef0b5d86bf754807791dca2bf105aa714f819873e35c5957"
+    },
+    "original_run_dir": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered",
+    "result_absolute_paths": {
+      "manifest": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/trace-manifest.json",
+      "role": "historical-original-run-reference",
+      "source": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl"
+    },
+    "root": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/generation-freeze",
+    "schema_version": 1,
+    "tree": {
+      "directories": [
+        "frozen",
+        "rounds",
+        "rounds/000"
+      ],
+      "files_sha256": {
+        "config.json": "76471fd29f63dbd835ed3291e36f1d316e9a4853f63459656fd17e65a9d2d608",
+        "frozen/source.sha256": "0438fb4c3f2ff47fa65d60319fca6266f8d4f640a5e978ba0f125aa9116b22ef",
+        "frozen/trace-manifest.json": "cb07a8b7dc090d66c2024f469f88fb461748003c8e691eb3bc916fcd2ee6feef",
+        "frozen/utf8parse.xl": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+        "result.json": "1f80b584ac88490de72ffd04df88de96732af28d1612a974743af8deefc26e0d",
+        "rounds/000/evaluator-process.json": "04d87c6904b6726b71c4765f4ee2b1e09e771ad19624d0b2310d6a3093c90799",
+        "rounds/000/evaluator.json": "353c00f372c4bf2b850a011935b770856c5c1195c649c68e6fec5bd3cf46caa1",
+        "rounds/000/evaluator.raw.txt": "820d95883f946971d6a3f9c89e3080786e7c8ae7d18276bf8cd64367148fcbfc",
+        "rounds/000/evaluator.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "rounds/000/model-process.json": "d7f3b866bcc2f6e1bd12196d1bee588b607ebb6205977b127b8acfac579bb4f0",
+        "rounds/000/model.raw.txt": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+        "rounds/000/model.stderr.txt": "7bfd02b840d705b0147f60444f72168a54343087a4a78fa4938c9c10c00f69ca",
+        "rounds/000/prompt.txt": "ca977c4bd4005f913ad81ecef3d813e0daece09a6bdbe208c0414dac22490801",
+        "rounds/000/record.json": "cdceaa4964f61f551f751c2b52205e9ad325c316426553528c1e305e08328781",
+        "rounds/000/utf8parse.xl": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+        "trace.jsonl": "c856e00fd910388ee64b430b8661469b7cb1f09ee6ac250e72e6cac6c6896c8d"
+      }
+    },
+    "validation_identity": {
+      "config_sha256": "76471fd29f63dbd835ed3291e36f1d316e9a4853f63459656fd17e65a9d2d608",
+      "frozen_round": 0,
+      "manifest_sha256": "cb07a8b7dc090d66c2024f469f88fb461748003c8e691eb3bc916fcd2ee6feef",
+      "result_sha256": "1f80b584ac88490de72ffd04df88de96732af28d1612a974743af8deefc26e0d",
+      "source_sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+      "source_sha256_file_sha256": "0438fb4c3f2ff47fa65d60319fca6266f8d4f640a5e978ba0f125aa9116b22ef",
+      "trace_sha256": "c856e00fd910388ee64b430b8661469b7cb1f09ee6ac250e72e6cac6c6896c8d"
+    }
+  },
+  "generation_freeze": {
+    "config": {
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/config.json",
+      "sha256": "76471fd29f63dbd835ed3291e36f1d316e9a4853f63459656fd17e65a9d2d608",
+      "value": {
+        "evaluator_invocation": {
+          "argv_items_without_candidate": 2,
+          "argv_without_candidate_sha256": "9b5386638ddf759878c6e64bfa9c480d96228f3e8984dabcf608b325f28469d1",
+          "public_metadata": {
+            "cargo_config_absence": {
+              "cargo_home": "/Users/bytedance/.cargo",
+              "schema_version": 1,
+              "search_cwd": "/Users/bytedance/Dev/xlang",
+              "searched_paths": [
+                "/Users/bytedance/Dev/xlang/.cargo/config.toml",
+                "/Users/bytedance/Dev/xlang/.cargo/config",
+                "/Users/bytedance/Dev/.cargo/config.toml",
+                "/Users/bytedance/Dev/.cargo/config",
+                "/Users/bytedance/.cargo/config.toml",
+                "/Users/bytedance/.cargo/config",
+                "/Users/.cargo/config.toml",
+                "/Users/.cargo/config",
+                "/.cargo/config.toml",
+                "/.cargo/config"
+              ],
+              "status": "all-search-paths-absent"
+            },
+            "corpus_cases": 84041,
+            "git_status_porcelain_v1": [
+              "M compiler/PLAN.md"
+            ],
+            "host_platform": "macOS-26.5.1-arm64-arm-64bit",
+            "input_hashes": {
+              "experiments/default-floor/PROTOCOL.md": "8861c0063f401540634a3c652d1247732bbd1df03be5e094c27aed3e2e4416c1",
+              "experiments/default-floor/README.md": "180296ef8824186ff8a85cf4a2e4477d47c8ffb4a1adbee2a05a4b03a6f123de",
+              "experiments/default-floor/codex_model_adapter.py": "4ea4205f96b482a38cea34c5c2f1887b66aea1590845eb82d2b825fe8ac51e5b",
+              "experiments/default-floor/generate.py": "7d55d8e9961fc24171591a3a3c5f21d0b98ded5d24cfd2720753d24d78f9c0a1",
+              "experiments/default-floor/tests/__init__.py": "8e505f5876508d879a8b1d0edbcc2cf539c2308b72054ca748b914ff544bfc37",
+              "experiments/default-floor/tests/mock_codex_cli.py": "569d9a8b5daaf677ad5e623e989ca0a3f23fdafbeba87e021897265d1a9d0e4a",
+              "experiments/default-floor/tests/mock_evaluator.py": "149ef935fff085694d5aad8b12722b61e3ad3d1cfbc8c137f693a778797872fd",
+              "experiments/default-floor/tests/mock_model.py": "1a742cbb855286cfd2d225349a47be859893985c19bf47cf6995cd774311e6b4",
+              "experiments/default-floor/tests/test_codex_model.py": "2e788df86ff39a4197c06ec781a39d40d2ef45a729ca22cbdcc2c046cfabd174",
+              "experiments/default-floor/tests/test_generate.py": "01fa602b46fa6905dd293515bc8f2786344e773806424f9cd4ac7010aa4e300d",
+              "experiments/default-floor/utf8parse/.gitignore": "c1e0e019f3ffbbb30b944074be5d535b0ac7020331558223a3f84815bfd5a09c",
+              "experiments/default-floor/utf8parse/BENCHMARK.md": "c010cf2e066767ccc9dd4e079d615ef71a33349c3492c6fe89069db8dcab9f67",
+              "experiments/default-floor/utf8parse/PROTOCOL.md": "e786e949d1500c605ef37195dadc60e25380d4e02b7afc9f660d1cf5e062d960",
+              "experiments/default-floor/utf8parse/analyze.py": "faea59d2664d91081028658c788d76677472501356fd6279457c1898bcc847d0",
+              "experiments/default-floor/utf8parse/assemble_prompt.py": "0fe165402dde2cbe39d2f8ddd0674d58f292c0bd6b2dec7ec833b943fdb6e0c9",
+              "experiments/default-floor/utf8parse/base-prompt.txt": "81f023e583987d4610f15faa529b6481805dc4094fda2168146cf9ea9e9c903a",
+              "experiments/default-floor/utf8parse/benchmark.py": "0f46ae5e9902f06f211d55234006dfd6e928ec4a7eba54f4c88759a32a6be274",
+              "experiments/default-floor/utf8parse/boundary.c": "77e0f1679f3065384a548bf112b5203eaeae7b36531c8cc99158d2e9d0934afe",
+              "experiments/default-floor/utf8parse/harness/Cargo.lock": "f5c7fc2dec0cc93129ea78c82985ea45242addb2ecce260f2a36154369093b04",
+              "experiments/default-floor/utf8parse/harness/Cargo.toml": "34d7feecfb4fd313694d34255f3129f2ef0f4ae86cb510a8a6a902b3391d05fb",
+              "experiments/default-floor/utf8parse/harness/src/bin/bench.rs": "074daa59803f6b5648ed517fdabfe71dc56e93ecf32784e32b38883c0a204ba0",
+              "experiments/default-floor/utf8parse/harness/src/bin/verify.rs": "83330c9f845e87bc379fd40abc34f32b9437c0e88748280e5957bdaad2973db7",
+              "experiments/default-floor/utf8parse/run_generation.py": "ef6243611c80f5df0dcde01638e085ecced78b94a5003d994f3221851d1793b7",
+              "experiments/default-floor/utf8parse/rust-baseline/Cargo.lock": "018d83cbdef914a2a2cf7b3829c66b71991f39ea5f3b12c8efed35735fb80381",
+              "experiments/default-floor/utf8parse/rust-baseline/Cargo.toml": "4e12735af726e8df6ebf052a679699b697cf29cba89217d1f44e7f0aa3d76b59",
+              "experiments/default-floor/utf8parse/rust-baseline/README.md": "b312c189eb91504ab31f1a42786b8f27926f470e50cebe869077cf329eefb2a5",
+              "experiments/default-floor/utf8parse/rust-baseline/src/lib.rs": "8ad407d1968168feeca1d21fe5a493eee71d4d582371b969c42a0e58ccfd5349",
+              "experiments/default-floor/utf8parse/task.md": "9f301b9a0776b855439fb23d403e990ebc5ce8b2add9730c4040de99071732d9",
+              "experiments/default-floor/utf8parse/teaching-pack.md": "88917635d551c9352fd788a0c339369e65ad54459ae16157b566fb0e05782672",
+              "experiments/default-floor/utf8parse/verify.py": "e00937892d5e3f6c728b1f86e838fee5def411e92d05aec2bc86e31466fdc73f",
+              "prototype/checker/checker.py": "835e209b8569f0059d5c115dedc4d8ba3a2c98bd7853d401b64a30be0e45e6f4",
+              "prototype/democ/democ.py": "211f7caee393ac5822df71cdd0777a2c9b77dc2fafd47d4f3fd4d0aeed9c5336"
+            },
+            "kind": "utf8parse-compile-and-correctness",
+            "proof_feedback": "disabled-before-freeze",
+            "python": "3.9.6",
+            "repository_revision": "e6f291161109bd146dc95f80034d01183e19ebbf",
+            "tool_manifest": {
+              "clang_default_configs": {
+                "cfg_files_sha256": {
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa"
+                },
+                "cfg_symlink_targets": {
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "aarch64-swift-linux-musl-clang.cfg",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "x86_64-swift-linux-musl-clang.cfg"
+                },
+                "direct_clang_policy": "--no-default-config",
+                "schema_version": 1,
+                "search_directories": {
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin": "present",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/etc/clang": "absent",
+                  "/Users/bytedance/.config/clang": "absent",
+                  "/Users/bytedance/Library/Preferences/clang": "absent",
+                  "/etc/clang": "absent"
+                },
+                "status": "only-hash-locked-swift-linux-configs-no-macos-match"
+              },
+              "macos_sdk": {
+                "canonical_name": "macosx26.5",
+                "display_name": "macOS 26.5",
+                "version": "26.5"
+              },
+              "paths": {
+                "cargo": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+                "clang": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+                "codex_javascript": "/opt/homebrew/lib/node_modules/@openai/codex/bin/codex.js",
+                "codex_launcher": "/opt/homebrew/bin/codex",
+                "codex_native": "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+                "macos_sdk": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+                "macos_sdk_settings": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json",
+                "python": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9",
+                "rustc": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc"
+              },
+              "sha256": {
+                "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb",
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json": "f8d005f09381389167f9e0aeaa169bc9e7dff162ef22ca2fd8e98df7ff1acafe",
+                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang": "7def90dd8829726686213a747fc5bff1583df933dae5edc55d755479e0bfe00a",
+                "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo": "696d29bd6f5a136ef6c7088558e178efcabbd571de90e8169d0f6596c568eea8",
+                "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc": "f556cd7caa76d85ff0e777ba8e96552b33b4e0ea0dda8fbe6cde1d23b6c4df27",
+                "/opt/homebrew/lib/node_modules/@openai/codex/bin/codex.js": "134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477",
+                "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex": "978740e6bcbd9af2f850823b723fb74f16d8d1e44de05f7dd6737ae631f72017"
+              },
+              "versions": {
+                "cargo": "cargo 1.91.1 (ea2d97820 2025-10-10)\nrelease: 1.91.1\ncommit-hash: ea2d97820c16195b0ca3fadb4319fe512c199a43\ncommit-date: 2025-10-10\nhost: aarch64-apple-darwin\nlibgit2: 1.9.1 (sys:0.20.2 vendored)\nlibcurl: 8.7.1 (sys:0.4.83+curl-8.15.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.5.2 5 Aug 2025\nos: Mac OS 26.5.1 [64-bit]",
+                "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+                "codex": "codex-cli 0.144.0",
+                "codex_native": "codex-cli 0.144.0",
+                "python": "Python 3.9.6",
+                "rustc": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2"
+              }
+            },
+            "utf8parse_registry": {
+              "crate_files": [
+                {
+                  "path": "/Users/bytedance/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2.crate",
+                  "sha256": "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+                }
+              ],
+              "expected_crates_io_sha256": "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821",
+              "package": "utf8parse",
+              "verified_source_trees": [
+                {
+                  "cargo_ok_sha256": "afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91",
+                  "path": "/Users/bytedance/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2",
+                  "tree_directories": [
+                    "src",
+                    "tests"
+                  ],
+                  "tree_files_sha256": {
+                    ".cargo_vcs_info.json": "c0be9397ac93ebcf6eb1f5ccb300fa66f2af7839716a9d729d73ee2d0ba56ee0",
+                    "Cargo.toml": "ab073da31fea03203d8e78d4d1169905474f9c9e37fa17d734c65f8e67f72c39",
+                    "Cargo.toml.orig": "61bb87955bb142b3584d3bc359a760474553a771d9edf5a16e751578568f4376",
+                    "LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+                    "LICENSE-MIT": "e4c9b06fa850cb9b540a5e400e9f6394cf15efcf4098144de477d1d3dae10150",
+                    "src/lib.rs": "161f74913ee618b6b059360122c5ca500c8f5d8521014ad06b558693e3a4f7d3",
+                    "src/types.rs": "09b93214394da3520ed7829a878d1bd37e067e0cd489e7437e16fce202896067",
+                    "tests/UTF-8-demo.txt": "e0084609a607b4a2cb0ed0cd8ca4f25f01e72b356bbf4d8c49329a440ea946dd",
+                    "tests/utf-8-demo.rs": "beb91c3933180ce69fa6dcbaa5459ba3a3a8a8d0496804069d3666645d7f8eff"
+                  }
+                }
+              ],
+              "version": "0.2.2"
+            }
+          }
+        },
+        "evaluator_timeout_seconds": 900.0,
+        "max_rounds": 4,
+        "model_invocation": {
+          "argv_items": 12,
+          "argv_sha256": "ead3ba903597dccc3c8b071d10bf1574f0a9e95728d789a6d0358335bfc11db0",
+          "public_metadata": {
+            "cargo_config_absence": {
+              "cargo_home": "/Users/bytedance/.cargo",
+              "schema_version": 1,
+              "search_cwd": "/Users/bytedance/Dev/xlang",
+              "searched_paths": [
+                "/Users/bytedance/Dev/xlang/.cargo/config.toml",
+                "/Users/bytedance/Dev/xlang/.cargo/config",
+                "/Users/bytedance/Dev/.cargo/config.toml",
+                "/Users/bytedance/Dev/.cargo/config",
+                "/Users/bytedance/.cargo/config.toml",
+                "/Users/bytedance/.cargo/config",
+                "/Users/.cargo/config.toml",
+                "/Users/.cargo/config",
+                "/.cargo/config.toml",
+                "/.cargo/config"
+              ],
+              "status": "all-search-paths-absent"
+            },
+            "codex_version": "codex-cli 0.144.0",
+            "ephemeral": true,
+            "event_boundary": "exact-four-event-single-agent-message-no-tools",
+            "git_status_porcelain_v1": [
+              "M compiler/PLAN.md"
+            ],
+            "host_platform": "macOS-26.5.1-arm64-arm-64bit",
+            "input_hashes": {
+              "experiments/default-floor/codex_model_adapter.py": "4ea4205f96b482a38cea34c5c2f1887b66aea1590845eb82d2b825fe8ac51e5b",
+              "experiments/default-floor/generate.py": "7d55d8e9961fc24171591a3a3c5f21d0b98ded5d24cfd2720753d24d78f9c0a1",
+              "experiments/default-floor/utf8parse/base-prompt.txt": "81f023e583987d4610f15faa529b6481805dc4094fda2168146cf9ea9e9c903a"
+            },
+            "model": "gpt-5.6-terra",
+            "python": "3.9.6",
+            "reasoning_effort": "medium",
+            "repository_revision": "e6f291161109bd146dc95f80034d01183e19ebbf",
+            "repository_rules": "ignored",
+            "sandbox": "read-only",
+            "service_tier": "default",
+            "surface": "codex-cli",
+            "tool_manifest": {
+              "clang_default_configs": {
+                "cfg_files_sha256": {
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa"
+                },
+                "cfg_symlink_targets": {
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "aarch64-swift-linux-musl-clang.cfg",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "x86_64-swift-linux-musl-clang.cfg"
+                },
+                "direct_clang_policy": "--no-default-config",
+                "schema_version": 1,
+                "search_directories": {
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin": "present",
+                  "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/etc/clang": "absent",
+                  "/Users/bytedance/.config/clang": "absent",
+                  "/Users/bytedance/Library/Preferences/clang": "absent",
+                  "/etc/clang": "absent"
+                },
+                "status": "only-hash-locked-swift-linux-configs-no-macos-match"
+              },
+              "macos_sdk": {
+                "canonical_name": "macosx26.5",
+                "display_name": "macOS 26.5",
+                "version": "26.5"
+              },
+              "paths": {
+                "cargo": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+                "clang": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+                "codex_javascript": "/opt/homebrew/lib/node_modules/@openai/codex/bin/codex.js",
+                "codex_launcher": "/opt/homebrew/bin/codex",
+                "codex_native": "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+                "macos_sdk": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+                "macos_sdk_settings": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json",
+                "python": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9",
+                "rustc": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc"
+              },
+              "sha256": {
+                "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb",
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json": "f8d005f09381389167f9e0aeaa169bc9e7dff162ef22ca2fd8e98df7ff1acafe",
+                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang": "7def90dd8829726686213a747fc5bff1583df933dae5edc55d755479e0bfe00a",
+                "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo": "696d29bd6f5a136ef6c7088558e178efcabbd571de90e8169d0f6596c568eea8",
+                "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc": "f556cd7caa76d85ff0e777ba8e96552b33b4e0ea0dda8fbe6cde1d23b6c4df27",
+                "/opt/homebrew/lib/node_modules/@openai/codex/bin/codex.js": "134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477",
+                "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex": "978740e6bcbd9af2f850823b723fb74f16d8d1e44de05f7dd6737ae631f72017"
+              },
+              "versions": {
+                "cargo": "cargo 1.91.1 (ea2d97820 2025-10-10)\nrelease: 1.91.1\ncommit-hash: ea2d97820c16195b0ca3fadb4319fe512c199a43\ncommit-date: 2025-10-10\nhost: aarch64-apple-darwin\nlibgit2: 1.9.1 (sys:0.20.2 vendored)\nlibcurl: 8.7.1 (sys:0.4.83+curl-8.15.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.5.2 5 Aug 2025\nos: Mac OS 26.5.1 [64-bit]",
+                "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+                "codex": "codex-cli 0.144.0",
+                "codex_native": "codex-cli 0.144.0",
+                "python": "Python 3.9.6",
+                "rustc": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2"
+              }
+            },
+            "user_config": "ignored"
+          }
+        },
+        "model_timeout_seconds": 660.0,
+        "protocol_version": 1,
+        "repair_budget": 3,
+        "source_name": "utf8parse.xl",
+        "trajectory_count": 1
+      }
+    },
+    "frozen_round": 0,
+    "manifest": {
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/trace-manifest.json",
+      "sha256": "cb07a8b7dc090d66c2024f469f88fb461748003c8e691eb3bc916fcd2ee6feef",
+      "value": {
+        "config": {
+          "path": "config.json",
+          "sha256": "76471fd29f63dbd835ed3291e36f1d316e9a4853f63459656fd17e65a9d2d608"
+        },
+        "frozen_round": 0,
+        "protocol_version": 1,
+        "source": {
+          "path": "frozen/utf8parse.xl",
+          "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535"
+        },
+        "status": "frozen",
+        "trace": {
+          "path": "trace.jsonl",
+          "rounds": [
+            {
+              "artifacts": {
+                "evaluator": {
+                  "path": "rounds/000/evaluator.json",
+                  "sha256": "353c00f372c4bf2b850a011935b770856c5c1195c649c68e6fec5bd3cf46caa1"
+                },
+                "evaluator_process": {
+                  "path": "rounds/000/evaluator-process.json",
+                  "sha256": "04d87c6904b6726b71c4765f4ee2b1e09e771ad19624d0b2310d6a3093c90799"
+                },
+                "evaluator_raw": {
+                  "path": "rounds/000/evaluator.raw.txt",
+                  "sha256": "820d95883f946971d6a3f9c89e3080786e7c8ae7d18276bf8cd64367148fcbfc"
+                },
+                "evaluator_stderr": {
+                  "path": "rounds/000/evaluator.stderr.txt",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                },
+                "model_process": {
+                  "path": "rounds/000/model-process.json",
+                  "sha256": "d7f3b866bcc2f6e1bd12196d1bee588b607ebb6205977b127b8acfac579bb4f0"
+                },
+                "model_stderr": {
+                  "path": "rounds/000/model.stderr.txt",
+                  "sha256": "7bfd02b840d705b0147f60444f72168a54343087a4a78fa4938c9c10c00f69ca"
+                },
+                "prompt": {
+                  "path": "rounds/000/prompt.txt",
+                  "sha256": "ca977c4bd4005f913ad81ecef3d813e0daece09a6bdbe208c0414dac22490801"
+                },
+                "raw": {
+                  "path": "rounds/000/model.raw.txt",
+                  "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535"
+                },
+                "source": {
+                  "path": "rounds/000/utf8parse.xl",
+                  "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535"
+                }
+              },
+              "correct": true,
+              "evaluator": {
+                "compile": {
+                  "diagnostics": [],
+                  "passed": true
+                },
+                "correctness": {
+                  "diagnostics": [
+                    {
+                      "code": "CORPUS",
+                      "message": "correct cases=84041"
+                    }
+                  ],
+                  "passed": true
+                }
+              },
+              "protocol_version": 1,
+              "round": 0
+            }
+          ],
+          "sha256": "c856e00fd910388ee64b430b8661469b7cb1f09ee6ac250e72e6cac6c6896c8d"
+        }
+      }
+    },
+    "protocol_version": 1,
+    "result": {
+      "absolute_path_fields": {
+        "manifest": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/trace-manifest.json",
+        "role": "live-canonical-run-binding",
+        "source": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl"
+      },
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/result.json",
+      "sha256": "1f80b584ac88490de72ffd04df88de96732af28d1612a974743af8deefc26e0d",
+      "value": {
+        "manifest": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/trace-manifest.json",
+        "round": 0,
+        "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+        "source": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl",
+        "status": "frozen"
+      }
+    },
+    "run_dir": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered",
+    "source": {
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl",
+      "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535"
+    },
+    "source_sha256_file": {
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/source.sha256",
+      "sha256": "0438fb4c3f2ff47fa65d60319fca6266f8d4f640a5e978ba0f125aa9116b22ef"
+    },
+    "status": "verified-frozen",
+    "trace": {
+      "artifacts_verified": 9,
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/trace.jsonl",
+      "rounds": 1,
+      "sha256": "c856e00fd910388ee64b430b8661469b7cb1f09ee6ac250e72e6cac6c6896c8d"
+    }
+  },
+  "host": {
+    "cpu_brand_sysctl": {
+      "argv": [
+        "/usr/sbin/sysctl",
+        "-n",
+        "machdep.cpu.brand_string"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "Apple M4"
+    },
+    "hardware": {
+      "available": true,
+      "chip_type": "Apple M4",
+      "machine_model": "Mac16,12",
+      "machine_name": "MacBook Air",
+      "number_processors": "proc 10:4:6:0",
+      "physical_memory": "16 GB"
+    },
+    "machine": "arm64",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "arm",
+    "uname": [
+      "Darwin",
+      "FVV39V0J1W",
+      "25.5.0",
+      "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:26 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T8132",
+      "arm64",
+      "arm"
+    ]
+  },
+  "interrupted": false,
+  "invalidated_at": "2026-07-13T07:21:51.915172+00:00",
+  "invalidation_reason": "block 27 invalidated by power source changed from AC Power to Battery Power",
+  "locked_build_tools": {
+    "clang_default_configs": {
+      "cfg_files_sha256": {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang.cfg": "46dee6b61cb6efb3748a08aefe5088961f7435767491e2b719d6e939d9a0dcf0",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang.cfg": "b8ae741f12cebb7e1a4f3782ee75f83c0e4396a9c4dbdbcd3192d6ce48824afa"
+      },
+      "cfg_symlink_targets": {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/aarch64-swift-linux-musl-clang++.cfg": "aarch64-swift-linux-musl-clang.cfg",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/x86_64-swift-linux-musl-clang++.cfg": "x86_64-swift-linux-musl-clang.cfg"
+      },
+      "direct_clang_policy": "--no-default-config",
+      "schema_version": 1,
+      "search_directories": {
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin": "present",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/etc/clang": "absent",
+        "/Users/bytedance/.config/clang": "absent",
+        "/Users/bytedance/Library/Preferences/clang": "absent",
+        "/etc/clang": "absent"
+      },
+      "status": "only-hash-locked-swift-linux-configs-no-macos-match"
+    },
+    "macos_sdk": {
+      "canonical_name": "macosx26.5",
+      "display_name": "macOS 26.5",
+      "version": "26.5"
+    },
+    "paths": {
+      "cargo": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+      "clang": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+      "macos_sdk": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+      "macos_sdk_settings": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json",
+      "python": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9",
+      "rustc": "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc"
+    },
+    "sha256": {
+      "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/SDKSettings.json": "f8d005f09381389167f9e0aeaa169bc9e7dff162ef22ca2fd8e98df7ff1acafe",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang": "7def90dd8829726686213a747fc5bff1583df933dae5edc55d755479e0bfe00a",
+      "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo": "696d29bd6f5a136ef6c7088558e178efcabbd571de90e8169d0f6596c568eea8",
+      "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc": "f556cd7caa76d85ff0e777ba8e96552b33b4e0ea0dda8fbe6cde1d23b6c4df27"
+    },
+    "versions": {
+      "cargo": "cargo 1.91.1 (ea2d97820 2025-10-10)\nrelease: 1.91.1\ncommit-hash: ea2d97820c16195b0ca3fadb4319fe512c199a43\ncommit-date: 2025-10-10\nhost: aarch64-apple-darwin\nlibgit2: 1.9.1 (sys:0.20.2 vendored)\nlibcurl: 8.7.1 (sys:0.4.83+curl-8.15.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.5.2 5 Aug 2025\nos: Mac OS 26.5.1 [64-bit]",
+      "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+      "python": "Python 3.9.6",
+      "rustc": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2"
+    }
+  },
+  "measurement_environment": {
+    "dynamic_loader_injection_scrubbed": true,
+    "removed_override_variable_names": []
+  },
+  "mode": "score",
+  "not_a_score": false,
+  "power_before_measurement": {
+    "captured_at": "2026-07-13T07:18:28.638243+00:00",
+    "power_source": "AC Power",
+    "power_source_available": true,
+    "power_source_probe": {
+      "argv": [
+        "/usr/bin/pmset",
+        "-g",
+        "batt"
+      ],
+      "available": true,
+      "returncode": 0,
+      "stderr": ""
+    },
+    "thermal": {
+      "available": true,
+      "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+    }
+  },
+  "power_before_preparation": {
+    "captured_at": "2026-07-13T07:18:22.568315+00:00",
+    "power_source": "AC Power",
+    "power_source_available": true,
+    "power_source_probe": {
+      "argv": [
+        "/usr/bin/pmset",
+        "-g",
+        "batt"
+      ],
+      "available": true,
+      "returncode": 0,
+      "stderr": ""
+    },
+    "thermal": {
+      "available": true,
+      "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+    }
+  },
+  "prepared_at": "2026-07-13T07:18:28.608363+00:00",
+  "proof_reports": {
+    "facts-off": {
+      "ir_byte_identical_with_and_without_report": true,
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/nofacts-proof-report.json",
+      "proof_counts": {
+        "None": 11
+      },
+      "sha256": "000fddb6ab82494555439aecd873bb96c5f4ecd0c1527f562b09b24610c76c72",
+      "site_count": 11,
+      "status_counts": {
+        "retained": 11
+      }
+    },
+    "facts-on": {
+      "ir_byte_identical_with_and_without_report": true,
+      "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/build/facts-proof-report.json",
+      "proof_counts": {
+        "None": 11
+      },
+      "sha256": "000fddb6ab82494555439aecd873bb96c5f4ecd0c1527f562b09b24610c76c72",
+      "site_count": 11,
+      "status_counts": {
+        "retained": 11
+      }
+    }
+  },
+  "protocol_sha256": "e786e949d1500c605ef37195dadc60e25380d4e02b7afc9f660d1cf5e062d960",
+  "repository": {
+    "revision": "5b9360b6b94e8290297433077decb88c61ddf716",
+    "status_porcelain_v1": [
+      "M compiler/PLAN.md"
+    ]
+  },
+  "rerun": null,
+  "schedule_sha256": "a04d77da5d658672c1b82bc957ac5c81487d015f4da428a1b9f3776336b4220b",
+  "schema_version": 1,
+  "source_tool_sha256": {
+    "experiments/default-floor/utf8parse/PROTOCOL.md": "e786e949d1500c605ef37195dadc60e25380d4e02b7afc9f660d1cf5e062d960",
+    "experiments/default-floor/utf8parse/analyze.py": "faea59d2664d91081028658c788d76677472501356fd6279457c1898bcc847d0",
+    "experiments/default-floor/utf8parse/benchmark.py": "0f46ae5e9902f06f211d55234006dfd6e928ec4a7eba54f4c88759a32a6be274",
+    "experiments/default-floor/utf8parse/harness/Cargo.lock": "f5c7fc2dec0cc93129ea78c82985ea45242addb2ecce260f2a36154369093b04",
+    "experiments/default-floor/utf8parse/harness/Cargo.toml": "34d7feecfb4fd313694d34255f3129f2ef0f4ae86cb510a8a6a902b3391d05fb",
+    "experiments/default-floor/utf8parse/harness/src/bin/bench.rs": "074daa59803f6b5648ed517fdabfe71dc56e93ecf32784e32b38883c0a204ba0",
+    "experiments/default-floor/utf8parse/rust-baseline/Cargo.lock": "018d83cbdef914a2a2cf7b3829c66b71991f39ea5f3b12c8efed35735fb80381",
+    "experiments/default-floor/utf8parse/rust-baseline/Cargo.toml": "4e12735af726e8df6ebf052a679699b697cf29cba89217d1f44e7f0aa3d76b59",
+    "experiments/default-floor/utf8parse/rust-baseline/src/lib.rs": "8ad407d1968168feeca1d21fe5a493eee71d4d582371b969c42a0e58ccfd5349",
+    "experiments/default-floor/utf8parse/task.md": "9f301b9a0776b855439fb23d403e990ebc5ce8b2add9730c4040de99071732d9",
+    "experiments/default-floor/utf8parse/teaching-pack.md": "88917635d551c9352fd788a0c339369e65ad54459ae16157b566fb0e05782672",
+    "prototype/checker/checker.py": "835e209b8569f0059d5c115dedc4d8ba3a2c98bd7853d401b64a30be0e45e6f4",
+    "prototype/checker/modelcheck.py": "b4cf2aa7a8b190aa01939a7c4774cec73dd8d852ea14ec0b2fd7366625bc8de9",
+    "prototype/checker/oracle.py": "4726f82bd3de3f4de7a8dcdb8b3c555af8149e3fb2938aaae025d34558aa5a40",
+    "prototype/checker/test_checker.py": "eff35ddce868f1febd63472ea6373bb1ebdaadab94e81608ad46c3b600f41dea",
+    "prototype/democ/README.md": "8fb62860baf40e251b490819d02952330306c6bb99bb4113cbf56a11be8542bf",
+    "prototype/democ/democ.py": "211f7caee393ac5822df71cdd0777a2c9b77dc2fafd47d4f3fd4d0aeed9c5336",
+    "prototype/democ/democ_v1_backup.py": "268ef2e3fae14b329102dea1c2a10dfda02007e62dc567e0acc27ec868ba9ed9",
+    "prototype/democ/examples/dangle.xl": "63b49f22ff3bfde9ef8ce8f2f9ac1df8d41ebbcd433f091cc248dc19848418fa",
+    "prototype/democ/examples/ex1.xl": "4e0a68fcd64f4850cac898a2cd24b8b2b85586016f6b684a1fcb5b9f3527d375",
+    "prototype/democ/examples/ex2.s": "9741063b8a190183ed54b2921c4231c432b4d4d8b9a8bfa8b6853fa22bdff157",
+    "prototype/democ/examples/ex2.xl": "777518bd8df72839b0aa46acc70cb116525e0093065a536ddf7ed46a67b2d3bb",
+    "prototype/democ/examples/nonexhaustive.xl": "90c623be3f365ee1836537cf9a3f4290a2a440a84a4bdb2c7f46719fa6343f9b",
+    "prototype/democ/examples/sat_reduce.xl": "acd5ceef3c85f5df1f498c0b41d6cfb0bd836d9713801c5e17c39ddab46f50eb",
+    "prototype/democ/examples/soa_kernel.ll": "dfe27e6ac18799b2ac5e4d6f382fea3f979be04bd269ef64fe224c3c73d42d7c",
+    "prototype/democ/examples/soa_kernel.s": "c9e73da35ad2581548688f6ffea411a9189e7a2397edd204ae0a3f8263ca4ffb",
+    "prototype/democ/examples/soa_kernel.xl": "3770cfb059bb723a1c906309af600a9ae8ce63f1fc115ff955b27a284f57b97b",
+    "prototype/democ/examples/totality_pins.xl": "3a3c76a36933b7b949319efbbd3901c6782f3d6d03c0470086409f0b3a9a36ec",
+    "prototype/democ/examples/twice_read.ll": "6fd3c60879a89cf58a01eafb4c98a507d0607aa37a447e8edf2da203ef531dda",
+    "prototype/democ/examples/twice_read.s": "aa2f2a107593eb0180c3560936c6c94540b49d0b80f8251ed461528493d29e24",
+    "prototype/democ/examples/twice_read.xl": "2e9cf539f65d9f9be890945bbc402dd4689f076f65858c3267d8f5e9ef2acbba",
+    "prototype/democ/examples/twice_read_nofacts.s": "4af5b98ec2ff4ee875fb90ba6a64138a714e51be463b3afb97812951cdae9b5a",
+    "prototype/democ/examples/twice_read_nofacts.xl": "9dfbccc6a53e1aa87e87d1eae6bb57aa6d8a9cff5cf15e1c5526ea58d5eaad10",
+    "prototype/democ/perf_regress.py": "f840f47caab79a9fc0d9d0f8a1dab87053f29bc65d50be71928505b109e2a3ad",
+    "prototype/democ/test_codegen.py": "8c30f78a88b6cb3f547fcbf4b3ceff3579717e87de5089266a043c23f489c8cf",
+    "prototype/democ/twice_read.ll": "61964a1e79e60d13717d2012c0904cc8807583e793751ef9cd7ce6ec144d4c6b",
+    "prototype/democ/twice_read.s": "de300c6e33e5c85131191af268e3314571ed33ac6d86dba0ca7766a928750df3",
+    "prototype/democ/twice_read_nofacts.ll": "6b8e4c97396f2ab9a774df7f8737a52ab1ecd1c19a3909a452875248861de5c2",
+    "prototype/democ/twice_read_nofacts.s": "45cfe06243083e49092c597cd1c8e50f5465327f0a406798c5f4400696415e97"
+  },
+  "status": "invalid",
+  "tool_versions": {
+    "cargo": {
+      "argv": [
+        "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo",
+        "--version",
+        "--verbose"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "cargo 1.91.1 (ea2d97820 2025-10-10)\nrelease: 1.91.1\ncommit-hash: ea2d97820c16195b0ca3fadb4319fe512c199a43\ncommit-date: 2025-10-10\nhost: aarch64-apple-darwin\nlibgit2: 1.9.1 (sys:0.20.2 vendored)\nlibcurl: 8.7.1 (sys:0.4.83+curl-8.15.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.5.2 5 Aug 2025\nos: Mac OS 26.5.1 [64-bit]"
+    },
+    "clang": {
+      "argv": [
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+        "--version"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.5.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    },
+    "python": {
+      "argv": [
+        "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9",
+        "--version"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "Python 3.9.6"
+    },
+    "rustc": {
+      "argv": [
+        "/Users/bytedance/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+        "--version",
+        "--verbose"
+      ],
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "rustc 1.91.1 (ed61e7d7e 2025-11-07)\nbinary: rustc\ncommit-hash: ed61e7d7e242494fb7057f2657300d9e77bb4fcb\ncommit-date: 2025-11-07\nhost: aarch64-apple-darwin\nrelease: 1.91.1\nLLVM version: 21.1.2"
+    }
+  },
+  "transition_observation": {
+    "after": {
+      "captured_at": "2026-07-13T07:21:51.914248+00:00",
+      "power_source": "Battery Power",
+      "power_source_available": true,
+      "power_source_probe": {
+        "argv": [
+          "/usr/bin/pmset",
+          "-g",
+          "batt"
+        ],
+        "available": true,
+        "returncode": 0,
+        "stderr": ""
+      },
+      "thermal": {
+        "available": true,
+        "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+      }
+    },
+    "before": {
+      "captured_at": "2026-07-13T07:21:44.786747+00:00",
+      "power_source": "AC Power",
+      "power_source_available": true,
+      "power_source_probe": {
+        "argv": [
+          "/usr/bin/pmset",
+          "-g",
+          "batt"
+        ],
+        "available": true,
+        "returncode": 0,
+        "stderr": ""
+      },
+      "thermal": {
+        "available": true,
+        "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded"
+      }
+    },
+    "phase": "block 27",
+    "reason": "power source changed from AC Power to Battery Power"
+  },
+  "utf8parse_registry": {
+    "cargo_referenced_source_tree": "/Users/bytedance/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2",
+    "crate_files": [
+      {
+        "path": "/Users/bytedance/.cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2.crate",
+        "sha256": "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+      }
+    ],
+    "expected_crates_io_sha256": "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821",
+    "package": "utf8parse",
+    "verified_source_trees": [
+      {
+        "cargo_ok_sha256": "afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91",
+        "path": "/Users/bytedance/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/utf8parse-0.2.2",
+        "tree_directories": [
+          "src",
+          "tests"
+        ],
+        "tree_files_sha256": {
+          ".cargo_vcs_info.json": "c0be9397ac93ebcf6eb1f5ccb300fa66f2af7839716a9d729d73ee2d0ba56ee0",
+          "Cargo.toml": "ab073da31fea03203d8e78d4d1169905474f9c9e37fa17d734c65f8e67f72c39",
+          "Cargo.toml.orig": "61bb87955bb142b3584d3bc359a760474553a771d9edf5a16e751578568f4376",
+          "LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+          "LICENSE-MIT": "e4c9b06fa850cb9b540a5e400e9f6394cf15efcf4098144de477d1d3dae10150",
+          "src/lib.rs": "161f74913ee618b6b059360122c5ca500c8f5d8521014ad06b558693e3a4f7d3",
+          "src/types.rs": "09b93214394da3520ed7829a878d1bd37e067e0cd489e7437e16fce202896067",
+          "tests/UTF-8-demo.txt": "e0084609a607b4a2cb0ed0cd8ca4f25f01e72b356bbf4d8c49329a440ea946dd",
+          "tests/utf-8-demo.rs": "beb91c3933180ce69fa6dcbaa5459ba3a3a8a8d0496804069d3666645d7f8eff"
+        }
+      }
+    ],
+    "version": "0.2.2"
+  }
+}

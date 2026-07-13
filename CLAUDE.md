@@ -57,17 +57,17 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - `archive/` — superseded plans, the research-era record, shelved harnesses.
   Read-only context; nothing in it gates anything.
 
-## Current focus (2026-07-12)
+## Current focus (2026-07-13)
 
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
-- D9a first target is complete: one exact `gpt-5.6-terra`/medium trajectory's
-  first-green `percent_decode` beats shipped `percent-encoding` 2.3.2 by
-  1.653x [1.631, 1.667]. Facts-on/off is practical parity with all six checks
-  retained, so this is default-shape evidence, not proof-elision evidence.
-  The independent second target is now preregistered against shipped
-  `utf8parse` 0.2.2: one-shot `Parser`/`Receiver` events, an 84,041-case exact
-  and surplus-capacity gate, and a fixed 128 MiB score. It has not yet been
-  launched. Do not tune either completed/frozen protocol from model output.
+- D9a is complete on two independently preregistered shipped-library targets.
+  First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by
+  1.653x [1.631, 1.667] and one-shot `utf8parse` 0.2.2 by 1.098x
+  [1.085, 1.145]. Both retain every bounds site, so this is replicated
+  default-shape evidence, not proof-elision evidence. The utf8parse facts
+  control is statistically inconclusive, but facts-on/off reports and optimized
+  instruction bodies are identical. Do not tune either completed protocol
+  from its result.
 - Proof tier: PROOF-1/2 shipped and adversarially reviewed; the accounting
   design's approved first slice is in
   `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`.

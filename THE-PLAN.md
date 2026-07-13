@@ -52,11 +52,12 @@ Measured wins (real, replicable, with caveats in each RESULTS.md):
   Rust loops; parity at long trips (runtime checks amortize).
 - Utility ports: wc full counts 2.1x GNU / 2.4x uutils-Rust; base64 1.6x
   GNU/uutils at RFC-identical output; both at full checked semantics.
-- D9a default floor: one `gpt-5.6-terra` trajectory's first correctness-green
-  `percent_decode` is 1.653x the shipped `percent-encoding` 2.3.2 path
-  (bootstrap interval 1.631..1.667). Facts-on/off is practical parity and both
-  retain all six bounds sites, so this is a default implementation-shape win,
-  not a proof-elision win. One fresh-library replication is still required.
+- D9a default floor now has two independently locked shipped-library wins from
+  first-green `gpt-5.6-terra` trajectories: `percent_decode` is 1.653x
+  `percent-encoding` 2.3.2 [1.631, 1.667], and one-shot UTF-8 parsing is 1.098x
+  `utf8parse` 0.2.2 [1.085, 1.145]. In both targets facts retain every bounds
+  site, so these are default implementation-shape wins, not proof-elision
+  wins. This is a replicated floor result, not a universal language claim.
 - Codegen debt retired: OWN-1 Bool-copy amendment -> i1 dataflow -> C/Rust
   parity on the classifier kernel (was 1.6-1.8x behind); 2-variant enums i1.
 
@@ -94,16 +95,20 @@ Measured non-wins (equally load-bearing):
    score is a meaningful xlang win at 1.653x [1.631, 1.667]. Facts-on/off is
    practical parity at 1.010x [1.005, 1.020], with identical all-retained proof
    reports. Full evidence is in `experiments/default-floor/percent-decode/RESULTS.md`.
-2. **Second shipped-library replication** — `utf8parse` 0.2.2 is independently
-   preregistered as a one-shot byte-to-event state-machine task. The comparison
-   is one exact `gpt-5.6-terra`/medium first-green trajectory versus the crate's
-   ordinary public `Parser`/`Receiver` path through a minimal safe sink. The
-   84,041-case gate checks exact and surplus output capacity; the score is 30
-   fresh processes over a fixed 128 MiB corpus. STATUS: PREREGISTERED, NOT YET
-   LAUNCHED. No model output or timing result existed when protocol SHA-256
-   `e786e949...2d960` and prompt SHA-256 `81f023e5...c903a` were fixed. QOI
-   remains a later target once aggregate-result and fixed-array support arrive
-   through the normal compiler roadmap.
+2. **Second shipped-library replication** — `utf8parse` 0.2.2, one-shot
+   byte-to-event parsing through the crate's ordinary public
+   `Parser`/`Receiver` path. STATUS: COMPLETE. Terra's round-0 response was
+   first-green across all 84,041 exact/surplus-capacity cases and froze at
+   source SHA-256 `3bb79519...c1535`. The valid 30-process score is a meaningful
+   xlang win at 1.098x [1.085, 1.145]. Facts-on/off is statistically
+   inconclusive at 1.005x [0.986, 1.035], but its proof reports are identical
+   with all 11 sites retained and its optimized instruction bodies are
+   identical. The first timing attempt is retained as invalid after an AC to
+   battery transition at block 27; the protocol-authorized full rerun completed
+   under stable battery power. Full evidence is in
+   `experiments/default-floor/utf8parse/RESULTS.md`. QOI remains a later target
+   once aggregate-result and fixed-array support arrive through the normal
+   compiler roadmap.
 3. **Proof-elided checks (OP-4 tier)** — enabling evidence for the experiment.
    A checked concrete-function `requires` prologue
    computes and verifies a boundary fact once at callee entry, then the
@@ -170,12 +175,11 @@ Measured non-wins (equally load-bearing):
    frame (first D4 FFI instance) and chunked-driver parity. The AI-authorship
    headline runs through the shelved trial harness when the time comes.
 
-STATUS UPDATE (2026-07-12): D9a's first target is complete. Default Terra xlang
-beats shipped `percent-encoding` 2.3.2 by 1.653x on the locked workload; facts
-are neutral, so the result supports the default-shape thesis rather than the
-proof-elision thesis. The separately preregistered `utf8parse` replication is
-now frozen and ready for its sole Terra trajectory; no second-target output or
-timing existed at preregistration.
+STATUS UPDATE (2026-07-13): D9a is complete on two independently preregistered
+targets. Default Terra xlang beats shipped `percent-encoding` 2.3.2 by 1.653x
+and shipped `utf8parse` 0.2.2 by 1.098x on their locked workloads. Neither win
+comes from proof-elided bounds checks. This supports a replicated default-shape
+thesis while remaining limited to these implementations, corpora, and machine.
 THE BUILD TRACK IS ACTIVE: `compiler/` hosts xlc, the production compiler
 written in xlang itself (SoA-tape architecture per P2, fixed-capacity
 buffers, no generics needed), bootstrapped by prototype/democ as stage 0,

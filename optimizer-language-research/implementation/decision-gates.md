@@ -845,3 +845,40 @@ evaluator invocation again reports compile green and `correct cases=84041`.
 At this entry no proof report, IR, assembly, or performance result has been
 used to alter the source, and the preregistered scoring campaign has not yet
 run.
+
+## D9a utf8parse score: default-floor win replicated (2026-07-13)
+
+The first scoring attempt was invalidated at block 27 when the observed power
+source changed from AC Power to Battery Power.  Its 28 completed raw rows and
+all logs remain archived; none entered the result.  The protocol-authorized
+full rerun binds that invalid campaign's metadata hash and the transition
+reason, restarted at block 0 in a fresh append-free directory, and completed
+all 30 processes and 90 samples under stable Battery Power with no recorded
+power or thermal transition.
+
+Median throughput in the valid campaign was 333.105 MiB/s xlang facts-on,
+319.673 MiB/s facts-off, and 280.474 MiB/s shipped Rust.  The preregistered
+paired facts-on/Rust median ratio is 1.0980 with stratified bootstrap interval
+[1.0849, 1.1448], a predeclared **meaningful xlang win**.  Facts-on/facts-off
+is 1.0051 with interval [0.9856, 1.0349], **inconclusive against the +/-2%
+band** and unable to change the primary verdict.
+
+Attribution remains negative for proof elision.  The facts-on and facts-off
+reports are byte-identical, retain all 11 bounds sites, and prove none; their
+optimized instruction bodies are also identical.  Rust's generic public
+`Parser`/`Receiver` path monomorphizes and inlines into a call-free branch DFA,
+so this result is not a dynamic-dispatch penalty either.  The defensible static
+mechanism is different state numbering, control-flow layout, and source-loop
+lowering for two implementations of the same DFA semantics; it does not imply
+that expert Rust cannot choose a different layout.
+
+This independently reproduces the default-floor win on a second shipped
+library, with a much smaller effect than percent-decode.  D9a's requested
+replication is therefore complete, but the claim remains limited to these two
+first-green sources, frozen synthetic workloads, machine, and toolchain.  The
+utf8parse corpus is deliberately equal-weight and malformed-heavy, and the
+adapter is one-shot rather than a persistent streaming parser.  Canonical
+evidence is in `experiments/default-floor/utf8parse/RESULTS.md`; valid raw
+SHA-256 `71297ba0bfc2bc7b8af1f29b33f7c4769cb6c706f8a0c3f7c855363b86404ab3`,
+analysis SHA-256
+`1a16044495b3e4d2e41c6f49d6f32cf9390d95a3b40f5f3e8c278077e115ff1c`.

@@ -1,0 +1,45 @@
+{
+  "archive_root": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered/generation-freeze",
+  "kind": "complete-generation-run-freeze",
+  "original_run_dir": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered",
+  "result_absolute_paths": {
+    "manifest": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/trace-manifest.json",
+    "role": "historical-original-run-reference",
+    "source": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl"
+  },
+  "schema_version": 1,
+  "tree": {
+    "directories": [
+      "frozen",
+      "rounds",
+      "rounds/000"
+    ],
+    "files_sha256": {
+      "config.json": "76471fd29f63dbd835ed3291e36f1d316e9a4853f63459656fd17e65a9d2d608",
+      "frozen/source.sha256": "0438fb4c3f2ff47fa65d60319fca6266f8d4f640a5e978ba0f125aa9116b22ef",
+      "frozen/trace-manifest.json": "cb07a8b7dc090d66c2024f469f88fb461748003c8e691eb3bc916fcd2ee6feef",
+      "frozen/utf8parse.xl": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+      "result.json": "1f80b584ac88490de72ffd04df88de96732af28d1612a974743af8deefc26e0d",
+      "rounds/000/evaluator-process.json": "04d87c6904b6726b71c4765f4ee2b1e09e771ad19624d0b2310d6a3093c90799",
+      "rounds/000/evaluator.json": "353c00f372c4bf2b850a011935b770856c5c1195c649c68e6fec5bd3cf46caa1",
+      "rounds/000/evaluator.raw.txt": "820d95883f946971d6a3f9c89e3080786e7c8ae7d18276bf8cd64367148fcbfc",
+      "rounds/000/evaluator.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rounds/000/model-process.json": "d7f3b866bcc2f6e1bd12196d1bee588b607ebb6205977b127b8acfac579bb4f0",
+      "rounds/000/model.raw.txt": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+      "rounds/000/model.stderr.txt": "7bfd02b840d705b0147f60444f72168a54343087a4a78fa4938c9c10c00f69ca",
+      "rounds/000/prompt.txt": "ca977c4bd4005f913ad81ecef3d813e0daece09a6bdbe208c0414dac22490801",
+      "rounds/000/record.json": "cdceaa4964f61f551f751c2b52205e9ad325c316426553528c1e305e08328781",
+      "rounds/000/utf8parse.xl": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+      "trace.jsonl": "c856e00fd910388ee64b430b8661469b7cb1f09ee6ac250e72e6cac6c6896c8d"
+    }
+  },
+  "validation_identity": {
+    "config_sha256": "76471fd29f63dbd835ed3291e36f1d316e9a4853f63459656fd17e65a9d2d608",
+    "frozen_round": 0,
+    "manifest_sha256": "cb07a8b7dc090d66c2024f469f88fb461748003c8e691eb3bc916fcd2ee6feef",
+    "result_sha256": "1f80b584ac88490de72ffd04df88de96732af28d1612a974743af8deefc26e0d",
+    "source_sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535",
+    "source_sha256_file_sha256": "0438fb4c3f2ff47fa65d60319fca6266f8d4f640a5e978ba0f125aa9116b22ef",
+    "trace_sha256": "c856e00fd910388ee64b430b8661469b7cb1f09ee6ac250e72e6cac6c6896c8d"
+  }
+}

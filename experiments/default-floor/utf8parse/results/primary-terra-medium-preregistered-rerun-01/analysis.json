@@ -1,0 +1,1290 @@
+{
+  "campaign": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered-rerun-01",
+  "corpus": {
+    "bytes": 134217728,
+    "command": [
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered-rerun-01/build/cargo-target/aarch64-apple-darwin/release/bench",
+      "prepare-corpus",
+      "--mode",
+      "score",
+      "--bytes",
+      "134217728",
+      "--output",
+      "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered-rerun-01/corpus.bin"
+    ],
+    "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/results/primary-terra-medium-preregistered-rerun-01/corpus.bin",
+    "sha256": "e7387acef66a3a0ca0cfa88cd7b57c18625cc9713bc16a41827c4899cb39ce18"
+  },
+  "facts_attribution": {
+    "bootstrap_95_percent_interval": [
+      0.9856365683716164,
+      1.0348667317123745
+    ],
+    "cannot_change_primary_verdict": true,
+    "paired_block_ratios": [
+      0.6831283114225258,
+      1.0661425586363333,
+      1.1180096708885288,
+      1.2639567027603509,
+      1.0925493666408526,
+      0.877061427503912,
+      0.872002422434609,
+      1.0721565415025152,
+      1.0305059407733688,
+      1.0785042934321039,
+      0.8372465573112498,
+      1.3822286909518644,
+      0.7796624066472954,
+      1.0065504486866295,
+      1.3393184669401912,
+      1.2927440181656222,
+      0.9876729738173613,
+      0.8945728267338205,
+      1.1966775626366732,
+      0.9790882712474395,
+      1.251322990900532,
+      1.0035909047884157,
+      1.066450358074764,
+      0.7778891085546371,
+      0.8872466863685228,
+      0.8050030973545053,
+      1.204257942879158,
+      0.8825749526601742,
+      0.9051305781068995,
+      0.7910097001919487
+    ],
+    "point_estimate_median": 1.0050706767375226,
+    "practical_band": [
+      0.98,
+      1.02
+    ],
+    "ratio": "facts-on/facts-off",
+    "verdict": "inconclusive against the 2% band"
+  },
+  "frozen_source": {
+    "path": "/Users/bytedance/Dev/xlang/experiments/default-floor/utf8parse/runs/primary-terra-medium-preregistered/frozen/utf8parse.xl",
+    "sha256": "3bb7951995120d24c651b6750ac9ba4c7a8fb9b61bc02fb5d219e64e640c1535"
+  },
+  "kind": "utf8parse-score-analysis",
+  "order_position_medians": {
+    "facts-off": {
+      "0": {
+        "median_bytes_per_second": 395639245.00009406,
+        "sample_count": 10
+      },
+      "1": {
+        "median_bytes_per_second": 329641936.00636876,
+        "sample_count": 10
+      },
+      "2": {
+        "median_bytes_per_second": 291355996.5427706,
+        "sample_count": 10
+      }
+    },
+    "facts-on": {
+      "0": {
+        "median_bytes_per_second": 369611254.51642144,
+        "sample_count": 10
+      },
+      "1": {
+        "median_bytes_per_second": 326215882.08577955,
+        "sample_count": 10
+      },
+      "2": {
+        "median_bytes_per_second": 290740474.4046835,
+        "sample_count": 10
+      }
+    },
+    "rust": {
+      "0": {
+        "median_bytes_per_second": 331002877.23315525,
+        "sample_count": 10
+      },
+      "1": {
+        "median_bytes_per_second": 288080147.53132343,
+        "sample_count": 10
+      },
+      "2": {
+        "median_bytes_per_second": 255867829.4925267,
+        "sample_count": 10
+      }
+    }
+  },
+  "order_stratum_medians": {
+    "facts-off": {
+      "facts-off,facts-on,rust": {
+        "median_bytes_per_second": 412784039.06190246,
+        "sample_count": 5
+      },
+      "facts-off,rust,facts-on": {
+        "median_bytes_per_second": 369009059.7354181,
+        "sample_count": 5
+      },
+      "facts-on,facts-off,rust": {
+        "median_bytes_per_second": 337511873.31019133,
+        "sample_count": 5
+      },
+      "facts-on,rust,facts-off": {
+        "median_bytes_per_second": 294202844.3706477,
+        "sample_count": 5
+      },
+      "rust,facts-off,facts-on": {
+        "median_bytes_per_second": 326393107.5192065,
+        "sample_count": 5
+      },
+      "rust,facts-on,facts-off": {
+        "median_bytes_per_second": 282686383.298011,
+        "sample_count": 5
+      }
+    },
+    "facts-on": {
+      "facts-off,facts-on,rust": {
+        "median_bytes_per_second": 364312853.73393404,
+        "sample_count": 5
+      },
+      "facts-off,rust,facts-on": {
+        "median_bytes_per_second": 291889745.7094259,
+        "sample_count": 5
+      },
+      "facts-on,facts-off,rust": {
+        "median_bytes_per_second": 364152356.7407785,
+        "sample_count": 5
+      },
+      "facts-on,rust,facts-off": {
+        "median_bytes_per_second": 378034047.4402455,
+        "sample_count": 5
+      },
+      "rust,facts-off,facts-on": {
+        "median_bytes_per_second": 289591203.09994096,
+        "sample_count": 5
+      },
+      "rust,facts-on,facts-off": {
+        "median_bytes_per_second": 301383983.9809927,
+        "sample_count": 5
+      }
+    },
+    "rust": {
+      "facts-off,facts-on,rust": {
+        "median_bytes_per_second": 257080263.93162447,
+        "sample_count": 5
+      },
+      "facts-off,rust,facts-on": {
+        "median_bytes_per_second": 276645368.1922896,
+        "sample_count": 5
+      },
+      "facts-on,facts-off,rust": {
+        "median_bytes_per_second": 254655395.05342892,
+        "sample_count": 5
+      },
+      "facts-on,rust,facts-off": {
+        "median_bytes_per_second": 290716579.96005833,
+        "sample_count": 5
+      },
+      "rust,facts-off,facts-on": {
+        "median_bytes_per_second": 333555598.977223,
+        "sample_count": 5
+      },
+      "rust,facts-on,facts-off": {
+        "median_bytes_per_second": 297480676.1342673,
+        "sample_count": 5
+      }
+    }
+  },
+  "primary": {
+    "bootstrap_95_percent_interval": [
+      1.0849347719687685,
+      1.144764267294695
+    ],
+    "paired_block_ratios": [
+      0.8511348212084736,
+      1.0131212147876243,
+      0.9718148387148118,
+      1.2743481148028268,
+      1.4480289464963056,
+      0.8706297495674786,
+      0.8449493079091868,
+      0.9444778833273333,
+      1.3990663140480621,
+      1.2344241328177314,
+      1.2477827892124167,
+      1.3243733438109855,
+      0.9155487015960503,
+      1.2984154209007477,
+      1.0289456727832043,
+      1.1461016169532077,
+      1.2642737769124441,
+      0.9836317657585152,
+      1.5291555426238526,
+      1.3133136556617657,
+      1.564810403853325,
+      0.8672170422470405,
+      0.953087012012864,
+      1.0496839931634867,
+      0.8681946997379464,
+      0.9079691207489954,
+      1.1409238711543326,
+      1.6138992863654855,
+      1.3051899940919258,
+      1.0551044017716584
+    ],
+    "point_estimate_median": 1.0980141364629956,
+    "practical_band": [
+      0.98,
+      1.02
+    ],
+    "ratio": "facts-on/rust",
+    "verdict": "meaningful xlang win"
+  },
+  "protocol_sha256": "e786e949d1500c605ef37195dadc60e25380d4e02b7afc9f660d1cf5e062d960",
+  "raw_samples": [
+    {
+      "block_index": 0,
+      "elapsed_ns": 599396667,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 223921378.59518662,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 0,
+      "elapsed_ns": 409464833,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 327788169.29560345,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 0,
+      "elapsed_ns": 510167375,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 263085674.57885757,
+      "variant": "rust"
+    },
+    {
+      "block_index": 1,
+      "elapsed_ns": 445337958,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 301383983.9809927,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 1,
+      "elapsed_ns": 474793750,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 282686383.298011,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 1,
+      "elapsed_ns": 451181333,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 297480676.1342673,
+      "variant": "rust"
+    },
+    {
+      "block_index": 2,
+      "elapsed_ns": 481634959,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 278671067.14734966,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 2,
+      "elapsed_ns": 538472542,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 249256401.2669749,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 2,
+      "elapsed_ns": 468060000,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 286753253.8563432,
+      "variant": "rust"
+    },
+    {
+      "block_index": 3,
+      "elapsed_ns": 362286375,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 370474125.61402565,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 3,
+      "elapsed_ns": 457914292,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 293106658.4835924,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 3,
+      "elapsed_ns": 461678959,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 290716579.96005833,
+      "variant": "rust"
+    },
+    {
+      "block_index": 4,
+      "elapsed_ns": 363981875,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 368748383.4188172,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 4,
+      "elapsed_ns": 397668167,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 337511873.31019133,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 4,
+      "elapsed_ns": 527056291,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 254655395.05342892,
+      "variant": "rust"
+    },
+    {
+      "block_index": 5,
+      "elapsed_ns": 459703833,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 291965649.10956484,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 5,
+      "elapsed_ns": 403188500,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 332890764.4935309,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 5,
+      "elapsed_ns": 400231833,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 335349957.0335276,
+      "variant": "rust"
+    },
+    {
+      "block_index": 6,
+      "elapsed_ns": 481746750,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 278606400.5621211,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 6,
+      "elapsed_ns": 420084333,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 319501865.3552119,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 6,
+      "elapsed_ns": 407051583,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 329731497.4451285,
+      "variant": "rust"
+    },
+    {
+      "block_index": 7,
+      "elapsed_ns": 427682416,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 313825686.95552826,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 7,
+      "elapsed_ns": 458542500,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 292705099.3092243,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 7,
+      "elapsed_ns": 403936583,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 332274257.02118194,
+      "variant": "rust"
+    },
+    {
+      "block_index": 8,
+      "elapsed_ns": 368575750,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 364152356.7407785,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 8,
+      "elapsed_ns": 379819500,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 353372399.2580686,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 8,
+      "elapsed_ns": 515661916,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 260282413.40979698,
+      "variant": "rust"
+    },
+    {
+      "block_index": 9,
+      "elapsed_ns": 423000750,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 317299030.7936806,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 9,
+      "elapsed_ns": 456208125,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 294202844.3706477,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 9,
+      "elapsed_ns": 522162334,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 257042148.12246493,
+      "variant": "rust"
+    },
+    {
+      "block_index": 10,
+      "elapsed_ns": 423542500,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 316893176.0094914,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 10,
+      "elapsed_ns": 354609500,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 378494450.93828565,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 10,
+      "elapsed_ns": 528489042,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 253965015.9860836,
+      "variant": "rust"
+    },
+    {
+      "block_index": 11,
+      "elapsed_ns": 355041375,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 378034047.4402455,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 11,
+      "elapsed_ns": 490748375,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 273496021.255292,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 11,
+      "elapsed_ns": 470207333,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 285443715.1025886,
+      "variant": "rust"
+    },
+    {
+      "block_index": 12,
+      "elapsed_ns": 360327000,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 372488678.33939725,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 12,
+      "elapsed_ns": 280933416,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 477756366.2985538,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 12,
+      "elapsed_ns": 329896917,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 406847475.9344295,
+      "variant": "rust"
+    },
+    {
+      "block_index": 13,
+      "elapsed_ns": 284497000,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 471772032.74551225,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 13,
+      "elapsed_ns": 286360583,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 468701825.4883215,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 13,
+      "elapsed_ns": 369395292,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 363344446.73972726,
+      "variant": "rust"
+    },
+    {
+      "block_index": 14,
+      "elapsed_ns": 345555416,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 388411588.3745836,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 14,
+      "elapsed_ns": 462808750,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 290006893.7763169,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 14,
+      "elapsed_ns": 355557750,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 377485030.20957917,
+      "variant": "rust"
+    },
+    {
+      "block_index": 15,
+      "elapsed_ns": 291319500,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 460723459.98122334,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 15,
+      "elapsed_ns": 376601541,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 356391871.48201287,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 15,
+      "elapsed_ns": 333881750,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 401991806.9795669,
+      "variant": "rust"
+    },
+    {
+      "block_index": 16,
+      "elapsed_ns": 293271625,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 457656713.29437345,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 16,
+      "elapsed_ns": 289656458,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 463368671.0344294,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 16,
+      "elapsed_ns": 370775625,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 361991778.7206211,
+      "variant": "rust"
+    },
+    {
+      "block_index": 17,
+      "elapsed_ns": 314929083,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 426183973.6154187,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 17,
+      "elapsed_ns": 281727000,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 476410596.0735038,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 17,
+      "elapsed_ns": 309774250,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 433275935.6208594,
+      "variant": "rust"
+    },
+    {
+      "block_index": 18,
+      "elapsed_ns": 384928250,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 348682457.05530834,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 18,
+      "elapsed_ns": 460635000,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 291375444.7664637,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 18,
+      "elapsed_ns": 588615167,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 228022884.09262142,
+      "variant": "rust"
+    },
+    {
+      "block_index": 19,
+      "elapsed_ns": 288067958,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 465923835.9304092,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 19,
+      "elapsed_ns": 282043959,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 475875209.22580725,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 19,
+      "elapsed_ns": 378323583,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 354769657.59229445,
+      "variant": "rust"
+    },
+    {
+      "block_index": 20,
+      "elapsed_ns": 383600333,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 349889498.1407641,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 20,
+      "elapsed_ns": 480007916,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 279615655.33848405,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 20,
+      "elapsed_ns": 600261792,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,facts-off,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 223598652.76915708,
+      "variant": "rust"
+    },
+    {
+      "block_index": 21,
+      "elapsed_ns": 494501833,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 271420081.87460047,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 21,
+      "elapsed_ns": 496277542,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 270448925.5328826,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 21,
+      "elapsed_ns": 428840417,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 312978261.095199,
+      "variant": "rust"
+    },
+    {
+      "block_index": 22,
+      "elapsed_ns": 484605500,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 276962865.671149,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 22,
+      "elapsed_ns": 516807709,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 259705352.03452238,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 22,
+      "elapsed_ns": 461871208,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-on,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 290595572.2617808,
+      "variant": "rust"
+    },
+    {
+      "block_index": 23,
+      "elapsed_ns": 500255000,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 268298623.70191202,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 23,
+      "elapsed_ns": 389142916,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 344906003.6338937,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 23,
+      "elapsed_ns": 525109666,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 255599423.68305215,
+      "variant": "rust"
+    },
+    {
+      "block_index": 24,
+      "elapsed_ns": 463473084,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 289591203.09994096,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 24,
+      "elapsed_ns": 411214958,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 326393107.5192065,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 24,
+      "elapsed_ns": 402384875,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 333555598.977223,
+      "variant": "rust"
+    },
+    {
+      "block_index": 25,
+      "elapsed_ns": 365876750,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 366838636.234743,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 25,
+      "elapsed_ns": 294531917,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 455698415.8698156,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 25,
+      "elapsed_ns": 332204791,
+      "input_bytes": 134217728,
+      "order_stratum": "rust,facts-off,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 404021048.570609,
+      "variant": "rust"
+    },
+    {
+      "block_index": 26,
+      "elapsed_ns": 290938708,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 461326472.9284493,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 26,
+      "elapsed_ns": 350365250,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 383079452.08607304,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 26,
+      "elapsed_ns": 331938917,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-on,rust,facts-off",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 404344658.38785636,
+      "variant": "rust"
+    },
+    {
+      "block_index": 27,
+      "elapsed_ns": 368413375,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 364312853.73393404,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 27,
+      "elapsed_ns": 325152417,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 412784039.06190246,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 27,
+      "elapsed_ns": 594582083,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 225734565.23075217,
+      "variant": "rust"
+    },
+    {
+      "block_index": 28,
+      "elapsed_ns": 400006833,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 335538588.1620677,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 28,
+      "elapsed_ns": 362058416,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 370707383.3080019,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 28,
+      "elapsed_ns": 522084916,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,facts-on,rust",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 257080263.93162447,
+      "variant": "rust"
+    },
+    {
+      "block_index": 29,
+      "elapsed_ns": 459823375,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 2,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 291889745.7094259,
+      "variant": "facts-on"
+    },
+    {
+      "block_index": 29,
+      "elapsed_ns": 363724750,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 0,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 369009059.7354181,
+      "variant": "facts-off"
+    },
+    {
+      "block_index": 29,
+      "elapsed_ns": 485161667,
+      "input_bytes": 134217728,
+      "order_stratum": "facts-off,rust,facts-on",
+      "ordinal": 1,
+      "output_events": 84446861,
+      "output_sha256": "fb01dc4abb938a1a5a538e28c5b99e149049c49b7717f956726b9d590d9bf9a1",
+      "throughput_bytes_per_second": 276645368.1922896,
+      "variant": "rust"
+    }
+  ],
+  "raw_sha256": "71297ba0bfc2bc7b8af1f29b33f7c4769cb6c706f8a0c3f7c855363b86404ab3",
+  "schedule": {
+    "repetitions_per_stratum": 5,
+    "strata_order": [
+      "facts-on,facts-off,rust",
+      "facts-on,rust,facts-off",
+      "facts-off,facts-on,rust",
+      "facts-off,rust,facts-on",
+      "rust,facts-on,facts-off",
+      "rust,facts-off,facts-on"
+    ]
+  },
+  "schedule_sha256": "a04d77da5d658672c1b82bc957ac5c81487d015f4da428a1b9f3776336b4220b",
+  "schema_version": 1,
+  "scope": "This result applies only to this implementation, frozen corpus, machine, and campaign.",
+  "statistics": {
+    "bootstrap": {
+      "draw_rule": "next()%5 with replacement",
+      "draws_per_stratum": 5,
+      "interval": "empirical nearest-rank 95% percentile",
+      "resamples": 10000,
+      "seed_hex": "0x005044424f4f5432",
+      "shared_primary_attribution_indices": true,
+      "sorted_zero_based_indices": [
+        249,
+        9749
+      ],
+      "strata_visit_order": [
+        "facts-on,facts-off,rust",
+        "facts-on,rust,facts-off",
+        "facts-off,facts-on,rust",
+        "facts-off,rust,facts-on",
+        "rust,facts-on,facts-off",
+        "rust,facts-off,facts-on"
+      ],
+      "within_stratum_source_order": "ascending campaign block_index"
+    },
+    "median_definition": "odd: middle; even: arithmetic mean of two middle values"
+  },
+  "variants": {
+    "facts-off": {
+      "mad_over_median": 0.13278632010246458,
+      "median_bytes_per_second": 335201318.90186113,
+      "median_mib_per_second": 319.6728886622058,
+      "sample_count": 30
+    },
+    "facts-on": {
+      "mad_over_median": 0.15062488741905128,
+      "median_bytes_per_second": 349285977.5980362,
+      "median_mib_per_second": 333.10506591609595,
+      "sample_count": 30
+    },
+    "rust": {
+      "mad_over_median": 0.13413902072188744,
+      "median_bytes_per_second": 294098628.0471628,
+      "median_mib_per_second": 280.47430805889394,
+      "sample_count": 30
+    }
+  }
+}
