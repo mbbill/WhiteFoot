@@ -17,7 +17,7 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 4. As needed: `CONSTITUTION.md` (law), `PATTERNS.md` (the closed pattern
    doctrine — blessed shapes writers must use), `spec/kernel-spec-v0.6.md`
    (the 90-rule language spec), `optimizer-language-research/notes/user-directives.md`
-   (owner rulings D0-D9).
+   (binding owner rulings and amendments).
 
 ## Verify (before AND after your work)
 
@@ -60,9 +60,11 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 ## Current focus (2026-07-12)
 
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
-- D9 confidence-gate deciders: QOI decode experiment (leg B — variable-size
-  writes, where iterator restructuring can't sidestep checks) and the
-  channel-pattern frequency study over real Rust corpora (leg A).
+- D9a confidence gate: `percent-encoding` 2.3.2 `percent_decode` versus one
+  exact `gpt-5.6-terra`/medium trajectory. Freeze the first correctness-green
+  xlang source before timing; facts-on/off is attribution. Expert Rust is
+  post-freeze ceiling evidence, not the primary score. Base64 is excluded
+  because xlang's proof tier was developed on it.
 - Proof tier: PROOF-1/2 shipped and adversarially reviewed; the accounting
   design's approved first slice is in
   `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`.

@@ -17,6 +17,9 @@ and gitignored. Chronology and decisions live in
   sources/applications; points the next real port at relational bounds proofs.
 
 ## Port studies (real programs; D9 confidence-gate evidence)
+- `default-floor/` — active D9a protocol: a fixed low-tier model's first
+  correctness-green xlang artifact versus an exact unmodified shipped Rust
+  library. The first target is `percent-encoding` 2.3.2 `percent_decode`.
 - `port-study/binary-trees/` — floor-raising result: the slow shape is
   unrepresentable; ~11% checked-semantics tax vs identical-shape Rust.
 - `port-study/wc/` — full-counts 0.23s vs GNU 0.48 / uutils-Rust 0.56 on a

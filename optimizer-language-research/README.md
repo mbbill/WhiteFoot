@@ -8,7 +8,7 @@ synthesis) moved to `../archive/research/`.
   completed unit of work adds one entry; the tail is the live context any
   session resumes from. Historical entries may cite pre-rewrite commit
   hashes and pre-archive paths; those are labels, not links.
-- `notes/user-directives.md` — owner rulings D0-D9 (binding).
+- `notes/user-directives.md` — binding owner rulings and amendments.
 - `notes/` — memos awaiting or recording owner decisions (e.g. the STOR-1
   pool ruling request).
 - `implementation/` — design drafts and their adversarial reviews (e.g.

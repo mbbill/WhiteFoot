@@ -24,16 +24,17 @@ scale as at statement scale (D6, PATTERNS.md).
 - D2a spec compactness binds; program verbosity does not.
 - D3 never copy Rust by default; lexicon names checked invariants.
 - D4 rewrite-first, FFI-narrow.
-- D5 model-tier writer sprint deprioritized (models improve too fast to gate
-  on today's weak models; harness stays shelf-ready).
+- D5 broad model-tier writer sprint deprioritized; D9a narrowly requires one
+  fixed low-tier run to measure the production default path.
 - D6 pattern doctrine: catalog must be complete AND efficient; taught, not
   discovered.
 - D7/D7a impact target: swap-in everyday artifacts; headline formula is
   faster + parity + bug-class-unrepresentable + AI-authored. Safe-direction
   constraint: performance/correctness framing only.
-- D9 confidence gate: no big compiler investment until (leg B) one real
-  program shows a fact-attributable win over best-effort safe Rust AND
-  (leg A) the winning pattern is frequent in real corpora.
+- D9a confidence gate: compare one fixed `gpt-5.6-terra`/medium model's first
+  correctness-green xlang artifact with one exact, unmodified, commonly used
+  shipped Rust library. Freeze before timing; facts-on/off explains the win.
+  Expert Rust is ceiling evidence only. Replicate once before a broad claim.
 
 ## 3. Evidence to date — honest ledger
 
@@ -55,26 +56,47 @@ Measured wins (real, replicable, with caveats in each RESULTS.md):
   parity on the classifier kernel (was 1.6-1.8x behind); 2-variant enums i1.
 
 Measured non-wins (equally load-bearing):
-- No real program yet shows a FACT-attributable win over best-effort safe
-  Rust (D9 leg B open). Same-algorithm safe Rust reaches parity wherever the
-  algorithm is expressible (chunk-summary wc: parity; binary-trees: Rust
-  slightly ahead same-shape).
-- D9 leg A now has a **directional, non-gating pilot**, not a population result:
+- Expert safe Rust reaches parity on regular base64 after iterator
+  restructuring. That remains useful ceiling evidence, but D9a no longer uses
+  a benchmark-specialized implementation as the primary comparator.
+- The old D9 leg-A study is a **directional, non-gating pilot**, not a
+  population result:
   30 popular source crates and 12 command-line applications. Manual review found
   no current checked-law or scoped-alias win. Three optimized-IR builds found
   hot surviving bounds checks in `comrak` and `inferno`; a single-check
   `comrak` intervention was byte-identical but neutral. The useful signal is a
-  family of relational/precondition proofs to test in a real port. D9 remains
-  open.
-- facts on/off is neutral on single-buffer byte kernels (wc, base64) — the
-  channels need aliasing/effect pressure to matter.
+  family of relational/precondition proofs to test in a real port. It is now
+  context for generalization, not a prerequisite for the primary score.
+- PROOF-2 makes facts-on base64 1.71x faster than the same facts-off source by
+  discharging 27/27 indexed sites. Expert Rust can express a different shape
+  that reaches parity; both facts matter, but they answer different questions.
 - uutils' -l (bytecount SIMD) beats our naive scan 2-3x; GNU memchr too.
   Hand-tuned kernels remain ahead of our autovectorized naive shapes.
 
 ## 4. The bets, ranked (what we do next)
 
-1. **Proof-elided checks (OP-4 tier)** — the D9-decisive candidate. Design
-   first, not code first: a checked concrete-function `requires` prologue
+1. **Default-floor experiment against shipped Rust (D9a)** — locked to
+   `percent-encoding` 2.3.2's public `percent_decode` iterator, consumed into a
+   caller-owned output buffer, versus one exact `gpt-5.6-terra` trajectory at
+   its default medium reasoning. Give the model only a sanitized teaching pack
+   and API contract, then machine diagnostics or the first failing correctness
+   case after an unsuccessful attempt. Freeze its first
+   correctness-green source and full trace; then measure that same source with
+   facts on/off against the ordinary Rust release build. No Rust/prior-xlang
+   source, performance feedback, human edits, or fastest-of-N selection enters
+   the generation trajectory. STATUS: target and model are selected; protocol,
+   correctness gate, and shipped-Rust adapter are being frozen before the
+   corrected official prompt is sent. A disclosed pre-freeze launcher mistake
+   sent an older prompt but produced zero model-output bytes, no candidate, and
+   no evaluator result; its identity is retired. Base64 remains excluded
+   because it shaped PROOF-1/2.
+2. **Second shipped-library replication** — only after the first result is
+   frozen. Pre-register a fresh task rather than tuning the protocol from the
+   result. `utf8parse` is the leading independent state-machine candidate; QOI
+   remains a later target once aggregate-result and fixed-array support arrive
+   through the normal compiler roadmap.
+3. **Proof-elided checks (OP-4 tier)** — enabling evidence for the experiment.
+   A checked concrete-function `requires` prologue
    computes and verifies a boundary fact once at callee entry, then the
    deterministic prover uses it to elide dominated implicit checks that LLVM
    cannot derive locally. Calls remain legal without caller proof; writers
@@ -124,25 +146,27 @@ Measured non-wins (equally load-bearing):
    promotion. Guard versioning and variable-output work remain staged by
    `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`;
    no normative language rule changed.
-2. **Leg-A frequency pilot** — complete; stop building analysis infrastructure.
+4. **Leg-A frequency pilot** — complete; stop building analysis infrastructure.
    Raw source heuristics substantially overcounted alias and saturating-law
    opportunities, while optimized `comrak` exposed many surviving checks in
    genuinely hot parser paths. The pilot therefore redirects the next bounded
    experiment toward generalized relational/precondition proof in one real
    workload. It does not clear D9, estimate ecosystem prevalence, or justify
    further frequency-tool investment.
-3. **Channel 4: blessed interpreter dispatch** (carded): lower naive
+5. **Channel 4: blessed interpreter dispatch** (carded): lower naive
    loop+match to threaded/musttail dispatch — structural delta over Rust,
    parity with expert C from the obvious shape. Eventual benchmark: the
    owner's own engine (Silverfir), owner-refereed.
-4. **Coreutils ladder** (D7a): wc, base64 done; next utilities need the I/O
+6. **Coreutils ladder** (D7a): wc, base64 done; next utilities need the I/O
    frame (first D4 FFI instance) and chunked-driver parity. The AI-authorship
    headline runs through the shelved trial harness when the time comes.
 
-STATUS UPDATES (2026-07-12): bet 1's owed adversary ran — assert-up-front
-recovers NOTHING (elision is checker-attributable), but expert iterator
-restructuring ties on base64's regular shape, so the leg-B decider is QOI
-decode (variable-size writes have no iterator escape). Leg A still pending.
+STATUS UPDATE (2026-07-12): D9a supersedes the expert-Rust decider. The expert
+base64 iterator result is preserved as a ceiling measurement, but base64 is
+not eligible as the fresh primary workload. The owner selected
+`percent-encoding` 2.3.2 `percent_decode`: a previously untuned, variable-output
+workload expressible by the current language without experiment-driven compiler
+work. The protocol must freeze before generation.
 THE BUILD TRACK IS ACTIVE: `compiler/` hosts xlc, the production compiler
 written in xlang itself (SoA-tape architecture per P2, fixed-capacity
 buffers, no generics needed), bootstrapped by prototype/democ as stage 0,
@@ -150,12 +174,15 @@ with its own gate (`make -C compiler check`, incl. the self-parse gate).
 
 ## 5. The pivot clause (pre-registered)
 
-The pivot remains binding, but the throwaway frequency pilot cannot trigger it:
-it was directional and not powered to establish rarity. The pivot requires
-either that the bounded leg-B program finds no qualifying win, or that every
-qualifying winner's own matching study establishes that mechanism as thin. If
-that bar is met, the honest conclusion is xlang ~= Rust
-on raw speed for expressible algorithms, and the pitch formally becomes:
+The primary outcome is scored exactly once on the frozen first-green
+artifact. If it does not beat the shipped Rust baseline outside the
+pre-registered equivalence band, the default-floor hypothesis is unsupported
+for this task; do not rescue it with human tuning, a stronger model, or expert
+Rust. If it wins, pre-register and run a second shipped-library task before
+claiming a general performance-floor effect. A ceiling result from expert Rust
+does not erase a default-floor win, and a facts-off result determines whether
+the measured source of the win was proof elision or another taught/forced
+shape. If the default path repeatedly ties or loses, the honest pitch becomes:
 **C-class speed with everything checked, everything reproducible, written by
 AI under a checker that makes cheating unrepresentable** — safety-at-parity
 plus floor-raising plus build economics, not "faster than Rust." R0's fallback

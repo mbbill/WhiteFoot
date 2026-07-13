@@ -174,3 +174,46 @@ gated on the thin I/O frame + growable buffers. Headline shape: "AI-written,
 compiler-proven-safe, faster than the C tool, produces byte-identical output."
 Durable-log note: decision-gates.md + user-directives.md are the recovery
 record; replay from last git commit after any rewind.
+
+## D9a (2026-07-12, owner re-ruling): Default-path xlang vs shipped Rust is the primary confidence gate
+
+The primary question is no longer whether benchmark-specialized expert safe
+Rust can match xlang. Rust is expressive enough that expert restructuring can
+often reach the ceiling, while shipped libraries commonly choose maintainable
+shapes. The product claim to test is whether xlang raises the default
+performance floor for its intended AI writer.
+
+Before any xlang generation, pre-register: (a) one unmodified existing Rust
+library at an exact version/commit, with default features and its ordinary
+release build; (b) one fixed low-tier writer, with an exact 5.6 Luna or Terra
+model identifier and settings; and (c) the behavior contract, corpus,
+correctness harness, repair budget, measurement protocol, and success band.
+The scoring workload must be fresh: it cannot be one previously used to
+develop or tune xlang's compiler, proof rules, or benchmark implementation.
+“Default xlang” is the first artifact in one model trajectory to pass the
+frozen correctness gate. The model may respond to compiler/checker diagnostics
+and failing correctness cases, but receives no Rust implementation source,
+benchmark numbers, profiler output, IR or assembly, performance hints, or human
+source edits. Multiple candidates may not be sampled and ranked by speed.
+Freeze the source hash and complete generation/repair trace at first green.
+
+Benchmark that frozen source both with facts on and with facts off for causal
+attribution. A primary win may come from proof elision, ownership/effect
+information, or a language-taught or language-forced algorithm, layout, or
+control-flow shape; fact attribution is informative, not the only admissible
+source of value. Expert safe Rust and stronger xlang models may be run only
+after the primary result is frozen, as ceiling or model-gradient evidence;
+neither may rescore the primary shipped-Rust comparison.
+
+This is a narrow override of D5: the broad model-tier sprint remains
+deprioritized, while one fixed low-tier run is required to measure the
+production default path. The completed leg-A pilot remains context for
+generalization, not the primary score. A first win is followed by a
+pre-registered second shipped-library replication before a broad distributional
+claim.
+
+## D9a model selection amendment (2026-07-12, owner-selected)
+
+For the first `percent_decode` trajectory, use exact model slug
+`gpt-5.6-terra`, not Luna, at medium reasoning.  The one-trajectory,
+first-correctness-green, benchmark-blind rules above are unchanged.

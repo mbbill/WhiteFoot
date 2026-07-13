@@ -1,0 +1,36 @@
+{
+  "classification": "pre-freeze launcher audit incident",
+  "date_local": "2026-07-12",
+  "trigger": "run_generation.py --help",
+  "cause": "the preregistration launcher ignored argv instead of rejecting it",
+  "protocol_state": "audit in progress; inputs and harness were not committed or frozen",
+  "retired_run_identity": "runs/primary-terra-medium",
+  "result": {
+    "status": "protocol_error",
+    "phase": "model",
+    "round": 0,
+    "adapter_exit_code": 70,
+    "evaluator_invoked": false,
+    "candidate_generated": false,
+    "candidate_frozen": false
+  },
+  "observed_without_reading_candidate_or_model_stderr": {
+    "model_stdout_bytes": 0,
+    "model_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "candidate_bytes": 0,
+    "candidate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "attempted_round_prompt_sha256": "f035a07ba3a130d8047a2fd1f2b4b258145e93d0ce6d64735ceb21bc0bf864ff"
+  },
+  "artifact_hashes_before_cleanup": {
+    "config.json": "191101a076dea6e1dfcdb35b539afa04ae843f55d8dc454ee1e14759e8894428",
+    "result.json": "11d2b4a4ed4f4a0c7bcea42f7cf09c8db41ceaa63c87fd68e301f99cb1cf0d6b",
+    "rounds/000/model-process.json": "b2e0ec4a6740d4db477c987789ab0ca1e79b837ab638b8c15793d6ebafb19fda",
+    "rounds/000/model.raw.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rounds/000/model.stderr.txt": "206692bf8d8a943a95a84d3528428e82d9535e245b713386ff71332d782aaecf",
+    "rounds/000/percent_decode.xl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rounds/000/prompt.txt": "f035a07ba3a130d8047a2fd1f2b4b258145e93d0ce6d64735ceb21bc0bf864ff",
+    "rounds/000/record.json": "99971bf66809ca508be2d50c8d2014edf303936532bb108b195d3cdb54b70c0d",
+    "trace.jsonl": "4012c0c222c734df34361a1533f33671741f5aa47cff6d743a1b724c04026349"
+  },
+  "disposition": "original identity permanently retired; opaque failed artifacts removed after hashes were recorded; launcher hardened; official identity changed and will only run after the preregistration commit"
+}

@@ -647,3 +647,111 @@ The parity gate broke silently during the archive pass (pipeline exit-status mas
 ## Design tree constructed (2026-07-12)
 
 mcts_mem/ now holds the MCTS-Mem design tree: 28 nodes (17 live, 11 alt) recovering the project's re-decisions and weighed alternatives from this log, user-directives, the spec revision history, the derivation record, the FR memo, experiment RESULTS, and the review docs; lint clean; every Moves hash resolves in post-rewrite history. Built by a dedicated construction agent, then live-context reviewed by the coordinating session (21 of the 26 files present at review time read; recorded whys checked against session memory of the OWN-1/totality/PROOF-2/requires decisions; no corrections needed). Coverage rulings of record: D5/D7/D9 are process-not-design and enter as root facts, not nodes; the v0.1 soundness inversions (OWN-4 direction, arena escape) are pitfalls, not weighed alternatives; GRAM-4 bind-then-match and the GRAM-7 helper-fn idiom are real superseded forms with .alt homes; pre-repo decisions (D1a checker class, mut->uniq) anchor to the initial import commit because pre-rewrite hashes are unresolvable. Two construction errata: the interim "added mcts_mem" commit was an accidental partial snapshot from a blocked session (truncated pattern-doctrine node; completed in the follow-up commit), and its push made one surface-form fact committed before a planned dedup — append-only wins, the fact stays. Maintenance from here follows the mcts-mem discipline: a re-decision moves the superseded form into .alt/ with paired verbatim whys in the same change as the code.
+
+## D9a: primary gate is the default AI-written xlang floor vs shipped Rust (2026-07-12, owner re-ruling)
+
+The owner revised the comparison target after the expert-safe-Rust base64 run.
+Expert Rust is a constructed ceiling: Rust's expressiveness lets a specialist
+restructure many kernels until they reach the same machine-code class. That is
+valuable ceiling evidence, but it does not measure the product claim. Existing
+widely used libraries also make ordinary readability and maintenance
+trade-offs, while xlang is intended to make a good shape the default output of
+an AI writer. The primary score is therefore one fixed low-tier model's first
+correctness-green xlang artifact against one pre-registered, unmodified shipped
+Rust library at an exact version, default features, and ordinary release build.
+
+The protocol freezes the API, corpus, correctness gate, repair budget,
+measurement order, and success band before generation. The model may see only
+the sanitized xlang teaching pack, task contract, compiler/checker diagnostics,
+and failing correctness cases. It may not see the Rust source, prior xlang
+base64 source, performance results, profiler data, IR/assembly, performance
+hints, or human source edits; there is one trajectory and no fastest-of-N
+selection. The first green source, complete trace, and hash are frozen before
+measurement. The same source is then built facts-on and facts-off for
+attribution. Stronger xlang models and expert Rust are allowed only after that
+freeze as gradient/ceiling evidence.
+
+The owner caught a target-selection leak before the protocol was frozen:
+base64 has already been used to develop and tune xlang's proof tier and has a
+complete handwritten/expert comparison in this repository. A fresh model run
+there could smoke-test the harness, but cannot be the new primary evidence.
+Target selection therefore excludes workloads previously used to tune xlang,
+as well as near-duplicates that exercise the same fixed-ratio proof family.
+The first scoring target remains to be pre-registered after a fresh-target
+audit. Any broad claim still requires a second independently pre-registered
+shipped-library replication.
+
+This is a narrow override of D5: the broad tier-distribution sprint stays
+deprioritized, but one exact Luna/Terra-class low-tier run is mandatory. The
+leg-A frequency pilot is contextual evidence rather than the primary score.
+This supersedes D9's best-effort-safe-Rust adversary as the primary scoring
+rule; it does not retract the base64 expert-parity measurement, which remains
+valid ceiling evidence.
+
+## D9a target lock: percent-decode versus GPT-5.6-Terra (2026-07-12, owner-selected)
+
+The owner selected the fresh primary workload from a deliberately varied
+shortlist. Lock the shipped comparator to crates.io `percent-encoding` 2.3.2,
+exact requirement `=2.3.2`, default features (`std` -> `alloc`), registry
+checksum `9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220`,
+and the public `percent_decode(&[u8]) -> Iterator<Item = u8>` API. The source
+anchor is rust-url commit `91377f48bf35011d042aa5abef9e7f2a0a625aaa`, but the
+published artifact records a dirty VCS tree, so the Cargo lock plus registry
+checksum is authoritative. The frozen Rust adapter may only consume that public
+iterator sequentially into the same caller-owned output shape; it may not
+reimplement or specialize the decoder.
+
+Lock the writer to model slug `gpt-5.6-terra`, Codex CLI 0.144.0, reasoning
+effort `medium`, normal service tier, one trajectory, and at most three
+machine-feedback repair turns. A task-independent read-only `/tmp` probe
+confirmed the exact slug and settings are available; it did not expose the
+experiment task or repository. No target prompt is sent until the task,
+teaching pack, correctness corpus, benchmark order, and score band are committed
+to the experiment protocol. This workload is variable-output, malformed-input
+observable, fully expressible in the current democ subset, and absent from prior
+xlang experiments; no target-driven compiler change is allowed before freeze.
+
+## D9a pre-freeze launcher incident: no candidate; identity retired (2026-07-12)
+
+While the percent-decode protocol was still uncommitted and under hostile
+audit, a reviewer invoked the preregistration launcher with `--help`. The draft
+launcher incorrectly ignored argv and attempted its then-fixed run path. Codex
+adapter exit 70 produced zero model-output bytes and an empty candidate; the
+evaluator never ran and no source froze. We inspected only process/result
+metadata and artifact sizes/hashes, not model stderr or candidate contents.
+
+The retired identity `runs/primary-terra-medium` will never be reused; the
+hash-only incident record is committed under the target experiment, and its
+opaque draft artifacts were removed. The official identity is now
+`runs/primary-terra-medium-preregistered`. The launcher rejects every argument,
+requires all model/correctness/benchmark inputs clean and tracked at `HEAD`, and
+locks tool binaries/versions before sending the corrected, newly hashed prompt.
+Therefore the incident is a pre-freeze harness failure, not a sampled candidate
+or a restart of the official one-trajectory score.
+
+This incident explicitly supersedes the earlier forward-looking statement in
+the target-lock entry that no target prompt would be sent before commit: the
+draft invocation did send its older prompt, but returned zero model-output
+bytes and created no candidate or evaluator observation.  The corrected prompt
+and official run identity remain unsent until their preregistration commit.
+
+## D9a percent-decode preregistration frozen (2026-07-12, before generation)
+
+The complete default-floor protocol is now frozen for one
+`gpt-5.6-terra` trajectory with reasoning effort `medium` and exact Codex
+`service_tier="default"`; this exact value clarifies the earlier phrase “normal
+service tier.”  The target is `percent-encoding` 2.3.2 public
+`percent_decode`, consumed by the minimal caller-owned-output adapter.  The
+6,764-byte base prompt is SHA-256
+`554050441f265d5c290756209a4a911f91004b1d55d73e6dd6a42bdc40d00dc7`.
+The first correctness-green source in the single initial-plus-three-repair
+trajectory freezes immediately, with no performance feedback or human source
+edit.  The official identity remains
+`runs/primary-terra-medium-preregistered`; it does not yet exist at this point.
+
+Freeze audit: generic generation tests 12/12; Rust baseline tests 6/6; harness
+tests 7/7; strict C boundary syntax; malformed-source repair classification;
+full tool/SDK, Cargo-config, crate/archive/tree, input-hash, run-tree archive,
+and invalid-rerun validation; benchmark smoke marked `not_a_score`; `make check`
+and `make -C compiler check` both green.  No official model output or scoring
+measurement was produced during these checks.
