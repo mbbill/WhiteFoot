@@ -11,7 +11,10 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 1. `THE-PLAN.md` — the current map: beliefs, evidence ledger, ranked bets.
 2. Tail of `optimizer-language-research/implementation/decision-gates.md` —
    the append-only lab log; the last ~10 entries are the live context.
-3. As needed: `CONSTITUTION.md` (law), `PATTERNS.md` (the closed pattern
+3. `mcts_mem/` — the design-decision tree: before proposing any non-trivial
+   design change, read the relevant node and its `.alt/` (what was already
+   tried and why it lost).
+4. As needed: `CONSTITUTION.md` (law), `PATTERNS.md` (the closed pattern
    doctrine — blessed shapes writers must use), `spec/kernel-spec-v0.6.md`
    (the 90-rule language spec), `optimizer-language-research/notes/user-directives.md`
    (owner rulings D0-D9).
@@ -47,6 +50,10 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - `experiments/` — active measured evidence (see its README).
 - `optimizer-language-research/` — the lab log (`implementation/decision-gates.md`),
   owner directives (`notes/`), design docs + reviews (`implementation/`).
+- `mcts_mem/` — the design-decision tree; read the relevant node + its
+  `.alt/` before proposing any non-trivial design change; keep it true per
+  the mcts-mem discipline (re-decisions move the old form into `.alt/` with
+  paired whys, in the same change as the code).
 - `archive/` — superseded plans, the research-era record, shelved harnesses.
   Read-only context; nothing in it gates anything.
 
