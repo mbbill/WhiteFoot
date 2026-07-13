@@ -1,4 +1,4 @@
-# THE PLAN (consolidated 2026-07-12)
+# THE PLAN (consolidated 2026-07-13)
 
 The single current-state document: what this project believes, what it has
 proven, and what it does next. Supersedes the DECISION_SPRINT/ROADMAP phase plans
@@ -79,36 +79,29 @@ Measured non-wins (equally load-bearing):
 - uutils' -l (bytecount SIMD) beats our naive scan 2-3x; GNU memchr too.
   Hand-tuned kernels remain ahead of our autovectorized naive shapes.
 
-## 4. The bets, ranked (what we do next)
+## 4. Active build track and ranked bets
 
-1. **Default-floor experiment against shipped Rust (D9a)** — locked to
-   `percent-encoding` 2.3.2's public `percent_decode` iterator, consumed into a
-   caller-owned output buffer, versus one exact `gpt-5.6-terra` trajectory at
-   its default medium reasoning. Give the model only a sanitized teaching pack
-   and API contract, then machine diagnostics or the first failing correctness
-   case after an unsuccessful attempt. Freeze its first
-   correctness-green source and full trace; then measure that same source with
-   facts on/off against the ordinary Rust release build. No Rust/prior-xlang
-   source, performance feedback, human edits, or fastest-of-N selection enters
-   the generation trajectory. STATUS: COMPLETE for this target. Round 2 was
-   first green and froze at source SHA-256 `b67dd291...00bd`; the sole 30-block
-   score is a meaningful xlang win at 1.653x [1.631, 1.667]. Facts-on/off is
-   practical parity at 1.010x [1.005, 1.020], with identical all-retained proof
-   reports. Full evidence is in `experiments/default-floor/percent-decode/RESULTS.md`.
-2. **Second shipped-library replication** — `utf8parse` 0.2.2, one-shot
-   byte-to-event parsing through the crate's ordinary public
-   `Parser`/`Receiver` path. STATUS: COMPLETE. Terra's round-0 response was
-   first-green across all 84,041 exact/surplus-capacity cases and froze at
-   source SHA-256 `3bb79519...c1535`. The valid 30-process score is a meaningful
-   xlang win at 1.098x [1.085, 1.145]. Facts-on/off is statistically
-   inconclusive at 1.005x [0.986, 1.035], but its proof reports are identical
-   with all 11 sites retained and its optimized instruction bodies are
-   identical. The first timing attempt is retained as invalid after an AC to
-   battery transition at block 27; the protocol-authorized full rerun completed
-   under stable battery power. Full evidence is in
-   `experiments/default-floor/utf8parse/RESULTS.md`. QOI remains a later target
-   once aggregate-result and fixed-array support arrive through the normal
-   compiler roadmap.
+1. **xlc self-hosting build track** — ACTIVE PRIORITY. The production compiler
+   now parses, validates, indexes, and resolves all types in its own 477-function
+   unit. Body semantics and LLVM lowering currently share a 15-function lexer
+   capability slice. The next S1 commit establishes a pure whole-unit semantic
+   coverage driver before adding more lowering: deterministic totals of 15
+   clean, 462 unsupported, and zero semantic rejects, with the first unsupported
+   source-order frontier at `lexer_scan_op_suffix`. It must distinguish legal
+   unsupported syntax from real rejection and keep the existing 15-function
+   LLVM module byte-identical. Only then does S1 grow reusable copy-scalar,
+   type, ownership, and effect rules across the remaining functions. The staged
+   route continues through whole-unit lowering, a stage-1 compiler, and the
+   byte-identical self-hosting fixpoint; every slice keeps both repository gates
+   green.
+2. **Default-floor experiment against shipped Rust (D9a)** — COMPLETE on two
+   separately preregistered targets. First-green Terra xlang records paired
+   throughput ratios of 1.653x [1.631, 1.667] against `percent-encoding` 2.3.2
+   and 1.098x [1.085, 1.145] against one-shot `utf8parse` 0.2.2. Both retain
+   every reported xlang bounds site, so neither is a proof-elision win. This is
+   cross-target performance-floor evidence, not a pooled ecosystem result or
+   expert-Rust ceiling claim. Canonical wording and caveats are in
+   `experiments/default-floor/RESULTS.md`; no third target is required for D9a.
 3. **Proof-elided checks (OP-4 tier)** — enabling evidence for the experiment.
    A checked concrete-function `requires` prologue
    computes and verifies a boundary fact once at callee entry, then the
@@ -175,7 +168,7 @@ Measured non-wins (equally load-bearing):
    frame (first D4 FFI instance) and chunked-driver parity. The AI-authorship
    headline runs through the shelved trial harness when the time comes.
 
-STATUS UPDATE (2026-07-13): D9a is complete on two independently preregistered
+STATUS UPDATE (2026-07-13): D9a is complete on two separately preregistered
 targets. Default Terra xlang beats shipped `percent-encoding` 2.3.2 by 1.653x
 and shipped `utf8parse` 0.2.2 by 1.098x on their locked workloads. Neither win
 comes from proof-elided bounds checks. This supports a replicated default-shape

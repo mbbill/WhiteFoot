@@ -116,5 +116,6 @@ This proves one implementation/corpus/machine result, not that every xlang
 program beats every Rust library. It supports the chosen product claim much
 more directly than an expert-Rust contest: a low-tier model's first green xlang
 program was already in a faster performance class than a real shipped library.
-A second independently preregistered library target is still required before
-making a broad default-language claim.
+That target-specific conclusion was later replicated against `utf8parse`
+0.2.2. The cross-target conclusion and the limits that still prevent a broad
+language claim are recorded in `../RESULTS.md`.

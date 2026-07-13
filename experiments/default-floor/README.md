@@ -4,6 +4,11 @@
 target-specific source, compiler command, evaluator, or benchmark knowledge.
 See `PROTOCOL.md` for the normative boundaries and artifact layout.
 
+The two-target D9a series is complete. See `RESULTS.md` for the cross-target
+claim and its limits, then `percent-decode/RESULTS.md` and
+`utf8parse/RESULTS.md` for the authoritative target-specific measurements and
+artifacts.
+
 Example:
 
 ```sh

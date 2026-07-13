@@ -882,3 +882,30 @@ evidence is in `experiments/default-floor/utf8parse/RESULTS.md`; valid raw
 SHA-256 `71297ba0bfc2bc7b8af1f29b33f7c4769cb6c706f8a0c3f7c855363b86404ab3`,
 analysis SHA-256
 `1a16044495b3e4d2e41c6f49d6f32cf9390d95a3b40f5f3e8c278077e115ff1c`.
+
+## D9a cross-target synthesis frozen; experiment expansion stops (2026-07-13)
+
+The two separately preregistered target results now form the complete D9a
+default-floor evidence set.  Report the target-specific paired throughput
+ratios, never an average or pooled effect: percent-decode 1.6533 with
+descriptive 95% bootstrap interval [1.6309, 1.6668], and one-shot utf8parse
+1.0980 with interval [1.0849, 1.1448].  The targets were selected rather than
+randomly sampled, the second was chosen after the first result, and both share
+one model, compiler/checker, M4 host, and harness design.  This is cross-target
+replication, not an ecosystem prevalence estimate or statistically independent
+replication.
+
+The supported claim is that, on these two frozen shipped-library tasks, the
+first correctness-green `gpt-5.6-terra`/medium xlang sources beat the released
+crates' ordinary public paths through minimal safe adapters.  All 6 and 11
+reported xlang bounds sites respectively remained checked, so neither result
+is a proof-elision win.  The evidence does not support “xlang is generally
+faster than Rust,” “AI xlang is automatically optimal,” or any claim about the
+expert-Rust ceiling.
+
+Canonical wording, methodology, and caveats are frozen in
+`experiments/default-floor/RESULTS.md`.  D9a's required second target is
+satisfied; no third benchmark is needed for this gate.  Any later measurement
+of either source is secondary sensitivity evidence and cannot replace its
+primary campaign.  The experiment track now yields priority back to the xlc
+self-hosting build track.

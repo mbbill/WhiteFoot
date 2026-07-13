@@ -7,9 +7,13 @@ optimizer, so checked code runs at C-class speed: safety checks are always on
 unless a machine-verified proof discharges them.
 
 Highlights so far (each with a RESULTS.md under `experiments/`):
-- base64: byte-identical to system tools, fastest measured implementation on
-  this machine after proof-driven check elision (1.66x from proofs alone),
-  with the capacity contract enforced at the boundary — even for C callers.
+- default floor: first-green `gpt-5.6-terra` xlang programs beat the ordinary
+  public paths of two released Rust crates by 1.653x and 1.098x on locked
+  workloads, with every reported xlang bounds check retained.
+- base64: byte-identical to system tools; the complete CLI beats the measured
+  GNU, uutils, and BSD tools, while the scalar kernel is in practical parity
+  with expert safe Rust. Proofs make the same xlang source 1.71x faster, with
+  the capacity contract enforced at the boundary — even for C callers.
 - wc: byte-identical under LC_ALL=C, ~2x GNU coreutils on default invocation.
 - The classifier-kernel study: i1-dataflow parity with C and safe Rust.
 - Checked algebraic laws: 3.3x on reductions, with FALSE laws refuted at
