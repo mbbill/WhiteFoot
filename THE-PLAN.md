@@ -83,17 +83,16 @@ Measured non-wins (equally load-bearing):
 
 1. **xlc self-hosting build track** — ACTIVE PRIORITY. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
-   unit. Body semantics and LLVM lowering currently share a 15-function lexer
-   capability slice. The next S1 commit establishes a pure whole-unit semantic
-   coverage driver before adding more lowering: deterministic totals of 15
-   clean, 462 unsupported, and zero semantic rejects, with the first unsupported
-   source-order frontier at `lexer_scan_op_suffix`. It must distinguish legal
-   unsupported syntax from real rejection and keep the existing 15-function
-   LLVM module byte-identical. Only then does S1 grow reusable copy-scalar,
-   type, ownership, and effect rules across the remaining functions. The staged
-   route continues through whole-unit lowering, a stage-1 compiler, and the
-   byte-identical self-hosting fixpoint; every slice keeps both repository gates
-   green.
+   unit. The first S1 baseline is established: a pure whole-unit semantic driver
+   deterministically reports 15 clean, 462 legal-unsupported, and zero semantic
+   rejects, with the first source-order frontier at `lexer_scan_op_suffix`.
+   Legal non-profile functions are no longer misreported as type errors, and the
+   existing 15-function LLVM module remains byte-identical. The next S1 slice
+   grows reusable semantics at that frontier without adding lowering in the same
+   commit; later slices extend copy-scalar, type, ownership, and effect rules
+   across the remaining functions. The staged route continues through whole-unit
+   lowering, a stage-1 compiler, and the byte-identical self-hosting fixpoint;
+   every slice keeps both repository gates green.
 2. **Default-floor experiment against shipped Rust (D9a)** — COMPLETE on two
    separately preregistered targets. First-green Terra xlang records paired
    throughput ratios of 1.653x [1.631, 1.667] against `percent-encoding` 2.3.2

@@ -19,7 +19,16 @@ validator over every node. This is the permanent bootstrap grammar gate, not a s
 fixture.
 
 The semantic layer now has exact-byte scoped symbols, atomic global and type-member
-indexing, structural type equality, and exact type-name/array-size resolution. Type
+indexing, structural type equality, and exact type-name/array-size resolution. Its
+whole-unit capability driver audits the real 477-function compiler unit in source
+order: 15 functions are clean in the current fact-producing profiles, 462 are
+explicitly unsupported, and none are semantic rejects. The first unsupported
+frontier is `lexer_scan_op_suffix`. A shared dispatcher keeps a legal profile miss
+separate from a real semantic error; the LLVM layer consumes the same classification
+and facts, so semantic coverage cannot silently drift from lowering coverage.
+This taxonomy is the measured compiler-unit baseline, not yet a claim about every
+legal arbitrary body shape; the next profile expansion must add a body capability
+recognizer alongside its new semantic rules. Type
 names and constructor names are deliberately separate namespaces: this permits the
 prelude's `Overflow` type and `Overflow()` constructor while still rejecting duplicate
 constructors across enums. The prelude names are recognized from exact bytes and cannot
@@ -84,5 +93,5 @@ xlc1  -> xlc2.ll
 xlc1.ll == xlc2.ll
 ```
 
-`PLAN.md` is an older design record. Its feature inventory and `pool` proposal are not
-the current implementation plan.
+`PLAN.md` is the current staged route from this coverage baseline through whole-unit
+lowering, stage 1, and the byte-identical self-hosting fixpoint.

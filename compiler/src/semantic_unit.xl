@@ -1,0 +1,631 @@
+enum SemanticCapabilityKind {
+  SemanticCapabilityFailed();
+  SemanticCapabilityFixedWidth();
+  SemanticCapabilityScanner();
+  SemanticCapabilityLinear();
+  SemanticCapabilityUnsupported();
+}
+
+struct SemanticCapabilityReport {
+  status: SemanticBodyStatus;
+  function: u64;
+  related: u64;
+}
+
+enum SemanticUnitStatus {
+  SemanticUnitClean();
+  SemanticUnitInvalidTokenTape();
+  SemanticUnitInvalidAstTape();
+  SemanticUnitInvalidValidation();
+  SemanticUnitInvalidSymbolTape();
+  SemanticUnitInvalidWork();
+  SemanticUnitCapacity();
+  SemanticUnitInfrastructureFailure();
+}
+
+struct SemanticUnitReport {
+  status: SemanticUnitStatus;
+  total: u64;
+  clean: u64;
+  unsupported: u64;
+  rejected: u64;
+  first_unsupported: u64;
+  first_rejected: u64;
+}
+
+fn semantic_unit_dispatch ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &'c AstValidationReport, symbols: &'c SymbolTape, function: own u64, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w SemanticCapabilityReport) -> own SemanticCapabilityKind reads('c 'w), writes('w), traps {
+  set deref(report).status = SemanticBodyInvalidTokenTape();
+  set deref(report).function = function;
+  set deref(report).related = semantic_facts_none;
+
+  let tokens_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  match tokens_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).related = deref(tokens).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+  let ast_valid: own Bool = semantic_globals_ast_tape_valid(ast: ast);
+  match ast_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidAstTape();
+      set deref(report).related = deref(ast).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+  let validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, AstValidationClean());
+  match validation_clean {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidValidation();
+      set deref(report).function = deref(validation).node;
+      set deref(report).related = deref(validation).related;
+      return SemanticCapabilityFailed();
+    }
+  }
+  let symbols_valid: own Bool = symbol_lookup_entries_valid(source: source, tokens: tokens, symbols: symbols);
+  match symbols_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidSymbolTape();
+      set deref(report).related = deref(symbols).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+
+  let types_valid: own Bool = False();
+  region 'semantic_unit_dispatch_type_shape {
+    set types_valid = semantic_type_tape_shape_valid(types: &'semantic_unit_dispatch_type_shape deref(types));
+  }
+  match types_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidTypeTape();
+      set deref(report).related = deref(types).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+  let facts_valid: own Bool = False();
+  region 'semantic_unit_dispatch_fact_shape {
+    set facts_valid = semantic_node_facts_shape_valid(facts: &'semantic_unit_dispatch_fact_shape deref(facts));
+  }
+  match facts_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidNodeFacts();
+      set deref(report).related = deref(facts).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+  let scratch_valid: own Bool = False();
+  region 'semantic_unit_dispatch_scratch_shape {
+    set scratch_valid = semantic_body_scratch_shape_valid(scratch: &'semantic_unit_dispatch_scratch_shape deref(scratch));
+  }
+  match scratch_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidScratch();
+      set deref(report).related = deref(scratch).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+  let function_valid: own Bool = semantic_buffer_top_level_function_valid(ast: ast, function: function);
+  let function_kind: own Bool = semantic_body_kind_is(ast: ast, node: function, want: AstFunction());
+  match band<Bool>(function_valid, function_kind) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyInvalidFunction();
+      set deref(report).related = deref(ast).count;
+      return SemanticCapabilityFailed();
+    }
+  }
+
+  region 'semantic_unit_dispatch_reset_types {
+    semantic_type_tape_reset(types: &uniq 'semantic_unit_dispatch_reset_types deref(types));
+  }
+  region 'semantic_unit_dispatch_reset_facts {
+    semantic_node_facts_reset(facts: &uniq 'semantic_unit_dispatch_reset_facts deref(facts));
+  }
+  set deref(scratch).count = 0_u64;
+
+  let body: own SemanticBodyReport = SemanticBodyReport(status: SemanticBodyInvalidFunction(), node: function, related: semantic_facts_none);
+  let width: own u64 = semantic_buffer_fixed_width_profile(source: source, tokens: tokens, ast: ast, function: function);
+  match ieq<u64>(width, semantic_facts_none) {
+    True() => {
+    }
+    False() => {
+      let fixed_signature: own Bool = semantic_buffer_fixed_width_signature_valid(source: source, tokens: tokens, ast: ast, function: function);
+      let fixed_body: own Bool = False();
+      match fixed_signature {
+        True() => {
+          set fixed_body = semantic_buffer_fixed_width_body_valid(source: source, tokens: tokens, ast: ast, function: function);
+        }
+        False() => {
+        }
+      }
+      match band<Bool>(fixed_signature, fixed_body) {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticBodyUnsupported();
+          set deref(report).related = function;
+          return SemanticCapabilityUnsupported();
+        }
+      }
+      region 'semantic_unit_dispatch_fixed {
+        semantic_buffer_fixed_width_run(source: source, tokens: tokens, ast: ast, function: function, validation: validation, symbols: symbols, types: &uniq 'semantic_unit_dispatch_fixed deref(types), facts: &uniq 'semantic_unit_dispatch_fixed deref(facts), scratch: &uniq 'semantic_unit_dispatch_fixed deref(scratch), report: &uniq 'semantic_unit_dispatch_fixed body);
+      }
+      set deref(report).status = body.status;
+      set deref(report).function = function;
+      set deref(report).related = body.related;
+      match ieq<SemanticBodyStatus>(body.status, SemanticBodyClean()) {
+        True() => {
+          return SemanticCapabilityFixedWidth();
+        }
+        False() => {
+          match ieq<SemanticBodyStatus>(body.status, SemanticBodyUnsupported()) {
+            True() => {
+              return SemanticCapabilityUnsupported();
+            }
+            False() => {
+              return SemanticCapabilityFailed();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  let scanner_signature: own Bool = semantic_scanner_signature_valid(source: source, tokens: tokens, ast: ast, function: function);
+  let scanner_body: own Bool = False();
+  match scanner_signature {
+    True() => {
+      set scanner_body = semantic_scanner_body_valid(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols);
+    }
+    False() => {
+    }
+  }
+  match band<Bool>(scanner_signature, scanner_body) {
+    True() => {
+      region 'semantic_unit_dispatch_scanner {
+        semantic_scanner_run(source: source, tokens: tokens, ast: ast, function: function, validation: validation, symbols: symbols, types: &uniq 'semantic_unit_dispatch_scanner deref(types), facts: &uniq 'semantic_unit_dispatch_scanner deref(facts), scratch: &uniq 'semantic_unit_dispatch_scanner deref(scratch), report: &uniq 'semantic_unit_dispatch_scanner body);
+      }
+      set deref(report).status = body.status;
+      set deref(report).function = function;
+      set deref(report).related = body.related;
+      match ieq<SemanticBodyStatus>(body.status, SemanticBodyClean()) {
+        True() => {
+          return SemanticCapabilityScanner();
+        }
+        False() => {
+          match ieq<SemanticBodyStatus>(body.status, SemanticBodyUnsupported()) {
+            True() => {
+              return SemanticCapabilityUnsupported();
+            }
+            False() => {
+              return SemanticCapabilityFailed();
+            }
+          }
+        }
+      }
+    }
+    False() => {
+    }
+  }
+
+  let linear_shape: own Bool = semantic_body_exact_children(ast: ast, node: function, want: 6_u64);
+  match linear_shape {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyUnsupported();
+      set deref(report).related = function;
+      return SemanticCapabilityUnsupported();
+    }
+  }
+  let linear_name: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 0_u64);
+  let linear_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 1_u64);
+  let linear_return_mode: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 2_u64);
+  let linear_return_type: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 3_u64);
+  let linear_effect: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 4_u64);
+  let linear_block: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 5_u64);
+  let linear_parameter_mode: own u64 = semantic_body_child_at(ast: ast, node: linear_parameter, ordinal: 0_u64);
+  let linear_parameter_type: own u64 = semantic_body_child_at(ast: ast, node: linear_parameter, ordinal: 1_u64);
+
+  let linear_name_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_name, want: AstFunctionName());
+  let linear_name_leaf: own Bool = semantic_body_exact_children(ast: ast, node: linear_name, want: 0_u64);
+  let linear_name_token: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: linear_name);
+  let linear_name_first: own Bool = band<Bool>(linear_name_kind, linear_name_leaf);
+  let linear_name_valid: own Bool = band<Bool>(linear_name_first, linear_name_token);
+  let linear_parameter_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_parameter, want: AstParameter());
+  let linear_parameter_shape: own Bool = semantic_body_exact_children(ast: ast, node: linear_parameter, want: 2_u64);
+  let linear_parameter_token: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: linear_parameter);
+  let linear_parameter_first: own Bool = band<Bool>(linear_parameter_kind, linear_parameter_shape);
+  let linear_parameter_valid: own Bool = band<Bool>(linear_parameter_first, linear_parameter_token);
+  let linear_parameter_mode_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_parameter_mode, want: AstOwnMode());
+  let linear_parameter_mode_leaf: own Bool = semantic_body_exact_children(ast: ast, node: linear_parameter_mode, want: 0_u64);
+  let linear_parameter_mode_valid: own Bool = band<Bool>(linear_parameter_mode_kind, linear_parameter_mode_leaf);
+  let linear_parameter_type_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_parameter_type, want: AstParameterType());
+  let linear_parameter_type_text: own Bool = semantic_body_node_is_u8(source: source, tokens: tokens, ast: ast, node: linear_parameter_type);
+  let linear_parameter_type_valid: own Bool = band<Bool>(linear_parameter_type_kind, linear_parameter_type_text);
+  let linear_return_mode_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_return_mode, want: AstOwnMode());
+  let linear_return_mode_leaf: own Bool = semantic_body_exact_children(ast: ast, node: linear_return_mode, want: 0_u64);
+  let linear_return_mode_valid: own Bool = band<Bool>(linear_return_mode_kind, linear_return_mode_leaf);
+  let linear_return_type_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_return_type, want: AstReturnType());
+  let linear_return_type_text: own Bool = semantic_body_node_is_bool(source: source, tokens: tokens, ast: ast, node: linear_return_type);
+  let linear_return_type_valid: own Bool = band<Bool>(linear_return_type_kind, linear_return_type_text);
+  let linear_effect_kind: own Bool = semantic_body_kind_is(ast: ast, node: linear_effect, want: AstPureEffect());
+  let linear_effect_leaf: own Bool = semantic_body_exact_children(ast: ast, node: linear_effect, want: 0_u64);
+  let linear_effect_valid: own Bool = band<Bool>(linear_effect_kind, linear_effect_leaf);
+  let linear_block_valid: own Bool = semantic_body_kind_is(ast: ast, node: linear_block, want: AstBlock());
+  let linear_signature0: own Bool = band<Bool>(linear_name_valid, linear_parameter_valid);
+  let linear_signature1: own Bool = band<Bool>(linear_parameter_mode_valid, linear_parameter_type_valid);
+  let linear_signature2: own Bool = band<Bool>(linear_return_mode_valid, linear_return_type_valid);
+  let linear_signature3: own Bool = band<Bool>(linear_effect_valid, linear_block_valid);
+  let linear_signature01: own Bool = band<Bool>(linear_signature0, linear_signature1);
+  let linear_signature23: own Bool = band<Bool>(linear_signature2, linear_signature3);
+  match band<Bool>(linear_signature01, linear_signature23) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyUnsupported();
+      set deref(report).related = function;
+      return SemanticCapabilityUnsupported();
+    }
+  }
+
+  region 'semantic_unit_dispatch_linear {
+    semantic_body_run(source: source, tokens: tokens, ast: ast, function: function, validation: validation, symbols: symbols, types: &uniq 'semantic_unit_dispatch_linear deref(types), facts: &uniq 'semantic_unit_dispatch_linear deref(facts), scratch: &uniq 'semantic_unit_dispatch_linear deref(scratch), report: &uniq 'semantic_unit_dispatch_linear body);
+  }
+  set deref(report).status = body.status;
+  set deref(report).function = function;
+  set deref(report).related = body.related;
+  match ieq<SemanticBodyStatus>(body.status, SemanticBodyClean()) {
+    True() => {
+      return SemanticCapabilityLinear();
+    }
+    False() => {
+      match ieq<SemanticBodyStatus>(body.status, SemanticBodyUnsupported()) {
+        True() => {
+          return SemanticCapabilityUnsupported();
+        }
+        False() => {
+          return SemanticCapabilityFailed();
+        }
+      }
+    }
+  }
+}
+
+fn semantic_unit_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &'c AstValidationReport, symbols: &'c SymbolTape, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w SemanticUnitReport) -> own unit reads('c 'w), writes('w), traps {
+  set deref(report).status = SemanticUnitInvalidTokenTape();
+  set deref(report).total = 0_u64;
+  set deref(report).clean = 0_u64;
+  set deref(report).unsupported = 0_u64;
+  set deref(report).rejected = 0_u64;
+  set deref(report).first_unsupported = semantic_facts_none;
+  set deref(report).first_rejected = semantic_facts_none;
+
+  let tokens_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
+  match tokens_valid {
+    True() => {
+    }
+    False() => {
+      return unit;
+    }
+  }
+  let ast_valid: own Bool = semantic_globals_ast_tape_valid(ast: ast);
+  let root_kind: own Bool = semantic_body_kind_is(ast: ast, node: deref(ast).root, want: AstProgram());
+  match band<Bool>(ast_valid, root_kind) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticUnitInvalidAstTape();
+      return unit;
+    }
+  }
+  match ieq<AstValidationStatus>(deref(validation).status, AstValidationClean()) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticUnitInvalidValidation();
+      return unit;
+    }
+  }
+  let symbols_valid: own Bool = symbol_lookup_entries_valid(source: source, tokens: tokens, symbols: symbols);
+  match symbols_valid {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticUnitInvalidSymbolTape();
+      return unit;
+    }
+  }
+
+  let types_valid: own Bool = False();
+  let facts_valid: own Bool = False();
+  let scratch_valid: own Bool = False();
+  region 'semantic_unit_run_type_shape {
+    set types_valid = semantic_type_tape_shape_valid(types: &'semantic_unit_run_type_shape deref(types));
+  }
+  region 'semantic_unit_run_fact_shape {
+    set facts_valid = semantic_node_facts_shape_valid(facts: &'semantic_unit_run_fact_shape deref(facts));
+  }
+  region 'semantic_unit_run_scratch_shape {
+    set scratch_valid = semantic_body_scratch_shape_valid(scratch: &'semantic_unit_run_scratch_shape deref(scratch));
+  }
+  let work_first: own Bool = band<Bool>(types_valid, facts_valid);
+  match band<Bool>(work_first, scratch_valid) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticUnitInvalidWork();
+      return unit;
+    }
+  }
+
+  let type_length0: own u64 = len<SemanticTypeKind>(deref(types).kinds);
+  let type_length1: own u64 = len<u64>(deref(types).declarations);
+  let type_length2: own u64 = len<u64>(deref(types).element_types);
+  let type_length3: own u64 = len<u64>(deref(types).array_lengths);
+  let type_length4: own u64 = len<u64>(deref(types).source_nodes);
+  let type_length5: own u64 = len<PreludeTypeCode>(deref(types).prelude_types);
+  let type_capacity0: own Bool = ige<u64>(type_length0, 4_u64);
+  let type_capacity1: own Bool = ige<u64>(type_length1, 4_u64);
+  let type_capacity2: own Bool = ige<u64>(type_length2, 4_u64);
+  let type_capacity3: own Bool = ige<u64>(type_length3, 4_u64);
+  let type_capacity4: own Bool = ige<u64>(type_length4, 4_u64);
+  let type_capacity5: own Bool = ige<u64>(type_length5, 4_u64);
+  let type_pair0: own Bool = band<Bool>(type_capacity0, type_capacity1);
+  let type_pair1: own Bool = band<Bool>(type_capacity2, type_capacity3);
+  let type_pair2: own Bool = band<Bool>(type_capacity4, type_capacity5);
+  let type_first: own Bool = band<Bool>(type_pair0, type_pair1);
+  let type_capacity: own Bool = band<Bool>(type_first, type_pair2);
+  let needed_facts: own u64 = deref(ast).count;
+  let fact_length0: own u64 = len<u64>(deref(facts).type_ids);
+  let fact_length1: own u64 = len<u64>(deref(facts).resolved_declarations);
+  let fact_length2: own u64 = len<u64>(deref(facts).ordinals);
+  let fact_length3: own u64 = len<SemanticOperation>(deref(facts).operations);
+  let fact_length4: own u64 = len<u64>(deref(facts).constant_values);
+  let fact_length5: own u64 = len<u64>(deref(facts).control_targets);
+  let fact_length6: own u64 = len<SemanticValueMode>(deref(facts).modes);
+  let fact_length7: own u64 = len<PreludeConstructorCode>(deref(facts).prelude_constructors);
+  let fact_capacity0: own Bool = ige<u64>(fact_length0, needed_facts);
+  let fact_capacity1: own Bool = ige<u64>(fact_length1, needed_facts);
+  let fact_capacity2: own Bool = ige<u64>(fact_length2, needed_facts);
+  let fact_capacity3: own Bool = ige<u64>(fact_length3, needed_facts);
+  let fact_capacity4: own Bool = ige<u64>(fact_length4, needed_facts);
+  let fact_capacity5: own Bool = ige<u64>(fact_length5, needed_facts);
+  let fact_capacity6: own Bool = ige<u64>(fact_length6, needed_facts);
+  let fact_capacity7: own Bool = ige<u64>(fact_length7, needed_facts);
+  let fact_pair0: own Bool = band<Bool>(fact_capacity0, fact_capacity1);
+  let fact_pair1: own Bool = band<Bool>(fact_capacity2, fact_capacity3);
+  let fact_pair2: own Bool = band<Bool>(fact_capacity4, fact_capacity5);
+  let fact_pair3: own Bool = band<Bool>(fact_capacity6, fact_capacity7);
+  let fact_first: own Bool = band<Bool>(fact_pair0, fact_pair1);
+  let fact_second: own Bool = band<Bool>(fact_pair2, fact_pair3);
+  let fact_capacity: own Bool = band<Bool>(fact_first, fact_second);
+  let scratch_capacity: own Bool = False();
+  region 'semantic_unit_run_scratch_capacity {
+    set scratch_capacity = semantic_body_scratch_capacity_valid(scratch: &'semantic_unit_run_scratch_capacity deref(scratch), needed: 34_u64);
+  }
+  let capacity_first: own Bool = band<Bool>(type_capacity, fact_capacity);
+  match band<Bool>(capacity_first, scratch_capacity) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticUnitCapacity();
+      return unit;
+    }
+  }
+
+  let root: own u64 = deref(ast).root;
+  let first: own u64 = index<u64>(deref(ast).first_children, root);
+  let last: own u64 = index<u64>(deref(ast).last_children, root);
+  let first_none: own Bool = ieq<u64>(first, ast_none);
+  let last_none: own Bool = ieq<u64>(last, ast_none);
+  match band<Bool>(first_none, last_none) {
+    True() => {
+      set deref(report).status = SemanticUnitClean();
+      return unit;
+    }
+    False() => {
+    }
+  }
+  match bor<Bool>(first_none, last_none) {
+    True() => {
+      set deref(report).status = SemanticUnitInvalidAstTape();
+      return unit;
+    }
+    False() => {
+    }
+  }
+
+  let preflight: own u64 = first;
+  let preflight_steps: own u64 = 0_u64;
+  loop @semantic_unit_preflight_children {
+    match ilt<u64>(preflight, deref(ast).count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticUnitInvalidAstTape();
+        return unit;
+      }
+    }
+    let at_last: own Bool = ieq<u64>(preflight, last);
+    let next: own u64 = index<u64>(deref(ast).next_siblings, preflight);
+    match at_last {
+      True() => {
+        match ieq<u64>(next, ast_none) {
+          True() => {
+            break @semantic_unit_preflight_children;
+          }
+          False() => {
+            set deref(report).status = SemanticUnitInvalidAstTape();
+            return unit;
+          }
+        }
+      }
+      False() => {
+        match ilt<u64>(next, deref(ast).count) {
+          True() => {
+            set preflight = next;
+          }
+          False() => {
+            set deref(report).status = SemanticUnitInvalidAstTape();
+            return unit;
+          }
+        }
+      }
+    }
+    set preflight_steps = iadd.trap<u64>(preflight_steps, 1_u64);
+    match ilt<u64>(preflight_steps, deref(ast).count) {
+      True() => {
+      }
+      False() => {
+        set deref(report).status = SemanticUnitInvalidAstTape();
+        return unit;
+      }
+    }
+  }
+
+  let total: own u64 = 0_u64;
+  let clean: own u64 = 0_u64;
+  let unsupported: own u64 = 0_u64;
+  let rejected: own u64 = 0_u64;
+  let first_unsupported: own u64 = semantic_facts_none;
+  let first_rejected: own u64 = semantic_facts_none;
+  let cursor: own u64 = first;
+  loop @semantic_unit_functions {
+    let kind: own AstKind = index<AstKind>(deref(ast).kinds, cursor);
+    match ieq<AstKind>(kind, AstFunction()) {
+      True() => {
+        set total = iadd.trap<u64>(total, 1_u64);
+        let capability_report: own SemanticCapabilityReport = SemanticCapabilityReport(status: SemanticBodyInvalidFunction(), function: cursor, related: semantic_facts_none);
+        let capability: own SemanticCapabilityKind = SemanticCapabilityFailed();
+        region 'semantic_unit_function_dispatch {
+          set capability = semantic_unit_dispatch(source: source, tokens: tokens, ast: ast, validation: validation, symbols: symbols, function: cursor, types: &uniq 'semantic_unit_function_dispatch deref(types), facts: &uniq 'semantic_unit_function_dispatch deref(facts), scratch: &uniq 'semantic_unit_function_dispatch deref(scratch), report: &uniq 'semantic_unit_function_dispatch capability_report);
+        }
+        match capability_report.status {
+          SemanticBodyClean() => {
+            set clean = iadd.trap<u64>(clean, 1_u64);
+          }
+          SemanticBodyUnsupported() => {
+            match ieq<u64>(first_unsupported, semantic_facts_none) {
+              True() => {
+                set first_unsupported = cursor;
+              }
+              False() => {
+              }
+            }
+            set unsupported = iadd.trap<u64>(unsupported, 1_u64);
+          }
+          SemanticBodyMalformed() => {
+            match ieq<u64>(first_rejected, semantic_facts_none) {
+              True() => {
+                set first_rejected = cursor;
+              }
+              False() => {
+              }
+            }
+            set rejected = iadd.trap<u64>(rejected, 1_u64);
+          }
+          SemanticBodyUnknownName() => {
+            match ieq<u64>(first_rejected, semantic_facts_none) {
+              True() => {
+                set first_rejected = cursor;
+              }
+              False() => {
+              }
+            }
+            set rejected = iadd.trap<u64>(rejected, 1_u64);
+          }
+          SemanticBodyTypeMismatch() => {
+            match ieq<u64>(first_rejected, semantic_facts_none) {
+              True() => {
+                set first_rejected = cursor;
+              }
+              False() => {
+              }
+            }
+            set rejected = iadd.trap<u64>(rejected, 1_u64);
+          }
+          SemanticBodyInvalidLiteral() => {
+            match ieq<u64>(first_rejected, semantic_facts_none) {
+              True() => {
+                set first_rejected = cursor;
+              }
+              False() => {
+              }
+            }
+            set rejected = iadd.trap<u64>(rejected, 1_u64);
+          }
+          SemanticBodyInvalidTokenTape() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyInvalidAstTape() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyInvalidValidation() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyInvalidFunction() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyInvalidTypeTape() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyInvalidNodeFacts() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyInvalidScratch() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+          SemanticBodyCapacity() => {
+            set deref(report).status = SemanticUnitCapacity();
+            return unit;
+          }
+          SemanticBodyInvalidSymbolTape() => {
+            set deref(report).status = SemanticUnitInfrastructureFailure();
+            return unit;
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    match ieq<u64>(cursor, last) {
+      True() => {
+        break @semantic_unit_functions;
+      }
+      False() => {
+        set cursor = index<u64>(deref(ast).next_siblings, cursor);
+      }
+    }
+  }
+  set deref(report).status = SemanticUnitClean();
+  set deref(report).total = total;
+  set deref(report).clean = clean;
+  set deref(report).unsupported = unsupported;
+  set deref(report).rejected = rejected;
+  set deref(report).first_unsupported = first_unsupported;
+  set deref(report).first_rejected = first_rejected;
+  return unit;
+}

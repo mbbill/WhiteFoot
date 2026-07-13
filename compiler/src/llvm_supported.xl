@@ -28,57 +28,26 @@ fn llvm_supported_fail ['w] (report: &uniq 'w LlvmSupportedReport, status: own L
   return unit;
 }
 
-fn llvm_supported_reset_work ['w] (types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch) -> own unit writes('w) {
-  region 'llvm_supported_reset_types {
-    semantic_type_tape_reset(types: &uniq 'llvm_supported_reset_types deref(types));
-  }
-  region 'llvm_supported_reset_facts {
-    semantic_node_facts_reset(facts: &uniq 'llvm_supported_reset_facts deref(facts));
-  }
-  set deref(scratch).count = 0_u64;
-  return unit;
-}
-
-fn llvm_supported_semantic_failure ['b, 'w] (body: &'b SemanticBodyReport, function: own u64, report: &uniq 'w LlvmSupportedReport) -> own unit reads('b), writes('w) {
-  let unsupported: own Bool = ieq<SemanticBodyStatus>(deref(body).status, SemanticBodyUnsupported());
-  match unsupported {
-    True() => {
-      region 'llvm_supported_semantic_unsupported {
-        llvm_supported_fail(report: &uniq 'llvm_supported_semantic_unsupported deref(report), status: LlvmSupportedUnsupportedFunction(), function: function, related: deref(body).related);
-      }
-    }
-    False() => {
-      region 'llvm_supported_semantic_invalid {
-        llvm_supported_fail(report: &uniq 'llvm_supported_semantic_invalid deref(report), status: LlvmSupportedSemanticFailure(), function: function, related: deref(body).related);
-      }
-    }
-  }
-  return unit;
-}
-
 fn llvm_supported_analyze_kind ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &'c AstValidationReport, symbols: &'c SymbolTape, function: own u64, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w LlvmSupportedReport) -> own LlvmSupportedKind reads('c 'w), writes('w), traps {
-  region 'llvm_supported_analyze_reset {
-    llvm_supported_reset_work(types: &uniq 'llvm_supported_analyze_reset deref(types), facts: &uniq 'llvm_supported_analyze_reset deref(facts), scratch: &uniq 'llvm_supported_analyze_reset deref(scratch));
+  let capability_report: own SemanticCapabilityReport = SemanticCapabilityReport(status: SemanticBodyInvalidFunction(), function: function, related: semantic_facts_none);
+  let capability: own SemanticCapabilityKind = SemanticCapabilityFailed();
+  region 'llvm_supported_semantic_dispatch {
+    set capability = semantic_unit_dispatch(source: source, tokens: tokens, ast: ast, validation: validation, symbols: symbols, function: function, types: &uniq 'llvm_supported_semantic_dispatch deref(types), facts: &uniq 'llvm_supported_semantic_dispatch deref(facts), scratch: &uniq 'llvm_supported_semantic_dispatch deref(scratch), report: &uniq 'llvm_supported_semantic_dispatch capability_report);
   }
-  let body: own SemanticBodyReport = SemanticBodyReport(status: SemanticBodyInvalidFunction(), node: function, related: semantic_facts_none);
-  let width: own u64 = semantic_buffer_fixed_width_profile(source: source, tokens: tokens, ast: ast, function: function);
-  match ieq<u64>(width, semantic_facts_none) {
-    True() => {
+  match capability {
+    SemanticCapabilityFailed() => {
+      region 'llvm_supported_semantic_failure {
+        llvm_supported_fail(report: &uniq 'llvm_supported_semantic_failure deref(report), status: LlvmSupportedSemanticFailure(), function: function, related: capability_report.related);
+      }
+      return LlvmSupportedKindFailed();
     }
-    False() => {
-      region 'llvm_supported_analyze_fixed {
-        semantic_buffer_fixed_width_run(source: source, tokens: tokens, ast: ast, function: function, validation: validation, symbols: symbols, types: &uniq 'llvm_supported_analyze_fixed deref(types), facts: &uniq 'llvm_supported_analyze_fixed deref(facts), scratch: &uniq 'llvm_supported_analyze_fixed deref(scratch), report: &uniq 'llvm_supported_analyze_fixed body);
+    SemanticCapabilityUnsupported() => {
+      region 'llvm_supported_semantic_unsupported {
+        llvm_supported_fail(report: &uniq 'llvm_supported_semantic_unsupported deref(report), status: LlvmSupportedUnsupportedFunction(), function: function, related: capability_report.related);
       }
-      match ieq<SemanticBodyStatus>(body.status, SemanticBodyClean()) {
-        True() => {
-        }
-        False() => {
-          region 'llvm_supported_fixed_failure {
-            llvm_supported_semantic_failure(body: &'llvm_supported_fixed_failure body, function: function, report: &uniq 'llvm_supported_fixed_failure deref(report));
-          }
-          return LlvmSupportedKindFailed();
-        }
-      }
+      return LlvmSupportedKindFailed();
+    }
+    SemanticCapabilityFixedWidth() => {
       let fixed_valid: own Bool = False();
       region 'llvm_supported_fixed_gate {
         set fixed_valid = llvm_buffer_fixed_width_facts_valid(source: source, tokens: tokens, ast: ast, function: function, types: &'llvm_supported_fixed_gate deref(types), facts: &'llvm_supported_fixed_gate deref(facts));
@@ -95,32 +64,7 @@ fn llvm_supported_analyze_kind ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
         }
       }
     }
-  }
-
-  let scanner_signature: own Bool = semantic_scanner_signature_valid(source: source, tokens: tokens, ast: ast, function: function);
-  let scanner_body: own Bool = False();
-  match scanner_signature {
-    True() => {
-      set scanner_body = semantic_scanner_body_valid(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols);
-    }
-    False() => {
-    }
-  }
-  match band<Bool>(scanner_signature, scanner_body) {
-    True() => {
-      region 'llvm_supported_analyze_scanner {
-        semantic_scanner_run(source: source, tokens: tokens, ast: ast, function: function, validation: validation, symbols: symbols, types: &uniq 'llvm_supported_analyze_scanner deref(types), facts: &uniq 'llvm_supported_analyze_scanner deref(facts), scratch: &uniq 'llvm_supported_analyze_scanner deref(scratch), report: &uniq 'llvm_supported_analyze_scanner body);
-      }
-      match ieq<SemanticBodyStatus>(body.status, SemanticBodyClean()) {
-        True() => {
-        }
-        False() => {
-          region 'llvm_supported_scanner_failure {
-            llvm_supported_semantic_failure(body: &'llvm_supported_scanner_failure body, function: function, report: &uniq 'llvm_supported_scanner_failure deref(report));
-          }
-          return LlvmSupportedKindFailed();
-        }
-      }
+    SemanticCapabilityScanner() => {
       let scanner_valid: own Bool = False();
       region 'llvm_supported_scanner_gate {
         set scanner_valid = llvm_scanner_facts_valid(source: source, tokens: tokens, ast: ast, function: function, symbols: symbols, types: &'llvm_supported_scanner_gate deref(types), facts: &'llvm_supported_scanner_gate deref(facts));
@@ -137,59 +81,32 @@ fn llvm_supported_analyze_kind ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
         }
       }
     }
-    False() => {
-    }
-  }
-
-  let linear_kind: own Bool = semantic_body_kind_is(ast: ast, node: function, want: AstFunction());
-  let linear_shape: own Bool = semantic_body_exact_children(ast: ast, node: function, want: 6_u64);
-  match band<Bool>(linear_kind, linear_shape) {
-    True() => {
-    }
-    False() => {
-      region 'llvm_supported_linear_shape {
-        llvm_supported_fail(report: &uniq 'llvm_supported_linear_shape deref(report), status: LlvmSupportedUnsupportedFunction(), function: function, related: function);
+    SemanticCapabilityLinear() => {
+      let table_valid: own Bool = False();
+      region 'llvm_supported_table_gate {
+        set table_valid = llvm_linear_table_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: &'llvm_supported_table_gate deref(types), facts: &'llvm_supported_table_gate deref(facts));
       }
-      return LlvmSupportedKindFailed();
-    }
-  }
-
-  region 'llvm_supported_analyze_linear {
-    semantic_body_run(source: source, tokens: tokens, ast: ast, function: function, validation: validation, symbols: symbols, types: &uniq 'llvm_supported_analyze_linear deref(types), facts: &uniq 'llvm_supported_analyze_linear deref(facts), scratch: &uniq 'llvm_supported_analyze_linear deref(scratch), report: &uniq 'llvm_supported_analyze_linear body);
-  }
-  match ieq<SemanticBodyStatus>(body.status, SemanticBodyClean()) {
-    True() => {
-    }
-    False() => {
-      region 'llvm_supported_linear_failure {
-        llvm_supported_semantic_failure(body: &'llvm_supported_linear_failure body, function: function, report: &uniq 'llvm_supported_linear_failure deref(report));
+      let match_valid: own Bool = False();
+      match table_valid {
+        True() => {
+        }
+        False() => {
+          region 'llvm_supported_match_gate {
+            set match_valid = llvm_linear_match_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: &'llvm_supported_match_gate deref(types), facts: &'llvm_supported_match_gate deref(facts));
+          }
+        }
       }
-      return LlvmSupportedKindFailed();
-    }
-  }
-  let table_valid: own Bool = False();
-  region 'llvm_supported_table_gate {
-    set table_valid = llvm_linear_table_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: &'llvm_supported_table_gate deref(types), facts: &'llvm_supported_table_gate deref(facts));
-  }
-  let match_valid: own Bool = False();
-  match table_valid {
-    True() => {
-    }
-    False() => {
-      region 'llvm_supported_match_gate {
-        set match_valid = llvm_linear_match_function_valid(source: source, tokens: tokens, ast: ast, function: function, types: &'llvm_supported_match_gate deref(types), facts: &'llvm_supported_match_gate deref(facts));
+      match bor<Bool>(table_valid, match_valid) {
+        True() => {
+          return LlvmSupportedKindLinear();
+        }
+        False() => {
+          region 'llvm_supported_linear_unsupported {
+            llvm_supported_fail(report: &uniq 'llvm_supported_linear_unsupported deref(report), status: LlvmSupportedUnsupportedFunction(), function: function, related: function);
+          }
+          return LlvmSupportedKindFailed();
+        }
       }
-    }
-  }
-  match bor<Bool>(table_valid, match_valid) {
-    True() => {
-      return LlvmSupportedKindLinear();
-    }
-    False() => {
-      region 'llvm_supported_linear_unsupported {
-        llvm_supported_fail(report: &uniq 'llvm_supported_linear_unsupported deref(report), status: LlvmSupportedUnsupportedFunction(), function: function, related: function);
-      }
-      return LlvmSupportedKindFailed();
     }
   }
 }
