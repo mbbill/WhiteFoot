@@ -997,3 +997,31 @@ violations; conformance 259 PASS / 14 SKIP / 90/90 rules; full `make check` endi
 `ALL VERIFICATION LAYERS GREEN`; and clean whitespace checks.  This is an existing-
 specification conformance repair, not E0.1 candidate semantics or authorization for
 any record-storage design.
+
+## E0.1 owner-review package revised; production design remains open (2026-07-13)
+
+The owner-advisor review is durably dispositioned in
+`experiments/data-layout-owning-sequence/REVIEW_RESPONSE.md`.  The exact rejected
+prototype source is already archived at `68a55e4`; the initial index liveness repair
+is narrowly attributed to `38d642e`; strict GRAM-9 and recursive projection are
+repaired at `50a1ddd`; and the complete current-language expression-context checker
+repair is `7438e17`.  Disposable executables remain outside the repository, while
+every reviewed source artifact is recoverable.
+
+The design recommendation is reopened.  Automatic structural Copy, declarative
+`copy struct`, and nominally affine record storage are distinct ownership routes.
+The OWN-1 tag-only precedent is answered on memory safety, nominal authority/private-
+constructor invariants, and copy-cost visibility.  Recursive recipe, single-level
+initializer, builder/initialized-prefix coupling, explicit Repeat/Clone, and Copy-
+tier fill are preliminary alternatives with nonzero grammar/type/effect/lowering
+prices; none is selected.  Non-builder E0.1a/E0.1b remains serial, while a builder
+requires a newly approved coupled protocol.  An opaque kernel sequence would reverse
+STOR-1 and therefore needs a full META-5 and design-tree redecision.  PATTERNS remains
+a production gate, and float exclusion remains only a limitation of the archived
+prototype.
+
+No production specification, storage, xlc-layout, PATTERNS, teaching, or external-
+model change is authorized.  The MCTS-Mem tree is unchanged while the owner choice
+is open.  If a selected production route supersedes the recorded declarative-copy
+path, the same decision must move that path to the appropriate `.alt/` branch with
+paired reasons; selecting it instead must update its card with the deciding evidence.

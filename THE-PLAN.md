@@ -102,7 +102,17 @@ Measured non-wins (equally load-bearing):
    slices extend copy-scalar, type, ownership, and effect rules across the
    remaining functions. The staged route continues through whole-unit lowering,
    a stage-1 compiler, and the byte-identical self-hosting fixpoint; every slice
-   keeps both repository gates green.
+   keeps both repository gates green. **E0.1 status (2026-07-13):** the first
+   detached record-buffer prototype is rejected but durably archived; owner choice
+   among automatic structural Copy, declarative `copy struct`, and nominally affine
+   record storage is reopened, so no production design is selected. Independently
+   authorized current-language conformance repairs close the checker drift at
+   `7438e17` and parser drift at `50a1ddd`. Strict GRAM-9 required 744 additional
+   bindings in the
+   self-hosted compiler source, but the isolated whole-compiler optimized object is
+   byte-identical (264,288 bytes, SHA-256
+   `eef9c30193b69be22452f47bc8050453f5da9d86454ff165c74da0be6241b522`). The MCTS-Mem
+   design tree remains unchanged until the owner selects a production route.
 2. **Default-floor experiment against shipped Rust (D9a)** — COMPLETE on two
    separately preregistered targets. First-green Terra xlang records paired
    throughput ratios of 1.653x [1.631, 1.667] against `percent-encoding` 2.3.2

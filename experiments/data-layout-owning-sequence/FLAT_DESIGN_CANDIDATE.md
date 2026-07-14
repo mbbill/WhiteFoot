@@ -1,96 +1,199 @@
-# E0.1a Flat-record design candidate
+# E0.1a Flat-record candidate space
 
-Status: research proposal revised after hostile review.  Isolated
-experimentation is authorized; production implementation is not, and this file
-does not amend the language specification.  The first detached prototype is
-not a valid production candidate because its record-fill path duplicates an
-affine value.
+Status: non-normative research proposal revised after hostile and owner-advisor
+review. Isolated experimentation is allowed; production implementation,
+specification changes, xlc migration, scored timing, and default teaching are not
+authorized. This document records design alternatives and does not select one.
+
+The first detached prototype is not a valid production candidate because its record
+fill duplicates one affine value. Its useful result is narrower: direct record-field
+storage can lower without whole-record copies on the frozen 64-bit targets while
+unchanged SoA sources retain raw-IR identity.
 
 ## Integration rule: no feature flag
 
-The candidate must not be introduced behind a checker, compiler, CLI, teaching,
-or runtime flag.  A flag would make one compiler maintain two language
-semantics and would violate xlang's single canonical language rule.
+No candidate may be introduced behind a checker, compiler, CLI, teaching, or runtime
+flag. A flag would make one compiler maintain two language semantics and violate
+xlang's single canonical language rule.
 
 Experiments use two isolated toolchains:
 
 - the baseline toolchain is built from the frozen parent revision;
-- a disposable candidate branch/worktree implements the proposed semantics
+- one disposable candidate branch/worktree implements one proposed semantics
   unconditionally and is never merged merely to run the experiment.
 
-Both compile the same unchanged baseline fixtures for the zero-tax identity
-gate.  The candidate lives in a disposable detached worktree and is not a
-production change.  After the report, it is either rejected and discarded, or,
-only with explicit owner confirmation, reimplemented/landed atomically with
-spec, checker, stage 0, xlc, conformance, teaching, and code-shape pins.
-Baseline and candidate semantics never coexist in one tool.
+Both compile the unchanged baseline fixtures for the zero-tax identity gate. An
+executable candidate lives only in a disposable worktree; its exact reviewed source
+must be archived durably. The first rejected candidate is preserved as the
+57,547-byte [`DETACHED_CANDIDATE.patch`](DETACHED_CANDIDATE.patch) at commit
+`68a55e4`, with the base and SHA-256 recorded in the review. A later production
+change would require explicit owner confirmation and atomic updates to the
+specification, checker, stage 0, xlc, conformance, teaching, pattern doctrine, and
+code-shape pins. Baseline and candidate semantics never coexist in one tool.
 
-## Candidate surface: no new declaration syntax
+## What the prototype did and did not establish
 
-The smallest proposal adds no `copy struct`, `flat struct`, representation
-attribute, automatic layout conversion, or stable-ABI promise.  The explicit
-layout choice already appears in `buffer<Record>`: one record element is one
-contiguous AoS row.  The checker derives whether `Record` is eligible.
+On x86_64 and AArch64, the prototype derived target row strides of 24 and 56 bytes
+for the TokenRow and AstRow fixtures. A field-only access lowered to a bounds check,
+row GEP, field GEP, and scalar load/store, without aggregate loads or stores,
+`memcpy`, `byval`, or `sret`. Existing primitive-buffer and SoA raw LLVM remained
+byte-identical in the frozen fixtures.
 
-All structs remain affine under OWN-1.  A bare aggregate use remains illegal and
-`move` remains transfer.  Admitting record storage therefore does not make
-assignment, argument passing, or return silently copy a large record.
+It did not establish a sound ownership design, target-generic layout, a production
+surface, or a performance benefit. In particular:
 
-## Candidate predicate
+- `buffer_new<Record>(count, move seed)` evaluated one affine seed and stored it in
+  every row;
+- the candidate used 64-bit allocation and layout assumptions that are unsound for
+  32-bit targets;
+- no scored timing exists.
 
-The existing `ImplicitCopy(T)` set remains unchanged.  A separate derived
-predicate, provisionally called `Flat(T)`, means only fixed-size, region-free,
-borrow-free, and without a drop obligation.
+Hostile review also found pre-existing current-language defects. Commit `38d642e`
+fixed the first index-atom liveness/readability reproduction; commit `7438e17` closes
+the remaining index, match, payload-borrow, try, and return seams. Commit `50a1ddd`
+repairs recursive projection
+and strict GRAM-9 in both executable frontends. These fixes are independent of E0.1
+and are not premises for limiting or selecting the record-storage design.
 
-The narrow first experiment would admit exactly represented integer primitives,
-tag-only enums, and non-empty named records whose fields recursively satisfy the
-same predicate.  It would conservatively reject stage-0-inexact floats,
-zero-sized records, payload enums, arrays, buffers, boxes, arenas, slices or
-other borrow-bearing fields, cells, sequences, erased/generic values, unknown
-types, finalizers, and by-value record cycles.
+## Ownership alternatives are distinct
 
-These are experiment limits, not a final claim about the language.  `Flat` does
-not imply all-bit-pattern validity, zero validity, observable padding, bytewise
-equality/hash/serialization, stable offsets, stable ABI, FFI compatibility, or
-implicit Copy.
+The prior project record carded a *declarative* `copy struct` tier: the author marks
+one struct whose fields satisfy Copy, and the checker verifies the declaration. That
+is not automatic structural Copy, which would infer Copy for every eligible record.
+The two have different source visibility and migration costs:
 
-## Candidate fixed-buffer operations
+| Route | Visibility | Ownership and cost consequence |
+|---|---|---|
+| Automatic structural Copy | No declaration or call-site marker | Every eligible record changes from affine to Copy; bare assignment, arguments, returns, and matches may copy an arbitrarily large value |
+| Declarative `copy struct` | One type-declaration marker | Only opted-in types change class, but every use of such a type still copies bare without a call-site cost marker |
+| Derived `Flat(T)` storage eligibility | No declaration marker; `buffer<Record>` selects AoS | Records can remain affine, but a separate sound initialization operation is required |
+| Explicit Repeat/Clone | Duplication is visible at the operation | Requires new value semantics, conformance/effect rules, and a decision about fallibility, allocation, and implementation cost |
 
-The existing `buffer_new<T>(count, fill)` is sound because v0 requires Copy T:
-it evaluates `fill` once and repeats the value.  Deriving `Flat(Record)` must not
-silently relax that precondition.  In particular,
-`buffer_new<Record>(count, move seed)` contracts one affine value into `count`
-values; an outer fresh constructor containing a nested `move` has the same
-problem.  Explicit spelling does not make contraction legal, so both forms are
-rejected.
+OWN-1's tag-only-enum amendment is a relevant precedent. Resource-free affinity
+bought no safety for Bool and other tag-only states, while the forced integer
+workaround caused a measured 1.6-1.8x loss. A narrowly defined Flat record has no
+direct borrow or drop obligation, so memory safety alone does not force it to stay
+affine.
 
-Initialization is therefore an open part of E0.1a, not a solved detail.  The
-narrowest remaining candidate is a recursively fresh row recipe containing
-only Copy leaves and no `move`, elaborated as one fresh construction per slot.
-Its evaluation/effect rules and canonical operation spelling require owner
-review before another prototype.  The alternatives are a separately opted-in
-Repeat/Clone capability, or a safe per-slot builder/initialized-prefix owner;
-neither follows from Flat alone.  Padding would have no semantic value.
+Nominal uniqueness is a separate correctness and maintenance axis. A record with
+Copy leaves may represent one authorization state, protocol token, or
+private-constructor invariant. Automatic structural Copy would duplicate that state
+even though the bit-copy is memory-safe, and it would prevent future modules from
+relying on one-value authority. Declarative Copy leaves the decision with the type
+author; affine Flat preserves nominal uniqueness by default. Cost visibility is
+independently unresolved: a tag is small, while a record can be 24, 56, or many more
+bytes. The tag-only precedent therefore requires explicit engagement; it does not
+select automatic Copy, declarative Copy, affine Flat storage, or explicit
+duplication.
 
-Once safely initialized, the fixed buffer would remain fully initialized and
-fixed-length: no capacity field, growth branch, slot tag, drop bitmap, or hidden
-header change.  The first experiment would allow scalar field
-projection/update, whole-row overwrite from one fresh construction, existing
-conservative borrows, and `len`.
+## Conditional Flat predicate
 
-A whole-record bare read or `move index<Record>(...)` would remain illegal.
-Moving an element would leave a hole in fully initialized storage; treating the
-operation as a copy would silently expand Copy.  A future explicit row-copy
-operation would need independent evidence.
+If the owner selects the affine-storage route, a provisional `Flat(T)` predicate
+would mean only that the target can statically determine size and layout, and that
+the value contains no region, borrow, or drop obligation. It would not imply:
 
-## Required lowering if an experiment is approved
+- implicit Copy, explicit Repeat, or Clone;
+- all-bit-pattern or zero validity;
+- observable padding or bytewise equality, hashing, or serialization;
+- stable field offsets, ABI, or FFI compatibility;
+- a necessarily cheap whole-record load or store.
+
+The disposable prototype admitted exactly represented integers, tag-only enums, and
+recursively eligible non-empty named records. It excluded floats inside records only
+because the stage-0 experiment used an intentionally narrow, hand-maintained layout
+model and did not trust that path. This is not evidence that `f32` or `f64` is
+semantically non-Flat, and existing primitive float buffers remained unchanged.
+
+The same prototype also excluded zero-sized records, payload enums, arrays, buffers,
+boxes, arenas, slices and other borrow-bearing fields, cells, sequences,
+erased/generic/unknown types, finalizers, and by-value cycles. Those are experiment
+limits, not a selected production boundary.
+
+## Fixed-buffer initialization is unresolved
+
+The existing `buffer_new<T>(count, fill)` is sound because v0 requires Copy T and
+evaluates `fill` once before repeating it. Merely deriving `Flat(Record)` cannot
+relax that precondition. A moved fill contracts one affine value into many; a fresh
+outer constructor containing a nested move has the same problem. Explicit `move`
+does not grant duplication.
+
+The previously suggested recursively fresh recipe also conflicts with GRAM-9.
+Ordinary construct fields are atoms, so a nested construction must be bound by a
+preceding `let`. That binding denotes one affine nested record, which cannot then be
+repeated into every outer row. A recursive per-slot recipe therefore needs a second
+recursive construction spelling and its own evaluation semantics; it cannot be
+described as ordinary construction reused for free.
+
+The candidate routes and their preliminary lower-bound costs are below. No row is a
+complete META-5 price:
+
+| Route | Benefit | Required price or restriction |
+|---|---|---|
+| Dedicated recursive recipe | Constructs each nested Flat row independently while records remain affine | Adds recursive recipe grammar, field ordering, evaluation count, effects, parser/AST/checker/diagnostics, and a FORM-1/GRAM-9/META-5 justification |
+| Single-level dedicated initializer | Keeps field operands as GRAM-9 atoms and has a smaller surface | Excludes nested record fields or requires source flattening; still adds a dedicated initializer spelling and arity rules |
+| Per-slot builder or initialized-prefix owner | Uses ordinary ANF construction and moves each fresh row once | Requires partial-initialization state, inaccessible tail, failure atomicity, and borrow/drop rules, coupling E0.1a to E0.1b |
+| Explicit Repeat/Clone | Makes duplication an explicit operation and can reuse the existing fill shape | Broadens semantics beyond storage and must specify whether duplication is bitwise or semantic, fallible, allocating, or effectful |
+| Declarative `copy struct` | Reuses existing `buffer_new<T>` and GRAM-9 unchanged | Adds declaration grammar, all-Copy eligibility checking, TYPE-2 aggregate layout/lowering, and ownership-context conformance for assignment/call/return/match; later copies are declaration-visible but not call-site-visible |
+
+Automatic structural Copy has the same initialization convenience as declarative
+Copy while removing the declaration-level signal and changing all structurally
+eligible records. No route is selected here. Before another isolated prototype, the
+owner must freeze one route, its canonical spelling, evaluation count, effects,
+eligibility boundary, and META-5 delta.
+
+## Conditional fixed-buffer operations
+
+If an affine Flat-storage route is selected and safe full initialization is solved,
+the fixed buffer could remain fully initialized and fixed-length: no capacity field,
+growth branch, slot tag, drop bitmap, or hidden header change. A narrow experiment
+could then test scalar field projection/update, `len`, existing conservative borrows,
+and complete-row replacement from one fresh construction.
+
+A bare whole-record read or `move index<Record>(...)` would remain outside that
+narrow experiment because moving an element leaves a hole and treating the read as a
+copy changes OWN-1. Padding would have no semantic value. These are conditional
+experiment limits, not a final language ruling.
+
+## Required lowering for any record-storage experiment
 
 Target DataLayout must determine size, alignment, stride, and field offsets.
-Allocation must check multiplication, alignment rounding, pointer-index bounds,
-and failure.  An expression such as `index<Row>(rows, i).field` must lower to a
-bounds check, row GEP, field GEP, and scalar load/store.  Field-only paths may not
-materialize the record or emit `memcpy`, `byval`, or `sret`.
+Allocation must check multiplication, alignment rounding, pointer-index bounds, the
+allocator's size type, `isize::MAX`, and failure. An expression such as
+`index<Row>(rows, i).field` must lower to a bounds check, row GEP, field GEP, and
+scalar load/store. Field-only paths may not materialize the record or emit `memcpy`,
+`byval`, or `sret`.
 
-Existing primitive-buffer/SoA fixtures must reproduce their raw LLVM and native
-machine code exactly under the candidate toolchain.  This is the zero-tax gate;
-no flag is involved.
+Existing primitive-buffer and SoA fixtures must reproduce raw LLVM and native
+machine code exactly under the candidate toolchain. This is the zero-tax gate; no
+flag is involved.
+
+## Storage and pattern doctrine gates
+
+A builder or opaque initialized-prefix owner cannot be treated as a small follow-on
+without confronting STOR-1. STOR-1 currently says growable collections are future
+library structures over `buffer<T>` and are not kernel constructs. A kernel
+`sequence<T>` would reverse that direction and owes a full META-5 delta covering
+tokens, rules, spellings, exceptions, storage, ownership, borrowing, growth,
+failure, destruction, diagnostics, teaching, and selection ground. Preserving STOR-1
+instead requires identifying the minimal checked operations a library owner needs.
+This file selects neither route.
+
+PATTERNS.md is a production and default-teaching gate. P2 currently blesses the
+append-only, index-linked SoA pool. Before any AoS record capability enters
+production, the closed catalog must give evidence-backed, canonical guidance for
+when AoS is blessed and when P2 remains the required shape. Default teaching also
+requires the separately authorized benchmark-blind writer panel. Prototype
+feasibility alone changes neither P2 nor the teaching pack.
+
+## Decision status
+
+The archived detached implementation is rejected. The field-lowering feasibility
+result is retained. The next design and experiment are deferred to owner selection
+among the explicit alternatives above. No production work, specification delta,
+scored timing, xlc migration, pattern change, or external model run is authorized by
+this document.
+
+The design tree remains unchanged while that selection is open. A later production
+route that supersedes the recorded declarative-copy path must move the old path to
+the appropriate `.alt/` branch with paired reasons in the same decision; selecting
+declarative `copy struct` must instead update its card with the deciding evidence.

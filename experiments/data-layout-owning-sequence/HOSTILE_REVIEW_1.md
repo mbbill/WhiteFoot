@@ -117,6 +117,23 @@ DataLayout matrix, machine-code identity pin, internal tape-by-tape equivalence,
 or lifecycle/free validation exists.  The current backend retains allocations,
 so its process-exit behavior cannot prove STOR-3 or retained-memory semantics.
 
-Next stop: owner review of initialization semantics and the corrected protocol.
+## Subsequent disposition (not part of the original verdict)
+
+- Commit `68a55e4` made the exact reviewed patch durable with its recorded base,
+  byte count, diff statistics, and SHA-256.
+- Commit `38d642e` fixed only B2's first index-atom liveness/readability
+  reproduction. Commit `7438e17` closes the complete offset ownership/type path and
+  the related match, payload, try, and return expression-context seams.
+- Commit `50a1ddd` closes major finding 3 and enforces strict GRAM-9 in both
+  executable frontends.
+- B1's historical prescription of a recursively fresh recipe was superseded by the
+  owner-advisor review: GRAM-9 gives that recipe a new grammar and evaluation model.
+  Recursive recipe, single-level initializer, builder, explicit Repeat/Clone, and
+  Copy-tier initialization are reopened alternatives; none is selected.
+- B1, the 32-bit target blocker, the benchmark-protocol blockers, and the residual
+  production gates remain open. No language design was selected.
+
+Next stop: owner selection among the reopened initialization alternatives and review
+of the corrected protocol.
 No blocker may be converted into implementation work in the production
 toolchain without explicit owner confirmation.

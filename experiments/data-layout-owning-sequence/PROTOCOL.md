@@ -20,33 +20,49 @@ lands atomically across every normative surface.
 
 ## 1. Questions and exclusions
 
-E0.1 is split into two serial decisions.
+E0.1 has two questions. They remain serial for an initializer that preserves fully
+initialized fixed storage. A builder or initialized-prefix initializer deliberately
+couples them and requires a replacement protocol before implementation.
 
-### E0.1a — flat records in fixed storage
+### E0.1a — records in fixed storage
 
-Test a fixed-capacity AoS representation using a compiler-verified `Flat(T)`
-record.  `Flat` means fixed-size, region-free, borrow-free, and without a drop
-obligation.  It does not mean that every bit pattern is valid, that padding is
-observable, that bytewise equality is valid, or that the type has a stable FFI
-ABI.
+Test fixed-capacity AoS only after the owner selects an ownership and initialization
+route. The open ownership routes are automatic structural Copy, declarative
+`copy struct`, and nominally affine records with a separately derived storage
+predicate. The open initialization routes are a dedicated recursive recipe, a
+single-level initializer, a per-slot builder/initialized-prefix owner, explicit
+Repeat/Clone, and the Copy-buffer mechanics available to a selected Copy tier. This
+protocol does not select any route.
 
-`Flat` is deliberately separate from the existing implicit-Copy class.  Bare
-uses of an aggregate must not acquire hidden copying, and `Flat` alone must not
-license even an explicit contraction of one affine record into N records.  In
-particular, `buffer_new<Record>(n, move seed)` is rejected: spelling the move
-does not make duplication of its result legal.  A possible first initializer is
-a recursively fresh row recipe containing only Copy leaves and no `move`, whose
-semantics constructs one fresh row per slot; that recipe is still an unresolved
-design item, not an approved rule.  Field projection remains scalar.  Existing
-`struct`, primitive `buffer<T>`, and the current SoA tapes keep their semantics
-and representation.
+If affine Flat storage is selected, `Flat` means fixed-size, region-free,
+borrow-free, and without a drop obligation. It does not mean Copy, all-bit-pattern
+validity, observable padding, bytewise equality, or stable FFI ABI. A nominal
+all-Copy-leaf record may still encode one authorization or private-constructor
+invariant, so automatic bit duplication is not justified by memory safety alone.
+`buffer_new<Record>(n, move seed)` remains rejected: spelling the move does not make
+contraction legal.
+
+A recursively fresh recipe is not ordinary syntax reused for free. GRAM-9 makes
+nested construction non-atomic, while binding the inner record creates one affine
+value that cannot be repeated. Any recipe therefore needs a separately priced
+grammar/evaluation/effect model. Declarative `copy struct` instead preserves GRAM-9
+and existing fill mechanics but requires declaration grammar, eligibility checking,
+aggregate lowering, and ownership-context conformance. Field projection remains
+scalar under every route. Existing primitive `buffer<T>` and current SoA tapes keep
+their semantics and representation.
 
 ### E0.1b — initialized-prefix owning sequence
 
-Only after E0.1a receives an adopt/reject/defer decision, test an opaque affine
-sequence with `{data, len, capacity}` semantics.  Exactly `[0, len)` is
-initialized; `[len, capacity)` is inaccessible and is not dropped.  The writer
-never receives raw or `MaybeUninit` storage.
+For a non-builder E0.1a route, open E0.1b only after E0.1a receives an
+adopt/reject/defer decision. For a builder route, replace this serial protocol before
+implementation. E0.1b must compare two storage-taxonomy branches: preserve STOR-1
+by adding only the checked operations required by a library owner over `buffer<T>`,
+or explicitly reopen STOR-1 and consider an opaque kernel owner. This draft selects
+neither branch.
+
+Under either branch, exactly `[0, len)` is initialized; `[len, capacity)` is
+inaccessible and is not dropped. The writer never receives raw or `MaybeUninit`
+storage.
 
 Growth and no-growth append are distinct operations.  The measured hot shape is
 `with_capacity`/`reserve` followed by `push_within_capacity`; proof of
@@ -54,11 +70,14 @@ Growth and no-growth append are distinct operations.  The measured hot shape is
 with no allocator slow path.  An auto-growing library wrapper is not part of the
 first kernel decision.
 
-The first sequence prototype admits only `Flat` elements.  Arbitrary affine
-elements are deferred until exact-once drop elaboration (STOR-3), element
-reborrows, and moved-storage raw deallocation are complete.  General partial
-initialization, public `MaybeUninit`, hole-producing `take(index)`, user-defined
-drop, pinning, and automatic SoA/AoS conversion are out of scope.
+The initial element class follows the selected ownership route: an affine-Flat
+experiment may use `Flat`, while a copy-tier experiment uses the Copy class admitted
+by that route, whether inferred or declared. Arbitrary drop-bearing affine elements
+are deferred until exact-once drop
+elaboration (STOR-3), element reborrows, and moved-storage raw deallocation are
+complete. General partial initialization, public `MaybeUninit`, hole-producing
+`take(index)`, user-defined drop, pinning, and automatic SoA/AoS conversion are out
+of scope.
 
 ## 2. Frozen baseline and changed surface
 
@@ -88,16 +107,20 @@ forbidden.
 ## 3. Arms and attribution controls
 
 Each arm is a distinct native executable and fresh process.
+The F arms apply only after one fixed-record ownership/initialization route is
+selected. The R/D arms apply only under a separately selected initialized-prefix
+owner. A builder selection invalidates the serial matrix and requires a coupled
+replacement.
 
 | ID | Layout | Storage/initialization | Purpose |
 |---|---|---|---|
 | `F-SOA` | current SoA | fixed `source_len + 1`, full eager fill | sole production baseline |
 | `F-SOA-P` | column segments in one tape allocation | same fixed capacity and fill | coallocation/header diagnostic composite only |
-| `F-AOS` | flat record AoS | same fixed capacity and semantic initialization | fixed/full-init total representation effect against `F-SOA` |
-| `R-SOA` | one logical SoA sequence owner | `reserve_exact(source_len + 1)`, initialized prefix | reserve-exact SoA policy total effect |
-| `R-AOS` | record sequence | identical element-capacity reserve policy | reserve-exact AoS policy total effect |
-| `D-SOA` | one logical SoA sequence owner | empty plus frozen doubling/minimum-capacity policy | doubling SoA policy total effect |
-| `D-AOS` | record sequence | identical element-capacity growth policy | doubling AoS policy total effect |
+| `F-AOS` | selected record-AoS semantics | same fixed capacity and semantic initialization | fixed/full-init total representation effect against `F-SOA` |
+| `R-SOA` | one selected logical SoA initialized-prefix owner | `reserve_exact(source_len + 1)`, initialized prefix | reserve-exact SoA policy total effect |
+| `R-AOS` | selected record initialized-prefix owner | identical element-capacity reserve policy | reserve-exact AoS policy total effect |
+| `D-SOA` | one selected logical SoA initialized-prefix owner | empty plus frozen doubling/minimum-capacity policy | doubling SoA policy total effect |
+| `D-AOS` | selected record initialized-prefix owner | identical element-capacity growth policy | doubling AoS policy total effect |
 
 `F-SOA-P` is not a language candidate or a single-variable control.  Coallocating
 columns also changes page/TLB placement, segment padding/alignment, pointer
@@ -270,8 +293,8 @@ New-feature code has additional shape pins:
 - no whole-record copy is induced by field-only code, and no record duplication
   is licensed by `Flat`; any future explicit Repeat/Clone capability is a
   separate design decision;
-- `sequence<Flat>` destruction is one backing allocation free with no element
-  loop or runtime `needs_drop` branch;
+- destruction of a selected no-drop initialized-prefix owner is one backing
+  allocation free with no element loop or runtime `needs_drop` branch;
 - a proven no-grow push is a destination store plus length increment, with no
   realloc call or hidden slow path;
 - the current per-column scoped-alias/vectorization fixtures remain green.
@@ -282,10 +305,11 @@ There are three distinct decisions.
 
 ### Capability adoption
 
-E0.1a and E0.1b are decided separately.  The earlier shorthand “two non-toy
-workloads win” is withdrawn because it permits selection from many corpora,
-phases, and microkernels.  Before scoring, the endpoint registry must name the
-complete primary family and guardrails.  For a registered benefit, the
+E0.1a and E0.1b are decided separately unless a selected builder route explicitly
+couples them under a replacement protocol. The earlier shorthand “two non-toy
+workloads win” is withdrawn because it permits selection from many corpora, phases,
+and microkernels. Before scoring, the endpoint registry must name the complete
+primary family and guardrails. For a registered benefit, the
 conservative 99% confidence bound—not merely the point estimate—must establish
 one of:
 

@@ -1,6 +1,7 @@
 # E0.1: data layout and owning sequences
 
-This experiment asks two separate questions, in this order:
+This experiment asks two questions that are separate unless the selected initializer
+requires a builder:
 
 1. can xlang store a flat record in a fixed buffer without changing the
    performance or semantics of existing primitive buffers and SoA programs?
@@ -12,21 +13,24 @@ It does **not** assume that AoS should replace the compiler's current SoA tapes.
 The present compiler is the protected baseline.  Capability adoption and xlc
 layout migration have separate decision gates.
 
-Current status: research plus isolated, non-production experiments.  This tree
-contains a baseline-only native harness for non-scoring self-test/smoke runs.
-An unconditional candidate exists only in a disposable worktree and has failed
-hostile review on affine-fill semantics despite green repository tests.  The
-production tree, specification, xlc, and teaching remain unchanged until
-explicit owner confirmation after report review.  No candidate comparison or
-scored result exists.
+Current status: research plus isolated, non-production experiments. This tree
+contains a baseline-only native harness for non-scoring self-test/smoke runs. The
+first unconditional candidate was executed only in a disposable worktree and failed
+hostile review on affine-fill semantics despite green repository tests. Its exact
+reviewed source is now archived here; no executable candidate semantics entered the
+production toolchain. Separately authorized repairs at `7438e17` (checker) and
+`50a1ddd` (parser) enforce existing language rules and do not select an E0.1 design.
+The specification, xlc layout, and teaching remain unchanged until explicit owner
+confirmation. Code-shape and raw-IR identity were compared, but no scored timing or
+performance comparison exists.
 
 Files:
 
 - `RESEARCH_REPORT.md` is the owner-review report and decision surface.
 - `PROTOCOL.md` proposes arms, workloads, measurements, and decision rules; it
   is a draft until owner approval.
-- `FLAT_DESIGN_CANDIDATE.md` describes the smallest no-new-syntax,
-  no-implicit-Copy design candidate and explicitly forbids a feature flag.
+- `FLAT_DESIGN_CANDIDATE.md` records the reopened ownership/initialization candidate
+  space and explicitly forbids a feature flag; it selects no route.
 - `BASELINE.md` records the pre-prototype source, layout, memory, and verification
   facts.
 - `RESEARCH.md` records primary-source constraints and opposing data-layout
@@ -35,6 +39,8 @@ Files:
   resolutions.
 - `HOSTILE_REVIEW_1.md` is the independent post-prototype rejection report;
   it records semantic, target, surface, and benchmark-protocol blockers.
+- `REVIEW_RESPONSE.md` disposes the owner-advisor review, including durability,
+  design-history, grammar, storage-taxonomy, and pattern-doctrine findings.
 - `DETACHED_CANDIDATE.patch` is the exact 57,547-byte binary diff reviewed by
   `HOSTILE_REVIEW_1.md`, based on Git `58baa71fb4c36a4728dd42aea6b05ce4be7aa0b1`;
   its SHA-256 is
