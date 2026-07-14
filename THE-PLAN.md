@@ -81,9 +81,15 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **General-purpose data-structure capability floor** — OWNER-REVIEWED
-   RESEARCH BOUNDARY; NEXT WORK NOT YET AUTHORIZED. D11 confirms the eventual
-   general-purpose target and corrects the earlier monolithic G0 proposal. The
+1. **Minimal systems-capability basis / data-structure capability floor** —
+   ACTIVE RESEARCH; NO MECHANISM IMPLEMENTATION. D12 authorizes completion of
+   the bounded G0-Core research using stable Rust `core`/`alloc`/`std` caller
+   contracts as a finite completeness anchor, supplemented by cross-ecosystem
+   and held-out generativity witnesses. Rust mechanisms receive no presumption;
+   the target is a Pareto-small checked basis from which ordinary no-unsafe
+   libraries derive the required contracts efficiently. The whole systems
+   envelope is accounted, while the first detailed closure remains the
+   sequential, unique-owner data-structure floor from D11. The
    bounded G0-Core freezes only the global registry, coarse observable and
    asymptotic contracts, safety/no-tax laws, family dependencies, reopening
    rules, holdout identities, and later-gate schemas. Exact algorithms,
@@ -94,10 +100,12 @@ Measured non-wins (equally load-bearing):
    passes its complete evidence gate may seek separate owner-approved adoption;
    the full capability-floor claim waits for all protected B baselines and
    mandatory M, W, and H obligations. E0.1 remains suspended before Lock A, and
-   its old fixed-record paired protocol does not restart automatically. No
-   G0-Core work, syntax, substrate, candidate or production implementation,
-   specification change, xlc migration, scored run, or default teaching has
-   been authorized. The next step is an owner discussion.
+   its old fixed-record paired protocol does not restart automatically. Census,
+   normalization, derivation ledgers, proof sketches, and hostile reviews are
+   authorized. Syntax, substrate, Family Lock A, candidate or production
+   implementation, specification change, xlc migration, scored candidate run,
+   E0.1 restart, and default teaching are not. The next production-relevant
+   step remains an owner discussion after this research closes.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver

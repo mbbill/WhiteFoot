@@ -1165,3 +1165,39 @@ This step authorizes only the corrected research boundary. It authorizes no
 G0-Core work, Family Lock A, experiment, candidate or production implementation,
 specification or PATTERNS change, xlc migration, scored run, external disclosure,
 or default teaching. The next step remains a separate owner discussion.
+
+## D12 authorizes the complete G0-Core census and derivation research; mechanisms remain paused (2026-07-14)
+
+The owner confirmed the general-purpose systems-language objective and
+authorized completion of the research program proposed after D11. D12 records
+the method: use the stable Rust `core`, `alloc`, and `std` caller surface as a
+finite completeness anchor; normalize observable contracts rather than copying
+Rust mechanisms; derive a Pareto-small checked capability basis below named
+containers; require ordinary no-unsafe library generativity, cross-ecosystem
+witnesses, and explicit accounting for every deferred systems domain; and
+preserve structural-performance and protected-baseline costs in the minimum.
+
+The exact research charter is
+`optimizer-language-research/implementation/minimal-systems-capability/G0-CORE-CHARTER.md`,
+SHA-256
+`11b017da99da40713038bcbdcdeee0787e31a258b50e9c5dbc0b5ad52edfcc13`.
+It pins Rust 1.97.0, released 2026-07-09, to peeled source commit
+`2d8144b7880597b6e6d3dfd63a9a9efae3f533d3`; freezes inventory,
+normalization, derivation, performance-control, review, and completion schemas;
+and names the detailed first closure as the sequential, unique-owner,
+ordinary-library data-structure floor. The complete systems envelope remains
+accounted but not silently claimed by that closure.
+
+This authorization covers source inspection, reproducible census tooling,
+contract and capability ledgers, proof sketches, E0.1 traceability,
+cross-ecosystem research, and hostile review. It does not authorize Family Lock
+A, syntax, a storage substrate, a trusted fact or path, a candidate or
+production implementation, a specification or PATTERNS change, xlc migration,
+E0.1 restart, a scored candidate run, or default teaching. `THE-PLAN.md` and the
+byte-identical repository instructions now expose that exact boundary.
+
+Post-charter verification passes. `make check` reports 90/90 specification
+coverage, 10,000 model programs with zero accepted soundness violations, 259
+conformance passes/14 skips, zero codegen-parity gate failures, the complete
+self-hosted compiler gate, and `ALL VERIFICATION LAYERS GREEN`. `git diff
+--check` and byte identity of `AGENTS.md` and `CLAUDE.md` pass.

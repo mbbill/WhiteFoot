@@ -276,3 +276,49 @@ contract. This ruling authorizes correction of the research boundary only. It
 does not authorize G0-Core work, a family lock, candidate or production
 implementation, specification changes, xlc migration, scored runs, or default
 teaching; the next step remains a separate owner discussion.
+
+## D12 (2026-07-14): Complete the minimal systems-capability research before selecting mechanisms
+
+xlang's target is a general-purpose systems language. It may have no standard
+library, and it need not reproduce Rust types or APIs one for one, but ordinary
+checked libraries must be able to express the capabilities needed by everyday
+systems programs with competitive asymptotic and structural performance. Named
+containers may be efficiently derived from one canonical substrate when their
+observable contracts permit it.
+
+Use the stable Rust `core`, `alloc`, and `std` surface as a finite external
+completeness anchor. Extract caller-observable contracts rather than copying
+Rust mechanisms: results and order, ownership and invalidation, failure and
+destruction, complexity, contiguity and stable identity or address, iteration,
+resource ceilings, behavior parameters, concurrency, and platform boundaries.
+Rust is not a design oracle, and its traits, unsafe internals, destructors, and
+representations receive no default presumption. Stable unsafe and nightly APIs
+are implementation evidence, not acceptable xlang surface authority.
+
+Derive a Pareto-small checked capability basis below the named-container layer.
+Do not optimize primitive count in isolation: normative rules, checker and TCB
+state, trusted facts and paths, writer spellings, runtime metadata and branches,
+code size, and tax on protected baselines are all costs. A capability counts
+only when an ordinary no-unsafe library can derive its assigned contract with a
+complete ownership/destruction argument and without an asymptotic regression,
+pathological storage or element traffic, hidden Copy/Clone requirement,
+container-specific compiler recognition, or standard-library-only raw
+privilege.
+
+The Rust anchor is necessary but not sufficient. Preserve visible
+cross-ecosystem topology witnesses and training-excluded held-out structures to
+test ordinary-library generativity. Account for the entire systems-library
+envelope, while keeping the first detailed closure named honestly as the
+sequential, unique-owner data-structure floor; concurrency, resources and FFI,
+custom allocation, async cancellation, pin/address-sensitive values, shared
+ownership, complete text semantics, and target intrinsics remain separate
+blocked claims until their own families close.
+
+The owner now authorizes completion of this research program and the bounded
+G0-Core artifacts. This authorization permits source inspection, reproducible
+census tooling, contract normalization, derivation and cost ledgers, proof
+sketches, cross-ecosystem review, E0.1 traceability, and hostile review. It does
+not authorize a Family Lock A, candidate or production mechanism, language or
+specification change, compiler implementation, xlc migration, scored candidate
+run, E0.1 restart, or default teaching. The next production-relevant action
+after the research remains an owner review.

@@ -68,8 +68,15 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - `archive/` — superseded plans, the research-era record, shelved harnesses.
   Read-only context; nothing in it gates anything.
 
-## Current focus (2026-07-13)
+## Current focus (2026-07-14)
 
+- D12 authorizes bounded G0-Core research for a minimal systems-capability
+  basis. Census stable Rust 1.97.0 `core`/`alloc`/`std` caller contracts, account
+  for the full systems envelope, and deeply close the sequential unique-owner
+  data-structure floor with cross-ecosystem and held-out witnesses. Research
+  artifacts and hostile review are authorized; language mechanisms, Family
+  Lock A, production implementation, E0.1 restart, scored candidate runs, and
+  default teaching are not.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by
