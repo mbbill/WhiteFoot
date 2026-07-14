@@ -13,8 +13,13 @@ It does **not** assume that AoS should replace the compiler's current SoA tapes.
 The present compiler is the protected baseline.  Capability adoption and xlc
 layout migration have separate decision gates.
 
-Current status: research only; the paired ownership protocol is suspended before
-Lock A by the broader general-purpose data-structure capability audit. This tree
+Current status: historical research evidence; no work is authorized. D11
+replaces the earlier monolithic upstream gate with a bounded G0-Core followed
+by an exact lock for each family. E0.1 remains suspended before Lock A. G0-Core
+plus the dense-family Lock A are necessary but not sufficient for a later owner
+decision to lift that pause, and the old fixed-record paired protocol does not
+restart automatically. A dense-family lock must explicitly retain, revise, or
+supersede every relevant arm and measurement here. This tree
 contains a baseline-only native harness for non-scoring self-test/smoke runs. The
 first unconditional candidate was executed only in a disposable worktree and failed
 hostile review on affine-fill semantics despite green repository tests. Its exact
@@ -27,8 +32,8 @@ performance comparison exists.
 
 Files:
 
-- `RESEARCH_REPORT.md` is the owner-review report and decision surface.
-- `OWNERSHIP_ROUTE_PROTOCOL.md` is the suspended draft paired protocol for deciding whether
+- `RESEARCH_REPORT.md` is the historical owner-review report and evidence record.
+- `OWNERSHIP_ROUTE_PROTOCOL.md` is the suspended historical paired protocol for deciding whether
   declarative Copy or affine fixed-storage with a full-initialization-only
   transient builder should advance to the existing layout experiment. It may not
   enter Lock A, is not preregistered, and authorizes no candidate implementation
@@ -36,8 +41,8 @@ Files:
 - `OWNERSHIP_ROUTE_HOSTILE_REVIEW.md` records the three-scope adversarial review,
   all blocking dispositions, and the exact protocol hash that passed final
   re-review. The pass qualifies the draft for owner review only.
-- `PROTOCOL.md` proposes arms, workloads, measurements, and decision rules; it
-  is a draft until owner approval.
+- `PROTOCOL.md` preserves superseded arms, workloads, measurements, and decision
+  rules as input to a future dense-family lock; it is not an active protocol.
 - `FLAT_DESIGN_CANDIDATE.md` records the reopened ownership/initialization candidate
   space and explicitly forbids a feature flag; it selects no route.
 - `BASELINE.md` records the pre-prototype source, layout, memory, and verification

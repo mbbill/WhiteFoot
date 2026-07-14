@@ -1,8 +1,11 @@
 # E0.1 proposed protocol
 
-Status: research draft for owner review, 2026-07-13.  It is not preregistered.
-Isolated correctness/code-shape/smoke experiments are authorized; production
-implementation and scored timing are not.
+Status: superseded historical draft, 2026-07-13. It is not preregistered and
+authorizes no further experiment or implementation. D11 requires a bounded
+G0-Core followed by an exact dense-family Lock A before any later owner decision
+to lift the E0.1 pause. That family lock must explicitly retain, revise, or
+supersede the arms and measurements below; this protocol does not restart
+automatically.
 
 This protocol is intentionally stricter than a normal feature benchmark.  E0.1
 may add an explicit capability only if it is zero-tax for programs that do not
@@ -14,9 +17,11 @@ No candidate may be implemented as a feature flag.  The baseline and candidate
 are separate, single-semantics toolchains built from an immutable baseline
 revision and a disposable candidate branch/worktree.  Experimental language or
 compiler semantics do not enter the production toolchain; reproducibility
-infrastructure may live under `experiments/`.  A production implementation
-starts only after explicit owner confirmation following report review, and then
-lands atomically across every normative surface.
+infrastructure may live under `experiments/`. Under this superseded draft, a
+production implementation would also have required explicit owner confirmation
+and atomic landing across every normative surface. D11 now requires the staged
+upstream gates and a separate later owner decision; this document creates no
+eligibility or authorization.
 
 ## 1. Questions and exclusions
 

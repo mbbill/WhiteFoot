@@ -1,7 +1,7 @@
 # E0.1 results ledger
 
-Status: research plus isolated non-production experimentation.  No production
-implementation or scored timing has started.
+Status: durable historical research and rejected-prototype evidence. No further
+experiment, production implementation, or scored timing is authorized.
 
 Completed:
 
@@ -36,9 +36,9 @@ No performance result, language adoption, xlc migration, or default-teaching
 claim exists.  `BASELINE.md` numbers are static accounting and harness smoke
 elapsed values are explicitly non-scoring.
 
-Next stop: owner selection among the reopened ownership, initialization, and STOR-1
-branches in `RESEARCH_REPORT.md`. No further candidate iteration implies production
-authorization. Production E0.1a still requires explicit confirmation. Under a
-non-builder route, E0.1b opens only after E0.1a reaches adopt/reject/defer; under a
-builder route, it may open only through an explicitly approved coupled replacement
-protocol.
+D11 supersedes the previous next stop. The owner will separately discuss whether
+to authorize bounded G0-Core work. G0-Core plus an exact dense-family Lock A are
+necessary but not sufficient for a later decision to lift the E0.1 pause. The
+family lock must explicitly retain, revise, or supersede every relevant arm and
+measurement in this directory; neither historical protocol restarts
+automatically, and no candidate iteration implies production authorization.

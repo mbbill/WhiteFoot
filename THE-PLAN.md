@@ -81,22 +81,23 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **General-purpose data-structure capability floor** — ACTIVE RESEARCH
-   PRIORITY. E0.1's fixed-record ownership-route protocol is suspended before
-   Lock A. The initialized-prefix challenge showed that fixed AoS construction
-   cannot be selected independently of the common operations a general-purpose
-   collection ecosystem must express: unknown-length append, growth, affine
-   move-out, insert/remove, exact destruction, sparse occupancy, keyed lookup,
-   stable deletion/reuse, traversal, and held-out library structures. The
-   current STOR-1 statement that collections are libraries over `buffer<T>` is
-   a direction, not an implementation proof. The next step is G0 in
-   `optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`:
-   freeze semantic/performance contracts and a capability registry before any
-   syntax, substrate, or candidate implementation is selected. R3 means one
-   evidence-selected mechanism per frozen semantic/performance contract, not
-   one universal representation. Production implementation, specification
-   changes, xlc migration, scored runs, and default teaching remain frozen
-   pending owner review.
+1. **General-purpose data-structure capability floor** — OWNER-REVIEWED
+   RESEARCH BOUNDARY; NEXT WORK NOT YET AUTHORIZED. D11 confirms the eventual
+   general-purpose target and corrects the earlier monolithic G0 proposal. The
+   bounded G0-Core freezes only the global registry, coarse observable and
+   asymptotic contracts, safety/no-tax laws, family dependencies, reopening
+   rules, holdout identities, and later-gate schemas. Exact algorithms,
+   workloads, thresholds, soundness fixtures, and META-5 derivations freeze in
+   a Family Lock A immediately before that family's candidate work. Dense
+   affine sequence is first because it has the broadest dependency surface, not
+   because xlc has already selected a growable representation. A family that
+   passes its complete evidence gate may seek separate owner-approved adoption;
+   the full capability-floor claim waits for all protected B baselines and
+   mandatory M, W, and H obligations. E0.1 remains suspended before Lock A, and
+   its old fixed-record paired protocol does not restart automatically. No
+   G0-Core work, syntax, substrate, candidate or production implementation,
+   specification change, xlc migration, scored run, or default teaching has
+   been authorized. The next step is an owner discussion.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
@@ -129,9 +130,11 @@ Measured non-wins (equally load-bearing):
    byte-identical (264,288 bytes, SHA-256
    `eef9c30193b69be22452f47bc8050453f5da9d86454ff165c74da0be6241b522`). The MCTS-Mem
    design tree remains unchanged until the owner selects a production route.
-   The paired E0.1 ownership screen must not enter Lock A while the new
-   capability-floor gate is open; its fixed builder and declarative-Copy arm do
-   not cover the general sequence, sparse-slot, or deletion/reuse contracts.
+   The paired E0.1 ownership screen must not enter Lock A. Any later dense-family
+   Lock A must explicitly retain, revise, or supersede every relevant E0.1 arm
+   and measurement; the fixed builder and declarative-Copy arms do not cover the
+   general sequence, sparse-slot, or deletion/reuse contracts. G0-Core alone is
+   not candidate authorization.
 3. **Default-floor experiment against shipped Rust (D9a)** — COMPLETE on two
    separately preregistered targets. First-green Terra xlang records paired
    throughput ratios of 1.653x [1.631, 1.667] against `percent-encoding` 2.3.2

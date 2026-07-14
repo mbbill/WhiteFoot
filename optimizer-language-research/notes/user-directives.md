@@ -227,3 +227,52 @@ language-suffixed report variants.  Mathematical notation, programming-language
 tokens, and proper names are not alternate prose languages, but all surrounding
 explanation remains English.  Repository-wide language scans are part of the
 validation for documentation and report changes.
+
+## D11 (2026-07-13): General-purpose data-structure capability is an eventual target; closure is staged by family
+
+xlang is intended to become a general-purpose systems language. For data
+structures, representative standard collection contracts must have one taught,
+efficient route, and ordinary no-unsafe libraries must be able to implement
+representative held-out structures through public checked mechanisms without
+asymptotic regression, unavoidable pathological storage, or
+standard-library-only raw privilege. This does not mean that every named
+structure is a kernel or standard-library type, that one representation serves
+all contracts, or that every unforeseen structure is guaranteed globally
+fastest. R3 selects one canonical writer-facing mechanism per frozen
+caller-observable semantic and performance contract. Append-only and recyclable
+stable identity are separate contracts; any substrate sharing remains
+experimental, and the protected append-only path pays no generation or
+recycling tax.
+
+Closure is staged. The immediate step is a bounded G0-Core, timeboxed to one
+owner-review cycle. G0-Core freezes only the full capability registry and
+B/M/W/H/O roles; coarse observable contracts and asymptotic requirements;
+forbidden pathological simulations; global ownership, drop, failure,
+invalidation, and fact-channel rules; R3 contract dimensions; protected
+baseline and no-tax rules; family order and reopening rules; held-out witness
+identities and dependency budgets; and the schemas for later benchmark,
+soundness, and META-5 derivability records. It does not freeze every family's
+reference algorithms, workload matrix, numeric thresholds, soundness corpus, or
+complete derivability ledger. Scope that does not fit is deferred to the
+relevant family lock rather than expanding G0-Core.
+
+Before candidate implementation for a family, that family receives its own Lock
+A freezing exact operation semantics; ownership, drop, allocation-failure, and
+invalidation behavior; candidate and reference algorithms; payloads, traces,
+targets, and allocator; endpoints, thresholds, and selection rule; soundness
+corpus; and META-5 derivability ledger. A candidate claiming a cross-family
+substrate must first freeze every implicated family contract. Dense affine
+sequence is first because it has the broadest dependency surface. The existing
+E0.1 pause may be lifted only after G0-Core and the dense-family Lock A close;
+lifting the pause does not automatically restart the previous fixed-record
+paired protocol, which may instead be superseded by the dense result.
+
+A family that passes its complete gate may seek separate owner approval for
+production adoption without waiting for unrelated families. The project may
+claim the complete general-purpose data-structure floor only after all B
+baselines remain non-regressed and every M, W, and H obligation is closed;
+optional O obligations block only if promoted or required by a mandatory
+contract. This ruling authorizes correction of the research boundary only. It
+does not authorize G0-Core work, a family lock, candidate or production
+implementation, specification changes, xlc migration, scored runs, or default
+teaching; the next step remains a separate owner discussion.

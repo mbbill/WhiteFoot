@@ -40,13 +40,17 @@ was premature: fixed-record construction cannot be selected before the project
 establishes that common dense, sparse, keyed, stable-identity, and traversal
 operations all have an efficient route.
 
-G0 is now the active research gate. It freezes the semantic/performance contract
-and canary registry described in
-`../optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`
-before syntax, kernel/library placement, or candidate implementation. The five
-investigations below remain useful evidence axes, but they no longer advance in
-isolation merely because the preceding local protocol closes. A decision, not
-adoption, remains the exit condition.
+D11 replaces the earlier monolithic G0 proposal with staged closure. A bounded
+G0-Core freezes the global capability registry, coarse observable and
+asymptotic contracts, safety/no-tax laws, family dependencies, reopening rules,
+holdout identities, and later-gate schemas. Exact algorithms, workloads,
+thresholds, soundness fixtures, and META-5 derivations freeze only in the
+relevant Family Lock A immediately before candidate work. The five
+investigations below remain useful evidence axes, but they do not advance merely
+because a preceding local protocol closes. A closed family may seek a separate
+owner-approved adoption without waiting for unrelated families; the complete
+capability-floor claim has a later all-family gate. No G0-Core or family work is
+yet authorized.
 
 1. **E0.1 — data layout and owning sequences (SUSPENDED BEFORE LOCK A).** Preserve the current
    fixed-capacity SoA compiler as the baseline. First isolate compiler-verified
@@ -66,12 +70,15 @@ adoption, remains the exit condition.
    frontend reuse, and cold construction on the exact `sources.txt` unit. The
    goal is to add a safe choice, not to presume AoS replaces SoA.
 
-E0.1 currently permits research only. Its paired declarative-Copy versus affine
-fixed-builder protocol must not enter Lock A and authorizes no candidate work.
-No checker/compiler feature flag, production candidate implementation, scored
-run, or normative change is authorized. Any later experimental candidate uses a
-separate single-semantics toolchain. Production work starts only after explicit
-owner confirmation following report review; dual language modes never coexist.
+E0.1 remains suspended before Lock A. Its paired declarative-Copy versus affine
+fixed-builder protocol is now a historical draft and does not restart
+automatically. G0-Core plus a dense-family Lock A are necessary but not
+sufficient for any later owner-authorized reopening; that family lock must
+explicitly retain, revise, or supersede every relevant E0.1 arm and
+measurement. No G0-Core work, checker/compiler feature flag, candidate or
+production implementation, scored run, or normative change is authorized. Any
+later experimental candidate uses a separate single-semantics toolchain; dual
+language modes never coexist.
 
 The first detached E0.1a prototype closed only a feasibility question: on the
 two frozen 64-bit targets, record-buffer field access can use target stride plus
@@ -81,8 +88,8 @@ the checker omitted ownership flow through index atoms, and the backend was not
 32-bit/DataLayout-sound. A later paired protocol compared declarative Copy with a
 full-initialization-only affine builder, but the builder cannot express the
 compiler's unknown final lengths, prefix reads, backpatches, reset/reuse, growth,
-or general deletion. The next decision is therefore G0's complete operation
-registry, not an initialization spelling, timing, or production landing. `Flat`
+or general deletion. The next discussion is therefore the bounded G0-Core
+boundary, not an initialization spelling, timing, or production landing. `Flat`
 never implies Copy, Repeat, Clone, or a general collection substrate.
 
 2. **E0.2 — namespaces and zero-cost API abstraction.** Logical closed-unit
@@ -147,8 +154,9 @@ nesting do not run ahead of E0.1-E0.5.
 **S1 — body semantics parity on the compiler unit.**
 Grow ownership/effect/type body checks until xlc's semantic layer renders a
 verdict on every function in `sources.txt`.
-The coverage baseline is complete. After G0 and any resulting owner-approved
-capability decisions close, the next functional slice is an
+The coverage baseline is complete. After the owner decides how the staged
+capability work interleaves with xlc and any prerequisite family decision
+closes, the next functional slice is an
 independent acyclic-decision semantic family (not an enlargement of the loop
 scanner profile) covering `lexer_scan_op_suffix` and `lexer_scan_word` together.
 It needs nested `let`/`match`/early-return flow, primitive expression typing,

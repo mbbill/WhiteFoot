@@ -16,12 +16,15 @@ and gitignored. Chronology and decisions live in
 - `frequency-study/` — completed one-time directional scan of popular Rust
   sources/applications; points the next real port at relational bounds proofs.
 
-## Active expressiveness validation
+## Paused expressiveness evidence
 
-- `data-layout-owning-sequence/` — E0.1 research plus isolated experiments. Separates
-  fixed SoA/AoS layout from initialized-prefix ownership and growth, protects
-  the compiler's current SoA as the zero-tax baseline, forbids feature-flagged
-  dual semantics, and requires owner review before production implementation.
+- `data-layout-owning-sequence/` — historical E0.1 research and rejected
+  isolated-prototype evidence. D11 leaves all work paused before bounded G0-Core
+  and a later exact dense-family Lock A; neither is yet authorized, and the old
+  protocol does not restart automatically. The evidence separates fixed SoA/AoS
+  layout from initialized-prefix ownership and growth, protects the compiler's
+  current SoA as the zero-tax baseline, and forbids feature-flagged dual
+  semantics.
 
 ## Port studies (real programs; D9 confidence-gate evidence)
 - `default-floor/` — D9a protocol: a fixed low-tier model's first

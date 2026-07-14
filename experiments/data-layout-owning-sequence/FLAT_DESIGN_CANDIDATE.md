@@ -1,9 +1,10 @@
 # E0.1a Flat-record candidate space
 
-Status: non-normative research proposal revised after hostile and owner-advisor
-review. Isolated experimentation is allowed; production implementation,
-specification changes, xlc migration, scored timing, and default teaching are not
-authorized. This document records design alternatives and does not select one.
+Status: superseded non-normative research proposal retained as historical input.
+D11 authorizes no further isolated experiment, production implementation,
+specification change, xlc migration, scored timing, or default teaching. A
+future dense-family Lock A must explicitly retain, revise, or supersede these
+alternatives; this document selects none and does not restart automatically.
 
 The first detached prototype is not a valid production candidate because its record
 fill duplicates one affine value. Its useful result is narrower: direct record-field
@@ -188,12 +189,15 @@ feasibility alone changes neither P2 nor the teaching pack.
 ## Decision status
 
 The archived detached implementation is rejected. The field-lowering feasibility
-result is retained. The next design and experiment are deferred to owner selection
-among the explicit alternatives above. No production work, specification delta,
-scored timing, xlc migration, pattern change, or external model run is authorized by
+result is retained. D11 supersedes the former direct owner-selection step. The
+next state is a separate owner discussion about whether to authorize bounded
+G0-Core work; G0-Core and a later dense-family lock do not automatically restart
+this proposal. No experiment, production work, specification delta, scored
+timing, xlc migration, pattern change, or external model run is authorized by
 this document.
 
-The design tree remains unchanged while that selection is open. A later production
-route that supersedes the recorded declarative-copy path must move the old path to
-the appropriate `.alt/` branch with paired reasons in the same decision; selecting
-declarative `copy struct` must instead update its card with the deciding evidence.
+The design tree remains unchanged because no production route has been selected.
+A later production route that supersedes the recorded declarative-copy path must
+move the old path to the appropriate `.alt/` branch with paired reasons in the
+same decision; selecting declarative `copy struct` must instead update its card
+with the deciding evidence.

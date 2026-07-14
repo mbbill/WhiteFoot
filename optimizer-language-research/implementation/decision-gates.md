@@ -1099,3 +1099,69 @@ Sequential post-change verification passes: `make check` reports 90/90 rule
 coverage, 10,000 model programs with zero accepted soundness violations, 259
 conformance passes/14 skips, and `ALL VERIFICATION LAYERS GREEN`;
 `make -C compiler check` also passes.
+
+## D11 stages the data-structure capability floor by family; no next work is authorized (2026-07-13)
+
+The owner confirmed xlang's eventual general-purpose systems-language scope and
+rejected the initial all-at-once G0 process. The durable ruling is D11 in
+`optimizer-language-research/notes/user-directives.md`: a bounded G0-Core freezes
+the global registry, coarse contracts, safety/no-tax laws, family dependencies,
+exact held-out dependency budgets, reopening rules, and later-gate schemas. Each
+family freezes exact semantics, algorithms, workloads, thresholds, soundness
+fixtures, construction/tuning protocol, and META-5 derivability only in its own
+Lock A immediately before candidate work. Candidate Freeze B remains a distinct
+pre-scoring artifact freeze.
+
+The current exact
+`general-purpose-data-structure-capability-RESEARCH.md` SHA-256 is
+`066c6e411cc0eefec608fb53371e4badfd91017617cefe63178ca101e19191b6`.
+It separates family closure from the complete-floor claim: a family that passes
+its assigned M/W/H obligations while protecting every B baseline may seek a
+separate owner-approved production adoption, but no adoption may expose a public
+transition, state topology, trusted fact, or trusted path outside the adopted
+family locks. The complete claim waits for every protected B and every mandatory
+M, topology W, and held-out H obligation. Append-only and recyclable stable
+identity remain separate contracts, and the append-only path pays no generation
+or recycling tax.
+
+The first complete staged snapshot,
+`3117ab458b0fc9a10f90a80dc8f923a5acfa2b7116bdbbcfc7b06b41a3323134`,
+received no P0 finding but received three `REVISE` verdicts. Hostile review found
+that candidate-construction effort was not preregistered, gating soundness
+fixtures could change without reopening, W closure followed candidate claims,
+cross-family safety followed claims rather than implemented/exposed state,
+borrow-bearing payload scope was unstated, exact held-out budgets had weakened
+to a schema, and stale E0.1 documents still exposed the superseded authorization
+path. All findings were repaired. Three independent read-only scopes then
+verified the final exact report bytes and returned `PASS` with no P0, P1, or P2
+finding for ownership/state/failure soundness, performance/staging/selection,
+and Constitution/specification/MCTS-Mem/repository consistency.
+
+`general-purpose-data-structure-capability-HOSTILE-REVIEW.md` preserves the
+initial exact review and records the D11 amendment, rejected hash, dispositions,
+and final exact-hash passes; its SHA-256 is
+`80cae6e2296da389581ed908b695cd0a301adfc399f5421adb8444e96b5b2265`.
+The plan, compiler plan, experiment index, and E0.1 report, candidate, protocol,
+review, and results surfaces now mark the old paired route as historical input.
+G0-Core plus dense Family Lock A are necessary but not sufficient for a later
+owner decision to lift the E0.1 pause; neither historical protocol restarts
+automatically.
+
+The MCTS-Mem root, pattern-doctrine, and data-model nodes gain sourced rationale
+facts for the eventual general-purpose scope, ordinary-library completeness
+test, family-by-family adoption boundary, and separate append-only/recyclable
+contracts. No Item, Move, node, or `.alt/` path changes: the monolithic G0 was an
+unratified research proposal, and no production mechanism, STOR-1 route, or
+language design was replaced. `npx mcts-mem lint` passes.
+
+Post-change verification is green. `make check` reports 90/90 rule coverage,
+10,000 model programs with zero accepted soundness violations, 259 conformance
+passes/14 skips, zero codegen-parity gate failures, and
+`ALL VERIFICATION LAYERS GREEN`; the separately invoked
+`make -C compiler check` also passes. `git diff --check`, the changed-content
+English-only scan, and byte identity of `AGENTS.md` and `CLAUDE.md` pass.
+
+This step authorizes only the corrected research boundary. It authorizes no
+G0-Core work, Family Lock A, experiment, candidate or production implementation,
+specification or PATTERNS change, xlc migration, scored run, external disclosure,
+or default teaching. The next step remains a separate owner discussion.

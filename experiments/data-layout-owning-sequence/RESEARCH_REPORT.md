@@ -1,15 +1,19 @@
 # E0.1 Research Report: Data Layout and Owning Sequences
 
-Status: non-normative evidence report for owner review, 2026-07-13. Production
-implementation, specification changes, xlc migration, scored performance
-experiments, and default teaching are not authorized.
+Status: superseded non-normative evidence report, 2026-07-13. Its measurements,
+audits, and rejected-prototype findings remain evidence, but it is no longer an
+active decision surface and authorizes no work.
 
 Current disposition, 2026-07-13: the evidence and rejected-prototype record below
 remain valid, but this report is no longer the immediate decision surface. The
 broader capability-floor audit in
 `../../optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`
-suspends the paired ownership protocol before Lock A. Section 10's local questions
-must not authorize a candidate until that upstream audit closes.
+suspends the paired ownership protocol before Lock A. D11 replaces the earlier
+monolithic upstream gate with bounded G0-Core plus an exact lock for each family.
+G0-Core and dense Family Lock A are necessary but not sufficient for a later
+owner decision to lift this pause. Section 10's local questions are historical;
+the dense lock must explicitly retain, revise, or supersede their relevant arms
+and measurements rather than automatically restarting them.
 
 ## 0. Executive conclusion
 
@@ -78,10 +82,10 @@ Moreover, an opaque kernel `sequence<T>` would reverse STOR-1's recorded directi
 that growable collections are libraries over `buffer<T>`; that is a real META-5
 redecision, not an implementation detail.
 
-This report does not request a production implementation. The first owner decision
-needed now is which ownership and initialization alternative, if any, deserves one
-more isolated prototype. Performance timing comes only after that choice and a new
-hostile review. Even a later successful candidate would not imply that xlc should
+This report does not request a production implementation. Its former request to
+select one ownership/initialization prototype is superseded by D11. No G0-Core,
+family-lock, candidate, timing, or production work starts from this document.
+Even a later successful dense-family candidate would not imply that xlc should
 change layouts.
 
 ## 1. Scope
@@ -101,7 +105,8 @@ Modules, methods, contracts, borrowed aggregates, loop facts, byte literals/bulk
 append, and SIMD belong to later E0.2-E0.5 work and must not be added to this
 candidate.
 
-The experimental boundary is:
+The superseded experimental boundary was the following. It grants no current
+permission:
 
 - Do not add E0.1 candidate semantics to the specification, checker, stage 0, xlc,
   or teaching material in the main worktree. Independently authorized repairs that
@@ -112,10 +117,11 @@ The experimental boundary is:
 - Do not introduce a switch, dual grammar, or a path that co-locates baseline and
   candidate behavior.
 - Static accounting, correctness tests, negative tests, IR/assembly shape checks,
-  and unscored smoke runs are allowed.
-- Formal timing requires a separately frozen protocol after protocol review.
-- Production implementation requires explicit confirmation after review of this
-  report.
+  and unscored smoke runs were allowed for the completed isolated work.
+- Formal timing would have required a separately frozen protocol after protocol
+  review.
+- Production implementation would have required explicit confirmation after
+  review of this report; D11 now supersedes that route.
 
 ## 2. What the current baseline establishes
 
@@ -624,7 +630,11 @@ multi-buffer layouts can be strong for compiler-like recursive data. These resul
 justify bidirectional microkernels and complete xlc measurements; they cannot replace
 project data.
 
-## 10. Decisions requested from the owner
+## 10. Superseded decision questions retained as dense-family inputs
+
+D11 supersedes these questions as an immediate decision surface. They remain a
+checklist that a future dense-family Lock A must explicitly retain, revise, or
+supersede; none authorizes work by itself.
 
 1. Do you agree that safely expressing fixed `buffer<Record>` storage is a real
    E0.1a language-capability gap?
@@ -650,7 +660,9 @@ project data.
    disposition, and that xlc migration and default teaching still require separate
    approvals rather than following automatically from capability adoption?
 
-Production implementation remains frozen until these questions are reviewed.
+Production implementation remains frozen. The next step is a separate owner
+discussion about whether to authorize bounded G0-Core work, not selection from
+this historical list.
 
 ## References and local evidence
 

@@ -1,6 +1,6 @@
 # E0.1a ownership-route protocol hostile review
 
-Status: PASS AS AN OWNER-REVIEW DRAFT, 2026-07-13.
+Status: HISTORICAL EXACT-SNAPSHOT PASS; NEXT STEP SUPERSEDED BY D11, 2026-07-13.
 
 The exact reviewed `OWNERSHIP_ROUTE_PROTOCOL.md` bytes have SHA-256:
 
@@ -9,7 +9,9 @@ The exact reviewed `OWNERSHIP_ROUTE_PROTOCOL.md` bytes have SHA-256:
 ```
 
 This verdict means that three independent read-only review scopes found no
-remaining P0/P1 blocker in the protocol draft. It is not Lock A, a
+remaining P0/P1 blocker in that exact historical protocol draft. D11 later
+superseded its proposed next step; the PASS does not cover a future G0-Core or
+dense-family lock. It is not Lock A, a
 preregistration, a language-design selection, an implementation authorization,
 an external-disclosure authorization, or production approval.
 
@@ -171,15 +173,16 @@ The final protocol also retains the earlier review dispositions that:
 - separated intrinsic bundle contradiction from repairable artifact or campaign
   failure, so an invalid run never advances its rival.
 
-## 6. Final verdict and next stop
+## 6. Historical verdict and superseded next stop
 
 The exact final protocol is fit for owner review. It deliberately selects
 neither bundle. No candidate code, timing, profiling, xlc migration, pattern
 change, production semantics, or external model call is authorized.
 
-If the owner accepts the experimental narrowing, the next durable step is to
-write the concrete Lock A package: exact semantic supplements, rule ledger,
-fixtures, oracles, corpus census, prompts, endpoints, clustering, power, sample
-counts, and proposed destination. Those exact Lock A bytes must receive the
-three hostile reviews required by the protocol before candidate implementation
-can begin.
+The next-stop paragraph in the reviewed snapshot proposed a concrete Lock A for
+this paired narrowing. D11 supersedes that proposal. The owner will separately
+discuss whether to authorize bounded G0-Core work. Only after G0-Core and an
+exact dense-family Lock A close may the owner consider lifting the E0.1 pause;
+the dense lock must retain, revise, or supersede this protocol's relevant arms
+and measurements. This historical PASS authorizes no such work and does not
+automatically restart the paired experiment.

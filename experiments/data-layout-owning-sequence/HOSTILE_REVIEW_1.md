@@ -1,7 +1,8 @@
 # Hostile review 1: detached E0.1a prototype
 
-Date: 2026-07-13.  Scope: post-correctness/code-shape review before any scored
-timing or production implementation.  The reviewers made no code changes.
+Date: 2026-07-13. Scope: historical post-correctness/code-shape review of the
+rejected prototype. D11 supersedes its proposed next state and authorizes no
+further experiment. The reviewers made no code changes.
 
 Reviewed artifact: detached worktree `/private/tmp/xlang-e01a-candidate` at
 parent `58baa71fb4c36a4728dd42aea6b05ce4be7aa0b1`, dirty patch SHA-256
@@ -133,7 +134,9 @@ so its process-exit behavior cannot prove STOR-3 or retained-memory semantics.
 - B1, the 32-bit target blocker, the benchmark-protocol blockers, and the residual
   production gates remain open. No language design was selected.
 
-Next stop: owner selection among the reopened initialization alternatives and review
-of the corrected protocol.
-No blocker may be converted into implementation work in the production
-toolchain without explicit owner confirmation.
+D11 supersedes the former next stop. The owner will separately discuss whether
+to authorize bounded G0-Core work. G0-Core plus an exact dense-family Lock A are
+necessary but not sufficient for a later decision to lift the E0.1 pause, and
+neither automatically restarts this prototype path. No blocker may be converted
+into experimental or production implementation work from this historical
+review.

@@ -1,9 +1,10 @@
 # General-Purpose Data-Structure Capability Floor
 
-Status: non-normative research report for owner review, 2026-07-13. This
-report authorizes no production implementation, specification change, xlc
-migration, scored performance run, default teaching change, or external model
-disclosure.
+Status: owner-reviewed non-normative research boundary, 2026-07-13. D11
+ratifies eventual general-purpose data-structure capability and staged
+family-by-family closure. This report authorizes no candidate or production
+implementation, specification change, xlc migration, scored performance run,
+default teaching change, or external model disclosure.
 
 ## 0. Executive finding
 
@@ -32,8 +33,9 @@ still represent and prove its state.
 
 Under the standing owner instruction to stop implementation and research first,
 the prior paired E0.1 ownership protocol remains paused before Lock A. This
-report neither creates nor lifts that pause; it recommends making G0 closure a
-prerequisite for any later owner-authorized reopening.
+report neither creates nor lifts that pause. D11 makes G0-Core plus the dense
+family Lock A necessary before any later owner-authorized reopening; those
+gates may instead supersede the old paired protocol.
 Automatic structural Copy, declarative `copyable struct`, and an affine fixed
 builder answer only a fixed-record initialization question. None provides
 unknown-length construction, growth, deletion, move-out, sparse occupancy, or
@@ -53,16 +55,18 @@ than satisfy R3.
 The leading research direction is not public uninitialized memory and not a
 large menu of interchangeable containers. It is:
 
-1. freeze a representative operation-and-workload registry before choosing
-   syntax;
-2. identify the smallest checked storage-state and ownership transitions from
-   which ordinary no-unsafe libraries can build the registry without
-   pathological costs;
-3. select one measured canonical library family for each genuinely different
-   contract;
+1. freeze the global capability boundary and cross-family laws in a bounded
+   G0-Core, without prebuilding every future experiment;
+2. preregister exact semantics, candidates, workloads, thresholds, and proofs
+   only when each family reaches its own Lock A;
+3. identify and select the smallest checked storage-state and ownership
+   transitions that close that family without pathological costs;
 4. keep the current fixed buffer and append-only SoA path free of growth,
    generation, and sparse-occupancy taxes;
-5. require hostile soundness and machine-code review before any state relation
+5. permit a closed family to seek separate owner-approved adoption without
+   claiming that unrelated families or a shared universal substrate are solved;
+   and
+6. require hostile soundness and machine-code review before any state relation
    becomes an optimizer fact.
 
 ## 1. Why this information surfaced late
@@ -123,8 +127,10 @@ The audit uses four status classes:
 - **X — gap:** inexpressible, asymptotically worse, or necessarily pathological
   under the current rules.
 
-A mandatory floor operation cannot enter production R3 selection while marked
-X. A U must be measured into P or the substrate must change.
+A family cannot enter production R3 selection while one of its mandatory
+operations remains X. A U must be measured into P or the family substrate must
+change. Unrelated unresolved families still block the complete-floor claim, not
+that local selection.
 
 ## 3. Current xlang evidence
 
@@ -180,11 +186,15 @@ prevents an existence witness from silently becoming a required standard-library
 API or benchmark weight:
 
 - **B — protected baseline:** already selected and must not regress;
-- **M — mandatory floor:** every X or U must close before R3 selection;
+- **M — mandatory floor:** every X or U assigned to a family must close before
+  that family's R3 selection, and all must close before the complete-floor
+  claim;
 - **W — substrate/topology witness:** must be implementable efficiently by an
-  ordinary library, but need not become a default container;
+  ordinary library before the implicated family closes, but need not become a
+  default container;
 - **H — held-out anti-special-casing witness:** frozen before candidate work and
-  excluded from training/tuning; and
+  excluded from training/tuning; each blocks its implicated family and all
+  block the complete-floor claim; and
 - **O — prevalence-gated optional:** admitted only if a later corpus justifies a
   standard default or if another mandatory contract requires it.
 
@@ -223,9 +233,10 @@ API or benchmark weight:
 | Borrowed, uniq, and owning iteration | M | C-ITER | Provenance-preserving borrow or affine cursor | X | Index loops cover only concrete contiguous cases |
 
 Primary standard-library APIs prove that these operations exist and specify
-their contracts; they do not determine prevalence or benchmark weight. G0 keeps
-frequency-independent W/H topology tests separate from corpus-supported M/O
-default-library decisions.
+their contracts; they do not determine prevalence or benchmark weight. G0-Core
+keeps frequency-independent W/H topology tests separate from corpus-supported
+M/O default-library decisions; each family lock later freezes its exact census
+and weights.
 
 ## 5. Why one universal representation cannot be optimal
 
@@ -278,8 +289,9 @@ placement are deliberately unfrozen.
    Cache-sized B-tree/B+tree storage is the leading reference candidate, not a
    selected implementation. It is not an alternative spelling of the hash map.
 6. **Priority queue.** A sequence-backed priority contract. Binary, d-ary,
-   min-max, and other heap organizations remain candidates until G0 freezes the
-   required operations; this family needs no new raw storage topology.
+   min-max, and other heap organizations remain candidates until the heap-family
+   Lock A freezes the required operations; this family needs no new raw storage
+   topology.
 7. **Append-only indexed pool.** Preserve the P2 phase-scoped, non-recycling
    route with one-word typed handles and no generation tax.
 8. **Recyclable stable pool.** A census-gated deletion/reuse admission candidate
@@ -432,6 +444,12 @@ For arbitrary affine and resource-owning `T`:
 - recursive indirection must have finite layout and a terminating derived drop
   rule; inline infinite-size cycles must be rejected deterministically.
 
+G0-Core must assign storage and relocation of borrow-bearing payloads either to
+an explicit M/W obligation with provenance and invalidation canaries or to a
+scoped deferral whose excluded claim is named. Until that disposition closes, a
+region-free, borrow-free result cannot support a broader family or complete-floor
+claim.
+
 A scoped take guard or linear transaction remains an eligible experiment if it
 owns the hole, exposes no uninitialized payload, and every non-trap exit either
 restores a value or completes a valid state transition. It is not equivalent to
@@ -515,9 +533,9 @@ proposal under Section 7.1, not a current library capability.
 Each candidate must demonstrate that an opaque library can preserve length,
 heap-order, probe-metadata, tree-balance, or handle-representation invariants as
 applicable. This is an experimental witness, not a commitment to ship every
-family in the standard library. Only families that later pass G0, R1, and the
-selection gates receive a canonical standard-library API; other topology
-witnesses may remain ordinary libraries.
+family in the standard library. Only families that later pass their complete
+evidence gate, R1, and a separate owner adoption decision receive a canonical
+standard-library API; other topology witnesses may remain ordinary libraries.
 
 This opacity does not reject same-typed wrong-pool handles; their narrower
 standing contract is preserved in Section 9. “Sealed” must not mean unchecked:
@@ -542,11 +560,13 @@ library that alone receives arbitrary unsafe privilege is insufficient for a
 general-purpose language; requiring ordinary libraries to rebuild allocators is
 unnecessary.
 
-G0 must designate H-STORE and freeze its dependency budget before candidate
-work. H-STORE directly instantiates the public dense or sparse storage-state
-transitions and may not call the corresponding finished sequence, map, pool, or
-another wrapper that hides those transitions. H-LRU and H-IPQ remain composition
-witnesses; they cannot substitute for H-STORE.
+G0-Core designates H-STORE, freezes its purpose and dependency budget, and
+excludes it from candidate tuning. The implicated Family Lock A instantiates an
+exact dependency list only within that frozen budget. H-STORE directly
+instantiates the public dense or sparse storage-state transitions and may not
+call the corresponding finished sequence, map, pool, or another wrapper that
+hides those transitions. H-LRU and H-IPQ remain composition witnesses; they
+cannot substitute for H-STORE.
 
 ## 9. Handle and pool correctness
 
@@ -562,8 +582,9 @@ reclaiming all storage is owner destruction.
 A recyclable pool aims to reuse payload storage rather than retain one payload
 slot per historical insertion. That does not by itself prove memory proportional
 only to peak live population: finite-generation retirement and identity history
-can grow under adversarial churn. G0 must freeze and measure live payload,
-high-water capacity, retired slots, and retained history separately.
+can grow under adversarial churn. The stable-identity Family Lock A must freeze
+and measure live payload, high-water capacity, retired slots, and retained
+history separately.
 
 If a copied handle contains only slot `i`, reusing `i` gives two different
 objects identical handle bits. No lookup can distinguish them. The choices are:
@@ -592,11 +613,12 @@ generation metadata cannot be shrunk away and later reused for the same index.
 
 There is a finite-identity impossibility boundary: freely copied finite-width
 handles cannot simultaneously promise indefinite reuse, memory bounded only by
-peak live population, and permanent rejection of every stale handle. G0 must
-freeze which guarantee is relinquished. Candidate contracts include eventual
-exhaustion/trap, slot retirement with an explicit high-water/history term, or a
-static revocation discipline that does not permit freely copied escaping
-handles. C-POOL includes steady-live adversarial churn with deliberately tiny
+peak live population, and permanent rejection of every stale handle. G0-Core
+records this conflict as a mandatory contract dimension; the stable-identity
+Family Lock A freezes which guarantee is relinquished. Candidate contracts
+include eventual exhaustion/trap, slot retirement with an explicit
+high-water/history term, or a static revocation discipline that does not permit
+freely copied escaping handles. C-POOL includes steady-live adversarial churn with deliberately tiny
 generations so this choice cannot hide behind a large production width.
 
 The recorded owner ruling classifies a same-typed handle from another pool that
@@ -612,43 +634,59 @@ generation-free. Nominal types, a compile-time policy, and other zero-cost
 encodings remain candidates; a runtime flag that charges every append-only
 access for recycling semantics is rejected.
 
-## 10. Pre-design completeness and performance gate
+## 10. Staged completeness and performance gate
 
-This gate runs before a mechanism or syntax is selected.
+Completeness is frozen globally and closed family by family. G0-Core prevents a
+difficult capability from disappearing or changing contract after results; it
+does not preregister every future experiment. Exact selection data belongs to
+the relevant Family Lock A immediately before that family's candidate work.
 
-### 10.1 Freeze semantic contracts
+### 10.1 G0-Core: global boundary freeze
 
-For every operation, preregister:
+G0-Core is timeboxed to one owner-review cycle. It contains no candidate code,
+harness, reference implementation, scored trace, or family-specific numeric
+threshold. It freezes:
 
-- result and ordering;
-- ownership transfer and element/handle invalidation;
-- error, trap, allocation-failure, and drop behavior;
-- expected and worst-case asymptotic complexity;
-- whether stable identity/address, sorted range, contiguous access, or a
-  particular iteration order is observable;
-- enforceable allocation-count, peak/transient-memory, or stable-address
-  ceilings promised to callers; and
-- whether open-world dynamic behavior is an observable API requirement.
+- the complete Section 4 registry, including role, current status, canary,
+  dependency family, one-paragraph caller-observable contract, and required
+  asymptotic class;
+- the allowed R3 contract dimensions: result/order, ownership/invalidation,
+  error/trap/drop, complexity, contiguity, stable identity/address, range and
+  iteration guarantees, enforceable allocation or memory ceilings, and any
+  genuinely open-world behavior requirement;
+- global ownership, exact-destruction, recoverable-failure, borrow/relocation,
+  affine-abandonment, and optimizer-fact-channel rules;
+- forbidden pathological simulations and every protected B no-regression or
+  no-tax rule;
+- family order and dependencies, O-promotion policy, claim vocabulary, and the
+  reopening rules in Section 10.7;
+- H-STORE, H-LRU, and H-IPQ purposes, visible contracts, dependency budgets,
+  exclusion rules, and holdout-rotation policy;
+- the cumulative META-5 accounting schema and the benchmark, soundness, lock,
+  hostile-review, and durability templates used by later family gates.
 
 Private representation, node size, probe layout, algorithm family,
-monomorphization, and internal static/dynamic dispatch do not define a new R3
-contract. They remain candidates inside the same observable contract. One
-canonical writer-facing route may specialize internally by `T`, collection
-size, target, or measured crossover without creating another source pattern.
+monomorphization, and internal static/dynamic dispatch never create a new R3
+contract. One writer-facing route may specialize internally by `T`, size,
+target, or a preregistered crossover.
 
-For handle APIs, the contract must separately freeze stale, deleted,
-wrong-pool, and exhausted-generation behavior as recoverable absence, `Result`,
-or trap. These outcomes cannot remain an implementation detail.
-
-These dimensions bound the R3 equivalence class. A new “performance contract”
-cannot be invented after results merely to preserve another mechanism.
+G0-Core does not freeze future families' exact algorithms, payload matrices,
+traces, allocator, numeric margins, complete soundness fixtures, or populated
+derivability ledgers. Scope that does not fit the timebox moves to the relevant
+Family Lock A; it does not enlarge G0-Core. Closing G0-Core only makes a later
+request to draft the dense-family Lock A eligible. It does not itself authorize
+that draft or any candidate implementation.
 
 ### 10.2 Role-mapped canaries
 
-Every B, M, and W row in Section 4 maps to the named canary below. M rows block
-capability selection; B rows are no-regression controls; W rows block claims
-that the public substrate is general. O rows block only if G0 promotes them from
-corpus evidence or another mandatory contract depends on them.
+The following inventory is the global coverage map. G0-Core freezes each
+canary's identity, role, coarse observable contract, dependency family, and
+asymptotic requirement. A Family Lock A freezes exact programs and measurements
+only for the canaries relevant to that family. Relevant M, W, and H obligations
+block that family's closure; every M, W, and H obligation blocks the complete
+capability-floor claim. B rows are always protected no-regression controls. O
+rows block only if G0-Core or a later owner ruling promotes them, or if a
+mandatory contract depends on them.
 
 - **C-FIX:** unchanged scalar-buffer source/IR plus fixed AoS record indexing;
 - **C-SEQ:** unknown-length affine construction, reserve/grow/shrink, bulk
@@ -690,32 +728,52 @@ forbids the corresponding finished container. A candidate sees their contracts
 but not their implementation or performance traces until the training
 candidates and scoring rules are frozen.
 
-### 10.3 Freeze the benchmark matrix and selection rule
+### 10.3 Family Lock A and Candidate Freeze B
 
-“Fastest” is undefined without a workload and target. Before candidate code,
-G0 must preregister:
+Before any candidate implementation for family F, Family Lock A(F) must freeze:
 
-- payload classes: zero-sized, scalar, over-aligned, large flat record, affine
-  box-owning record, and nested drop-counted value;
-- collection sizes, capacities, load factors, and operation distributions;
-- sequential, random, realistic corpus-derived, and adversarial traces;
-- target CPU/ISA/cache, 32-bit and 64-bit `DataLayout`, OS, allocator, and
-  recoverable-allocation policy if any;
-- peak and transient memory constraints, fragmentation, throughput, p50/p95/p99
-  latency, and code-size endpoints; and
-- disjoint training and held-out traces, with H-STORE, H-LRU, and H-IPQ excluded
-  from candidate tuning.
+- exact operation results, ordering, ownership and invalidation, failure and
+  drop behavior, asymptotic guarantees, and enforceable allocation or memory
+  ceilings for every implicated contract;
+- the candidate mechanisms and reference algorithms to be compared;
+- the candidate-construction and tuning protocol: author, model, tool, and
+  candidate assignment; implementation order or randomization; time, token,
+  repair, and tuning budgets; allowed shared versus candidate-specific changes;
+  and correction, disqualification, and failure rules;
+- the applicable B controls and M, W, and H canaries;
+- payload classes, sizes, capacities, load factors, operation distributions,
+  realistic and adversarial traces, targets, `DataLayout`, allocator, and
+  recoverable-allocation policy;
+- structural counters, primary and secondary endpoints, non-inferiority
+  margins, lexicographic tie breaks, crossover rules, and the unique-selection
+  or no-selection rule;
+- the exact soundness and failure corpus applicable to the family;
+- the incremental META-5 ledger: every public spelling, kernel transition,
+  trusted fact or code path, normative rule, and grammar, type, ownership,
+  effect, drop, diagnostic, and lowering obligation, with a derivability matrix
+  from candidate transitions to required operations;
+- training/held-out separation, witness custody and disclosure points, and the
+  rule for rotating a compromised holdout; and
+- artifact hashes, independent review scopes, durability requirements, and the
+  later owner decision required before production adoption.
 
-For each observable contract, G0 freezes a primary endpoint, non-inferiority
-margin, lexicographic tie-break order, crossover rule, and minimality tie-break
-before results. Non-inferiority alone cannot select a winner. If performance
-crosses over by `T`, size, or target, one canonical writer route may specialize
-or dispatch internally; this does not create another source mechanism. If no
-preregistered rule yields a unique survivor, the result is “no selection,” not
-permission to ship several equivalent writer-facing routes. The winner must
-retain its result on held-out traces.
+“Fastest” is undefined without these workload and target choices. Performance
+crossovers by `T`, size, or target may be handled behind one canonical writer
+route by a preregistered static specialization or dispatch rule. They do not
+create another R3 contract. Non-inferiority alone cannot select a winner. If the
+preregistered rule yields no unique survivor, the result is “no selection,” not
+permission to ship several equivalent writer-facing routes.
 
-### 10.4 Structural and measured performance gates
+After implementations exist but before any scored or held-out run, Candidate
+Freeze B records exact source hashes, build commands, toolchain and environment,
+training results, compliance with the frozen construction/tuning protocol, only
+the corrections already authorized by Lock A, and the immutable scoring inputs.
+A deviation reopens Lock A. Before implementing or exposing a public transition,
+state topology, trusted fact, or trusted code path whose admissible semantics
+span families, Lock A must have closed for every implicated family. The same rule
+applies to any cross-family contract or performance claim.
+
+### 10.4 Family structural and measured performance gate
 
 Before wall-clock timing, reject a route that has any of these contract-level
 failures:
@@ -727,7 +785,7 @@ failures:
   storage;
 - a hidden whole-record Copy/Clone requirement;
 - tombstone, retired-slot, or historical-allocation growth beyond the frozen
-  memory contract;
+  family contract;
 - writer-visible raw initialization/occupancy state; or
 - a generation check, generation field, or recycling branch on the protected
   append-only path.
@@ -735,9 +793,9 @@ failures:
 The following are measured costs, not automatic rejections: fused tag or bitmap
 bytes, element traffic relative to a payload-specific direct-relocation byte
 model, allocator calls, drop scans, bounds/alias branches, static versus
-indirect behavior calls, and SIMD versus scalar probing. G0 freezes thresholds
-per payload, scale, trace, and target; monomorphization is charged for code and
-instruction-cache growth as well as credited for direct calls.
+indirect behavior calls, and SIMD versus scalar probing. Family Lock A freezes
+thresholds per payload, scale, trace, and target; monomorphization is charged
+for code and instruction-cache growth as well as credited for direct calls.
 
 Record allocations, initialized/touched/moved bytes, peak and transient bytes,
 metadata bytes per live element, drops, checks, branches, vector width,
@@ -747,9 +805,10 @@ width, and thresholds use the target `DataLayout`. Every “pathological” clai
 must reduce to a frozen structural rule or a 99% confidence margin before
 scoring.
 
-### 10.5 Soundness corpus
+### 10.5 Family soundness gate
 
-At minimum attack:
+G0-Core freezes the following attack schema. Family Lock A must instantiate all
+applicable attacks as exact fixtures and justify every inapplicable item:
 
 - underfill, overfill, and repeated finish;
 - rejected push losing its affine value;
@@ -776,9 +835,9 @@ Every initialization or occupancy relation that permits check elimination is a
 fact channel and receives hostile review before shipping. Green tests alone do
 not approve it.
 
-### 10.6 Three-layer witnesses and hostile review
+### 10.6 Family closure, adoption, and the complete-floor claim
 
-Each candidate must provide:
+Each family candidate must provide:
 
 - a kernel state-machine witness;
 - a sealed standard-library implementation;
@@ -787,78 +846,132 @@ Each candidate must provide:
 - independent complexity/machine-code attribution review;
 - independent census/R3/repository-consistency review.
 
-R3 selection begins only after every M cell is E or P, every B control remains
-non-regressed, every W witness is complete and efficient, and all three H
-witnesses pass without candidate-specific compiler support. Every O deferral must name
-its corpus decision and dependency result rather than silently disappearing.
+Family F closes only when:
+
+- every M obligation assigned to F is established or proven derivable;
+- every protected B control remains non-regressed and pays no forbidden tax;
+- every W obligation assigned to or implicated by F under the G0-Core dependency
+  map is implemented by an ordinary no-unsafe library through public checked
+  mechanisms, completely and efficiently;
+- every H witness assigned to F passes without candidate-specific compiler or
+  standard-library privilege;
+- fact channels, ownership/state/failure behavior, machine code, R3 scope, and
+  repository consistency have passed independent hostile review; and
+- the preregistered rule selects a unique held-out survivor.
+
+A closed family may seek a separate owner decision for production adoption. An
+approved adoption updates the specification, derivation ledger, design tree,
+pattern catalog, tests, and implementation in the same durable change, as
+applicable. It may expose no public transition, state topology, trusted fact, or
+trusted code path outside the adopted family locks. It does not establish
+another family's capability, approve a shared universal substrate, authorize
+xlc migration or default teaching, or permit a general-purpose capability-floor
+claim.
+
+The complete floor may be claimed only after every B baseline remains
+non-regressed and every M, W, and H obligation is closed. An O obligation blocks
+only if it was promoted or is required by a mandatory contract. Every other O
+deferral must retain its corpus decision and dependency result rather than
+silently disappearing.
+
+### 10.7 Reopening rules
+
+A closed global or family lock reopens before further candidate work when:
+
+- an observable result, ownership/invalidation, failure/drop, complexity,
+  contiguity/stability/order, or enforceable resource contract changes;
+- G0-Core's registry role, family assignment, dependency map, held-out
+  dependency budget, or scoped deferral changes;
+- a new candidate mechanism or crossover rule could change selection;
+- a scored implementation, workload, target, allocator, threshold, endpoint,
+  gating or scored soundness fixture, or holdout becomes visible, corrected, or
+  compromised outside the frozen correction rule;
+- a new fact channel, trusted path, public spelling, or normative obligation is
+  introduced;
+- a supposedly family-local candidate depends on an unlocked family; or
+- evidence invalidates a protected baseline, soundness claim, asymptotic bound,
+  or ordinary-library derivation.
+
+Any gating or scored soundness-fixture change after Lock A reopens that family;
+after Candidate Freeze B it also invalidates the freeze and requires symmetric
+reruns. An explicitly non-gating diagnostic fixture already covered by the
+frozen attack schema may be appended without reopening. So may an independently
+recoverable, non-semantic clerical correction made before Candidate Freeze B
+with an append-only explanation, or a non-semantic toolchain fingerprint. The
+lock record must state which rule applies; ambiguity reopens it.
 
 ## 11. Recommended research order
 
-The previous five E0 topics remain useful, but their ordering is no longer a
-sufficient capability argument. The next work should be serial and remain
-research-only until separately approved.
+The previous five E0 topics remain useful, but their ordering is not a capability
+argument. The work is serial within a family and staged across families. No item
+below starts without separate owner authorization.
 
-1. **G0 — capability registry.** Freeze the exact operation semantics,
-   reference algorithms, canary programs, structural counters, and rejection
-   thresholds. Reconcile the registry against the five E0 topics and the
-   existing MCTS alternatives. Also freeze a META-5 mechanism-delta budget:
-   maximum public spellings, kernel transition families, trusted facts/code,
-   normative rule changes, and grammar/type/effect/lowering proof obligations.
-   A per-operation intrinsic spends that budget; renaming proliferation as
-   “opaque operations” does not evade R3. The machine-readable ledger records
-   every grammar, type, ownership, effect, drop, fact, diagnostic, and lowering
-   delta; its R1 ground; and a derivability matrix from candidate kernel
-   transitions to every canary operation. Dense and sparse candidates remain
-   jointly live until a shared generative route has been compared against
-   specialized routes. No syntax or candidate implementation.
-2. **G1 — dense affine sequence substrate.** Compare the smallest safe
-   high-level operation set with a linear rebuild/relocation transaction.
-   Include xlc append/backpatch/reset, affine grow, ordered remove, stable
-   retain, sort, and failure paths. Keep fixed buffers unchanged.
-3. **G2 — sparse occupancy and hash table.** Compare fully initialized tagged
-   slots against compact split metadata under the same hash-table algorithm.
-   Price the metadata/payload fact channel and prove exact drops through rehash.
-   This isolates the storage-state question; later canonical-map selection must
-   still compare eligible algorithm families under the frozen contract.
-4. **G3 — identity and non-contiguous structures.** Compare append-only typed
-   pools, recyclable generational pools, recursive boxes, and handle cursors on
-   AST, dynamic graph, list, and LRU workloads. Do not tax the append-only path
-   for recycling.
-5. **G4 — candidate library derivation.** For every surviving substrate
-   candidate, derive deque, priority queue, ordered map, bytes/text, and the
-   held-out indexed priority queue before selection. Any per-structure compiler
-   exception reopens the substrate decision. R3 selection occurs only after
-   these three-layer and held-out results, not before them.
-6. **G5 — default writer and pattern selection.** Only after correctness and
-   performance selection, run a separately authorized benchmark-blind low-tier
-   writer panel and update PATTERNS. Expert implementation evidence alone does
-   not establish the default.
+1. **G0-Core — bounded global boundary.** In one owner-review cycle, freeze only
+   the Section 10.1 registry, laws, schemas, dependencies, claim vocabulary, and
+   reopening rules. Reconcile them against the five E0 topics and existing MCTS
+   alternatives. Produce no syntax, candidate implementation, harness, or
+   scored result.
+2. **G1 — dense-family Lock A and experiment.** Freeze exact dense sequence
+   semantics and the complete family protocol. It must explicitly retain,
+   revise, or supersede every arm and measurement promised by the paused E0.1
+   fixed-record protocol. Only a later owner approval may start candidates.
+   Compare the smallest safe high-level operation set with a linear
+   rebuild/relocation transaction; cover affine growth, ordered removal, stable
+   retain, sorting, failure, and any xlc-shaped witnesses justified by the
+   registry. Keep fixed buffers unchanged.
+3. **G2 — sparse-family Lock A and experiment.** Compare fully initialized
+   tagged slots against compact split metadata under one frozen hash-table
+   algorithm, price the payload/metadata fact channel, and prove exact drops
+   through rehash. A dense candidate may not implement or expose a public
+   transition or trusted fact spanning sparse state before this lock exists;
+   sparse selection may still require later algorithm comparison under its own
+   contract.
+4. **G3 — stable-identity-family Lock A and experiment.** Compare append-only
+   typed pools, recyclable generational pools, recursive ownership, and cursor
+   routes on the assigned graph, list, arena, and LRU witnesses. Preserve the
+   protected append-only path without generation or recycling tax.
+5. **Later family locks and experiments.** Deque, heap, ordered map/tree, and
+   bytes/text each receive their own exact Lock A, applicable ordinary-library
+   and held-out witnesses, Candidate Freeze B, measurement, and hostile review.
+   One family's closure does not wait for unrelated optional families, and any
+   per-structure compiler exception reopens the implicated decision.
+6. **Integration and default teaching.** Claim the complete floor only under
+   Section 10.6. Capability adoption, xlc migration, default layout teaching,
+   and a benchmark-blind low-tier writer panel retain separate owner gates.
+   Expert implementation evidence alone does not establish the default.
 
 AoS versus SoA remains an independent representation question inside these
 workloads. The language must not make one inexpressible. Capability adoption,
 xlc migration, and default layout teaching retain separate gates.
 
-## 12. Owner decisions requested
+## 12. Owner rulings recorded
 
-This report requests review of the research boundary, not implementation
-authorization.
+D11 records the following boundary:
 
-1. Confirm G0 closure as a prerequisite for lifting the existing E0.1 pause and
-   entering Lock A.
-2. Confirm the R3 interpretation: one canonical mechanism per frozen semantic
-   and performance contract, not one universal representation.
-3. Confirm that ordinary no-unsafe libraries, not only a privileged standard
-   library, must be able to instantiate the selected checked ownership
-   transitions for held-out structures.
-4. Confirm G0 as the next step: freeze the capability registry and experiment
-   thresholds before selecting syntax, kernel/library placement, or a dense
-   sequence implementation.
-5. Confirm that append-only and recyclable stable identity remain separate
-   contracts, while their eventual substrate sharing stays an experimental
-   question.
+1. General-purpose systems-language capability is the eventual target. For data
+   structures, representative standard contracts need one taught efficient
+   route, and ordinary no-unsafe libraries must be able to implement
+   representative held-out structures through public checked mechanisms.
+2. G0 is split into a bounded G0-Core and an exact Family Lock A immediately
+   before each family's candidate work. G0-Core does not prebuild all future
+   protocols.
+3. A family may seek separate owner-approved production adoption after its own
+   complete gate. The complete capability-floor claim waits for all protected
+   B baselines and mandatory M, W, and H obligations.
+4. R3 selects one canonical writer-facing mechanism per frozen observable
+   semantic and performance contract, not one universal representation and not
+   one global algorithm for every unforeseen structure.
+5. Append-only and recyclable stable identity are separate contracts. Shared
+   machinery remains experimental, and the append-only path pays no generation
+   or recycling tax.
+6. G0-Core plus dense Family Lock A are necessary but not sufficient to lift
+   the E0.1 pause. The old fixed-record paired protocol does not restart
+   automatically and may be superseded by the dense result.
 
-Production implementation remains frozen pending those decisions and the later
-candidate-specific approval required by the standing owner directive.
+This ruling authorizes only correction of the research boundary. It does not
+authorize G0-Core work, a family lock, candidate or production implementation,
+specification changes, xlc migration, a scored run, or default teaching. The
+next step remains for a separate owner discussion.
 
 ## 13. Primary sources and local evidence
 

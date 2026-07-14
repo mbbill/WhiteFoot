@@ -3,10 +3,12 @@
 Date: 2026-07-13. Scope: owner-advisor review of constitutional consistency,
 cross-project design history, conformance classification, and decision framing.
 
-Status: complete non-normative review disposition. It authorizes no production
-implementation, specification change, scored timing, xlc migration, PATTERNS change,
-default teaching, or external model disclosure. The report and candidate document
-have been revised to expose alternatives; this response does not select one.
+Status: complete historical non-normative review disposition. D11 supersedes its
+former owner-decision surface and authorizes no G0-Core work, family-lock work,
+experiment, production implementation, specification change, scored timing, xlc
+migration, PATTERNS change, default teaching, or external model disclosure. The
+alternatives remain inputs to a future dense-family lock; this response selects
+none and does not restart automatically.
 
 ## Verdict
 
@@ -246,11 +248,13 @@ select a kernel sequence or establish a runtime win.
 7. Capability adoption, xlc migration, pattern doctrine, and default teaching remain
    independent approvals.
 
-Items 2-5 require owner selection. This review records no preferred language route.
+At the time of this review, items 2-5 required owner selection. D11 supersedes
+that direct selection surface. This review records no preferred language route.
 
-## Authorized next state
+## Superseded next state
 
-The current state is reviewed research plus separately authorized conformance repair:
+The state recorded by this historical response was reviewed research plus
+separately authorized conformance repair:
 
 - retain the detached prototype solely as rejected feasibility evidence;
 - do not implement another language candidate until the owner selects and freezes
@@ -261,4 +265,8 @@ The current state is reviewed research plus separately authorized conformance re
 - do not open a production E0.1/STOR-1, PATTERNS, specification, stage-0, xlc, or
   teaching change from this response.
 
-This disposition is complete. It intentionally ends at the owner decision surface.
+The conformance repairs remain complete current-language work. D11 supersedes
+the direct owner-selection next step: the owner will separately discuss whether
+to authorize bounded G0-Core work, and any later dense-family Lock A must
+explicitly retain, revise, or supersede the relevant alternatives and measures
+here. This response authorizes no further work.

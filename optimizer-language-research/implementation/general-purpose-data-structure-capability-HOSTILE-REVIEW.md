@@ -1,16 +1,19 @@
 # General-Purpose Data-Structure Capability Hostile Review
 
-Status: PASS AS A RESEARCH BOUNDARY, 2026-07-13.
+Status: PASS AS AN OWNER-REVIEWED STAGED RESEARCH BOUNDARY, 2026-07-13.
+Sections 1-5 preserve the review of the initial exact snapshot. Section 6
+records the D11 supersession, blocking findings, repairs, and three exact-hash
+PASS verdicts on the current report.
 
-The exact reviewed
+The initial exact reviewed
 `general-purpose-data-structure-capability-RESEARCH.md` bytes have SHA-256:
 
 ```text
 48384d74624c40dad13514232985d39df6fa5910ba5bf513cd39f941440d82c7
 ```
 
-This verdict means that three independent read-only review scopes found no
-remaining P0/P1 blocker in the research report. It does not select a language
+That verdict means that three independent read-only review scopes found no
+remaining P0/P1 blocker in the initial research report. It does not select a language
 mechanism, collection representation, standard-library surface, specification
 delta, compiler implementation, xlc migration, performance winner, pattern, or
 default teaching. It is not Lock A and authorizes no candidate implementation,
@@ -218,13 +221,91 @@ changes no normative specification, PATTERNS entry, production implementation,
 or MCTS-Mem node. A later owner-selected production route must perform the
 normal same-change spec, derivation-ledger, and design-tree redecision.
 
-## 5. Final verdict and next stop
+## 5. Initial-snapshot verdict and superseded next stop
 
-The exact report is fit for owner review as a capability-floor research boundary.
-Its evidence supports opening G0; it does not establish that any proposed route
-is sound, fastest, production-ready, or teachable.
+The initial exact report was fit for owner review as a capability-floor research
+boundary. It did not establish that any proposed route was sound, fastest,
+production-ready, or teachable.
 
-If the owner accepts the boundary, the next durable step is G0 only: freeze the
+The initial review proposed a monolithic G0 as the next durable step: freeze the
 role-mapped registry, exact contracts, workload/target matrix, winner rules,
 META-5 derivability ledger, held-out dependency budgets, and rejection
-thresholds. G0 itself requires review before any candidate implementation.
+thresholds. D11 and Section 6 supersede that proposed next state.
+
+## 6. D11 staged-boundary amendment and final exact-hash review
+
+Owner review identified one unasked scope decision and one process problem. The
+report had assumed the eventual general-purpose systems-language target without
+recording it, and its monolithic G0 would have frozen detailed protocols for
+every future family before any family could proceed. D11 makes the target
+explicit while replacing the all-at-once gate with bounded global scope and
+exact per-family preregistration.
+
+The amended report now establishes:
+
+- **Bounded G0-Core.** One owner-review cycle freezes the complete role registry,
+  coarse observable and asymptotic contracts, global safety and no-tax rules,
+  R3 dimensions, family dependencies and reopening rules, exact held-out
+  dependency budgets, and later-gate schemas. It contains no candidate code,
+  harness, reference implementation, scored trace, family algorithm, exact
+  workload matrix, numeric threshold, populated derivability ledger, or complete
+  family soundness corpus. Closing it only makes a later request to draft the
+  dense-family lock eligible.
+- **Exact Family Lock A and Candidate Freeze B.** Immediately before candidate
+  work, the implicated family freezes semantics, candidates and references,
+  construction/tuning fairness, workload and target, thresholds and unique
+  selection, exact soundness fixtures, META-5 derivability, holdout custody, and
+  corrections. Freeze B records exact artifacts and compliance before scoring.
+  Gating-fixture or result-informed changes reopen the lock; post-freeze changes
+  invalidate the freeze and require symmetric reruns.
+- **No claim-shaped safety escape.** Every assigned or implicated W obligation
+  blocks family closure. A public transition, state topology, trusted fact, or
+  trusted path spanning families requires every implicated Family Lock A before
+  implementation or exposure, and production adoption exposes nothing outside
+  the adopted family locks. Borrow-bearing payload storage receives an explicit
+  M/W obligation or a scoped claim deferral rather than inheriting a borrow-free
+  result.
+- **Two closure levels.** A family may seek a separate owner-approved production
+  adoption after its complete gate. The complete capability-floor claim waits
+  for every protected B baseline and every mandatory M, topology W, and held-out
+  H obligation. Optional O obligations block only when promoted or required.
+- **E0.1 remains paused.** G0-Core plus dense Family Lock A are necessary but not
+  sufficient for a later owner decision to lift the pause. The old fixed-record
+  paired protocol does not restart automatically and must be explicitly
+  retained, revised, or superseded.
+
+The first complete staged snapshot, SHA-256
+`3117ab458b0fc9a10f90a80dc8f923a5acfa2b7116bdbbcfc7b06b41a3323134`,
+received no P0 finding but received `REVISE` verdicts. Review found four
+load-bearing defects: candidate-construction effort was not preregistered;
+gating soundness fixtures could change without reopening; W closure depended on
+what a candidate chose to claim; and cross-family locks followed claims rather
+than implemented or exposed state. A separate consistency review found that
+G0-Core weakened exact held-out dependency budgets to a schema and that stale
+E0.1 documents still exposed the superseded authorization path. All were
+repaired before final review.
+
+The current exact
+`general-purpose-data-structure-capability-RESEARCH.md` bytes have SHA-256:
+
+```text
+066c6e411cc0eefec608fb53371e4badfd91017617cefe63178ca101e19191b6
+```
+
+Three independent read-only scopes verified those exact bytes and returned
+`PASS` with no P0, P1, or P2 finding:
+
+1. ownership, initialization, destruction, failure, abandonment, borrowing,
+   sparse fact channels, and ordinary-library safety;
+2. staging, candidate fairness, benchmark selection, family/full-floor closure,
+   cross-family exposure, E0.1 coupling, and reopening; and
+3. Constitution, specification, PATTERNS, MCTS-Mem, D11, English-only, stale
+   authorization, and repository consistency.
+
+The current report is therefore fit for owner review as the staged research
+boundary. It selects no language mechanism, storage representation, standard
+library surface, specification delta, compiler change, xlc migration,
+performance winner, pattern, or default teaching. It authorizes only this
+research-boundary correction: no G0-Core work, family lock, experiment,
+candidate or production implementation, scored run, or external disclosure.
+The next step remains a separate owner discussion.

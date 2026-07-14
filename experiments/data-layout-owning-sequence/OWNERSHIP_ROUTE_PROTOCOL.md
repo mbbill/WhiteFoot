@@ -1,9 +1,13 @@
 # E0.1a ownership-route paired experiment protocol
 
-Status: suspended before Lock A, 2026-07-13. This document is not a
-preregistration. The general-purpose capability audit in
+Status: superseded historical draft, suspended before Lock A, 2026-07-13. This
+document is not a preregistration. D11 replaces its immediate next step. The
+bounded G0-Core and a dense-family Lock A described in
 `../../optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`
-must close before this narrowing can be reconsidered. It authorizes no candidate
+must close before an owner may reconsider the pause, but they do not
+automatically restart this narrowing. The dense-family lock must explicitly
+retain, revise, or supersede every relevant arm and measurement below. This
+document authorizes no G0-Core work, family-lock work, candidate
 implementation, execution, scored timing, production change, xlc migration,
 pattern change, default teaching, or external disclosure. The locks below are
 historical draft requirements and may not be entered while the suspension is in
@@ -64,9 +68,10 @@ builder screen.
 For this paired run, this document also has global precedence over
 `PROTOCOL.md` for authorization status, baseline, lock order, candidate timing,
 profiling, and external calls. The older permission for isolated implementation
-and smoke experiments does not authorize either candidate here. Candidate work
-starts only after the exact Lock A bytes pass the reviews below and receive
-owner approval.
+and smoke experiments did not authorize either candidate here. The historical
+draft would have required exact Lock A review and owner approval. D11 supersedes
+that next state; only a future dense-family lock may retain, revise, or supersede
+these requirements, and this document authorizes no candidate work.
 
 `AFFINE_FIXED_BUILDER` imports inaccessible partial initialization only inside a
 transient constructor and returns no initialized-prefix owner. It therefore
