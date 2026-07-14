@@ -1055,3 +1055,47 @@ implementation, timing, profiling, external disclosure, specification change,
 xlc migration, PATTERNS change, default teaching, or production design is
 authorized.  The MCTS-Mem tree remains unchanged pending owner selection of the
 experimental narrowing.
+
+## General-purpose data-structure capability floor opened; E0.1 candidate work remains paused (2026-07-13)
+
+The initialized-prefix discussion exposed an upstream process failure: E0.1's
+fixed-record ownership screen had not first proved that ordinary checked xlang
+can express the dense, sparse, relocation, traversal, recursion, and stable-
+identity transitions required by representative data structures.  The local
+protocol was internally reviewed but its review scope did not include this
+neighboring-operation census.  Under the standing owner instruction to stop
+implementation and research first, the paired protocol remains paused before
+Lock A.
+
+`general-purpose-data-structure-capability-RESEARCH.md` establishes the
+non-normative correction.  Its exact reviewed SHA-256 is
+`48384d74624c40dad13514232985d39df6fa5910ba5bf513cd39f941440d82c7`.
+The report separates protected baselines, mandatory floor contracts,
+ordinary-library topology witnesses, held-out anti-special-casing witnesses,
+and prevalence-gated options; maps each to a named canary; constrains R3 to
+caller-observable contracts; freezes the workload/target and unique-winner
+rules needed to interpret “fastest”; and records the finite copied-handle
+impossibility boundary.  Public uninitialized payload access and standard-
+library-only raw privilege remain rejected.  H-STORE must directly instantiate
+the same checked storage transitions available to an unseen ordinary library.
+
+`general-purpose-data-structure-capability-HOSTILE-REVIEW.md` (SHA-256
+`b1d99a055372602aac0b8714661a09e9771e60ac66014f8a8ef2f34a625e9467`)
+records three independent final `PASS` verdicts on the exact report bytes for
+ownership/state/failure soundness, performance and R3 selection, and
+specification/MCTS-Mem/process consistency.  Earlier rejected snapshots and
+every blocking disposition are preserved in that review.
+
+G0 is the only proposed next research step: freeze the role-mapped operation
+registry, semantic contracts, payload/workload/target matrix, selection rule,
+META-5 derivability ledger, held-out dependency budgets, and rejection
+thresholds.  G0 itself needs review before candidate implementation.  No
+language mechanism, collection representation, standard-library placement,
+specification or PATTERNS change, xlc migration, scored run, external
+disclosure, or default teaching is authorized.  The MCTS-Mem tree remains
+unchanged because no production route was selected.
+
+Sequential post-change verification passes: `make check` reports 90/90 rule
+coverage, 10,000 model programs with zero accepted soundness violations, 259
+conformance passes/14 skips, and `ALL VERIFICATION LAYERS GREEN`;
+`make -C compiler check` also passes.

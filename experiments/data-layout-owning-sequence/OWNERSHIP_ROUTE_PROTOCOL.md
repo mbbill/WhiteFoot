@@ -1,10 +1,13 @@
 # E0.1a ownership-route paired experiment protocol
 
-Status: draft for owner review, 2026-07-13. This document is not a
-preregistration. It authorizes no candidate implementation, scored timing,
-production change, xlc migration, pattern change, default teaching, or external
-disclosure. Section 3 defines the owner-approved locks required before candidate
-implementation, candidate execution, and hidden scoring.
+Status: suspended before Lock A, 2026-07-13. This document is not a
+preregistration. The general-purpose capability audit in
+`../../optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`
+must close before this narrowing can be reconsidered. It authorizes no candidate
+implementation, execution, scored timing, production change, xlc migration,
+pattern change, default teaching, or external disclosure. The locks below are
+historical draft requirements and may not be entered while the suspension is in
+force.
 
 This protocol answers an upstream question left open by `PROTOCOL.md`: which of
 two concrete ownership mechanisms is worth carrying into the fixed-record

@@ -13,7 +13,8 @@ It does **not** assume that AoS should replace the compiler's current SoA tapes.
 The present compiler is the protected baseline.  Capability adoption and xlc
 layout migration have separate decision gates.
 
-Current status: research plus isolated, non-production experiments. This tree
+Current status: research only; the paired ownership protocol is suspended before
+Lock A by the broader general-purpose data-structure capability audit. This tree
 contains a baseline-only native harness for non-scoring self-test/smoke runs. The
 first unconditional candidate was executed only in a disposable worktree and failed
 hostile review on affine-fill semantics despite green repository tests. Its exact
@@ -27,10 +28,11 @@ performance comparison exists.
 Files:
 
 - `RESEARCH_REPORT.md` is the owner-review report and decision surface.
-- `OWNERSHIP_ROUTE_PROTOCOL.md` is the draft paired protocol for deciding whether
+- `OWNERSHIP_ROUTE_PROTOCOL.md` is the suspended draft paired protocol for deciding whether
   declarative Copy or affine fixed-storage with a full-initialization-only
-  transient builder should advance to the existing layout experiment. It is not
-  preregistered and authorizes no candidate implementation or external run.
+  transient builder should advance to the existing layout experiment. It may not
+  enter Lock A, is not preregistered, and authorizes no candidate implementation
+  or external run.
 - `OWNERSHIP_ROUTE_HOSTILE_REVIEW.md` records the three-scope adversarial review,
   all blocking dispositions, and the exact protocol hash that passed final
   re-review. The pass qualifies the draft for owner review only.

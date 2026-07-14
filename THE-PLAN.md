@@ -81,7 +81,23 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **xlc self-hosting build track** — ACTIVE PRIORITY. The production compiler
+1. **General-purpose data-structure capability floor** — ACTIVE RESEARCH
+   PRIORITY. E0.1's fixed-record ownership-route protocol is suspended before
+   Lock A. The initialized-prefix challenge showed that fixed AoS construction
+   cannot be selected independently of the common operations a general-purpose
+   collection ecosystem must express: unknown-length append, growth, affine
+   move-out, insert/remove, exact destruction, sparse occupancy, keyed lookup,
+   stable deletion/reuse, traversal, and held-out library structures. The
+   current STOR-1 statement that collections are libraries over `buffer<T>` is
+   a direction, not an implementation proof. The next step is G0 in
+   `optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`:
+   freeze semantic/performance contracts and a capability registry before any
+   syntax, substrate, or candidate implementation is selected. R3 means one
+   evidence-selected mechanism per frozen semantic/performance contract, not
+   one universal representation. Production implementation, specification
+   changes, xlc migration, scored runs, and default teaching remain frozen
+   pending owner review.
+2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
    deterministically reports 15 clean, 462 legal-unsupported, and zero semantic
@@ -113,7 +129,10 @@ Measured non-wins (equally load-bearing):
    byte-identical (264,288 bytes, SHA-256
    `eef9c30193b69be22452f47bc8050453f5da9d86454ff165c74da0be6241b522`). The MCTS-Mem
    design tree remains unchanged until the owner selects a production route.
-2. **Default-floor experiment against shipped Rust (D9a)** — COMPLETE on two
+   The paired E0.1 ownership screen must not enter Lock A while the new
+   capability-floor gate is open; its fixed builder and declarative-Copy arm do
+   not cover the general sequence, sparse-slot, or deletion/reuse contracts.
+3. **Default-floor experiment against shipped Rust (D9a)** — COMPLETE on two
    separately preregistered targets. First-green Terra xlang records paired
    throughput ratios of 1.653x [1.631, 1.667] against `percent-encoding` 2.3.2
    and 1.098x [1.085, 1.145] against one-shot `utf8parse` 0.2.2. Both retain
@@ -121,7 +140,7 @@ Measured non-wins (equally load-bearing):
    cross-target performance-floor evidence, not a pooled ecosystem result or
    expert-Rust ceiling claim. Canonical wording and caveats are in
    `experiments/default-floor/RESULTS.md`; no third target is required for D9a.
-3. **Proof-elided checks (OP-4 tier)** — enabling evidence for the experiment.
+4. **Proof-elided checks (OP-4 tier)** — enabling evidence for the experiment.
    A checked concrete-function `requires` prologue
    computes and verifies a boundary fact once at callee entry, then the
    deterministic prover uses it to elide dominated implicit checks that LLVM
@@ -172,18 +191,18 @@ Measured non-wins (equally load-bearing):
    promotion. Guard versioning and variable-output work remain staged by
    `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`;
    no normative language rule changed.
-4. **Leg-A frequency pilot** — complete; stop building analysis infrastructure.
+5. **Leg-A frequency pilot** — complete; stop building analysis infrastructure.
    Raw source heuristics substantially overcounted alias and saturating-law
    opportunities, while optimized `comrak` exposed many surviving checks in
    genuinely hot parser paths. The pilot therefore redirects the next bounded
    experiment toward generalized relational/precondition proof in one real
    workload. It does not clear D9, estimate ecosystem prevalence, or justify
    further frequency-tool investment.
-5. **Channel 4: blessed interpreter dispatch** (carded): lower naive
+6. **Channel 4: blessed interpreter dispatch** (carded): lower naive
    loop+match to threaded/musttail dispatch — structural delta over Rust,
    parity with expert C from the obvious shape. Eventual benchmark: the
    owner's own engine (Silverfir), owner-refereed.
-6. **Coreutils ladder** (D7a): wc, base64 done; next utilities need the I/O
+7. **Coreutils ladder** (D7a): wc, base64 done; next utilities need the I/O
    frame (first D4 FFI instance) and chunked-driver parity. The AI-authorship
    headline runs through the shelved trial harness when the time comes.
 

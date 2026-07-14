@@ -1,8 +1,15 @@
 # E0.1 Research Report: Data Layout and Owning Sequences
 
-Status: non-normative report for owner review, 2026-07-13. Isolated experiments are
-allowed; production implementation, specification changes, xlc migration, scored
-performance experiments, and default teaching are not authorized.
+Status: non-normative evidence report for owner review, 2026-07-13. Production
+implementation, specification changes, xlc migration, scored performance
+experiments, and default teaching are not authorized.
+
+Current disposition, 2026-07-13: the evidence and rejected-prototype record below
+remain valid, but this report is no longer the immediate decision surface. The
+broader capability-floor audit in
+`../../optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`
+suspends the paired ownership protocol before Lock A. Section 10's local questions
+must not authorize a candidate until that upstream audit closes.
 
 ## 0. Executive conclusion
 

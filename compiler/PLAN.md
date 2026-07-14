@@ -29,19 +29,26 @@ growable collections, no pool, and no generics.
 - Facts are OFF in stage-0-compiled xlc until xlc's own effect checking is
   complete (conservative ordering; the parity corpus guards democ's facts).
 
-## E0 — ordered expressiveness validation (research active; E0.1 only)
+## E0 — expressiveness validation behind the capability-floor gate
 
 The 23,962-line compiler exposed a more important question than source ceremony:
 does the current language prevent a zero-cost data structure, abstraction, or
 proof-carrying control shape and thereby force default AI-written code to be
-slower or less maintainable? Five investigations answer that question in a fixed
-order. Only one is active at a time; the next does not start until the current
-one has an evidence-backed adopt/reject/defer decision and an independent
-hostile review. A decision, not adoption, is the exit condition.
+slower or less maintainable? The initial plan split that question into five
+ordered investigations. The E0.1 initialized-prefix review showed that the split
+was premature: fixed-record construction cannot be selected before the project
+establishes that common dense, sparse, keyed, stable-identity, and traversal
+operations all have an efficient route.
 
-The order is an owner ruling (2026-07-13):
+G0 is now the active research gate. It freezes the semantic/performance contract
+and canary registry described in
+`../optimizer-language-research/implementation/general-purpose-data-structure-capability-RESEARCH.md`
+before syntax, kernel/library placement, or candidate implementation. The five
+investigations below remain useful evidence axes, but they no longer advance in
+isolation merely because the preceding local protocol closes. A decision, not
+adoption, remains the exit condition.
 
-1. **E0.1 — data layout and owning sequences (ACTIVE).** Preserve the current
+1. **E0.1 — data layout and owning sequences (SUSPENDED BEFORE LOCK A).** Preserve the current
    fixed-capacity SoA compiler as the baseline. First isolate compiler-verified
    flat records and fixed-capacity AoS. Flat aggregate storage neither enlarges
    the implicit-Copy class nor licenses explicit contraction/Clone; whole-record
@@ -59,10 +66,11 @@ The order is an owner ruling (2026-07-13):
    frontend reuse, and cold construction on the exact `sources.txt` unit. The
    goal is to add a safe choice, not to presume AoS replaces SoA.
 
-E0.1 currently permits research and isolated non-production experiments. No
-checker/compiler feature flag, production candidate implementation, scored run,
-or normative change is authorized. Baseline and experimental candidate use
-separate single-semantics toolchains. Production work starts only after explicit
+E0.1 currently permits research only. Its paired declarative-Copy versus affine
+fixed-builder protocol must not enter Lock A and authorizes no candidate work.
+No checker/compiler feature flag, production candidate implementation, scored
+run, or normative change is authorized. Any later experimental candidate uses a
+separate single-semantics toolchain. Production work starts only after explicit
 owner confirmation following report review; dual language modes never coexist.
 
 The first detached E0.1a prototype closed only a feasibility question: on the
@@ -70,11 +78,12 @@ two frozen 64-bit targets, record-buffer field access can use target stride plus
 row/field GEPs while unchanged SoA fixtures retain raw-IR identity. Hostile
 review rejected the prototype itself: its fill loop duplicated an affine record,
 the checker omitted ownership flow through index atoms, and the backend was not
-32-bit/DataLayout-sound. The next decision is therefore the initialization
-contract (recommended experiment: recursively fresh Copy-leaf row recipe with
-no move), not timing or production landing. `Flat` never implies Copy,
-Repeat, or Clone. The scored protocol is also blocked until endpoint,
-lifetime, and causal-attribution controls are frozen.
+32-bit/DataLayout-sound. A later paired protocol compared declarative Copy with a
+full-initialization-only affine builder, but the builder cannot express the
+compiler's unknown final lengths, prefix reads, backpatches, reset/reuse, growth,
+or general deletion. The next decision is therefore G0's complete operation
+registry, not an initialization spelling, timing, or production landing. `Flat`
+never implies Copy, Repeat, Clone, or a general collection substrate.
 
 2. **E0.2 — namespaces and zero-cost API abstraction.** Logical closed-unit
    modules, private-by-default fields, type-owned inherent `impl`, qualified
@@ -138,7 +147,8 @@ nesting do not run ahead of E0.1-E0.5.
 **S1 — body semantics parity on the compiler unit.**
 Grow ownership/effect/type body checks until xlc's semantic layer renders a
 verdict on every function in `sources.txt`.
-The coverage baseline is complete. After E0.1-E0.5 close, the next functional slice is an
+The coverage baseline is complete. After G0 and any resulting owner-approved
+capability decisions close, the next functional slice is an
 independent acyclic-decision semantic family (not an enlargement of the loop
 scanner profile) covering `lexer_scan_op_suffix` and `lexer_scan_word` together.
 It needs nested `let`/`match`/early-return flow, primitive expression typing,
