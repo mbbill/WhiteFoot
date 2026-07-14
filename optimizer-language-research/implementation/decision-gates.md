@@ -1279,3 +1279,40 @@ contract; and `git diff --check` passes. This step selects no storage spelling,
 state representation, checked transition, cleanup mechanism, fact channel,
 compiler path, standard container, candidate algorithm, numeric threshold, or
 production change.
+
+## The domain ledger is repaired to separate Rust caller safety from xlang admission (2026-07-14)
+
+An independent hostile audit found that the first whole-surface classifier
+used `checked_surface` for Rust-safe declarations, left several source-surface
+families with imprecise semantic owners, did not assign one terminating
+disposition per declaration, and overstated dynamic loading as a settled
+non-goal. Those defects could make a complete row count look like a completed
+xlang capability decision.
+
+The repaired classifier retains Rust `caller_safety` only as source evidence.
+Each of the 5,369 canonical stable declarations now terminates in exactly one
+conservative `G0`, `LIB`, `LATER`, `RED`, or `NG` disposition; all 273
+Rust-unsafe declarations and 169 Rust-safe raw-pointer, manual-lifetime, leak,
+or spare-capacity boundaries remain evidence rather than admitted xlang
+surface. The 545 detailed stable-safe seed declarations carry their exact
+contract IDs. Macro, keyword, primitive, OS-extension, panic-hook, raw-memory,
+and dynamic-loading routes now land in their semantic domain or named later
+frame. Only the item-free `core::panicking` module remains in the explicit D26
+holding route.
+
+The checked classifier SHA-256 is
+`3754a028821376f16143ed8c2ff0aea768b79f2088439bf5a6eca27bd058a3f0`;
+the rule table SHA-256 is
+`5dfac844dc49d2a6725431dd0424d816ff5841e651d4b4412a805e3a260087ba`;
+the declaration map SHA-256 is
+`a635f656e2b2dd71fcf9a15e0c85a2ade3efeedaf6ed06ebe3391fb87c770645`;
+and the module map SHA-256 is
+`7f664088c5a93d9a0ba1a6a9068f2405bd15df03cc131a00f696a0ff5ed67758`.
+The regenerated classifier reports 5,096 safe and 273 unsafe declarations and
+290 reachable modules accounted; the independent detailed-contract verifier
+still reports 224 clusters with exact 545/35 seed coverage; and `git diff
+--check` passes.
+
+This repair changes accounting precision only. It selects no xlang surface,
+mechanism, trusted path, family closure, specification rule, compiler change,
+or production implementation.

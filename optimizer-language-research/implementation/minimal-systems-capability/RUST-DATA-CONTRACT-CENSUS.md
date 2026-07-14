@@ -98,6 +98,14 @@ raw relocation, private uninitialized or sparse state, guard `Drop`, and unsafe
 reconstruction. A safe call that exports a pointer, `MaybeUninit`, or a leak
 obligation is classified separately from an ordinary safe-library derivation.
 
+The failure/destruction column preserves Rust panic-unwind behavior where that
+behavior is part of the source contract or implementation pressure. It is not
+silently imported into xlang. The derivation matrix translates a Rust unwind
+edge through current EFF-4: an xlang trap aborts without cleanup or a
+recoverable post-state, while still forbidding an invalid read, double drop, or
+other undefined behavior before abort. Normal callback errors, early returns,
+and other non-trap exits retain their exact ownership and destruction duties.
+
 ## Current-xlang status
 
 The status vocabulary is inherited from the owner-reviewed capability report:

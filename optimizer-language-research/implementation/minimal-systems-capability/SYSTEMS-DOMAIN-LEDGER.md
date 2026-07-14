@@ -79,16 +79,18 @@ not alternatives for an unclassified item. Reexports, aliases, prelude entries,
 and duplicated primitive renderings route to the canonical domain before this
 classification is applied.
 
-The mechanical declaration classification records exactly one `domain_id` per
-canonical stable source declaration: 5,096 safe and 273 unsafe. Its
-`domain_partition` field copies the possible routes named by that domain; it is
-not a claim that one raw Rust rendering simultaneously has every listed
-disposition. Every row also retains `caller_safety`. An unsafe writer-visible
-spelling is always `NG` under the rule above even when its underlying checked
-need routes elsewhere. Exact primary dispositions belong to normalized
-contract clusters. G0's detailed clusters are in the data-contract census;
-`LATER` domains must perform the same normalization before claiming more than
-domain accounting.
+The mechanical declaration classification records exactly one `domain_id` and
+one conservative `primary_disposition` per canonical stable source
+declaration: 5,096 safe and 273 unsafe. Its `domain_partition` field copies the
+possible routes named by that domain; it is not a claim that one raw Rust
+rendering simultaneously has every listed disposition. Every row also retains
+Rust `caller_safety` without treating Rust-safe as approved xlang surface.
+Unsafe declarations and Rust-safe raw/manual-lifetime/leak boundaries are
+`NG` evidence even when their underlying checked need routes elsewhere. The
+545 detailed stable-safe seed declarations also carry an exact
+`canonical_contract_id`. Other declarations terminate conservatively in
+`G0`, `LIB`, `LATER`, `RED`, or `NG`; a `LATER` declaration must still receive
+full contract normalization before its domain can claim closure.
 
 Stable unsafe Rust declarations receive two records in the reasoning:
 
@@ -370,8 +372,9 @@ never be reported as passing the whole envelope.
   Compiler-supplied immutable target/source facts would cross `FRAME` `F-BUILD`.
 - **Blocked claim:** the current closed compilation unit does not provide a
   package system, build-script contract, stable internal ABI, reflection, or
-  dynamic loading. Dynamic loading remains `NG` under PROG-1 unless the owner
-  reopens that law.
+  dynamic loading. PROG-1 defines the current closed-unit kernel; dynamic
+  loading remains a `LATER` build/ABI/frame contract unless the owner later
+  rejects it explicitly.
 
 ### D15. Byte and structured I/O
 
@@ -764,9 +767,10 @@ witnesses.
    rustdoc toolchain, extraction policy, counts, and artifact hashes before any
    semantic update.
 2. **Exactly one canonical destination.** Every stable item must resolve to one
-   canonical contract cluster and one primary disposition. Reexports, aliases,
-   prelude entries, and generated impl duplication are never counted as new
-   capabilities without a distinct observable contract.
+   canonical detailed cluster or one named later-domain route and one primary
+   disposition. Reexports, aliases, prelude entries, and generated impl
+   duplication are never counted as new capabilities without a distinct
+   observable contract.
 3. **Unsafe is evidence only.** A newly stable unsafe API reopens the underlying
    domain analysis but never authorizes a writer-visible unchecked xlang
    surface.

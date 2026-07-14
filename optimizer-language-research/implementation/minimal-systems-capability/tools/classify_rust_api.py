@@ -12,6 +12,7 @@ from collections import Counter
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INVENTORY = ROOT / "RUST-1.97.0-API-INVENTORY.tsv"
 MODULES = ROOT / "RUST-1.97.0-MODULE-ACCOUNTING.tsv"
+SURFACE_MAP = ROOT / "RUST-DATA-SURFACE-MAP.tsv"
 RULES = ROOT / "DOMAIN-CLASSIFICATION-RULES.tsv"
 OUTPUT = ROOT / "RUST-1.97.0-DOMAIN-CLASSIFICATION.tsv"
 SUMMARY = ROOT / "RUST-1.97.0-DOMAIN-SUMMARY.tsv"
@@ -23,6 +24,7 @@ DOMAIN_IDS = {
     "atomics and synchronization": "D22",
     "build-time metadata and code generation": "D14",
     "bytes and text": "D11",
+    "compiler and runtime support": "D26",
     "conversion and behavior": "D03",
     "error presentation and chaining": "D05",
     "filesystems and paths": "D16",
@@ -60,6 +62,92 @@ DOMAIN_IDS = {
     "unique ownership and data structures": "D07",
 }
 
+VALID_PRIMARY_DISPOSITIONS = {"G0", "LIB", "LATER", "RED", "NG"}
+
+
+def primary_disposition(
+    row: dict[str, str], rule: dict[str, str], raw_safe_keys: set[str]
+) -> tuple[str, str]:
+    """Choose one conservative accounting route for a raw declaration."""
+
+    rule_id = rule["rule_id"]
+    if row["caller_safety"] == "unsafe":
+        return "NG", "Rust-unsafe declaration retained only as implementation evidence"
+    if row["canonical_key"] in raw_safe_keys:
+        return "NG", "Rust-safe raw/leak/spare-capacity boundary is not an xlang writer route"
+    if (
+        row["member_name"] in {"forget", "leak"}
+        or "*const" in row["signature"]
+        or "*mut" in row["signature"]
+        or "MaybeUninit" in row["signature"]
+        or "MaybeUninit" in row["item_path"]
+        or "ManuallyDrop" in row["item_path"]
+        or "UnsafeCell" in row["item_path"]
+    ):
+        return "NG", "Rust-safe raw, manual-lifetime, or leak boundary is not an xlang writer route"
+    if rule_id.startswith(("DOM-RAW-PTR-", "DOM-RAW-POINTER-")):
+        return "NG", "writer-visible raw pointer authority is inadmissible"
+    if row["item_kind"] in {"macro", "keyword", "derive", "attr"}:
+        return "RED", "Rust source spelling routes to the canonical semantic domain"
+
+    if rule_id.startswith(("DOM-PRELUDE-", "DOM-PRIMITIVE-")):
+        return "RED", "namespace, prelude, or reexport surface"
+    if rule_id.startswith("DOM-BOOL-"):
+        return "G0", "protected scalar prerequisite"
+    if rule_id.startswith(("DOM-NUMERIC-", "DOM-UNSTABLE-AUTODIFF-")):
+        return "LATER", "complete numeric behavior is outside the detailed floor"
+
+    if rule_id.startswith(("DOM-TEXT-ASCII-",)):
+        return "LIB", "ordinary checked library after byte/text prerequisites"
+    if rule_id.startswith(("DOM-TEXT-CHAR-", "DOM-TEXT-BSTR-")):
+        return "LATER", "complete character or byte-string semantics require later normalization"
+    if rule_id.startswith(("DOM-TEXT-STR-", "DOM-TEXT-STRING-")):
+        return "G0", "byte/UTF-8 contract is in the detailed accounting floor"
+
+    if rule_id.startswith(
+        (
+            "DOM-DATA-",
+            "DOM-ITER-",
+            "DOM-RANGE-",
+            "DOM-ERROR-OPTION-",
+            "DOM-ERROR-RESULT-",
+            "DOM-REFERENCE-",
+        )
+    ):
+        return "G0", "contract is in the detailed sequential data floor"
+    if rule_id.startswith(
+        (
+            "DOM-BEHAVIOR-CMP-",
+            "DOM-BEHAVIOR-HASH-",
+            "DOM-BEHAVIOR-CLONE-",
+            "DOM-BEHAVIOR-BORROW-CORE",
+            "DOM-BEHAVIOR-BORROW-STD",
+        )
+    ):
+        return "G0", "static behavior prerequisite is in the detailed floor"
+    if rule_id.startswith(("DOM-BEHAVIOR-CONVERT-", "DOM-BEHAVIOR-DEFAULT-")):
+        return "LIB", "ordinary checked conversion/construction library"
+    if rule_id == "DOM-BEHAVIOR-BORROW-ALLOC":
+        return "LATER", "copy-on-write and shared conversion depend on later ownership work"
+    if rule_id.startswith("DOM-OWN-MEM-"):
+        if row["member_name"] in {"swap", "replace", "take"}:
+            return "G0", "whole-place ownership atom is in the detailed floor"
+        return "LATER", "layout/manual-memory contract requires later normalization"
+    if rule_id.startswith("DOM-ERROR-"):
+        return "LIB", "ordinary checked error-value library"
+
+    if rule_id.startswith("DOM-FMT-"):
+        return "LIB", "ordinary formatting library after text/behavior prerequisites"
+    if rule_id == "DOM-IO-CORE":
+        return "LIB", "pure interface/adaptor logic after storage prerequisites"
+    if rule_id in {"DOM-PATH", "DOM-NET-CORE", "DOM-TIME-CORE"}:
+        return "LIB", "pure value/adaptor contract before its platform frame"
+
+    if rule_id.startswith("DOM-SURFACE-"):
+        return "RED", "Rust source spelling routes to the canonical semantic domain"
+
+    return "LATER", "explicit later family, platform frame, or broader language domain"
+
 
 def load_rules() -> list[dict[str, str]]:
     with RULES.open(encoding="utf-8", newline="") as handle:
@@ -87,7 +175,7 @@ def matching_rules(row: dict[str, str], rules: list[dict[str, str]]) -> list[tup
         elif selector.startswith("regex:"):
             pattern = selector[6:]
             if re.fullmatch(pattern, row["item_path"]):
-                matches.append((2000 + len(pattern), rule))
+                matches.append((5000 + len(pattern), rule))
         elif selector.startswith("kind:") and row["item_kind"] == selector[5:]:
             matches.append((1000, rule))
     return matches
@@ -95,6 +183,16 @@ def matching_rules(row: dict[str, str], rules: list[dict[str, str]]) -> list[tup
 
 def main() -> None:
     rules = load_rules()
+    with SURFACE_MAP.open(encoding="utf-8", newline="") as handle:
+        mapped_surfaces = {
+            row["canonical_key"]: row
+            for row in csv.DictReader(handle, delimiter="\t")
+        }
+    raw_safe_keys = {
+        key
+        for key, row in mapped_surfaces.items()
+        if "raw_obligation" in row["markers"].split(";")
+    }
     with INVENTORY.open(encoding="utf-8", newline="") as handle:
         raw = list(csv.DictReader(handle, delimiter="\t"))
 
@@ -130,6 +228,10 @@ def main() -> None:
             ambiguous.append(f"{row['item_path']}\t{row['member_name']}\t{','.join(r['rule_id'] for r in winners)}")
             continue
         rule = winners[0]
+        primary, primary_reason = primary_disposition(row, rule, raw_safe_keys)
+        if primary not in VALID_PRIMARY_DISPOSITIONS:
+            raise SystemExit(f"invalid primary disposition for {key}: {primary}")
+        mapped = mapped_surfaces.get(key)
         output.append(
             {
                 "canonical_key": key,
@@ -139,12 +241,23 @@ def main() -> None:
                 "member_name": row["member_name"],
                 "caller_safety": row["caller_safety"],
                 "writer_surface_status": (
-                    "checked_surface" if row["caller_safety"] == "safe" else "unsafe_evidence_NG"
+                    "rust_unsafe_evidence_NG"
+                    if row["caller_safety"] == "unsafe"
+                    else (
+                        "rust_safe_boundary_evidence"
+                        if primary == "NG"
+                        else "rust_safe_contract_anchor"
+                    )
                 ),
                 "rule_id": rule["rule_id"],
                 "domain_id": DOMAIN_IDS[rule["domain"]],
                 "domain": rule["domain"],
                 "domain_partition": rule["domain_partition"],
+                "primary_disposition": primary,
+                "primary_route_reason": primary_reason,
+                "canonical_contract_id": (
+                    mapped["primary_contract_id"] if mapped is not None else ""
+                ),
                 "canonical_route_or_blocked_claim": rule["canonical_route_or_blocked_claim"],
             }
         )
@@ -171,7 +284,13 @@ def main() -> None:
         writer.writerows(output)
 
     counts = Counter(
-        (row["domain_id"], row["domain"], row["caller_safety"], row["domain_partition"])
+        (
+            row["domain_id"],
+            row["domain"],
+            row["caller_safety"],
+            row["primary_disposition"],
+            row["domain_partition"],
+        )
         for row in output
     )
     with SUMMARY.open("w", encoding="utf-8", newline="") as handle:
@@ -181,12 +300,13 @@ def main() -> None:
                 "domain_id",
                 "domain",
                 "caller_safety",
+                "primary_disposition",
                 "domain_partition",
                 "canonical_stable_declarations",
             ]
         )
-        for (domain_id, domain, safety, partition), count in sorted(counts.items()):
-            writer.writerow([domain_id, domain, safety, partition, count])
+        for (domain_id, domain, safety, primary, partition), count in sorted(counts.items()):
+            writer.writerow([domain_id, domain, safety, primary, partition, count])
 
     with MODULES.open(encoding="utf-8", newline="") as handle:
         raw_modules = list(csv.DictReader(handle, delimiter="\t"))
