@@ -1,0 +1,48 @@
+{
+  "counts": {
+    "canonical_stable_safe_declarations": 5096,
+    "canonical_stable_unsafe_declarations": 273,
+    "collapsed_module_rows": 28,
+    "external_module_links": 0,
+    "inventory_rows": 16432,
+    "missing_pages": 0,
+    "module_rows": 290,
+    "stable_safe_rows": 9874,
+    "stable_unsafe_rows": 554,
+    "unstable_rows": 6004
+  },
+  "external_module_links": [],
+  "missing_pages": [],
+  "outputs": {
+    "RUST-1.97.0-API-INVENTORY.tsv": "e1d59827c606978742419869d89e558f0f000da53f74467bd5c9594c96055888",
+    "RUST-1.97.0-MODULE-ACCOUNTING.tsv": "5a4707a77b920dfa9de57b1eefcfb08efec08a222a4c4120c6ab1a42052cb4e4"
+  },
+  "rust": {
+    "commit": "2d8144b7880597b6e6d3dfd63a9a9efae3f533d3",
+    "rustc_verbose": [
+      "rustc 1.97.0 (2d8144b78 2026-07-07)",
+      "binary: rustc",
+      "commit-hash: 2d8144b7880597b6e6d3dfd63a9a9efae3f533d3",
+      "commit-date: 2026-07-07",
+      "host: aarch64-apple-darwin",
+      "release: 1.97.0",
+      "LLVM version: 22.1.6"
+    ],
+    "source_commit": "2d8144b7880597b6e6d3dfd63a9a9efae3f533d3",
+    "version": "1.97.0"
+  },
+  "schema": "rustdoc-public-api-v1",
+  "scope": {
+    "collapse_prefixes": [
+      "core::arch",
+      "core::intrinsics"
+    ],
+    "crates": [
+      "core",
+      "alloc",
+      "std"
+    ],
+    "stability_policy": "stable caller contracts are the anchor; unstable and unsafe rows remain evidence",
+    "trait_impl_policy": "count defining trait declarations; do not expand repeated concrete impl methods"
+  }
+}

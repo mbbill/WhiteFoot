@@ -1201,3 +1201,38 @@ coverage, 10,000 model programs with zero accepted soundness violations, 259
 conformance passes/14 skips, zero codegen-parity gate failures, the complete
 self-hosted compiler gate, and `ALL VERIFICATION LAYERS GREEN`. `git diff
 --check` and byte identity of `AGENTS.md` and `CLAUDE.md` pass.
+
+## Rust 1.97.0 public surface receives a reproducible mechanical census (2026-07-14)
+
+The first D12 research step inventories the exact Rust 1.97.0 public rustdoc
+surface from matching compiler and source commit
+`2d8144b7880597b6e6d3dfd63a9a9efae3f533d3`. The checked extractor SHA-256 is
+`12c4642b8bf848bcf82d81e04a200aa4dc9fe52be9edf2f346fd145ec71bd915`.
+It starts at the public `core`, `alloc`, and `std` module indices, records public
+items, inherent declarations, and defining-trait declarations, preserves unsafe
+and unstable evidence, canonicalizes reexports by normalized source
+declaration, and deliberately does not multiply concrete trait implementations.
+
+The detailed output has 16,432 rows: 9,874 stable-safe renderings, 554
+stable-unsafe renderings, and 6,004 unstable renderings. Source canonicalization
+leaves 5,096 stable-safe and 273 stable-unsafe declarations. The 290-row module
+ledger has no missing page and no unresolved external module link. The 28
+collapsed `core::arch`/`core::intrinsics` module rows still count and digest
+16,888 direct stable and 12,633 direct unstable target-specific entries; this is
+explicit compression into the later target/runtime family, not omission.
+
+Output hashes are pinned by
+`RUST-1.97.0-CENSUS-MANIFEST.json`: the API inventory is
+`e1d59827c606978742419869d89e558f0f000da53f74467bd5c9594c96055888`
+and the module ledger is
+`5a4707a77b920dfa9de57b1eefcfb08efec08a222a4c4120c6ab1a42052cb4e4`.
+An independent narrow extractor's selected array/slice/text/box/collection/
+shared-owner/dynamic-borrow counts reproduce exactly: 547 page-local safe and
+36 page-local unsafe methods, with two safe and one unsafe duplicate renderings,
+for 545/35 canonical declarations. The checked verifier SHA-256 is
+`65a9c49a1cba45fd5f37458369f8ce51112b9ac358282f0841545aa3892794e0`
+and reports `PASS`.
+
+This is demand and implementation-evidence accounting only. Counts are not
+capability counts, do not prove xlang derivability, and select no syntax,
+storage state, trusted transition, standard-library API, or production route.
