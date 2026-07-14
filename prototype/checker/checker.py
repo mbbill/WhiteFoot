@@ -74,6 +74,7 @@ class Borrow:
     uniq: bool
     region: str
     holder: Optional[str] = None    # binding name holding this borrow
+    derived_from: Optional[str] = None  # parent holder for match-derived borrows
 
 
 @dataclass
@@ -108,6 +109,8 @@ class Checker:
         self.call_frames = []   # ctx.borrows length at call-argument start
         self.deliver = []   # stack of let-init modes for `give` [GIVE-1] (v0.6)
         self.copy_enums = frozenset()   # tag-only enum names: copy per OWN-1 amendment
+        self.structs = {}   # declaration table used to classify projected places
+        self.match_binder_types = {}  # id(match-binder AST) -> concrete payload type
 
     # -- entry ---------------------------------------------------------------
     def check(self):
@@ -129,9 +132,10 @@ class Checker:
         for r in self.fn.get("regions", []):
             self.ctx.regions.append(r)         # caller regions: outermost
         if include_consts:
-            for name in getattr(self, "consts", ()):    # [CONST-2] body-only static bindings
+            for name, ty in getattr(self, "consts", {}).items():  # [CONST-2] body-only statics
                 cb = Binding(name, {"kind": "own"}, 0)
                 cb.is_const = True
+                cb.ty = ty
                 self.ctx.bindings[name] = cb
         for p in self.fn["params"]:
             b = Binding(p["name"], p["mode"], self.ctx.depth())
@@ -152,10 +156,12 @@ class Checker:
         if k == "try":                                 # [ERR-3] flow: consumes operand
             ex = s["expr"]
             if isinstance(ex, dict) and ex.get("kind") == "use":
+                self._require_explicit_deref(ex["place"], "try operand")
                 ex = {"kind": "move", "place": ex["place"]}
             self.check_expr(ex)
-            self.ctx.bindings[s["name"]] = Binding(s["name"], {"kind": "own"},
-                                                   self.ctx.depth())
+            b = Binding(s["name"], {"kind": "own"}, self.ctx.depth())
+            b.ty = s.get("ty")
+            self.ctx.bindings[s["name"]] = b
             return
         if k == "let":
             # v0.6: a `let` may be initialized by a value-match [GIVE-1]
@@ -175,6 +181,7 @@ class Checker:
                         br.holder = s["name"]
             self.ctx.bindings[s["name"]] = b
         elif k == "set":
+            self._check_place_atoms(s["place"])
             raw = self.place_key(s["place"])
             self.require_writable(self.resolve(raw), holder=raw[0])
             self.check_expr(s["expr"])
@@ -200,7 +207,12 @@ class Checker:
             expect = self.deliver[-1] if self.deliver else None
             self.check_expr(s["expr"], expect_mode=expect)
         elif k == "return":
-            self.check_expr(s["expr"], returning=True)
+            ex = s["expr"]
+            if (self.fn.get("rmode", {"kind": "own"})["kind"] == "own"
+                    and isinstance(ex, dict) and ex.get("kind") == "use"):
+                if not self._copy_place(ex["place"]):
+                    ex = {"kind": "move", "place": ex["place"]}
+            self.check_expr(ex, returning=True)
         elif k == "expr":
             self.check_expr(s["expr"])
         elif k == "check":                            # v0.6: runtime check condition
@@ -218,21 +230,107 @@ class Checker:
         if k in ("prim", "unit", "any"): return True
         return k == "named" and ty.get("name") in self.copy_enums
 
+    def _field_ty(self, ty, name):
+        if not isinstance(ty, dict) or ty.get("kind") != "named":
+            return None
+        for field in self.structs.get(ty.get("name"), []):
+            if field.get("name") == name:
+                return field.get("ty")
+        return None
+
+    def _place_desc(self, place):
+        """Resolve a flow place's holder category and projected value type.
+
+        Copy classification belongs to the projected value, not its affine root:
+        a tag-only field or indexed element remains Copy even inside a unique owner.
+        Dereference depth is mode-sensitive: dereferencing a reference exposes its
+        referent, while dereferencing an owned box/arena exposes its element. This
+        helper is deliberately side-effect free; index atoms are evaluated exactly
+        once by `_check_place_atoms` at the enclosing access.
+        """
+        if "kind" not in place:
+            binding = self.ctx.bindings.get(place.get("base"))
+            ty = binding.ty if binding is not None else None
+            for name in place.get("path", []):
+                ty = self._field_ty(ty, name)
+            cat = ("ref" if binding is not None
+                   and binding.mode.get("kind") == "ref"
+                   and not place.get("path") else "val")
+            return {"cat": cat, "ty": ty}
+        kind = place.get("kind")
+        if kind == "var":
+            binding = self.ctx.bindings.get(place.get("name"))
+            return {"cat": ("ref" if binding is not None
+                             and binding.mode.get("kind") == "ref" else "val"),
+                    "ty": binding.ty if binding is not None else None}
+        if kind == "deref":
+            desc = self._place_desc(place["place"])
+            if desc["cat"] == "ref":
+                return {"cat": "val", "ty": desc["ty"]}
+            ty = desc["ty"]
+            if isinstance(ty, dict) and ty.get("kind") in ("box", "arena"):
+                return {"cat": "val", "ty": ty.get("elem")}
+            return {"cat": "val", "ty": None}
+        if kind == "field":
+            desc = self._place_desc(place["place"])
+            return {"cat": "val",
+                    "ty": self._field_ty(desc["ty"], place.get("name"))}
+        if kind == "index":
+            ty = self._place_desc(place["place"])["ty"]
+            if isinstance(ty, dict) and ty.get("kind") in ("array", "buffer", "slice"):
+                return {"cat": "val", "ty": ty.get("elem")}
+            return {"cat": "val", "ty": None}
+        return {"cat": "val", "ty": None}
+
+    def _place_ty(self, place):
+        return self._place_desc(place)["ty"]
+
+    def _copy_place(self, place):
+        return self._copy_ty(self._place_ty(place))
+
+    def _require_explicit_deref(self, place, context):
+        """Reject a holder that remains after the place's written dereferences."""
+        desc = self._place_desc(place)
+        ty = desc.get("ty")
+        if desc.get("cat") == "ref" or (isinstance(ty, dict)
+                                         and ty.get("kind") in ("box", "arena")):
+            raise CheckError("TYPE-7",
+                f"{context} is a reference/box/arena holder; write deref(.)")
+
+    def _check_place_atoms(self, place):
+        """Apply ordinary expression ownership to every index atom once."""
+        if not isinstance(place, dict) or "kind" not in place:
+            return
+        inner = place.get("place")
+        if isinstance(inner, dict):
+            self._check_place_atoms(inner)
+        if place.get("kind") == "index":
+            self.check_expr(place["atom"])
+
     # -- match core (shared by statement- and let-initializer matches) --------
     def _check_match(self, s):
         # [OWN-13]/[T-B]: binder modes DERIVED from scrutinee; own moves,
         # borrow-mode scrutinee stays live and binders alias its content
         scrut = s["scrut"]; binder_mode = {"kind": "own"}; alias_of = None
+        parent_holder = None
+        if scrut.get("kind") == "borrow":
+            raise CheckError("TYPE-7",
+                "match scrutinee is a reference value; bind it and write deref(.)")
         if scrut.get("kind") == "use":
+            self._require_explicit_deref(scrut["place"], "match scrutinee")
             base = self.place_key(scrut["place"])[0]
             sb = self.require_live(base)
-            if sb.mode["kind"] == "own" and not self._copy_ty(sb.ty):
-                self.check_expr({"kind": "move", "place": scrut["place"]})
+            if sb.mode["kind"] == "own":
+                if self._copy_place(scrut["place"]):
+                    self.check_expr(scrut)
+                else:
+                    self.check_expr({"kind": "move", "place": scrut["place"]})
             else:
                 self.check_expr(scrut)
                 binder_mode = {"kind": "ref", "region": sb.region,
                                "uniq": sb.mode.get("uniq", False)}
                 alias_of = self.resolve(self.place_key(scrut["place"]))
+                parent_holder = base
         else:
             self.check_expr(scrut)      # owned temporary [OWN-13]
         snap_b = {n: copy.copy(b) for n, b in self.ctx.bindings.items()}
@@ -241,12 +339,19 @@ class Checker:
         for arm in s["arms"]:
             self.ctx.bindings = {n: copy.copy(b) for n, b in snap_b.items()}
             self.ctx.borrows = [copy.copy(x) for x in snap_br]
-            for bn in [self._bname(b) for b in arm.get("binders", [])]:
+            for binder in arm.get("binders", []):
+                bn = self._bname(binder)
                 b_ = Binding(bn, binder_mode, self.ctx.depth())
+                b_.ty = self.match_binder_types.get(id(binder))
                 if binder_mode["kind"] == "ref":
                     b_.region = binder_mode["region"]
-                    self.ctx.borrows.append(Borrow(alias_of,
-                        binder_mode["uniq"], binder_mode["region"], holder=bn))
+                    field_name = (binder.get("field")
+                                  if isinstance(binder, dict) else None)
+                    binder_place = ((*alias_of, field_name)
+                                    if field_name is not None else alias_of)
+                    self.ctx.borrows.append(Borrow(
+                        binder_place, binder_mode["uniq"], binder_mode["region"],
+                        holder=bn, derived_from=parent_holder))
                 self.ctx.bindings[bn] = b_
             self.check_block(arm["body"])
             for n in snap_b:
@@ -273,15 +378,20 @@ class Checker:
         if k == "lit":
             return
         if k == "use":
+            self._check_place_atoms(e["place"])
             raw = self.place_key(e["place"])
             self.require_live(raw[0])
             self.require_readable(self.resolve(raw), holder=raw[0])
             return
         if k == "move":
+            self._check_place_atoms(e["place"])
             key = self.place_key(e["place"])
             b = self.require_live(key[0])
             if getattr(b, "is_const", False):
                 raise CheckError("CONST-2", f"a const item ({key[0]}) is never moved")
+            if self._copy_place(e["place"]):
+                raise CheckError("OWN-1",
+                    f"move of copy binding {key[0]}; copy values are used bare")
             key = self.resolve(key)
             # [OWN-5] cannot move while any borrow of an overlapping place lives
             for br in self.ctx.borrows:
@@ -297,6 +407,7 @@ class Checker:
             b.state = "moved"                              # [OWN-1]
             return
         if k == "borrow":
+            self._check_place_atoms(e["place"])
             key = self.resolve(self.place_key(e["place"]))
             b = self.require_live(self.place_key(e["place"])[0])
             if getattr(b, "is_const", False) and e.get("uniq"):
@@ -382,11 +493,9 @@ class Checker:
     def place_key(self, place) -> tuple:
         # accepts the flat form {base,path} (pre-v0.6 AST) and the nested v0.6
         # place tree {kind: var|deref|field|index}. `deref` is transparent to
-        # the ownership layer (resolve() models read-through-borrow).
-        # An index place's ATOM is an embedded expression: it must pass the
-        # same liveness/readability discipline as any other read [OWN-1] —
-        # found live on main by the E0.1 hostile review (a dead binding's
-        # field used as an index was accepted).
+        # the ownership layer (resolve() models read-through-borrow). This is
+        # a pure structural helper: callers evaluate index atoms exactly once
+        # through `_check_place_atoms` before resolving the resulting place.
         if "kind" in place:
             k = place["kind"]
             if k == "var":
@@ -396,11 +505,6 @@ class Checker:
             if k == "field":
                 return (*self.place_key(place["place"]), place["name"])
             if k == "index":
-                atom = place.get("atom")
-                if isinstance(atom, dict) and atom.get("kind") in ("use", "move"):
-                    ak = self.place_key(atom["place"])
-                    self.require_live(ak[0])
-                    self.require_readable(self.resolve(ak), holder=ak[0])
                 return self.place_key(place["place"])
             raise CheckError("GRAM-5", f"bad place kind {k}")
         return (place["base"], *place.get("path", []))
@@ -425,11 +529,30 @@ class Checker:
             raise CheckError("OWN-1", f"use of moved value {base}")
         return b
 
+    def _borrow_descends_from(self, holder: str, ancestor: str) -> bool:
+        """Whether holder is a match-derived projection of ancestor."""
+        seen = set()
+        current = holder
+        while current and current not in seen:
+            seen.add(current)
+            br = next((candidate for candidate in self.ctx.borrows
+                       if candidate.holder == current), None)
+            if br is None or br.derived_from is None:
+                return False
+            if br.derived_from == ancestor:
+                return True
+            current = br.derived_from
+        return False
+
     def require_readable(self, key: tuple, holder: str = ""):
         # [OWN-5] reading overlapping places conflicts with a live mutable
-        # borrow unless the read is through that borrow's holder
+        # borrow unless the read is through that borrow's holder or through a
+        # match-derived projection of that holder. A parent holder is not a
+        # descendant of its payload binders, so it remains frozen in the arm.
         for br in self.ctx.borrows:
-            if br.uniq and places_overlap(br.place, key) and br.holder != holder:
+            if (br.uniq and places_overlap(br.place, key)
+                    and br.holder != holder
+                    and not self._borrow_descends_from(holder, br.holder)):
                 raise CheckError("OWN-5",
                     f"read of {key} while uniq borrow of {br.place} is live")
 
@@ -442,7 +565,8 @@ class Checker:
         if b.mode["kind"] == "ref" and not b.mode.get("uniq") and not writing_through_holder:
             raise CheckError("OWN-5", f"write through shared borrow {holder}")
         for br in self.ctx.borrows:
-            if places_overlap(br.place, key) and br.holder != holder:
+            if (places_overlap(br.place, key) and br.holder != holder
+                    and not self._borrow_descends_from(holder, br.holder)):
                 raise CheckError("OWN-5",
                     f"write to {key} while borrow of {br.place} is live")
 
@@ -472,6 +596,7 @@ def check_fn(fn: dict):
 PRIMS = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
 NAMED_BOOL = {"kind": "named", "name": "Bool"}
 NAMED_RESULT = {"kind": "named", "name": "Result"}
+U64_TY = {"kind": "prim", "name": "u64"}
 
 def _res_of(T, err):
     return {"kind": "named", "name": "Result",
@@ -538,6 +663,22 @@ def _ty_str(t) -> str:
     return str(t)
 
 
+def _cvt_total(src: str, dst: str) -> bool:
+    """The exact 29 total conversion pairs listed by OP-6."""
+    int_bits = {f"{prefix}{bits}": bits
+                for prefix in ("i", "u") for bits in (8, 16, 32, 64)}
+    if src in int_bits and dst in int_bits:
+        src_prefix, dst_prefix = src[0], dst[0]
+        return ((src_prefix == dst_prefix and int_bits[src] < int_bits[dst])
+                or (src_prefix == "u" and dst_prefix == "i"
+                    and int_bits[src] < int_bits[dst]))
+    if dst == "f32":
+        return src in {"i8", "i16", "u8", "u16"}
+    if dst == "f64":
+        return src in {"i8", "i16", "i32", "u8", "u16", "u32", "f32"}
+    return False
+
+
 def op_type(callee: str, tyargs):
     """Return (param_specs, result_spec) for a table op, or None if unknown
     (unknown ops are typed leniently). Each spec is (cat, TY) with cat 'val'."""
@@ -568,6 +709,18 @@ def op_type(callee: str, tyargs):
         return ([("val", NAMED_BOOL), ("val", NAMED_BOOL)], ("val", NAMED_BOOL))
     if base == "bnot":
         return ([("val", NAMED_BOOL)], ("val", NAMED_BOOL))
+    if base == "cvt":
+        if len(tyargs) != 2:
+            raise CheckError("OP-6", "cvt requires exactly <Src, Dst>")
+        src, dst = tyargs
+        src_name = src.get("name") if src.get("kind") == "prim" else None
+        dst_name = dst.get("name") if dst.get("kind") == "prim" else None
+        if src_name not in PRIMS or dst_name not in PRIMS:
+            raise CheckError("OP-6", "cvt Src and Dst must be numeric primitives")
+        if src_name == dst_name:
+            raise CheckError("OP-6", "cvt<T, T> is not an operation")
+        result = dst if _cvt_total(src_name, dst_name) else _res_of(dst, "NarrowError")
+        return ([("val", src)], ("val", result))
     if base == "buffer_new":                           # [OP-9] (u64, T) -> buffer<T>
         return ([("val", {"kind": "prim", "name": "u64"}), ("val", T)],
                 ("val", {"kind": "buffer", "elem": T}))
@@ -744,6 +897,7 @@ class TypeChecker:
         self.P = P
         self.env = {}        # name -> (mode, TY)
         self.deliver = []    # stack of (mode, TY) for give [GIVE-1]
+        self.match_binder_types = {}  # id(match-binder AST) -> specialized payload TY
 
     def check(self):
         params = {p["name"]: (p["mode"], p["ty"]) for p in self.fn["params"]}
@@ -794,10 +948,12 @@ class TypeChecker:
         elif k == "return":
             ex = s["expr"]
             if (self.fn["rmode"]["kind"] == "own" and isinstance(ex, dict)
-                    and ex.get("kind") == "use"
-                    and not self._is_copy(self.place_desc(ex["place"]))):
-                ex = {"kind": "move", "place": ex["place"]}   # return consumes affine [OWN-1/FR T-Move]
-            d = self.expr_desc(ex)
+                    and ex.get("kind") == "use"):
+                # Return position copies or consumes its place by OWN-1. Resolve
+                # the place once so an embedded index atom is not rechecked.
+                d = self.place_desc(ex["place"])
+            else:
+                d = self.expr_desc(ex)
             self.expect_mode_ty(d, self.fn["rmode"], self.fn["rty"], "return")
         elif k == "give":
             if not self.deliver:
@@ -810,10 +966,16 @@ class TypeChecker:
                 raise CheckError("TYPE-6",
                     f"redeclaration of live name '{s['name']}' (no shadowing)")
             ex = s["expr"]
-            if (isinstance(ex, dict) and ex.get("kind") == "use"
-                    and not self._is_copy(self.place_desc(ex["place"]))):
-                ex = {"kind": "move", "place": ex["place"]}   # try consumes its Result
-            d = self.expr_desc(ex)
+            if isinstance(ex, dict) and ex.get("kind") == "use":
+                # `try` consumes its Result place. Resolve it once so an index
+                # atom receives one ordinary type judgment, not a preflight and
+                # a second expression judgment.
+                d = self.place_desc(ex["place"])
+            else:
+                d = self.expr_desc(ex)
+            if (d["cat"] == "ref" or d["ty"].get("kind") in ("box", "arena")):
+                raise CheckError("TYPE-7",
+                    "try operand is a reference/box/arena holder; write deref(.)")
             dt = d["ty"]
             if not (dt.get("kind") == "named" and dt.get("name") == "Result"):
                 raise CheckError("ERR-3",
@@ -855,23 +1017,20 @@ class TypeChecker:
     def check_match(self, s):
         sd = self._scrut_desc(s["scrut"])
         scrut_ty = sd["ty"]
-        variants = None
-        if scrut_ty.get("kind") == "named" and scrut_ty["name"] in self.P.enums:
-            variants = {v["variant"]: v["fields"]
-                        for v in self.P.enums[scrut_ty["name"]]}
+        if not (scrut_ty.get("kind") == "named"
+                and scrut_ty.get("name") in self.P.enums):
+            raise CheckError("TYPE-5",
+                f"match scrutinee must be an enum, got {_ty_str(scrut_ty)}")
+        variants = {v["variant"]: v["fields"]
+                    for v in self.P.enums[scrut_ty["name"]]}
         binder_is_ref = (sd["cat"] == "ref")
         for arm in s["arms"]:
             saved = dict(self.env)
             vname = arm["variant"]
-            if variants is not None:
-                if vname not in variants:
-                    raise CheckError("TYPE-6",
-                        f"variant {vname} not in enum {scrut_ty['name']}")
-                decl = variants[vname]
-            elif vname in self.P.variant_of:
-                decl = self.P.variant_of[vname][1]
-            else:
-                raise CheckError("TYPE-6", f"unknown variant {vname}")
+            if vname not in variants:
+                raise CheckError("TYPE-6",
+                    f"variant {vname} not in enum {scrut_ty['name']}")
+            decl = variants[vname]
             args = scrut_ty.get("args") if scrut_ty.get("kind") == "named" else None
             if scrut_ty.get("name") == "Result" and args is not None:
                 payload = args[0] if vname == "Ok" else args[1]
@@ -891,15 +1050,41 @@ class TypeChecker:
                           "uniq": sd.get("uniq", False)} if binder_is_ref
                          else {"kind": "own"})
                 self.env[b["name"]] = (bmode, df["ty"])
+                self.match_binder_types[id(b)] = df["ty"]
             self.check_block(arm["body"])
             self.env = saved
 
     def _scrut_desc(self, e):
         """A match scrutinee that is a place is MOVED by the match [OWN-13], so a bare
         place here is not an OWN-1 affine-use error; other scrutinees type normally."""
-        if e["kind"] in ("use", "move"):
-            return self.place_desc(e["place"])
-        d = self.expr_desc(e)
+        if e["kind"] == "use":
+            d = self.place_desc(e["place"])
+            if d["cat"] == "ref":
+                raise CheckError("TYPE-7",
+                    "match scrutinee is a reference holder; write deref(.)")
+            if d["ty"].get("kind") in ("box", "arena"):
+                raise CheckError("TYPE-7",
+                    "match scrutinee is a box/arena holder; write deref(.)")
+            if d.get("through_ref") is not None:
+                provenance = d["through_ref"]
+                return {**d, "cat": "ref",
+                        "region": provenance.get("region"),
+                        "uniq": provenance.get("uniq", False)}
+            return d
+        if e["kind"] == "move":
+            d = self.expr_desc(e)
+            if d.get("through_ref") is not None:
+                raise CheckError("OWN-1",
+                    "match cannot move a borrowed referent; match deref(holder) "
+                    "to derive borrowed payload binders")
+        else:
+            d = self.expr_desc(e)
+        if d["cat"] == "ref":
+            raise CheckError("TYPE-7",
+                "match scrutinee is a reference value; bind it and write deref(.)")
+        if d["ty"].get("kind") in ("box", "arena"):
+            raise CheckError("TYPE-7",
+                "match scrutinee is a box/arena holder; write deref(.)")
         ty = d.get("ty", {})
         if (ty.get("kind") == "named"
                 and ty.get("name") in ("Result", "Option")
@@ -965,9 +1150,14 @@ class TypeChecker:
         if k == "deref":
             d = self.place_desc(place["place"])
             if d["cat"] == "ref":
-                return {"cat": "val", "ty": d["ty"]}           # borrow referent
+                return {"cat": "val", "ty": d["ty"],
+                        "through_ref": {"region": d.get("region"),
+                                        "uniq": d.get("uniq", False)}}
             if d["ty"].get("kind") in ("box", "arena"):
-                return {"cat": "val", "ty": d["ty"]["elem"]}   # box/arena content
+                result = {"cat": "val", "ty": d["ty"]["elem"]}
+                if d.get("through_ref") is not None:
+                    result["through_ref"] = d["through_ref"]
+                return result                                   # box/arena content
             raise CheckError("TYPE-7",
                 f"deref of non-reference of type {_ty_str(d['ty'])}")
         if k == "field":
@@ -980,13 +1170,33 @@ class TypeChecker:
                     f"field access on non-struct type {_ty_str(d['ty'])}")
             for f in self.P.structs[d["ty"]["name"]]:
                 if f["name"] == place["name"]:
-                    return {"cat": "val", "ty": f["ty"]}
+                    result = {"cat": "val", "ty": f["ty"]}
+                    if d.get("through_ref") is not None:
+                        result["through_ref"] = d["through_ref"]
+                    return result
             raise CheckError("TYPE-5",
                 f"struct {d['ty']['name']} has no field {place['name']}")
         if k == "index":
             d = self.place_desc(place["place"])
+            if d["cat"] == "ref":
+                raise CheckError("TYPE-7",
+                    "index through a reference holder requires deref(.)")
+            if d["ty"].get("kind") in ("box", "arena"):
+                raise CheckError("TYPE-7",
+                    "index through a box/arena holder requires deref(.)")
             if d["ty"].get("kind") in ("array", "buffer", "slice"):
-                return {"cat": "val", "ty": d["ty"]["elem"]}
+                elem = d["ty"]["elem"]
+                stated_elem = place.get("elem")
+                if stated_elem is not None and not _ty_eq(stated_elem, elem):
+                    raise CheckError("TYPE-5",
+                        f"index element type {_ty_str(stated_elem)} != "
+                        f"container element type {_ty_str(elem)}")
+                offset = self.expr_desc(place["atom"])
+                self.expect_value(offset, U64_TY, "index offset")
+                result = {"cat": "val", "ty": elem}
+                if d.get("through_ref") is not None:
+                    result["through_ref"] = d["through_ref"]
+                return result
             raise CheckError("TYPE-5", f"index of non-indexable {_ty_str(d['ty'])}")
         raise CheckError("GRAM-5", f"bad place kind {k}")
 
@@ -1328,10 +1538,13 @@ def check_program(prog: dict):
     P = Program(prog)
     for name, fn in prog["fns"].items():
         check_requires({**fn, "name": name})         # FN-8 checked parameter-only prologue
-        TypeChecker(fn, P).check()             # GRAM-8/10/11, TYPE-5/6/7, GIVE-1
+        tc = TypeChecker(fn, P)
+        tc.check()                             # GRAM-8/10/11, TYPE-5/6/7, GIVE-1
         ch = Checker(fn)
         ch.copy_enums = frozenset(en for en, vs in P.enums.items()
                                   if all(not v["fields"] for v in vs))
+        ch.structs = P.structs
+        ch.match_binder_types = tc.match_binder_types
         ch.consts = P.consts                   # [CONST-2] seed read-only static bindings
         ch.check()                             # OWN-1..13 (reused machinery)
     check_effects(prog)                        # EFF-1 row order, EFF-2 traps exhibits

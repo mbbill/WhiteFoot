@@ -1,0 +1,17 @@
+enum State { Ready(); }
+enum Wrapper { Wrapped(state: State); }
+
+fn inspect (wrapper: own Wrapper) -> own unit pure {
+  doc "OWN-1: a concrete tag-only payload binder remains Copy and may be matched repeatedly.";
+  match wrapper {
+    Wrapped(state: state) => {
+      match state {
+        Ready() => { }
+      }
+      match state {
+        Ready() => { }
+      }
+    }
+  }
+  return unit;
+}

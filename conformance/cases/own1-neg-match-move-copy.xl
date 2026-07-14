@@ -1,0 +1,13 @@
+enum State { Ready(); Done(); }
+
+fn main () -> own unit pure {
+  doc "OWN-1: an explicit move in a match scrutinee cannot consume a copy tag-only enum; copy values are matched bare.";
+  let state: own State = Ready();
+  match move state {
+    Ready() => {
+    }
+    Done() => {
+    }
+  }
+  return unit;
+}

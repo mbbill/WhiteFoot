@@ -960,3 +960,40 @@ expands every segment, while xlc's already-correct lexer/parser is pinned to two
 successive field nodes.  Two negative GRAM-9 cases and one runnable recursive-
 projection case make both boundaries durable.  These are current-language parser
 repairs, not E0.1 record-storage semantics.
+
+## Current-language expression-context ownership/type seams repaired (2026-07-13)
+
+The E0.1 hostile review exposed a family of pre-existing checker seams after the
+initial index liveness/readability repair at `38d642e`.  The complete repair keeps
+the current language unchanged: projected places are classified by their projected
+type; index atoms receive one ordinary ownership and type judgment; `index<T>`
+checks its stated element type and exact u64 offset; and reference, box, and arena
+holders require the explicit `deref(.)` spelling in index, match, try, and referent-
+return contexts.
+
+Match now consumes affine own scrutinees, copies tag-only scrutinees, rejects
+explicit `move` of Copy or through a borrow, and requires an enum type.  Specialized
+Result/Option/user-enum payload types enter flow; shared and exclusive borrowed
+payload binders preserve ancestry and per-field aliasing, so derived access is legal,
+siblings remain disjoint, and the parent holder remains frozen.  Contextual own
+returns consume affine places without stealing through a borrow.  Try and const
+bindings likewise retain concrete type metadata.  Conformance review also exposed
+that the prototype type table had never encoded OP-6; it now implements the exact 29
+total conversion pairs and returns `Result<Dst, NarrowError>` for every other
+distinct numeric pair.
+
+Twenty-five manifest/source gates cover the repaired seams: 19 negative diagnostics,
+five runnable/accepted positives, and one checker-positive aggregate-payload case
+that remains pending only because the disposable democ ABI cannot lower aggregate
+enum payloads.  Two older fixtures were corrected: borrowed Copy payloads now use
+explicit dereference while retaining byte-identical LLVM (SHA-256
+`ab236e489742577015d080b06b6eb1a4d5d82c7486f5006da185e9f9df5ed`), and the
+double-consumption negative now uses a genuinely affine payload rather than a
+ratified Copy tag-only enum.
+
+Hostile review found no remaining checker/conformance finding.  Verification is
+94/94 checker units; 10,000 modelchecked programs with zero accepted soundness
+violations; conformance 259 PASS / 14 SKIP / 90/90 rules; full `make check` ending
+`ALL VERIFICATION LAYERS GREEN`; and clean whitespace checks.  This is an existing-
+specification conformance repair, not E0.1 candidate semantics or authorization for
+any record-storage design.
