@@ -7,10 +7,23 @@ controls; they do not substitute for measurements on xlc.
 
 - Rust's `Copy` contract requires every component to be copyable and excludes
   types with `Drop`.  More importantly for E0.1, assignment/use of a Copy value
-  is an implicit value copy.  **Inference:** using structural Copy merely to
-  admit record storage would also permit invisible large aggregate copies, so
-  xlang's Flat-storage predicate must stay distinct from implicit Copy.
+  is an implicit value copy.  **Inference:** using either automatic or declared
+  Copy to admit record storage also permits implicit aggregate copies at every
+  ordinary use.  Whether that total bundle is preferable to a separate affine
+  storage predicate remains an experimental question.
   <https://doc.rust-lang.org/reference/special-types-and-traits.html#copy>
+- Swift's noncopyable-value proposal uses a file descriptor represented only by
+  an integer as a motivating example: structural scalar fields do not imply that
+  duplicating the nominal value preserves its intended protocol.  **Inference:**
+  automatic structural Copy cannot infer contraction intent from representation;
+  this is independent of memory/drop safety.
+  <https://github.com/swiftlang/swift-evolution/blob/main/proposals/0390-noncopyable-structs-and-enums.md>
+- Move exposes `copy` and `store` as distinct abilities.  A value can therefore
+  be eligible for persistent storage without being duplicable.  **Inference:**
+  separating fixed-storage eligibility from Copy is a coherent non-Rust design
+  precedent, but it does not establish that xlang should pay the initializer and
+  checker cost of that separation.
+  <https://move-language.github.io/move/abilities.html>
 - Rust documents `Vec<T>` as a pointer/capacity/length owner with exactly the
   first `len` elements initialized.  Spare capacity is logically uninitialized;
   growth can reallocate.  `push_within_capacity` is specifically the no-realloc
@@ -58,4 +71,3 @@ controls; they do not substitute for measurements on xlc.
 The combined evidence supports only a workload-dependent conclusion: xlang
 should be able to express both layouts without overhead, while its default
 writer guidance must be decided from access patterns and measured outcomes.
-

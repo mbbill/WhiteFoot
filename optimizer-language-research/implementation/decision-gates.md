@@ -1025,3 +1025,33 @@ model change is authorized.  The MCTS-Mem tree is unchanged while the owner choi
 is open.  If a selected production route supersedes the recorded declarative-copy
 path, the same decision must move that path to the appropriate `.alt/` branch with
 paired reasons; selecting it instead must update its card with the deciding evidence.
+
+## E0.1a ownership-route paired protocol passed draft hostile review; no candidate work authorized (2026-07-13)
+
+`experiments/data-layout-owning-sequence/OWNERSHIP_ROUTE_PROTOCOL.md` now defines
+the owner-review draft for a direct `DECLARATIVE_COPY` versus
+`AFFINE_FIXED_BUILDER` screen.  The exact reviewed protocol SHA-256 is
+`88d70083f9cf0219d558675b34a42f54c851793125fccebc07c3f48f4aa1b003`.
+`OWNERSHIP_ROUTE_HOSTILE_REVIEW.md` records the three independent
+ownership/state, benchmark/statistics, and repository-consistency reviews, the
+blocking findings, their dispositions, and three final `PASS` verdicts on those
+exact bytes.
+
+The protocol compares complete initializer/ownership bundles, uses one direct
+candidate contrast, makes `CURRENT` an unchanged-source identity control,
+separates intrinsic route contradictions from invalid artifacts, freezes all
+scored counts in Lock A, embargoes hidden writer results until campaign-wide
+freeze, and fails closed on unmatched semantic/backend transfer provenance.  It
+also closes recursive declared-Copy eligibility, builder assignment and cleanup
+edges, record-array consequences, weak-writer clustering, current-SoA event
+mapping, and the META-5/STOR production handoff.  `RESEARCH.md` now records
+primary-source Swift and Move evidence without selecting a route.
+
+Sequential post-change `make check` and `make -C compiler check` both pass; the
+root gate reports 90/90 rule coverage, 10,000 model programs with zero accepted
+soundness violations, 259 conformance passes/14 skips, and all verification
+layers green.  This is not Lock A or a preregistration.  No candidate
+implementation, timing, profiling, external disclosure, specification change,
+xlc migration, PATTERNS change, default teaching, or production design is
+authorized.  The MCTS-Mem tree remains unchanged pending owner selection of the
+experimental narrowing.

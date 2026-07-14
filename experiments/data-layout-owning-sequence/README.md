@@ -27,6 +27,13 @@ performance comparison exists.
 Files:
 
 - `RESEARCH_REPORT.md` is the owner-review report and decision surface.
+- `OWNERSHIP_ROUTE_PROTOCOL.md` is the draft paired protocol for deciding whether
+  declarative Copy or affine fixed-storage with a full-initialization-only
+  transient builder should advance to the existing layout experiment. It is not
+  preregistered and authorizes no candidate implementation or external run.
+- `OWNERSHIP_ROUTE_HOSTILE_REVIEW.md` records the three-scope adversarial review,
+  all blocking dispositions, and the exact protocol hash that passed final
+  re-review. The pass qualifies the draft for owner review only.
 - `PROTOCOL.md` proposes arms, workloads, measurements, and decision rules; it
   is a draft until owner approval.
 - `FLAT_DESIGN_CANDIDATE.md` records the reopened ownership/initialization candidate
