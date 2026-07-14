@@ -87,7 +87,7 @@ several with one construct, but it must not omit a row by renaming a mechanism.
 | PD-OWN | Ownership transition | How do initialize, move-in, move-out, replace, relocate, clone, swap, delete, and destroy conserve affine ownership? |
 | PD-EXIT | Exit and abandonment | What valid state exists after every normal exit, early error, loop exit, and abandonment of an affine protocol value? |
 | PD-DROP | Destruction | Which live values are dropped, which moved-from locations are not dropped, and which allocations are released exactly once? |
-| PD-BORROW | Borrow and provenance | What root and epoch does an access derive from, which places are disjoint, and which mutation invalidates it? |
+| PD-BORROW | Borrow and provenance | What root and epoch does an access derive from, how does that relation survive storage and relocation, which places are disjoint, and which mutation invalidates it? |
 | PD-FAIL | Arithmetic, allocation, and failure | Which preparation steps can fail, where commitment occurs, and what ownership/state is returned on failure? |
 | PD-IDENT | Logical and physical identity | Are logical identity, pool provenance, temporal freshness, payload lifetime, allocation lifetime, and address stability promised separately? |
 | PD-REFINE | Refinement validity | Which checked constructor establishes a predicate such as UTF-8, and which mutations preserve or invalidate it? |
@@ -201,6 +201,11 @@ blocks relocation, deletion, owner destruction, and any mutation that can
 invalidate its place. Multiple exclusive positions require a checked
 disjointness proof. A logical handle or index is not a physical reference; it
 must revalidate the identity and occupancy promised by its contract at access.
+A payload that contains a borrow retains the same source provenance and cannot
+outlive its source merely because it was inserted, moved with a container,
+relocated between allocations, projected, or returned. Every family that admits
+such payloads must prove source-mutation invalidation and exact lifetime
+relations independently of the container's storage lifetime.
 
 ### G-10: Identity dimensions remain distinct
 
@@ -313,13 +318,13 @@ This table records current evidence, not intended future semantics.
 | Ownership | OWN-1 provides explicit affine moves, whole-binding death after partial move, and no reinitialization of a dead binding. | The current rules cannot express a temporary hole, partial destination, or subsequent restoration of the same owner binding. |
 | Disjoint access | OWN-5/6 track resolved-place exclusivity. | OWN-7 proves dynamic indexed positions disjoint only when both are unequal literals; general swap, heap repair, and graph rewiring remain blocked. |
 | Borrow reuse | Reborrow-through-holder and result-reborrow directions are recorded. | They are not implemented, and no complete entry/cursor escape and invalidation proof exists. |
-| Encapsulation and behavior | Contracts and monomorphization exist in the grammar; the intended env-struct route promises direct calls. | Modules, private representation, inherent implementation blocks, complete callable static members, and dynamic/open behavior are not established. |
+| Encapsulation and behavior | Contracts and monomorphization exist in the grammar; the intended env-struct route promises direct calls. | Modules, private representation, inherent implementation blocks, complete callable static members, reusable zero-materialization traversal composition, and dynamic/open behavior are not established. |
 | Collection direction | STOR-1 says growable/keyed collections are future libraries over buffers and structs. | This is a direction, not a derivation; required checked storage transitions do not exist. |
 | Protected performance | Fixed Copy buffers are a selected baseline; the P2 append-only SoA/index pattern has measured evidence. | A universal occupancy/generation substrate would risk charging both baselines for stronger contracts they do not promise. |
 | Production workload | xlc uses fixed-capacity SoA tapes; baseline token and AST live prefixes occupy about 20.54% and 10.26% of allocated capacity. | This establishes demand for unknown final lengths, not a selected growable representation or timing result. |
-| Fact channels | Checked algebraic laws, effect rows, borrow-derived alias facts, and checked `requires` facts already demonstrate proof-to-optimizer flow. | No initialization, occupancy, refinement, handle-freshness, or metadata/payload fact channel is approved. |
+| Fact channels | Checked algebraic laws, effect rows, borrow-derived alias facts, and checked `requires` facts already demonstrate proof-to-optimizer flow. | No initialization, occupancy, refinement, handle-freshness, dynamic-borrow-state, shared-lifecycle, or metadata/payload fact channel is approved. |
 | Failure | Checked size/capacity arithmetic can trap; current OOM is TCB-level. | Recoverable allocation, failure-atomic growth, partial clone, rehash, node split, and offered-affine-input preservation remain unproved. |
-| Payload scope | Current buffers admit Copy, region-free payloads only. | Borrow-bearing affine payload storage and relocation require a separate lifetime and invalidation proof. |
+| Payload scope | Current buffers admit Copy, region-free payloads only. | `BR-STORED` is open: borrow-bearing affine payload storage and relocation require a separate lifetime, provenance, source-invalidation, and destruction proof. |
 
 The current evidence supports the protected full-buffer and append-only paths.
 It does not establish dense affine sequence, ring, sparse occupancy, tree-node,
@@ -355,9 +360,10 @@ stronger resource rule. It may not derive them merely from the word `affine`.
 
 ## 8. Fact-channel registry schema
 
-Every proposed initialization, occupancy, refinement, identity, or
-metadata-to-payload relation that could remove a check or permit a load must
-receive a row with all fields below before implementation. Blank or
+Every proposed initialization, occupancy, refinement, identity,
+dynamic-borrow, shared-lifecycle, or metadata-to-payload relation that could
+remove a check or permit a load must receive a row with all fields below before
+implementation. Blank or
 "implementation-defined" fields fail the schema.
 
 | Field | Required content |
@@ -476,7 +482,7 @@ that closure.
 
 | Domain | G0 disposition | Claim blocked until a later lock closes | Reopening trigger |
 |---|---|---|---|
-| Borrow-bearing stored payloads | Explicit scope decision required for each family; initial experiments may use region-free, borrow-free `T` only | General storage/relocation for values containing borrows | A candidate stores, moves, returns, or destroys a borrow-bearing payload |
+| Borrow-bearing stored payloads (`BR-STORED`) | Deferred stored-borrow family; the first detailed floor and initial dense experiments remain explicitly region-free and borrow-free | General storage/relocation for values containing borrows, including source-owner invalidation across container moves | A candidate stores, moves, projects, returns, or destroys a borrow-bearing payload, or claims the complete sequential payload envelope |
 | Shared ownership and weak identity | Deferred separate lifecycle family | `Rc`/`Weak`-class payload/allocation lifetime, cycle policy, and O(1) share/clone | Any candidate relies on shared ownership, weak references, or payload-dead/allocation-live state |
 | Concurrency and atomic sharing | Deferred systems family | Data-race freedom and `Arc`/atomic memory-order contracts | Cross-thread sharing, atomic reference counts, concurrent collection access, or parallel reclamation |
 | Pinning and address-sensitive values | Deferred address-stability family | `Pin`-class immobility, intrusive links, and notification before invalidation/reuse | A contract promises stable physical address or contains self/address-sensitive links |

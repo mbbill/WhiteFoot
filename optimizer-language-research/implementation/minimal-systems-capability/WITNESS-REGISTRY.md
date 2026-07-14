@@ -1,9 +1,12 @@
 # Ordinary-Library and Held-Out Witness Registry
 
-Status: G0-Core research registry, 2026-07-14. This file freezes coverage
-purposes, observable contracts, family dependencies, held-out budgets, and
-anti-special-casing rules. It contains no witness implementation, candidate
-mechanism, harness, scored trace, or production authorization.
+Status: proposed G0-Core research registry, 2026-07-14; pending final
+exact-hash review and owner review. On G0-Core closure, this file freezes
+research coverage purposes, observable contracts, family dependencies,
+held-out budgets, and anti-special-casing rules for later lock drafting. That
+research freeze is not a language, mechanism, experiment, or production
+decision. This file contains no witness implementation, candidate mechanism,
+harness, scored trace, or production authorization.
 
 ## 1. Claim being tested
 
@@ -37,7 +40,32 @@ These controls run for every family even when that family does not use their
 topology. A shared substrate is rejected if its generality becomes a tax on
 either protected contract.
 
-## 3. Visible topology witnesses
+### 2.1 Closed dependency vocabulary
+
+Every dependency budget below is an exact allowlist. A token must be one of:
+
+- an exact capability ID from `CAPABILITY-OBLIGATION-REGISTRY.tsv`;
+- an exact canonical contract ID from `RUST-DATA-CONTRACT-CENSUS.tsv`;
+- a baseline or witness ID defined in this file;
+- one of the exact family-closure IDs below; or
+- a named frame ID from `SYSTEMS-DOMAIN-LEDGER.md`.
+
+| ID | Exact meaning |
+|---|---|
+| `K-SCALAR` | The existing checked scalar, Boolean, index, control-flow, `Option`-class, and `Result`-class kernel operations. It grants no storage transition, callable behavior, unchecked memory access, or privileged frame. |
+| `FAM-DENSE` | The selected ordinary-library dense affine sequence public contract, but only after its own family lock, evidence, hostile review, and adoption close. |
+| `FAM-UMAP` | The selected ordinary-library unordered map public contract, but only after its own family lock, evidence, hostile review, and adoption close. |
+
+Wildcards, prefixes, negated sets, and prose aliases are forbidden in a budget.
+Adding a future capability whose ID shares a prefix with an allowed token does
+not widen any budget. A family-closure token permits only that family's frozen
+public API; it never imports its private representation or implementation
+capabilities. A frame token likewise grants only its reviewed public checked
+caller contract. It never grants raw payload access, manual liveness authority,
+unchecked capacity mutation, allocator-identity forgery, manual deallocation,
+or any other private frame privilege.
+
+## 3. Visible capability and topology witnesses
 
 The mandatory operation canaries in the D11 capability matrix remain in force.
 The table below refines the ordinary-library topology witnesses that prevent a
@@ -45,13 +73,22 @@ named-container-only result.
 
 | ID | Role | Frozen observable contract | Separating purpose | Capability dependency budget |
 |---|:---:|---|---|---|
-| W-POOL | W | Insert, get, and remove affine payloads through copyable handles; removed handles cannot revive within the frozen identity horizon; O(1) access/update/removal; exact disposition; steady-live churn has an explicit memory/history bound; identity exhaustion retires or fails rather than wrapping silently. | Distinguishes reusable storage and temporal freshness from an append-only index or a bare-key slab. | `ST-SPARSE`, `OW-INIT`, `OW-MOVEOUT`, `OW-DROP`, `EX-*`, `BR-INVALIDATE`, `FL-*`, `ID-LOGICAL`, `ID-FRESH`, `ID-POOL`, `FT-STATE`, `FT-IDENTITY`, `AB-SEAL`, `AB-GENERIC` |
-| W-ARENA | W | Amortized O(1) phase allocation; element identity/address is stable for the phase contract; no individual free; bulk reset/destroy invalidates the phase and disposes every affine payload exactly once, including partial construction and failure. | Bulk phase reclamation differs from per-slot deletion and from Rust bump allocators that intentionally skip payload destruction. | `OW-INIT`, `OW-DROP`, `EX-*`, `BR-PROV`, `FL-*`, `ID-LOGICAL`, `AB-SEAL`, `AB-GENERIC` |
-| W-SMALL | W | No heap allocation through inline capacity N; insertion at N+1 performs one sound spill; contiguous slice semantics survive; affine pop/remove/drop work; failed spill preserves the original owner and offered input; automatic spill-back is not required. | Exposes a one-time representation transition and an externally measurable allocation ceiling absent from an ordinary growable sequence contract. | `ST-FULL`, `ST-DENSE`, `ST-HOLE`, `OW-*`, `EX-*`, `BR-*`, `FL-*`, `AB-SEAL`, `AB-GENERIC`, `FT-STATE` |
-| W-RECUR | W | Finite layout, unique recursive construction and node extraction, mutable cursor, exact partial-construction cleanup, and bounded-stack destruction for adversarial depth. | Tests unique recursive ownership without importing shared ownership or stable raw addresses. | unique box owner, `OW-MOVEOUT`, `OW-REPLACE`, `OW-DROP`, `EX-*`, `BR-REBORROW`, `BR-RESULT`, `BR-CURSOR`, `FL-*` |
-| W-GRAPH | W | Frozen CSR has O(V+E) storage and contiguous edge scans. Dynamic form has stable non-reviving node/edge identities, O(1) lookup, O(local degree) node removal including incident edges, unrelated-handle stability, and O(1) known-neighbor handle-based splice/rewire. | A pool alone does not test referential integrity, cascading mutation, or multi-node repair. Handle-based rewiring is the safe analogue under the current pin/intrusive deferral. | dense sequences, W-POOL, `BR-DISJOINT`, `BR-CURSOR`, `FL-ATOMIC`, `ID-*` except `ID-ADDRESS`, exact cross-container repair |
-| W-ECS | W | Two or three fixed archetypes suffice. Entity identity remains stable while adding/removing a component migrates aligned affine columns; swap-removal repairs the displaced entity's reverse location; column scans remain contiguous; no per-entity allocation; failure duplicates or loses no payload. | Existing append-only compiler SoA does not test atomic movement across several aligned buffers plus reverse-index repair. | `ST-DENSE`, `ST-DEPENDENT`, `ST-HOLE`, `OW-SWAP`, `OW-RELOCATE`, `FL-ATOMIC`, `ID-LOGICAL`, `ID-FRESH`, cross-buffer fact invalidation |
-| W-GAP | W | Logical sequence content is independent of gap position; insert/delete at the gap are amortized O(1); moving the gap is O(distance); the hole is never readable or droppable as T; growth and recoverable failure preserve the old logical sequence. Use bytes and affine records, not Unicode semantics. | Separates a simultaneous initialized prefix and suffix from a one-prefix owner or arbitrary sparse bitmap, and prices direct bulk movement. | `ST-DENSE`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-RELOCATE`, `OW-DROP`, `EX-*`, `FL-*`, `FT-STATE` |
+| W-POOL | W | Insert, shared `get`, replace, and remove affine payloads through finite copyable logical handles; a returned borrow is tied to the pool and blocks incompatible mutation. Each slot generation advances without wrap; reaching its maximum retires that slot permanently. The pool has a frozen maximum slot count, so insertion returns `IdentityExhausted` with the offered owner unchanged before any stale handle could revive. Storage/history is O(maximum slots), including retired slots. A same-typed handle from another pool is a memory-safe logic error with no guaranteed rejection. Access/update/removal are O(1), and disposition is exact. | Distinguishes reusable storage and temporal freshness from an append-only index or a bare-key slab. | `K-SCALAR`, `ST-SPARSE`, `OW-INIT`, `OW-MOVEOUT`, `OW-REPLACE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `ID-LOGICAL`, `ID-FRESH`, `ID-POOL`, `FT-STATE`, `FT-IDENTITY`, `AB-SEAL`, `AB-GENERIC` |
+| W-ARENA | W | Amortized O(1) phase allocation returns a borrow tied to the arena; that borrow remains valid across later arena allocations, and reset/destroy is rejected until every phase borrow ends. No individual free exists; after borrows end, reset/destroy disposes every complete affine payload exactly once, drops exactly the initialized subvalues of partial construction, and never treats an incomplete object or dead slot as T. Recoverable allocation failure leaves all existing contents unchanged and returns or preserves the offered affine input. For a lock-frozen regular-chunk usable-byte budget C, non-oversized backing allocation calls are at most `ceil(total_aligned_requested_bytes / C) + 1`; C must hold at least eight minimum test payloads. Dedicated oversized allocations are classified separately. Calls, chunk count, slack, peak memory, and growth policy are charged. No logical identity, observable address promise after a borrow ends, self-reference, `Pin`-class projection, or pre-drop notification is implied. | Bulk phase reclamation differs from per-slot deletion and from Rust bump allocators that intentionally skip payload destruction, without importing the deferred address-stability family. | `K-SCALAR`, `ST-DENSE`, `OW-INIT`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `AB-SEAL`, `AB-GENERIC`, `FT-STATE`, `F-ALLOC` |
+| W-SMALL | W | No heap allocation through inline capacity N; insertion at N+1 performs one sound spill; contiguous slice semantics survive; affine pop/remove/drop work; failed spill preserves the original owner and offered input; automatic spill-back is not required. | Exposes a one-time representation transition and an externally measurable allocation ceiling absent from an ordinary growable sequence contract. | `K-SCALAR`, `ST-FULL`, `ST-DENSE`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-REPLACE`, `OW-RELOCATE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `AB-SEAL`, `AB-GENERIC`, `FT-STATE`, `F-ALLOC` |
+| W-RECUR | W | Finite layout, unique recursive construction and node extraction, mutable cursor, exact partial-construction cleanup, and bounded-stack destruction for adversarial depth. | Tests unique recursive ownership without importing shared ownership or stable raw addresses. | `K-SCALAR`, `BOX-NEW-01`, `OW-MOVEOUT`, `OW-REPLACE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `BR-CURSOR`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `AB-SEAL`, `AB-GENERIC`, `F-ALLOC` |
+| W-GRAPH | W | Frozen CSR has O(V+E) storage and contiguous edge scans. Dynamic form has stable non-reviving node/edge identities, O(1) lookup, O(local degree) node removal including incident edges, unrelated-handle stability, and O(1) known-neighbor handle-based splice/rewire. | A pool alone does not test referential integrity, cascading mutation, or multi-node repair. Handle-based rewiring is the safe analogue under the current pin/intrusive deferral. | `K-SCALAR`, `FAM-DENSE`, `W-POOL`, `ST-DEPENDENT`, `OW-MOVEOUT`, `OW-REPLACE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `BR-CURSOR`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `ID-LOGICAL`, `ID-FRESH`, `ID-POOL`, `FT-STATE`, `FT-IDENTITY`, `AB-SEAL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ` |
+| W-ECS | W | Two or three fixed archetypes suffice. Entity identity remains stable while adding/removing a component migrates aligned affine columns; swap-removal repairs the displaced entity's reverse location; column scans remain contiguous; no per-entity allocation; failure duplicates or loses no payload. | Existing append-only compiler SoA does not test atomic movement across several aligned buffers plus reverse-index repair. | `K-SCALAR`, `FAM-DENSE`, `W-POOL`, `ST-DENSE`, `ST-DEPENDENT`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-SWAP`, `OW-RELOCATE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `ID-LOGICAL`, `ID-FRESH`, `FT-STATE`, `FT-IDENTITY`, `AB-SEAL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ` |
+| W-GAP | W | Logical sequence content is independent of gap position; shared indexed observation returns an owner-tied borrow; insert/delete at the gap are amortized O(1); moving the gap is O(distance); the hole is never readable or droppable as T; growth and recoverable failure preserve the old logical sequence. Use bytes and affine records, not Unicode semantics. | Separates a simultaneous initialized prefix and suffix from a one-prefix owner or arbitrary sparse bitmap, and prices direct bulk movement. | `K-SCALAR`, `ST-DENSE`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-RELOCATE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `FT-STATE`, `AB-SEAL`, `AB-GENERIC`, `F-ALLOC` |
+| W-PIPE | W | An ordinary external library composes lazy sources, nested stateful transform/select adapters, a two-input adapter, and an early-stop or recoverable-error consumer over shared, unique, and owning affine inputs. Output order, callback order/count, progress, and exhaustion are exact. Every early stop, error, and permitted abandonment leaves borrows valid and disposes each consumed and remaining owner exactly once. Advisory size hints never authorize unchecked access or uninitialized reads. | Separates reusable traversal composition from one hand-written loop and tests whether xlang can derive a zero-materialization pipeline without copying Rust's trait surface. | `K-SCALAR`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `BR-CURSOR`, `OW-MOVEOUT`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `FL-CALLBACK`, `AB-BEHAVIOR`, `AB-STATEFUL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ`, `IT-OWN`, `IT-COMPOSE` |
+
+W-PIPE's structural gate rejects every intermediate collection, adapter heap
+allocation, per-element allocation, indirect behavior call, stronger-than-
+O(depth) live adapter state, and avoidable second source pass. It compares the
+ordinary-library composition with a hand-fused xlang loop and the equivalent
+idiomatic Rust 1.97.0 pipeline under matched callbacks and inputs. Code-size
+growth from monomorphization remains a charged output rather than a hidden
+cost.
 
 ### 3.1 Visible controls and optional compositions
 
@@ -83,9 +120,11 @@ Caller-visible contract:
 - creation fixes a key universe `[0, U)` but constructs no payload value;
 - `insert(key, own T)` admits at most one live payload per key and preserves or
   returns the offered owner on duplicate key or recoverable failure;
-- `contains`/`get` are O(1); `remove` is O(1) and returns the affine payload;
-- live iteration is O(n), visits each current key/value exactly once, and makes
-  no stable-order promise across removal;
+- `contains` and shared `get` are O(1); the returned borrow is tied to the set
+  owner and blocks incompatible mutation; `remove` is O(1) and returns the
+  affine payload;
+- shared live iteration is O(n), visits each current key/value exactly once by
+  owner-tied borrow, and makes no stable-order promise across removal;
 - there is no per-element heap allocation;
 - payload storage is O(capacity), key-position metadata is O(U), and operation
   traces freeze both terms separately; and
@@ -94,12 +133,18 @@ Caller-visible contract:
 
 Allowed dependencies:
 
-`ST-FULL`, `ST-DENSE`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-REPLACE`,
-`OW-SWAP`, `OW-RELOCATE`, `OW-DROP`, `EX-*`, `BR-PROV`, `BR-DISJOINT`,
-`BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `AB-SEAL`,
-`AB-GENERIC`, and `FT-STATE`, plus existing checked scalar/Option operations.
+`K-SCALAR`, `ST-FULL`, `ST-DENSE`, `ST-DEPENDENT`, `ST-HOLE`, `OW-INIT`,
+`OW-MOVEOUT`, `OW-REPLACE`, `OW-SWAP`, `OW-RELOCATE`, `OW-DROP`,
+`EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`,
+`BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `BR-CURSOR`, `FL-CAPACITY`,
+`FL-ALLOC`, `FL-ATOMIC`, `AB-SEAL`, `AB-GENERIC`, `IT-SHARED`, `FT-STATE`,
+and `F-ALLOC`.
 
-Forbidden dependencies:
+Anti-privilege rejection criteria:
+
+The allowlist above is exhaustive; every unlisted dependency is rejected
+mechanically. The following examples are additional review canaries, not a
+second negated dependency budget:
 
 - any finished growable sequence, map, set, pool, slab, small-sequence, or ECS
   library;
@@ -107,43 +152,83 @@ Forbidden dependencies:
   rule, or sealed-standard-library raw payload access; and
 - shared ownership, pinning, concurrency, custom allocators, or unsafe FFI.
 
-H-STORE therefore tests public checked storage transitions directly. It may use
-the project allocator frame but cannot rebuild or expose it.
+H-STORE therefore tests public checked storage transitions directly. `F-ALLOC`
+permits only its reviewed public checked allocation facade. It grants no raw
+bytes, manual liveness authority, unchecked capacity change, allocator-identity
+forgery, or manual deallocation, and H-STORE cannot rebuild or expose the frame.
 
 ### H-LRU — composition under two-way coherence
 
 Caller-visible contract:
 
-- fixed positive capacity;
-- successful lookup promotes exactly that key to most-recently used;
-- insert/update preserves one value per key;
-- a full new insertion evicts and returns or destroys exactly the
-  least-recently-used value under the frozen API;
+- construction takes a fixed positive capacity, preallocates the complete
+  steady-state backing budget, and either returns an empty cache or a
+  recoverable allocation/capacity error with no live partial cache;
+- lookup takes unique cache access; success promotes exactly that key to most-
+  recently used, then returns a shared result-reborrow tied to the cache owner.
+  The result blocks subsequent incompatible mutation until it ends;
+- missing lookup returns `None` and leaves order unchanged;
+- insertion of a new key below capacity consumes the offered key/value and
+  returns `Inserted`;
+- insertion of an equivalent existing key atomically replaces both stored key
+  and value, promotes the entry, consumes the offered pair, and returns
+  `Replaced(old_key, old_value)` with both old owners;
+- insertion of a new key at capacity consumes the offered pair, reuses
+  preallocated storage, promotes the new entry, and returns
+  `Evicted(old_key, old_value)` for exactly the least-recently-used pair;
+- removal returns `Some(owned_key, owned_value)` or `None` without mutation;
+- no successful steady-state lookup/insert/update/remove performs a backing
+  allocation; any recoverable pre-commit failure returns every offered affine
+  owner and leaves membership, order, and payloads unchanged;
 - expected O(1) get/insert/remove under the frozen hash/adversary assumptions;
 - no per-operation scan of all entries; and
 - hash membership, stable identity, linked order, payload ownership, and
-  failure behavior remain coherent.
+  failure behavior remain coherent. Hash/equality traps follow EFF-4: no
+  recoverable post-state is promised, but no invalid access occurs before
+  abort.
 
-Dependency budget: the selected finished unordered map plus selected recyclable
-stable pool/handle-linked ordering and their public APIs. H-LRU may not receive
-new raw storage privilege or a compiler-recognized LRU path. It is a composition
-witness and cannot substitute for H-STORE.
+Dependency budget: `K-SCALAR`, `FAM-UMAP`, `W-POOL`, `BR-PROV`,
+`BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `OW-MOVEOUT`, `OW-REPLACE`,
+`OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `FL-CAPACITY`, `FL-ALLOC`,
+`FL-ATOMIC`, `FL-CALLBACK`, `AB-BEHAVIOR`, `AB-SEAL`, and `AB-GENERIC`.
+Only the frozen public APIs of `FAM-UMAP` and `W-POOL` are importable. H-LRU
+may not receive new raw storage privilege or a compiler-recognized LRU path.
+It is a composition witness and cannot substitute for H-STORE.
 
 ### H-IPQ — composition under heap/reverse-index coherence
 
 Caller-visible contract:
 
 - keyed items are unique;
-- peek is O(1);
+- peek is O(1) and returns `None` or a pair of coexisting shared key/priority
+  borrows tied to the queue;
+- successful push consumes the offered owned key/priority pair; a duplicate
+  returns `Duplicate(owned_key, owned_priority)` with the queue unchanged, and
+  a recoverable capacity/allocation failure returns
+  `Failure(error, owned_key, owned_priority)` with the queue unchanged;
+- pop returns `None` or the owned minimum/maximum key/priority pair selected by
+  the frozen order direction;
+- keyed removal returns `None` or the owned matching key/priority pair;
+- priority change returns `Missing(owned_new_priority)` without mutation, or
+  consumes the new priority and returns `Changed(owned_old_priority)` while
+  retaining the stored key owner;
 - push, pop, keyed removal, and priority change are O(log n);
 - every heap exchange atomically repairs the keyed reverse position;
 - ownership and failure behavior are exact for affine item/priority payloads;
-  and
+- comparison/hash/equality traps follow EFF-4 and perform no invalid access
+  before abort; recoverable allocation failure occurs before destructive
+  commit; and
 - no operation repairs coherence by an O(n) search.
 
-Dependency budget: the selected finished unordered map, dense affine sequence,
-and priority-queue/heap behavior through public APIs. H-IPQ receives no bespoke
-compiler path and cannot substitute for H-STORE.
+Dependency budget: `K-SCALAR`, `FAM-UMAP`, `FAM-DENSE`,
+`BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`,
+`OW-INIT`, `OW-MOVEOUT`, `OW-REPLACE`, `OW-SWAP`, `OW-DROP`, `EX-NORMAL`,
+`EX-ABANDON`, `EX-ABORT`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`,
+`FL-CALLBACK`, `AB-BEHAVIOR`, `AB-SEAL`, and `AB-GENERIC`. Only the frozen
+public APIs of `FAM-UMAP` and `FAM-DENSE` are importable; the held-out itself
+implements heap order and reverse-index repair through those APIs. H-IPQ
+receives no finished heap, bespoke compiler path, or exchange hook and cannot
+substitute for H-STORE.
 
 ## 5. Ordinary-library generativity gate
 

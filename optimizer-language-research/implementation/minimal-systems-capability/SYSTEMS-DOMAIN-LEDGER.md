@@ -73,51 +73,56 @@ identity or address stability, invalidation, concurrency, platform dependence,
 and fact-channel consequences are part of the contract. Two Rust spellings are
 not merged when any of those observations differ.
 
-Every canonical stable item inherits the disposition of its domain row. A row
-with more than one code contains an explicit semantic partition; the codes are
-not alternatives for an unclassified item. Reexports, aliases, prelude entries,
-and duplicated primitive renderings route to the canonical domain before this
-classification is applied.
+Every canonical stable item receives one conservative declaration disposition
+within the semantic partition of its domain row. A row with more than one code
+contains an explicit partition; the codes are not alternatives for an
+unclassified item. Reexports, aliases, prelude entries, and duplicated
+primitive renderings route to the canonical domain before this classification
+is applied.
 
-The mechanical declaration classification records exactly one `domain_id` and
-one conservative `primary_disposition` per canonical stable source
-declaration: 5,096 safe and 273 unsafe. Its `domain_partition` field copies the
-possible routes named by that domain; it is not a claim that one raw Rust
-rendering simultaneously has every listed disposition. Every row also retains
-Rust `caller_safety` without treating Rust-safe as approved xlang surface.
-Unsafe declarations and Rust-safe raw/manual-lifetime/leak boundaries are
-`NG` evidence even when their underlying checked need routes elsewhere. The
+The mechanical declaration classification records exactly one `domain_id`, one
+`surface_evidence_status`, and one independent `need_route_kind` plus stable
+`need_route_id` per canonical source declaration: 5,096 safe and 273 unsafe.
+Every row retains Rust `caller_safety` without treating Rust-safe as approved
+xlang surface. The surface axis distinguishes safe contract anchors, safe
+boundary evidence, unsafe boundary evidence, and Rust-only namespace/source
+surface. The need axis independently routes the underlying caller requirement
+to `G0_CONTRACT`, `LIB_CONTRACT`, `LATER_FAMILY`, `FRAME`, `REDUNDANT`,
+`NO_INDEPENDENT_NEED`, or a genuinely owner-authorized `NG`.
+
+Boundary evidence never becomes `NG` merely because its Rust spelling uses a
+raw pointer, manual lifetime, leak, uninitialized storage, or an unsafe call.
+Such a row must name a safe displacement for the in-scope need, and any frame
+on which that displacement depends. Only a need that conflicts with an owner-
+ratified first-principles rule may use `NG`, with that authority recorded. The
 545 detailed stable-safe seed declarations also carry an exact
-`canonical_contract_id`. Other declarations terminate conservatively in
-`G0`, `LIB`, `LATER`, `RED`, or `NG`; a `LATER` declaration must still receive
-full contract normalization before its domain can claim closure.
+`canonical_contract_id`; later-family declarations still require full contract
+normalization before their domain can claim closure.
 
-Stable unsafe Rust declarations receive two records in the reasoning:
+Thus Rust boundary and unsafe implementation requirements cannot disappear,
+but they also cannot be smuggled into xlang as an unchecked escape or mislabeled
+as evidence that the underlying systems need is absent.
 
-1. the writer-visible raw or unchecked spelling is `NG` for xlang; and
-2. the underlying caller need, if any, routes independently to `G0`, `LIB`,
-   `FRAME`, or `LATER` in the relevant domain.
+## 3. Need-route codes
 
-Thus an unsafe Rust implementation requirement cannot disappear, but it also
-cannot be smuggled into xlang as an unsafe escape.
+Each canonical declaration receives exactly one need route. Domain prose below
+uses the shorter `G0`, `LIB`, `LATER`, and `RED` labels for readability; the
+mechanical table uses the exact route names in this table.
 
-## 3. Disposition codes
-
-Each normalized capability or redundant surface receives exactly one primary
-disposition.
-
-| Code | Meaning | What the code does not claim |
+| Route | Meaning | What the route does not claim |
 |---|---|---|
-| `G0` | The contract is in the bounded G0-Core accounting: the sequential, unique-owner data-structure floor or a prerequisite that must be protected while evaluating it. | It does not close a family, select a mechanism, authorize implementation, or prove derivability. |
-| `LIB` | The contract belongs in an ordinary checked library after its dependencies close. | It does not assert that current xlang can derive it, that the project must ship a standard library, or that Rust's API shape should be copied. |
-| `FRAME` | The contract crosses a named compiler, runtime, allocator, ABI, OS, clock, scheduler, or target boundary whose trusted obligations must be priced and reviewed. | It does not authorize a new trusted path or allow writer-authored trust. |
-| `LATER` | The contract blocks a broader claim and requires its own registry, exact family lock, evidence, and owner adoption decision. | It may not inherit closure from G0 or from an adjacent family. |
-| `RED` | The Rust item is a reexport, alias, prelude entry, source spelling, generated duplicate, or convenience form with no independent observable contract after canonicalization. | It may not erase a distinct ownership, failure, invalidation, complexity, identity, address, or platform guarantee. |
-| `NG` | The writer-visible capability or behavior is an explicit owner-ratified non-goal with a first-principles reason. | It is not a convenient deferral. If the caller need remains in scope, it also requires a recorded safe displacement and reopens if that displacement fails. |
+| `G0_CONTRACT` | The contract is in the bounded G0-Core accounting: the sequential, unique-owner data-structure floor or a prerequisite that must be protected while evaluating it. | It does not close a family, select a mechanism, authorize implementation, or prove derivability. |
+| `LIB_CONTRACT` | The contract belongs in an ordinary checked library after its dependencies close. | It does not assert current derivability, require an xlang standard library, or copy Rust's API shape. |
+| `FRAME` | The declaration is itself a named compiler, runtime, allocator, ABI, OS, clock, scheduler, target, or MMIO boundary service. | It does not authorize a trusted path or allow writer-authored trust. A later contract that depends on a frame remains `LATER_FAMILY` with `required_frame_ids`. |
+| `LATER_FAMILY` | The contract blocks a broader claim and requires its own registry, exact family lock, evidence, and owner adoption decision. | It may not inherit closure from G0 or from an adjacent family. |
+| `REDUNDANT` | The declaration has a canonical contract elsewhere and no distinct observable ownership, failure, invalidation, cost, identity, address, or platform guarantee. | It requires an exact canonical replacement; name similarity is insufficient. |
+| `NO_INDEPENDENT_NEED` | A Rust namespace, helper surface, or source-language artifact contributes evidence but no independent caller contract after its declarations are routed. | It does not erase any underlying declaration or implementation pressure. |
+| `NG` | The underlying capability or behavior is an explicit owner-ratified non-goal with a recorded first-principles reason. | It is not a convenient deferral or a synonym for raw/unsafe surface. If a related caller need remains, its safe displacement is still recorded. |
 
-Mixed rows below are exact partitions. For example, `FRAME / LATER / NG` means
-that the platform effect belongs to a future family, its privileged edge would
-be a frame, and Rust's writer-visible unchecked spelling remains a non-goal.
+Mixed domain descriptions remain semantic partitions, not multi-valued routes
+for one declaration. Surface admissibility is the independent evidence axis;
+for example, raw-pointer volatile access is unsafe boundary evidence, while its
+underlying checked MMIO need is `LATER_FAMILY` and requires `F-MMIO`.
 
 ### 3.1 Frame accounting labels
 
@@ -141,6 +146,7 @@ select its implementation.
 | `F-SYNC` | Atomic machine operations, blocking/wakeup, scheduler interaction, and concurrent runtime bookkeeping. |
 | `F-ASYNC` | Wakeup delivery, executor/scheduler interaction, async I/O/timers, cancellation boundary, and progress reporting. |
 | `F-TARGET` | Target-feature truth, instruction selection, vector/architecture operations, and optimizer/compiler hint semantics. |
+| `F-MMIO` | Device-memory access authority and provenance, permitted widths and alignment, non-elision, ordering relative to other device accesses, platform side effects, and target/OS mapping. |
 
 ## 4. Exact scope boundary
 
@@ -173,7 +179,8 @@ interior mutation, pinning and address-sensitive values, reflection and build
 integration, formatting, I/O, filesystems and paths, environment and process
 control, OS resources and FFI, networking, time, threads and thread-local
 state, atomics and synchronization, async execution and cancellation, target
-facilities, full numeric and text behavior, and compiler/runtime frames.
+facilities, volatile device-memory/MMIO access, full numeric and text behavior,
+and compiler/runtime frames.
 
 Those domains remain separately blocked below. Passing the detailed floor must
 never be reported as passing the whole envelope.
@@ -234,13 +241,16 @@ never be reported as passing the whole envelope.
   initialization, and destruction observations required by the floor are
   `G0`. Physical allocation, copying, zeroing, and target layout truth belong
   to `FRAME` `F-MEM`. User-selected/custom allocation and address/provenance contracts are
-  `LATER`. Writer-visible raw dereference, unchecked layout, raw uninitialized
-  payload sealing, manual lifetime forgery, and unchecked memory operations are
-  `NG`.
+  `LATER`. The underlying volatile device-memory need routes to D24 `LATER`
+  plus reviewed frame `F-MMIO`; Rust's raw-pointer volatile spelling remains
+  inadmissible. Writer-visible raw dereference, unchecked layout, raw
+  uninitialized payload sealing, manual lifetime forgery, and unchecked memory
+  operations are inadmissible boundary evidence; their underlying checked needs
+  retain the routes above.
 - **Blocked claim:** G0 may claim only the reviewed checked transitions and
   facts needed by its registered contracts. It cannot claim raw-memory
-  programming, custom allocators, general provenance control, or stable
-  addresses.
+  programming, custom allocators, general provenance control, stable addresses,
+  or volatile device-memory access.
 
 ### D05. Optional values, recoverable errors, and error description
 
@@ -275,7 +285,8 @@ never be reported as passing the whole envelope.
   service is `FRAME` `F-ALLOC`. General boxed library conveniences are `LIB`. Allocator
   selection, custom allocators, alignment/layout control beyond the floor, and
   allocation policy are `LATER`. Raw allocator entry points and writer-authored
-  allocator trust are `NG`.
+  allocator trust are inadmissible boundary evidence displaced by `F-ALLOC` and
+  the later checked allocator family.
 - **Blocked claim:** successful dense-family work cannot claim a custom-
   allocation API, allocator replacement, out-of-memory recovery policy, or
   arbitrary over-aligned storage.
@@ -288,8 +299,8 @@ never be reported as passing the whole envelope.
 - **Disposition:** the entire shared-ownership and dynamically checked interior-
   mutation capability is `LATER`; ordinary safe wrappers would be `LIB` only
   after that family closes. Atomic reference-count support also depends on
-  `FRAME` `F-SYNC` in D22. Writer-visible `UnsafeCell`-class raw mutation authority is
-  `NG`.
+  `FRAME` `F-SYNC` in D22. Writer-visible `UnsafeCell`-class raw mutation
+  authority is inadmissible boundary evidence for that later checked family.
 - **Blocked claim:** unique-owner collection closure provides neither aliasing
   shared ownership nor interior mutation, cycle handling, weak ownership,
   atomic reference counts, or their destruction and overflow guarantees.
@@ -308,6 +319,8 @@ never be reported as passing the whole envelope.
   aliases, reexports, and duplicate macro spellings are `RED`.
 - **Blocked claim:** G0 accounting is not family closure. No one container,
   representation, language operation, or complexity promise is selected here.
+  The first detailed floor is region-free and borrow-free; `BR-STORED` remains
+  a named later family before containers of borrow-bearing payloads are covered.
 
 ### D10. Synchronous iteration and ranges
 
@@ -424,7 +437,8 @@ never be reported as passing the whole envelope.
   boundary is `FRAME` `F-ABI`; its complete resource, ownership, failure, buffer,
   pinning, unwind-abort, and fact-attenuation contract is `LATER`. Pure checked
   C/OS string transformations can be `LIB` after text and platform encoding
-  close. Rich foreign object graphs and writer-visible raw FFI trust are `NG`.
+  close. Rich foreign object graphs are `LATER`; writer-visible raw FFI trust is
+  inadmissible boundary evidence displaced by the checked ABI/resource family.
   FFI-in, callbacks, and foreign-thread entry are `LATER`, not silently covered.
 - **Blocked claim:** unique ownership does not close resource handles. No
   current result claims descriptor/handle cleanup, ABI coverage, foreign
@@ -476,7 +490,8 @@ never be reported as passing the whole envelope.
   scheduler interaction are `FRAME` `F-SYNC`; memory models, Sendable/Shareable laws,
   synchronization, poisoning policy, channels, concurrent destruction, and
   reclamation are `LATER`. Writer-visible unchecked synchronization or raw
-  shared mutation is `NG`.
+  shared mutation is inadmissible boundary evidence displaced by the checked
+  concurrency family.
 - **Blocked claim:** sequential ownership does not establish a memory model,
   data-race freedom for shared state, atomic ordering, deadlock behavior,
   channel disconnect semantics, or concurrent reclamation.
@@ -491,7 +506,7 @@ never be reported as passing the whole envelope.
   cross `FRAME` `F-ASYNC`. Futures, tasks, pin/address sensitivity, async iteration,
   executor contracts, cancellation, and exact destruction are `LATER`.
   Writer-visible unchecked pin construction or address/lifetime forgery is
-  `NG`.
+  inadmissible boundary evidence displaced by the later pin/address family.
 - **Blocked claim:** synchronous iteration and callbacks do not imply async
   execution. No current result claims cancellation safety, wakeup correctness,
   executor progress, self-referential values, or address stability.
@@ -500,16 +515,22 @@ never be reported as passing the whole envelope.
 
 - **Rust families:** `core`/`std::arch`, stable target catalogs under
   `core::arch::{aarch64, wasm32, x86, x86_64}`, `core`/`std::hint`, target-
-  feature detection macros, and the collapsed architecture/intrinsic catalogs
-  in the module accounting.
+  feature detection macros, `core`/`std::ptr` volatile read/write evidence, and
+  the collapsed architecture/intrinsic catalogs in the module accounting.
 - **Disposition:** target discovery, feature dispatch, portable hint semantics,
-  SIMD/vector contracts, and target-specific operations are `LATER`; compiler
-  lowering and machine-feature truth are `FRAME` `F-TARGET`. Writer-visible unsafe
-  intrinsics, unchecked reachability promises, and raw target privilege are
-  `NG`. Duplicate `std` reexports and feature-macro spellings are `RED`.
+  SIMD/vector contracts, target-specific operations, and the checked
+  volatile/MMIO contract are `LATER`; compiler lowering and machine-feature
+  truth are `FRAME` `F-TARGET`, while device-memory effects cross `FRAME`
+  `F-MMIO`. A future checked MMIO family must freeze access authority and
+  provenance, width/alignment, non-elision, ordering relative to other device
+  accesses, invalidation, platform effects, and resource ownership. Writer-
+  visible unsafe intrinsics, unchecked reachability promises, raw-pointer
+  volatile access, and raw target privilege are inadmissible boundary evidence
+  displaced by the named later families and frames. Duplicate `std` reexports
+  and feature-macro spellings are `RED`.
 - **Blocked claim:** ordinary optimized scalar code does not imply portable
   SIMD, architecture intrinsics, target-feature dispatch, cache-control
-  operations, or stable optimizer-hint behavior.
+  operations, stable optimizer-hint behavior, or device-memory/MMIO access.
 
 ### D25. Prelude, aliases, reexports, and documentation packaging
 
@@ -531,9 +552,10 @@ never be reported as passing the whole envelope.
 - **Disposition:** every privileged implementation edge belongs to one or more
   of `F-MEM`, `F-ALLOC`, `F-TRAP`, `F-BUILD`, `F-IO`, `F-FS`, `F-PROC`,
   `F-ABI`, `F-NET`, `F-CLOCK`, `F-THREAD`, `F-SYNC`, `F-ASYNC`, and
-  `F-TARGET`. An edge that cannot yet be assigned to an exact named frame
+  `F-TARGET`, or `F-MMIO`. An edge that cannot yet be assigned to an exact named frame
   remains `LATER`. Writer-callable trust, unchecked compiler facts, and raw
-  intrinsic access are `NG`.
+  intrinsic access are inadmissible boundary evidence, not independent need
+  routes.
 - **Blocked claim:** the presence of a compiler or runtime implementation is not
   a reviewed frame. Each fact, effect, resource, ABI, and target obligation must
   be named before it can support a shipped contract.
@@ -550,7 +572,8 @@ is stated explicitly; that does not duplicate any item.
 - D01: `core::{array, f32, f64, i8, i16, i32, i64, i128, isize, num, u8,
   u16, u32, u64, u128, usize}` and `core::{f32, f64}::consts`.
 - D03: `core::{borrow, clone, cmp, convert, default, hash, marker, ops}`.
-- D04/D07: `core::{alloc, mem, ptr}`.
+- D04/D07: `core::{alloc, mem, ptr}`, except the volatile device-memory
+  evidence members of `core::ptr`, which route to D24.
 - D05: `core::{error, option, result}`.
 - D06: `core::panic`.
 - D08: `core::cell`.
@@ -598,7 +621,8 @@ through Section 7; root reexports are D25.
 - D01: `std::{array, f32, f64, i8, i16, i32, i64, i128, isize, num, u8,
   u16, u32, u64, u128, usize}` and `std::{f32, f64}::consts`.
 - D03: `std::{borrow, clone, cmp, convert, default, hash, marker, ops}`.
-- D04/D07: `std::{alloc, mem, ptr}`.
+- D04/D07: `std::{alloc, mem, ptr}`, except the volatile device-memory
+  evidence members of `std::ptr`, which route to D24.
 - D05: `std::{error, option, result}`.
 - D06: `std::{backtrace, panic}`.
 - D07: `std::{boxed, vec}` for allocation and unique ownership.
@@ -646,7 +670,7 @@ follows:
 | D09 | `vec!`. |
 | D12 | `format!`, `format_args!`, `write!`, `writeln!`, `print!`, `println!`, `eprint!`, `eprintln!`, `dbg!`, and the `Debug` derive. |
 | D14 | `cfg!`, `cfg_select!`, `compile_error!`, `concat!`, `env!`, `option_env!`, `include!`, `include_bytes!`, `include_str!`, `stringify!`, `file!`, `line!`, `column!`, `module_path!`, and the `derive`, `test`, and `global_allocator` attributes. The allocator attribute's operational contract also routes to D07. |
-| D04 | `offset_of!`, `addr_of!`, and `addr_of_mut!`; their raw-address authority remains subject to D04's `NG` boundary. |
+| D04 | `offset_of!`, `addr_of!`, and `addr_of_mut!`; their raw-address authority remains inadmissible boundary evidence under D04. |
 | D21 | `thread_local!`. |
 | D23 | `pin!` and `ready!`. |
 | D24 | `is_aarch64_feature_detected!`, `is_loongarch_feature_detected!`, `is_riscv_feature_detected!`, `is_s390x_feature_detected!`, and `is_x86_feature_detected!`, including root reexports. |
@@ -657,8 +681,9 @@ surface: `Self`, `as`, `async`, `await`, `become`, `break`, `const`, `continue`,
 `in`, `let`, `loop`, `match`, `mod`, `move`, `mut`, `pub`, `ref`, `return`,
 `self`, `static`, `struct`, `super`, `trait`, `true`, `type`, `union`, `unsafe`,
 `use`, `where`, and `while`. Their underlying language concepts are accounted
-by the owning domain, and the `unsafe` source capability is D04/D18/D22/D23/D24
-`NG` wherever it would grant unchecked authority.
+by the owning domain. The `unsafe` source capability is Rust-only surface or
+inadmissible boundary evidence wherever it would grant unchecked authority;
+the underlying need remains with D04, D18, D22, D23, or D24.
 
 ## 8. Unstable-only Rust 1.97 domains
 
@@ -679,7 +704,7 @@ do not disappear. Their current dispositions are:
   `core::{io, os, process}`, Darwin Objective-C support, unstable platform
   filesystem/process modules, and `std::os::wasi::fs`.
 - **D22 `LATER`:** `std::sync::{mpmc, nonpoison, oneshot, poison}`.
-- **D24 `LATER`/`FRAME` `F-TARGET`, raw spelling `NG`:**
+- **D24 `LATER`/`FRAME` `F-TARGET`, raw spelling inadmissible:**
   `core`/`std::{simd, intrinsics}`, `alloc::intrinsics`, MIR/scalable-SIMD
   submodules, unstable architecture catalogs, `core::{profiling, ub_checks}`,
   and `core`/`std::unsafe_binder`.
@@ -741,7 +766,8 @@ mutation; pinning and address-sensitive values; reflection; formatting and
 build integration; I/O, filesystems, processes, OS resources, FFI, networking,
 and clocks; threads, atomics, synchronization, and concurrent reclamation;
 async execution and cancellation; complete Unicode; target SIMD/intrinsics;
-panic unwinding; complete numerics; and whole systems-language completion.
+volatile device-memory/MMIO; panic unwinding; complete numerics; and whole
+systems-language completion.
 
 ### 9.5 Whole systems-language claim
 

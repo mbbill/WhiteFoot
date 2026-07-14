@@ -11,6 +11,7 @@
 - 2026-07-07 measurement: generative model checking with an independent dynamic oracle found 0 soundness violations over 30,000 programs; true over-rejection measured at 7.2% then 5.5%, all on never-escaping statement temporaries — the first measured price of reject-when-unsure. (sourced)
 - 2026-07-07 statement: the OWN-7 overlap judgment is conservatism, not measurement — the prototype tested prefix overlap only, slices are uncovered, and the rejection cost on AI-written array code is unmeasured; it interacts with the still-open arrays-loops design gate. (code)
 - 2026-07-11 pitfall: pre-commit adversarial audits repeatedly found accepted holes at the type/flow seam — bare affine call arguments becoming type-layer-only implicit moves, shared-for-uniq mode substitution, affine uniq-borrow copying; each closed with exact negative gates. The seam between the two checker layers is where soundness bugs hide. (code)
+- 2026-07-14 research: affinity is not protocol completion. Current xlang permits an affine value to be abandoned, while whole-binding death and no reinitialization prevent an ordinary library from safely exposing a temporary hole and then restoring the owner. Any future partial construction, drain, entry, rebuild, or relocation route must leave an abandonable base owner valid, prove exact use on every normal exit, or use separately specified compiler-derived cleanup; writer discipline and a conventional `finish` call do not count. (sourced)
 
 ## Moves
 

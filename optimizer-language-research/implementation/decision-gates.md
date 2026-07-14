@@ -1316,3 +1316,65 @@ still reports 224 clusters with exact 545/35 seed coverage; and `git diff
 This repair changes accounting precision only. It selects no xlang surface,
 mechanism, trusted path, family closure, specification rule, compiler change,
 or production implementation.
+
+## G0-Core closes the pre-review obligation, route, iteration, and witness accounting (2026-07-14)
+
+The D12-authorized synthesis now separates 49 operational obligations, 12
+orthogonal proof dimensions, and 16 global laws without selecting one language
+primitive per obligation. `BR-STORED` preserves the missing lifetime/provenance
+question for borrow-bearing payloads; the first detailed floor remains
+explicitly region-free and borrow-free. `IT-COMPOSE` and W-PIPE require reusable
+zero-materialization traversal rather than a hand-fused loop. `F-MMIO` preserves
+the checked volatile/device-memory need while keeping raw-pointer volatile
+spelling inadmissible.
+
+The classifier now has independent surface-evidence and underlying-need axes.
+Across all 5,369 canonical stable declarations it records 4,609 safe contract
+anchors, 170 safe boundaries, 273 unsafe boundaries, and 317 Rust-only surfaces;
+the underlying routes are 1,033 G0 contracts, 302 library contracts, 3,765
+later-family contracts, seven exact frame services, 43 redundant declarations,
+217 declarations with no independent need, and two true non-goals. The only
+true non-goals are `catch_unwind` and `resume_unwind` under EFF-4. Raw, unsafe,
+manual-lifetime, leak, partial-initialization, FFI, atomic, pin, and MMIO evidence
+retains a named safe displacement instead of being mislabeled as a non-goal.
+
+The detailed census contains 258 normalized rows. A new exact D10 crosswalk
+routes all 150 stable iteration/range declarations once (132 iteration, 18
+range; 107 contract routes, 43 redundant surfaces), keeps `ExactSize` and
+`Fused` separate, and splits the stable range surface into 13 contracts. The
+258-row derivation matrix records E=4, P=0, U=10, X=212, FRAME=4, DEFERRED=19,
+BOUNDARY=9, and NG=0. BOUNDARY means the Rust spelling is inadmissible while
+the checked need remains live; it is not a non-goal.
+
+Visible and held-out witness budgets now use exact closed allowlists. W-POOL
+freezes generation exhaustion, retirement, memory history, cross-pool policy,
+and returned-borrow ownership. W-ARENA promises owner-tied borrows across later
+allocations without importing physical address stability, rejects reset while
+borrows live, and prices chunk allocation. H-STORE includes dependent-state and
+result-reborrow obligations and receives only the public allocator facade.
+H-LRU and H-IPQ freeze exact affine outcomes; H-IPQ must implement heap repair
+over selected dense/map public APIs rather than import a finished heap.
+
+Focused verification passes: deterministic classifier regeneration, exact Rust
+census, 258-row data-contract verification, 150-row D10 verification, 258-row
+derivation verification against all 49 capability IDs, exact witness-ID checks,
+`git diff --check`, AGENTS/CLAUDE identity, and the cached MCTS-Mem linter (`lint
+clean: 28 nodes, 0 fact files`). The exact aggregate manifest and final
+exact-hash hostile reviews remain the next research step.
+
+Key pre-review SHA-256 values are: capability registry
+`1aa1a05a670c5f73387b8b96913da7acbdc6e98bebee1fbf7f0e12301729efb7`;
+declaration classification
+`d8e6530517fa4ad74614c7611721d618834e7bc5002ee5c11953822a88629d6a`;
+detailed census
+`cc896e31435e5dce573ce58be7ba6bf2a612eac8ece62ebf40089f5ac6e71838`;
+D10 crosswalk
+`f1e2588e39da498130b175d5f3438da7748e51ae56dc005a51a295e761482bb8`;
+derivation matrix
+`6832c7aa2e6bebf2f89bbb5948e162a2c0fae4b549ab2efed1fa569339ea5082`;
+and witness registry
+`1e684589a7897caa31421a4d6eddcebc5307e080625f20982eb180853f8728f0`.
+
+This is research accounting only. It selects no syntax, substrate, runtime
+representation, trusted implementation, family closure, specification change,
+compiler change, production implementation, E0.1 restart, or default teaching.

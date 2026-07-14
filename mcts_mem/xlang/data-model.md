@@ -2,7 +2,7 @@
 - v0 buffers hold copy primitives only; aggregate data lays out as parallel per-field buffers (struct-of-arrays), and there is no AoS form yet.
 - Result and Option lower to a two-word tag-plus-payload aggregate.
 - Const items are immutable program-lifetime rodata lowered to private constant globals; a const-array index is a bounds-checked access into the global and its length is static.
-- Growable and keyed collections are not kernel constructs: they are future library structures over `buffer<T>`, and the arena-index-pool pattern with slot recycling is rejected as a collection basis.
+- STOR-1 currently describes growable and keyed collections as future libraries over buffers and structs, not kernel containers. The D12 research now records that derivation as unproved: the current fully initialized Copy buffer cannot alone express arbitrary affine spare capacity, move-out, relocation, live-subset drop, sparse occupancy, or failure-atomic growth. No replacement mechanism is selected. Append-only P2 remains protected, while recyclable identity is a separate contract rather than a universal collection basis.
 
 ## Facts
 
@@ -11,3 +11,4 @@
 - 2026-07-08 statement: the greenlit graph-substrate design (unimplemented, gated on a pending storage owner ruling) is a heap-owned single-owner `pool<T>` plus a region-free typed copy `handle<T>`: append-only by default so the well-typed slot-recycling use-after-free is unrepresentable and access is a bare bounds check; generational per-element free is a census-gated opt-in; cross-pool misuse of a same-typed handle is honestly a memory-safe logic bug, outside the safety theorems — the typed handle still beats a bare integer index. (sourced)
 - 2026-07-10 statement: slot-recycling rejection has a doctrine consequence — a node is an index into append-only columns and indices never recycle; this is what replaces both pointer-linked heap nodes and free-list arenas (pattern P2). (sourced)
 - 2026-07-13 rationale: append-only and recyclable stable identity are separate observable contracts; the protected append-only path pays no generation or recycling tax, while substrate sharing remains an experimental question. (sourced)
+- 2026-07-14 research: full, dense-prefix, ring, sparse, dependent-prefix, and transient-hole live sets are separating performance witnesses, not a proposed runtime tag union. A universal bitmap can encode several states but would tax contracts whose live set is already proved by compact topology-specific metadata. Layout, semantic Copy, live-set state, ownership transitions, exit/drop, identity, refinement, and optimizer facts remain orthogonal until a family lock measures exact candidates. (sourced)

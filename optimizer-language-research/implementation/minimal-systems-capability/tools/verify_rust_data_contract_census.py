@@ -7,11 +7,15 @@ import csv
 import pathlib
 import re
 
+from build_d10_surface_map import FIELDS as D10_MAP_FIELDS
+from build_d10_surface_map import build_rows as build_d10_rows
+
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INVENTORY = ROOT / "RUST-1.97.0-API-INVENTORY.tsv"
 CONTRACTS = ROOT / "RUST-DATA-CONTRACT-CENSUS.tsv"
 SURFACE_MAP = ROOT / "RUST-DATA-SURFACE-MAP.tsv"
+D10_SURFACE_MAP = ROOT / "RUST-D10-SURFACE-MAP.tsv"
 
 CONTRACT_FIELDS = [
     "contract_id",
@@ -134,7 +138,7 @@ def main() -> None:
 
     contract_fields, contracts = read_tsv(CONTRACTS)
     require(contract_fields == CONTRACT_FIELDS, "contract TSV schema changed")
-    require(len(contracts) == 224, "expected exactly 224 normalized/evidence rows")
+    require(len(contracts) == 258, "expected exactly 258 normalized/evidence rows")
     require(
         all(all(row[field] for field in CONTRACT_FIELDS) for row in contracts),
         "empty required contract field",
@@ -158,6 +162,67 @@ def main() -> None:
     require(len(stable_safe) == 545, "raw stable-safe seed set is not 545")
     require(len(stable_unsafe) == 35, "raw stable-unsafe seed set is not 35")
     require(set(map_keys) == set(stable_safe), "surface map has an omission or extra key")
+
+    d10_fields, d10_surface_map = read_tsv(D10_SURFACE_MAP)
+    require(d10_fields == D10_MAP_FIELDS, "D10 surface-map TSV schema changed")
+    require(len(d10_surface_map) == 150, "D10 surface map must contain exactly 150 rows")
+    require(
+        all(all(row[field] for field in D10_MAP_FIELDS) for row in d10_surface_map),
+        "empty required D10 surface-map field",
+    )
+    d10_keys = [row["canonical_key"] for row in d10_surface_map]
+    require(len(d10_keys) == len(set(d10_keys)), "duplicate D10 canonical mapping")
+    require(not set(d10_keys) & set(map_keys), "D10 map overlaps the 16-seed map")
+    require(
+        d10_surface_map == build_d10_rows(),
+        "D10 surface map is not the exact mechanically derived crosswalk",
+    )
+    require(
+        sum("::iter" in row["representative_path"] for row in d10_surface_map) == 132,
+        "D10 map must retain exactly 132 iteration declarations",
+    )
+    require(
+        sum("::range" in row["representative_path"] for row in d10_surface_map) == 18,
+        "D10 map must retain exactly 18 range declarations",
+    )
+    require(
+        {row["route_kind"] for row in d10_surface_map}
+        == {"contract", "redundant_surface"},
+        "D10 route kinds changed",
+    )
+    require(
+        sum(row["route_kind"] == "contract" for row in d10_surface_map) == 107,
+        "D10 contract-route count changed",
+    )
+    require(
+        sum(row["route_kind"] == "redundant_surface" for row in d10_surface_map) == 43,
+        "D10 redundant-surface count changed",
+    )
+    for mapped in d10_surface_map:
+        require(
+            mapped["route_id"] in contract_by_id,
+            f"unknown D10 contract_id {mapped['route_id']}",
+        )
+
+    require("TRAIT-EXACT-01" in contract_by_id, "missing ExactSizeIterator contract")
+    require("TRAIT-FUSED-01" in contract_by_id, "missing FusedIterator contract")
+    require(
+        "FusedIterator" not in contract_by_id["TRAIT-EXACT-01"]["rust_surfaces"],
+        "ExactSizeIterator and FusedIterator must remain independent contracts",
+    )
+    require(
+        "ExactSizeIterator" not in contract_by_id["TRAIT-FUSED-01"]["rust_surfaces"],
+        "FusedIterator must not imply exact size",
+    )
+    range_primary = {
+        row["route_id"]
+        for row in d10_surface_map
+        if "::range" in row["representative_path"] and row["route_kind"] == "contract"
+    }
+    require(
+        len(range_primary) == 13,
+        "range value/query/iteration semantics must remain split into 13 exact contracts",
+    )
 
     forbidden_primary_prefixes = ("TRAIT-", "ALLOC-", "RAW-UNSAFE-", "HELPER-")
     for mapped in surface_map:
@@ -213,8 +278,9 @@ def main() -> None:
         )
 
     print(
-        "rust data-contract census: PASS — 224 contract/evidence rows, "
+        "rust data-contract census: PASS — 258 contract/evidence rows, "
         "545 canonical stable-safe declarations mapped exactly once, "
+        "150 D10 declarations routed exactly once (132 iteration, 18 range), "
         "35 canonical stable-unsafe declarations retained in evidence clusters"
     )
 

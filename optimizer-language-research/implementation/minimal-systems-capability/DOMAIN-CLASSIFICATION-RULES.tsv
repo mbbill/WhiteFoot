@@ -1,4 +1,4 @@
-rule_id	match	domain	domain_partition	canonical_route_or_blocked_claim	rationale
+rule_id	match	domain	domain_scope_codes	canonical_route_or_blocked_claim	rationale
 DOM-TARGET-ARCH	path:core::arch	target intrinsics and dispatch	FRAME+LATER+NG	Separate target/SIMD lock; raw unsafe intrinsic surface is not admissible.	Architecture catalogs are target-specific implementation evidence, not portable data contracts.
 DOM-TARGET-STDARCH	path:std::arch	target intrinsics and dispatch	FRAME+LATER+NG	Separate target/SIMD lock; raw unsafe intrinsic surface is not admissible.	The std module reexports target facilities and feature detection.
 DOM-TARGET-HINT-CORE	path:core::hint	target/compiler hints	FRAME+LATER+NG	Proof-derived lowering or separate target lock.	Writer assertions and unreachable hints cannot weaken checks.
