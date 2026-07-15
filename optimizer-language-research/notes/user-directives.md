@@ -373,3 +373,19 @@ standard-library or container implementation, candidate construction or
 execution, E0.1 restart, xlc migration, production fact channel, or default
 teaching. Any production design or implementation requires a later explicit
 owner decision.
+
+### D14 scope clarification (2026-07-15)
+
+For D14, "nonforgeable privileged admission route" means one static compiler,
+runtime, or official-core privilege-definition boundary that ordinary source
+cannot enter. The active research must first study how production languages
+reserve semantic-definition authority to their toolchains, then recommend one
+such mechanism for xlang, and only afterward derive the minimum safe public
+capability basis ordinary checked libraries require.
+
+This clarification excludes cryptographic authorization and independently
+distributed privileged extensions. F/C/S, signed grants, authorization
+releases, successor snapshots, replay, revocation, key rotation, and identity
+graphs are historical research for a different problem, not pending D14 design
+choices. It authorizes no production change, implementation, candidate, or
+experiment beyond D14's existing research-only envelope.

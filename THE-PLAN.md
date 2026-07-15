@@ -81,78 +81,47 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Minimal systems-capability basis / privileged gate** — CONDITIONAL GATE
-   AUTHENTICATION PASS; BASIS RESEARCH ACTIVE (D14, 2026-07-15). A repaired,
-   hostile-reviewed 42-dimension comparison now defines one source-inaccessible,
-   stage-indexed `PermitUse` relation with typed release-entry, stateless signed-
-   grant, and stateful current-membership witnesses. The identity graph separates
-   semantic policy, authorization, toolchain release, provider commitment,
-   consumer scope, stage use, final resolution, and receipts. Four hostile table
-   mutations fail closed. No source keyword, attribute, module path, package,
-   build flag, plugin, helper name, or cache record grants privilege.
+1. **Minimal systems-capability basis / static privileged definition** — SCOPE
+   CORRECTED; RESEARCH ACTIVE (D14, 2026-07-15). The active question is how a
+   compiler, runtime, or official core implementation defines operations that
+   ordinary source cannot define, and then which irreducible safe public
+   primitives ordinary checked libraries need. Source inaccessibility is a
+   static toolchain boundary. It is not cryptographic nonforgeability or an
+   admission protocol for independently distributed privileged extensions.
 
-   The gate choice is deliberately conditional. If an approved instance of an
-   existing external-frame template must be usable without an authorization-
-   release update, the stateless signed-grant candidate C is smallest. If such
-   an update is acceptable for every instance, fixed release entries F are
-   smaller. Stateful successor snapshots S add only unrequired local extension-
-   grant currentness under the present hard set, plus protected state and
-   verification cost. This is a research result, not an owner selection; the
-   earlier stateful lock remains historical evidence until an owner ruling.
+   The immediate sequence is fixed. First compare Rust and a small justified
+   production-language contrast set across compiler-hard-coded operations,
+   compiler-only intrinsic declarations, sealed embedded core modules, official
+   core source modes, and exact compiler-recognized runtime imports. Then
+   recommend one primary privilege-definition mechanism and subject it to
+   hostile review. Only after that mechanism is selected may the research derive
+   a Pareto-small public semantic basis and test ordinary-library derivations
+   against the existing finite systems-demand, dense-family, and held-out
+   ledgers. The mechanism decision and the semantic-operation inventory are
+   separate decisions.
 
-   Above that gate, ordinary unapproved modules use one fixed public reference
-   policy for proof-carrying resource protocols. The proposed semantic basis has
-   six independent axes: spatial resources, place identity, lifecycle/control,
-   interference and weak memory, external frames, and final loaded-code binding.
-   Its common storage vocabulary is a generative byte carrier partitioned into
-   checked typed places and padding space, with vacant/full state, linear move
-   and release authority, exact focus, proof-only partition reshape, structural
-   `CoreCopy`, checked callables/code leases, and executable static disposition.
-   Opaque modules may choose dense, ring, gap, sparse, recursive, shared,
-   concurrent, pinned, or external protocol metadata; no universal topology tag,
-   liveness bitmap, destructor pointer, named container, or privileged standard
-   library is selected. `LiveShape` is derived automation for common shapes, not
-   the semantic boundary.
+   The earlier signed-grant, release-entry, successor-snapshot, replay,
+   revocation, key-rotation, and identity-graph work addressed a different
+   third-party authorization problem. Its hash-pinned reports remain historical
+   evidence, but F/C/S is not an active choice and the bounded external-frame
+   template registry is not the next action. The six-axis certified-resource
+   architecture is likewise an unselected hypothesis and test-case source, not
+   the default public basis.
 
-   The paper dossier supplies candidate architecture-level routes across all 26
-   systems-domain categories and constructive witnesses for sequential growth,
-   arbitrary sparse occupancy, stable recyclable identity, recursion and
-   arenas, traversal and cleanup, shared/dynamic borrowing, weak-memory
-   protocols, pinning, partial I/O, callbacks, async cancellation, and final
-   loaded-image closure. Four independently selected held-outs cover concurrent
-   cuckoo migration, crash-consistent LSM state, hot-swappable JIT code, and
-   sparse GPU residency. These listed witnesses support further study; they do
-   not close exact D-2 or P-1. The frozen dense dossier contributes 93 members
-   and 303 exact outcomes. Its generated basis ledger is fail-closed: 340 unique
-   required route obligations across 150 contexts remain unresolved. The
-   disjoint partition is 168 coarse Convert-route, 24 Convert-callable, 136
-   allocator-applicability, six IntoOwner ZST/capacity-reshape, and six
-   IntoBoxed fullness/ZST obligations. Sixteen allocator obligations also
-   implicate Convert, so 208 obligations are Convert-related in total. Every
-   unresolved obligation receives no D-2 or cost credit.
+   The finite evidence remains load-bearing and fail-closed. The Rust 1.97.0
+   anchor, 276 coverage clusters, 26-domain systems envelope, dense Family Lock,
+   and held-outs define coverage and falsification demands rather than one
+   intrinsic per row. The dense ledger still has 340 unresolved required route
+   obligations across 150 contexts, including 208 Convert-related, 136
+   allocator-related, and 12 ZST/fullness obligations. Exact D-2 derivability and
+   P-1 same-contract structural performance remain pending, and paper routes
+   receive no measurement credit.
 
-   The performance position is a candidate hypothesis, not a completed P-1
-   result: the architecture is intended to permit contract-selected payload
-   layout, metadata, allocation, indirection, ownership traffic, and asymptotic
-   algorithms without a universal container tax. Exact same-contract parity is
-   still pending for route multiplicity, allocator applicability, Rotate
-   dispatch, stable-sort scheduling, and cached-key sorting. Proof erasure and
-   P-2 through P-4 remain architecture-level claims only. No throughput, code-
-   size, compile-time, proof-size, automatic-proof, or default-writer result is
-   claimed.
-
-   The next action is research, not an owner choice: freeze a bounded, no-formula
-   external-frame template registry and construct exact minimal privilege cuts
-   for every relevant systems, dense, and held-out derivation. The registry must
-   show D6 coverage without turning a template parameter into an axiom channel;
-   the cut ledger must charge every provider allocation, copy, indirection,
-   metadata field, call, effect, and fact. Only after those hostile reviews may
-   the owner choose C or F and approve a successor completion lock for G-2
-   through G-5. Exact D-2, P-1, Convert directions, allocator applicability,
-   ZST/full-storage contracts, Rotate dispatch, and stable/cached-key schedules
-   remain fail-closed. No language/specification change, compiler or verifier
-   implementation, capability entry, standard library, container candidate,
-   E0.1 restart, xlc migration, benchmark, or default teaching is authorized.
+   No language or specification change, compiler or verifier implementation,
+   capability entry, standard library, container, candidate construction or
+   execution, benchmark, E0.1 restart, xlc migration, production fact channel,
+   or default teaching is authorized. The separate xlc self-hosting build track
+   must not be mixed into this research.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
