@@ -1,12 +1,39 @@
 # xlang Research Handover
 
-Status: active task handover, 2026-07-15. This document records the current
-owner clarification after the privileged-basis research took an out-of-scope
-cryptographic turn. It is sufficient to resume the active research without the
-conversation transcript. It does not select a language design or authorize an
-implementation.
+Status: historical handover corrected by the owner on 2026-07-15. The
+mechanism-first sequencing below is superseded by
+`optimizer-language-research/implementation/minimal-systems-capability/
+PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`. The evidence inventories,
+cost fields, fail-closed ledgers, and non-production boundary remain useful.
+This document does not select a language design or authorize an implementation.
 
-## 0. Read this first
+## 0. Current correction — read this first
+
+The active objective is performance. Current xlang semantics cannot express
+some required native representations and code shapes without initialization,
+zeroing, copying, relocation, tags, metadata, allocation, indirection, checks,
+or extra machine events. The research must identify those finite expressiveness
+gaps, derive common semantic requirements, and compare at least three materially
+different complete capability sets under the standing safety, checker,
+regularity, AI-use, and no-standard-library constraints.
+
+A keyword, uniform language rule, type state, ownership/checker mechanism,
+checked proof system, ordinary library, compiler builtin, or exact runtime/
+target leaf may be appropriate. None is preselected. Safe ordinary writer use
+is a goal when it closes a performance gap under the constraints.
+
+The sealed compiler registry and P1-P9/Q1-Q6 packet are historical candidate
+evidence. Isolation is relevant only if a surviving capability requires
+compiler-private definition; it is not the research objective or first step.
+Do not continue the mechanism-first sequence recorded below.
+
+The final owner packet must include each candidate set's contents, selection
+rationale, performance effects, ordinary-library derivations, implementation
+shape, safety and cleanup rules, residual problems, and falsifiers, followed by
+an explained pros/cons comparison and a separately authorizable validation
+sequence.
+
+## 0.1 Earlier scope correction retained as historical context
 
 The immediate research question is **not** how to authenticate independently
 distributed privileged extensions. The owner wants to study how Rust and other
@@ -71,7 +98,11 @@ Repository process remains binding:
   approval; and
 - `make check` and `make -C compiler check` must pass before and after changes.
 
-## 2. Correct active research goal
+## 2. Superseded mechanism-first goal
+
+The following goal records the earlier correction from cryptographic extension
+authorization to static privilege definition. Its mechanism-first ordering is
+not active after the current owner correction in section 0.
 
 Study how systems languages grant the compiler, runtime, or official core
 library implementation capabilities that ordinary source cannot use to define

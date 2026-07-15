@@ -389,3 +389,39 @@ releases, successor snapshots, replay, revocation, key rotation, and identity
 graphs are historical research for a different problem, not pending D14 design
 choices. It authorizes no production change, implementation, candidate, or
 experiment beyond D14's existing research-only envelope.
+
+### D14 performance-first correction (2026-07-15)
+
+The preceding mechanism-first clarification used the wrong objective ordering.
+The project is not trying to draw a user/system authority line as its primary
+result. The primary problem is performance: current language expressiveness can
+force initialization, zeroing, copying, relocation, tags, metadata,
+allocations, indirection, dynamic dispatch, retained checks, extra machine
+events, or an unavailable native representation. Safety, no writer-accessible
+`unsafe`, proof-only check elision, checker feasibility, specification
+regularity, AI use, and ordinary-library systems coverage remain binding design
+constraints.
+
+Research must first freeze the finite performance-relevant expressiveness gaps,
+then derive their common semantics, and then compare at least three materially
+different complete capability sets. Each set must state its exact members, why
+they are needed, how they remove the recorded performance barriers, what
+ordinary checked libraries derive, its checker/compiler/backend/runtime shape,
+its safety and cleanup rules, costs on weaker shapes, open problems, and
+falsifiers. The final comparison must explain each candidate's pros, cons, and
+trade-offs before recommending one, recommending an exact combination, or
+finding that current evidence selects no winner.
+
+Keywords, language rules, type states, ownership/checker mechanisms, checked
+proof systems, ordinary libraries, builtins, and exact runtime or target leaves
+are all admissible candidate components. Ordinary safe writer access is not a
+defect. Isolation or a sealed registry is only a conditional implementation
+constraint for a surviving capability that cannot be expressed as an ordinary
+safe language or checker rule. The prior static-gate and P1-P9/Q1-Q6 packet is
+historical candidate evidence, not an owner-selected direction or a starting
+assumption.
+
+The existing research-only authorization and all production prohibitions remain
+unchanged. Exact D-2 and P-1 stay fail-closed; category routing and paper cost
+arguments do not close exact derivability, formal safety, or measured
+performance.

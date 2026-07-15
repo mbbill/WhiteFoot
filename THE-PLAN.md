@@ -81,52 +81,50 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Minimal systems-capability basis / static privileged definition** —
-   RESEARCH PACKET COMPLETE; OWNER REVIEW PENDING (D14, 2026-07-15). The
-   primary-source census, static-gate comparison, hostile reviews, abstract
-   basis derivation, 49-row capability crosswalk, 26-domain routing, held-outs,
-   and structural-cost packet are complete. The research recommendation is one
-   sealed compiler-embedded primitive registry whose compiler-created
-   declaration identity is the sole privilege-definition route. Ordinary code
-   may call fixed checked declarations but cannot define one through syntax,
-   attributes, names, paths, flags, cached artifacts, symbols, plugins, or
-   semantic descriptors. Direct lowering and runtime bodies remain subordinate
-   implementations selected by the same identity.
+1. **Performance-first minimal systems-capability research** — ACTIVE RESEARCH
+   TRACK; CANDIDATE COMPARISON PENDING (owner correction, 2026-07-15). The
+   objective is to remove performance barriers caused by missing language
+   expressiveness while retaining the standing safety and regularity
+   constraints. The research starts from a finite ledger of blocked native
+   representations and code shapes, not from a privilege gate, registry,
+   intrinsic form, keyword, or prior candidate basis.
 
-   The abstract basis hypothesis separates three fixed storage leaves, six
-   checked ordinary mechanisms, and independently counted stability, atomic,
-   thread, exact external-event, exact target/device-event, and executable-code
-   leaves. P7/P8 are sets of exact compiler-owned rows rather than generic
-   syscall, opcode, ABI-contract, or semantic-descriptor back doors. Containers,
-   allocator policy, synchronization policy, async policy, buffering, retry,
-   and parsing remain ordinary checked libraries.
+   The required owner packet must compare at least three materially different
+   complete capability sets. For each set it must state the exact capabilities,
+   why each is needed, which performance gaps it closes, how ordinary checked
+   libraries derive required container and systems contracts, its checker/
+   compiler/backend/runtime shape, its hidden and explicit costs, its residual
+   correctness risks, and its falsifiers. A uniform matrix must explain the
+   candidates' pros, cons, and trade-offs for native representation, weaker-
+   shape tax, rule count, composition, checker feasibility, AI stability,
+   specification size, portability, runtime metadata, and extension risk.
 
-   The earlier signed-grant, release-entry, successor-snapshot, replay,
-   revocation, key-rotation, and identity-graph work addressed a different
-   third-party authorization problem. Its hash-pinned reports remain historical
-   evidence, but F/C/S is not an active choice and the bounded external-frame
-   template registry is not the next action. The six-axis certified-resource
-   architecture is likewise an unselected hypothesis and test-case source, not
-   the default public basis.
+   The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
+   language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
+   and structural-cost fields remain historical evidence and candidate inputs.
+   They are not a selected direction. Isolation applies only if a surviving
+   residual machine capability requires compiler-private definition; it is not
+   the objective or derivation order. Cryptographic authorization and
+   independently distributed privileged extensions remain a separate problem.
 
-   Owner decisions are now limited to selecting or revising the static gate,
-   accepting or revising the abstract basis for further research, and optionally
-   authorizing the bounded safety-model, structural no-tax, and external-row
-   validation slices. No production decision is requested. The finite evidence
-   remains load-bearing and fail-closed: the Rust 1.97.0 anchor, 276 coverage
-   clusters, 26-domain systems envelope, dense Family Lock, and held-outs define
-   coverage and falsification demands rather than one intrinsic per row. The
-   dense ledger still has 340 unresolved required route obligations across 150
-   contexts, including 208 Convert-related, 136 allocator-related, and 12
-   ZST/fullness obligations. Exact D-2 derivability and P-1 same-contract
-   structural performance remain pending, and paper routes receive no
-   measurement credit.
+   The finite evidence remains load-bearing and fail-closed: the Rust 1.97.0
+   anchor, 276 coverage clusters, 26-domain systems envelope, dense Family Lock,
+   and held-outs define coverage and falsification demands. The dense ledger
+   still has 340 unresolved required route obligations across 150 contexts,
+   including 208 Convert-related, 136 allocator-related, and 12 ZST/fullness
+   obligations. Exact D-2 derivability and P-1 same-contract structural
+   performance remain pending. Routed categories receive no exact derivability
+   credit, paper routes receive no measured-performance credit, and structural
+   analysis is not a formal safety proof.
 
-   No language or specification change, compiler or verifier implementation,
-   capability entry, standard library, container, candidate construction or
-   execution, benchmark, E0.1 restart, xlc migration, production fact channel,
-   or default teaching is authorized. The separate xlc self-hosting build track
-   must not be mixed into this research.
+   The controlling research contract is
+   `optimizer-language-research/implementation/minimal-systems-capability/
+   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`. No language or
+   specification change, compiler or verifier implementation, capability entry,
+   standard library, container, candidate construction or execution, benchmark,
+   E0.1 restart, xlc migration, production fact channel, or default teaching is
+   authorized. The separate xlc self-hosting build track must not be mixed into
+   this research.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
