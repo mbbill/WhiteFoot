@@ -1,0 +1,50 @@
+capability_id	basis_routes	status	derivation_or_gap
+ST-FULL	CURRENT,P1,Q1	PAPER_ROUTE	Existing full storage is preserved; P1/Q1 can adopt it without tags or payload traffic.
+ST-AOS	P1,P2,Q1	PAPER_ROUTE	Checked record layouts and affine live places preserve one contiguous allocation.
+ST-DENSE	P1,P2,Q1,Q2	PAPER_ROUTE	Q1 owns a live prefix and vacant suffix; P2 changes the boundary without per-slot tags.
+ST-RING	P1,P2,Q1,Q2	PAPER_ROUTE	Q1 represents at most two live intervals plus vacant complement with head/length metadata only.
+ST-SPARSE	P1,P2,Q1,Q2	PAPER_ROUTE	Representation-selected occupancy metadata proves exact Live/Vacant places; dense paths inherit no bitmap.
+ST-DEPENDENT	P1,P2,Q1,Q2	PAPER_ROUTE	One sealed owner relates several exact ranges and commits cross-buffer transitions together.
+ST-HOLE	P1,P2,Q1,Q2	PAPER_ROUTE	Exact transition scope owns the inaccessible hole and closes every normal edge.
+ST-REFINE	Q6	PAPER_ROUTE	Validation or preserving transitions seal the refinement; mutation invalidates it.
+OW-INIT	P2	PAPER_ROUTE	put moves one offered owner into one vacant place.
+OW-MOVEOUT	P2	PAPER_ROUTE	take returns one owner and leaves one vacant place.
+OW-REPLACE	P2,Q2	DERIVED	One take followed by one put; the old owner is returned.
+OW-SWAP	P2,Q3	DERIVED	Checked disjointness plus two takes and two puts; no allocation.
+OW-RELOCATE	P1,P2,Q2	DERIVED	Direction-safe repeated take/put; bulk lowering is optimization.
+OW-CLONE	Q4,P2	PAPER_ROUTE	Explicit clone behavior produces an owner then put installs it; no implicit clone premise.
+OW-DROP	P2,Q1,Q2	PAPER_ROUTE	Static disposition destroys exactly the Q1-proved live set then releases empty roots.
+EX-NORMAL	Q2	PAPER_ROUTE	Every normal edge reseals, transfers, or consumes exact resources.
+EX-ABANDON	Q2	PAPER_ROUTE	Intermediate states are exact-use or have a statically checked disposition.
+EX-ABORT	CURRENT	ESTABLISHED	EFF-4 aborts without cleanup while pre-trap safety remains required.
+BR-PROV	CURRENT,Q3	PAPER_EXTENSION	Current lexical provenance is retained and generalized per leaf.
+BR-REBORROW	Q3	PAPER_ROUTE	Child authority is bounded by the parent and returns on end.
+BR-RESULT	Q3	PAPER_ROUTE	Each result leaf selects one declared source relation.
+BR-STORED	Q3	OPEN_EXACT	The abstract source-map route is stated; 294 stored-borrow branch obligations remain exact-family work.
+BR-DISJOINT	Q3	PAPER_ROUTE	Static structure or one checked partition/distinctness validation creates scoped subplaces.
+BR-INVALIDATE	Q1,Q3	PAPER_ROUTE	Every structural transition declares exact physical and logical invalidators.
+BR-CURSOR	Q1,Q2,Q3	PAPER_ROUTE	A sealed cursor carries finite source/footprint maps and exact abandonment behavior.
+FL-CAPACITY	CURRENT,P3	PAPER_EXTENSION	Checked arithmetic precedes acquisition and mutation; operation-specific failure remains explicit.
+FL-ALLOC	P3	PAPER_ROUTE	Recoverable acquisition returns no root and preserves all offered owners on failure.
+FL-ATOMIC	P3,Q1,Q2	PAPER_ROUTE	Reserve-first preparation precedes infallible P2 commit; rollback is representation-specific.
+FL-CALLBACK	Q2,Q4	PAPER_ROUTE	Calls occur at sealed boundaries or inside an exact transition with stated outcomes.
+ID-LOGICAL	Q1	PAPER_ROUTE	Ordinary owner metadata defines relocation-stable logical identity.
+ID-FRESH	Q1	PAPER_ROUTE	Generation exhaustion or permanent retirement is an ordinary checked invariant.
+ID-POOL	Q1	PAPER_ROUTE	Pool-scope policy is representation metadata; stronger rejection pays explicitly.
+ID-ADDRESS	P4,Q1	PAPER_ROUTE	A stability lease escrows move/release authority only for selected paths.
+ID-SHARED	P5,Q1,Q2,Q5	OPEN_MODEL	Counts and lifecycle can be ordinary state, but weak-memory/reclamation semantics remain unselected.
+AB-SEAL	Q1	PAPER_ROUTE	Clients cannot construct hidden representation or invariant state.
+AB-BEHAVIOR	Q4	PAPER_ROUTE	Exact static behavior contracts preserve safety authority boundaries.
+AB-STATEFUL	Q3,Q4	PAPER_ROUTE	Owned environments carry exact state, call count, effects, provenance, and disposition.
+AB-GENERIC	Q4	PAPER_ROUTE	Concrete instantiation rechecks ordinary bodies and preserves direct monomorphization.
+IT-SHARED	Q3,Q4	PAPER_ROUTE	A sealed cursor yields source-tied shared borrows without allocation.
+IT-UNIQ	Q1,Q3,Q4	PAPER_ROUTE	Progress or scoped disjointness yields one unique item at a time.
+IT-OWN	P2,Q1,Q2,Q4	PAPER_ROUTE	Owning cursor takes each live item once and disposes the remainder on abandonment.
+IT-COMPOSE	Q2,Q3,Q4	PAPER_ROUTE	Inline stateful adapters preserve progress/provenance with no intermediate materialization.
+FT-STATE	P1,P2,Q1	OPEN_FACT_REVIEW	Checked state facts are scoped to roots/epochs and invalidate on transitions; concrete fact channel needs hostile review.
+FT-REFINE	Q6	OPEN_FACT_REVIEW	Only validation/preserving transitions mint refinement facts.
+FT-IDENTITY	Q1	OPEN_FACT_REVIEW	Identity facts bind owner, slot, generation, and mutation epoch.
+FT-BORROW	P5,Q1,Q3,Q5	OPEN_MODEL	Dynamic borrow facts require exact state/guard lifecycle and selected sharing semantics.
+FT-SHARED	P5,Q1,Q2,Q5	OPEN_MODEL	Shared lifecycle facts require exact strong/weak and memory-order rules.
+NT-FIXED	P1,P2,P3,Q1,Q2,Q3,Q4,Q5,Q6	PROTECTED	All new proof state erases and no new runtime field/branch enters the fixed full Copy-buffer path.
+NT-P2	P1,P2,P3,Q1,Q2,Q3,Q4,Q5,Q6	PROTECTED	Append-only identity selects no generation, sparse, sharing, stability, or recycling mechanism.
