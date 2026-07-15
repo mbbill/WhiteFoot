@@ -1432,3 +1432,19 @@ in `dense-family-lock-a/DENSE-HOSTILE-REVIEW-ROUND-1.md`; the overwritten
 untracked draft bytes are not represented as recoverable evidence. Repair and
 new exact-hash hostile review are mandatory. Candidate construction, scoring,
 language selection, and production implementation remain unauthorized.
+
+## D13-R2 rejects the first repaired dense coverage authority (2026-07-14)
+
+An independent frozen-input recomputation confirmed the 65-cluster,
+651-parent, 119/193 topology, 29-gate, 39/17/4/5 payload, 75-overlay, and
+426-selector-child domain facts, but rejected the first repaired coverage
+authority. Unanchored selector children still inherited cluster-wide targets
+and members; four active BR-STORED clusters lacked required bindings;
+O-ROPE-UNIQUE was omitted; real excluded evidence lacked outcome bindings;
+the local member model was outside the reviewed dependency set; and coherent
+row mutations bypassed validators that checked only mutual consistency. The
+exact failed bytes, hashes, mutation canaries, and required repairs are durable
+in `dense-family-lock-a/DENSE-COVERAGE-HOSTILE-REVIEW-ROUND-2-FAIL.md` and the
+preceding Git snapshot. A fresh exact-hash review is required after repair.
+Candidate construction and every production-relevant action remain
+unauthorized.
