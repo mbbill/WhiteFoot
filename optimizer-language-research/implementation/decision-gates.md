@@ -1465,3 +1465,23 @@ This step closes coverage and provenance only. Candidate construction,
 selection, execution, scoring, language or specification decisions, compiler
 or production implementation, E0.1 restart, xlc migration, and default
 teaching remain unauthorized.
+
+## D13-R4 closes dense contracts and mathematical soundness (2026-07-14)
+
+The exact dense Family Lock A contract and mathematical-soundness layer passes
+independent exact-byte hostile review. The frozen model contains 303
+member/outcome contracts, a bijective 303-row owner-role registry, the exact
+five-by-303 candidate binding product, 97 behavior-preserving adapter groups,
+five pairwise-distinct lifecycle mechanisms, eight non-production fact-channel
+contracts, and 2,002 deterministic traces. All 32 registered mutations and
+three additional coherent hostile mutations fail closed. Every arm uses the
+same conditional affine single-live-interval carrier for owning traversal, so
+candidate-private cursors, allocators, sealing, or provenance routes cannot
+confound the comparison. The reviewed hashes, independent joins, lifecycle and
+policy audit, trace partition, and strict boundary are recorded in
+`dense-family-lock-a/DENSE-SOUNDNESS-HOSTILE-REVIEW-PASS.md` at SHA-256
+`20b6325366c961a5d608066da8acd9a9c19352290fdaa44e3666f2e14430c7c7`.
+OD-0, OD-1, OD-3, and OD-4 remain unresolved. This step authorizes no candidate
+construction, execution, scoring, selection, production fact channel,
+language or specification decision, compiler or production implementation,
+E0.1 restart, xlc migration, or default teaching.

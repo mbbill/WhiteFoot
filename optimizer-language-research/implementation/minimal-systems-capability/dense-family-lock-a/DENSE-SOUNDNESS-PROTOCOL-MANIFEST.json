@@ -1,0 +1,347 @@
+{
+  "authority_boundary": "This manifest and its traces are mathematical protocol evidence only; they authorize no candidate construction, execution, scoring, selection, language decision, specification change, compiler work, or production fact channel.",
+  "candidate_construction_authorized": false,
+  "candidate_execution_authorized": false,
+  "common_cursor_rule": "All five arms use the identical OD-0 affine single-live-interval carrier; candidate-private substitutions are rejected.",
+  "compiler_or_specification_change_authorized": false,
+  "coverage_pins": {
+    "closed_registry_sha256": "84bc687641746607ba3798b8cf419f427ef4a4fe7b3a402e377287804f1024a3",
+    "generated_output_sha256": {
+      "DENSE-CAPABILITY-UNIT-AUTHORITY.tsv": "e58a922be6b9c917c69f813b29362d0cfed8e94b9a4709ae33a7d3ecaa774dd0",
+      "DENSE-EVIDENCE-MEMBER-AUTHORITY.tsv": "34b1e14f611b7eee1f069bf9dbf31b0beab706fcb1dfa70b807e692b9dd53e2d",
+      "DENSE-EVIDENCE-TARGET-AUTHORITY.tsv": "687aecfaa3ef122ee1a9270a97a4ab614e4693d62a32eb69e93a9a33ad56866e",
+      "DENSE-OVERLAY-BRANCH-AUTHORITY.tsv": "2d1d737501c75903fe564e46af334700703a61a00c1e7f1fac8f0058c4638738"
+    },
+    "literal_loader_sha256": "a8eb255184ebf560f2fcd5eab659405b08185431a224cee69bfca9e32233cdc2"
+  },
+  "mutation_test_count": 32,
+  "mutation_tests": [
+    {
+      "diagnostic": "contracts differs from the frozen executable registry",
+      "mutation_id": "MUTATE-DROP-CONTRACT",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "contracts differs from the frozen executable registry",
+      "mutation_id": "MUTATE-CORRUPT-OUTCOME",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "candidate bindings differs from the frozen executable registry",
+      "mutation_id": "MUTATE-DROP-BINDING",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "owner roles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-DROP-OWNER-ROLE",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-OWNER-MINT",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-OWNER-LOSS",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-EXTRA-RETURNED-OWNER",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-ALLOCATION-ROOT",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-POST-STATE",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-PROOF-COPYABLE-MASTER",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-PROOF-THIRD-RANGE",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-DERIVED-REPAIR-REJECT",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-DERIVED-REPAIR-ALLOCATE",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-DERIVED-REPAIR-TRAP",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-RUNTIME-BITMAP",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-RUNTIME-THIRD-RANGE",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "lifecycles differs from the frozen executable registry",
+      "mutation_id": "MUTATE-PRIVATE-CURSOR",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "fact channels differs from the frozen executable registry",
+      "mutation_id": "MUTATE-STALE-FACT-CONSUMER",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "fact channels differs from the frozen executable registry",
+      "mutation_id": "MUTATE-FACT-INVALIDATOR-REMOVED",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "fact channels differs from the frozen executable registry",
+      "mutation_id": "MUTATE-LIVE-PREFIX-HOLE",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "ZST policies differs from the frozen executable registry",
+      "mutation_id": "MUTATE-ZST-ALLOCATION",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "ZST policies differs from the frozen executable registry",
+      "mutation_id": "MUTATE-ZST-DROP-COUNT",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "contracts differs from the frozen executable registry",
+      "mutation_id": "MUTATE-EXECUTION-AUTHORIZATION",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace authorizes candidate execution",
+      "mutation_id": "MUTATE-TRACE-EXECUTION-AUTHORIZATION",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-WRONG-SORT-ORDER",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "trace artifact differs from executable mathematical oracle",
+      "mutation_id": "MUTATE-WRONG-BEHAVIOR-CALL-ORDER",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "operations differs from the frozen executable registry",
+      "mutation_id": "MUTATE-OPERATION-AUTHORIZATION",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "literal registry must contain literal assignments only",
+      "mutation_id": "MUTATE-COHERENT-SHA-EXECUTABLE-REGISTRY",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "coverage-output SHA-256 mismatch for DENSE-EVIDENCE-MEMBER-AUTHORITY.tsv: expected 34b1e14f611b7eee1f069bf9dbf31b0beab706fcb1dfa70b807e692b9dd53e2d, got cae8862ba5e9eda0d7a15d8c70dae824b1aafe96cb5fefa9a2ca6d6fa1bae02a",
+      "mutation_id": "MUTATE-PINNED-COVERAGE-DENSE-EVIDENCE-MEMBER-AUTHORITY.tsv",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "coverage-output SHA-256 mismatch for DENSE-OVERLAY-BRANCH-AUTHORITY.tsv: expected 2d1d737501c75903fe564e46af334700703a61a00c1e7f1fac8f0058c4638738, got ed283df5b204af4a390efd81ef6d79ed0d2723c0a45b4069f34144b76d6fff8d",
+      "mutation_id": "MUTATE-PINNED-COVERAGE-DENSE-OVERLAY-BRANCH-AUTHORITY.tsv",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "coverage-output SHA-256 mismatch for DENSE-EVIDENCE-TARGET-AUTHORITY.tsv: expected 687aecfaa3ef122ee1a9270a97a4ab614e4693d62a32eb69e93a9a33ad56866e, got d03ad1f9122c8c918b136297460797795192c90a798e04749d0a445ce8c819a4",
+      "mutation_id": "MUTATE-PINNED-COVERAGE-DENSE-EVIDENCE-TARGET-AUTHORITY.tsv",
+      "result": "EXPECTED_REJECTION"
+    },
+    {
+      "diagnostic": "coverage-output SHA-256 mismatch for DENSE-CAPABILITY-UNIT-AUTHORITY.tsv: expected e58a922be6b9c917c69f813b29362d0cfed8e94b9a4709ae33a7d3ecaa774dd0, got 6b49885d7483be4fb6afcc639d4d4abbfde55669edf5e7e0aa39c50ab2722026",
+      "mutation_id": "MUTATE-PINNED-COVERAGE-DENSE-CAPABILITY-UNIT-AUTHORITY.tsv",
+      "result": "EXPECTED_REJECTION"
+    }
+  ],
+  "od4_rule": "Scoped consume/fold is conditional on OD-4 owner selection and remains nonescaping, direct, ordered, nonreentrant, and nonallocating unless collecting.",
+  "schema_version": "dense-soundness-protocol-manifest-v1",
+  "selection_or_scoring_authorized": false,
+  "semantic_dependencies": [
+    {
+      "bytes": 187462,
+      "path": "dense_contract_registry.py",
+      "sha256": "31dda5ccfd33202860022946fdf456404b104a14118ffcd286406595e2da2d06"
+    },
+    {
+      "bytes": 105081,
+      "path": "dense_soundness_oracle.py",
+      "sha256": "9a750e9a01a3dc7329ed26393df1fbcad233509dc8cbc05079c1d317b81e68c2"
+    },
+    {
+      "bytes": 33477,
+      "path": "dense_meta5.py",
+      "sha256": "40c684507e1a5c3592da2ede792be2fb1bcc8679eb659de97d72ead92e6ae376"
+    },
+    {
+      "bytes": 15710,
+      "path": "dense_owner_decisions.py",
+      "sha256": "93f3d22ce02ea3b654177a80d1a46a50af4ed6e38bfee6f45dd4af23c72ed4bc"
+    },
+    {
+      "bytes": 2072,
+      "path": "dense_literal_registry.py",
+      "sha256": "a8eb255184ebf560f2fcd5eab659405b08185431a224cee69bfca9e32233cdc2"
+    },
+    {
+      "bytes": 208297,
+      "path": "dense_coverage_closed_registry.py",
+      "sha256": "84bc687641746607ba3798b8cf419f427ef4a4fe7b3a402e377287804f1024a3"
+    },
+    {
+      "bytes": 663850,
+      "path": "DENSE-EVIDENCE-TARGET-AUTHORITY.tsv",
+      "sha256": "687aecfaa3ef122ee1a9270a97a4ab614e4693d62a32eb69e93a9a33ad56866e"
+    },
+    {
+      "bytes": 318130,
+      "path": "DENSE-EVIDENCE-MEMBER-AUTHORITY.tsv",
+      "sha256": "34b1e14f611b7eee1f069bf9dbf31b0beab706fcb1dfa70b807e692b9dd53e2d"
+    },
+    {
+      "bytes": 57580,
+      "path": "DENSE-OVERLAY-BRANCH-AUTHORITY.tsv",
+      "sha256": "2d1d737501c75903fe564e46af334700703a61a00c1e7f1fac8f0058c4638738"
+    },
+    {
+      "bytes": 218016,
+      "path": "DENSE-CAPABILITY-UNIT-AUTHORITY.tsv",
+      "sha256": "e58a922be6b9c917c69f813b29362d0cfed8e94b9a4709ae33a7d3ecaa774dd0"
+    },
+    {
+      "bytes": 312079,
+      "path": "DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv",
+      "sha256": "3879e7bf3896c466b38a46c719ae6acf0f6113aab3e4606cb4593bc0baace9a9"
+    },
+    {
+      "bytes": 27465,
+      "path": "DENSE-ROLE-UNIT-AUTHORITY.tsv",
+      "sha256": "f949d1ca7f05d742eccb3264702591e1cc5ba559c4867c3b175796afe633f824"
+    },
+    {
+      "bytes": 708227,
+      "path": "DENSE-EXACT-MEMBER-OUTCOME-REGISTRY.tsv",
+      "sha256": "3016206708a63b858b655e81de0e5c08e21055b0c4aa4c1ce37c2561c73e3418"
+    },
+    {
+      "bytes": 356301,
+      "path": "DENSE-OWNER-ROLE-REGISTRY.tsv",
+      "sha256": "c35f15e6f63b5e1067246aaa555329294b753a294009dc5c17154b54eadef971"
+    },
+    {
+      "bytes": 2944,
+      "path": "DENSE-COMMON-SUBSTRATE-REGISTRY.tsv",
+      "sha256": "99fa5fc0c0ad44033c360027a0b2d5caf2bdb65253013776995f21e145e28e3f"
+    },
+    {
+      "bytes": 8630,
+      "path": "DENSE-STORED-BORROW-ROUTE-REGISTRY.tsv",
+      "sha256": "6af02ae6c410d9ae08e802eb2733eeab80d94e905bf5593ab6ce29327fa9ddf8"
+    },
+    {
+      "bytes": 3564,
+      "path": "DENSE-OD4-POLICY-REGISTRY.tsv",
+      "sha256": "073c206be16fb9d85cfd7d90bd3743c21633b30ef1a93fd21828d3a1a5938bdd"
+    },
+    {
+      "bytes": 18873,
+      "path": "DENSE-OD1-POLICY-REGISTRY.tsv",
+      "sha256": "558e4d11dc9ba6d97f9f1de537e4f9f528167836f9e5a7b4036380dd7aad9379"
+    },
+    {
+      "bytes": 8657,
+      "path": "DENSE-CANDIDATE-LIFECYCLE-REGISTRY.tsv",
+      "sha256": "63f6c1e0cad521ea718b40b9570857e2401a2e83e4d36d1d58785b7276a041df"
+    },
+    {
+      "bytes": 605495,
+      "path": "DENSE-CANDIDATE-OPERATION-REGISTRY.tsv",
+      "sha256": "e6309a06014fbc573974786e91597344d29c665b463bd4589553d1e8a55812bd"
+    },
+    {
+      "bytes": 695983,
+      "path": "DENSE-CANDIDATE-CONTRACT-BINDINGS.tsv",
+      "sha256": "efb9336256340fd4b49177ba738fa3de1099f3e9f8157e77b6232979afee01d3"
+    },
+    {
+      "bytes": 3311,
+      "path": "DENSE-CANDIDATE-DISTINCTION-REGISTRY.tsv",
+      "sha256": "5b1a4fd41658cfd21f9330c79c8914ed9107aede3c5ffe619d5fa5216580c018"
+    },
+    {
+      "bytes": 2656,
+      "path": "DENSE-ZST-POLICY-REGISTRY.tsv",
+      "sha256": "7f8d3d4cd12e5e35fc773388458d028f306aba3f1a2445a0b08378737d765059"
+    },
+    {
+      "bytes": 11383,
+      "path": "DENSE-FACT-CHANNEL-REGISTRY.tsv",
+      "sha256": "8f6cb60bfb657a695168992e825cd75b45f2702b278d4755afa8b54b1843868f"
+    },
+    {
+      "bytes": 1407,
+      "path": "DENSE-SYNTHETIC-UNIT-REGISTRY.tsv",
+      "sha256": "d03491046d15c96f42e04c80a27c98b4547895fc687d3b929bcc53183d3a87a3"
+    }
+  ],
+  "status": "OWNER_REVIEW_PROTOCOL_ONLY",
+  "trace_artifact": {
+    "bytes": 10848754,
+    "case_count": 2002,
+    "case_kind_counts": {
+      "CANDIDATE_LIFECYCLE_ATTACK": 22,
+      "CAPACITY_BOUNDARY_0_TO_4": 25,
+      "COMMON_OWNING_CURSOR": 50,
+      "EXACT_NORMAL_BINDING": 750,
+      "EXACT_PRE_ABORT_BINDING": 555,
+      "EXACT_RECOVERABLE_FAILURE_BINDING": 165,
+      "EXACT_STATIC_REJECTION_BINDING": 45,
+      "FACT_CHANNEL_ATTACK": 120,
+      "GROWTH_ROOT_SUCCESS": 10,
+      "OD4_SCOPED_ATTACK": 35,
+      "OD4_SCOPED_CONSUMER": 100,
+      "STORED_BORROW_ATTACK": 80,
+      "STORED_BORROW_ROUTE": 20,
+      "ZST_LOGICAL_OWNER": 25
+    },
+    "failure_primary_case_count": 720,
+    "path": "DENSE-MATHEMATICAL-SOUNDNESS-TRACES.jsonl",
+    "sha256": "be4b755f44b244ba12338d96d483e3c7de5b282858b23beefc02ec32e95d1052"
+  },
+  "unresolved_owner_decisions": [
+    "OD-0",
+    "OD-1",
+    "OD-3",
+    "OD-4"
+  ],
+  "validation_counts": {
+    "candidate_bindings": 1515,
+    "cases": 2002,
+    "contracts": 303,
+    "hostile_cases": 262,
+    "primary_cases": 1515
+  }
+}
