@@ -27,11 +27,22 @@ evidence. Isolation is relevant only if a surviving capability requires
 compiler-private definition; it is not the research objective or first step.
 Do not continue the mechanism-first sequence recorded below.
 
-The final owner packet must include each candidate set's contents, selection
-rationale, performance effects, ordinary-library derivations, implementation
-shape, safety and cleanup rules, residual problems, and falsifiers, followed by
-an explained pros/cons comparison and a separately authorizable validation
-sequence.
+The performance-first owner packet is complete at
+`optimizer-language-research/implementation/minimal-systems-capability/
+PERFORMANCE-FIRST-OWNER-DECISION-PACKET.md`. It includes three candidate sets,
+their contents and removal witnesses, performance effects, ordinary-library
+derivations, implementation shapes, safety and cleanup rules, residual problems,
+falsifiers, a 17-dimension pros/cons comparison, hostile review, and six separate
+validation requests.
+
+There is no evidence-backed winner. Candidate A is the generality control,
+Candidate B is the first repair-and-validation hypothesis, and Candidate C is
+the specialization control. B is not selectable: public Sparse admission,
+backing-root provenance across owner-token relocation, and recursive/traversal
+exact cleanup remain blocking. The packet recommends owner authorization of
+VR-0 paper repair only. No repair, model, prototype, candidate, experiment,
+machine-event work, performance or AI trial, language/specification/compiler/
+runtime change, standard library, or production work is authorized.
 
 ## 0.1 Earlier scope correction retained as historical context
 

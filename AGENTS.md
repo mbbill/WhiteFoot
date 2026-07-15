@@ -70,18 +70,19 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Performance-first minimal-capability research is the active design track. The
-  next result must start from finite measured or structurally pinned expression
-  gaps and compare at least three materially different complete capability sets,
-  including their contents, performance effects, derivability, implementation
-  shapes, residual risks, and pros/cons. The prior sealed-registry and P1-P9/
-  Q1-Q6 packet is historical candidate evidence, not a selected direction.
-  Isolation is a conditional implementation constraint, not the objective or
-  derivation order. Keep the 340 unresolved dense obligations across 150
-  contexts and exact D-2/P-1 fail-closed. No language or specification change,
-  compiler or verifier implementation, capability entry, standard library,
-  container, candidate execution, benchmark, E0.1 restart, migration, or
-  default teaching is authorized.
+- Performance-first minimal-capability research is complete for owner review.
+  The packet compares proof-indexed A, bounded-kernel B, and family-specialized
+  C across 15 demand families and 17 dimensions; no candidate is selectable and
+  there is no evidence-backed winner. Retain A as the generality control, B as
+  the first repair-and-validation hypothesis, and C as the specialization
+  control. B's public Sparse admission, cross-root provenance, and exact cleanup
+  rules remain blocking; the packet recommends owner authorization of VR-0
+  paper repair only. Keep the 340 unresolved dense obligations across 150
+  contexts and exact D-2/P-1 fail-closed. No repair, model, prototype, machine-
+  event work, performance or AI trial, language/specification/compiler/verifier/
+  runtime implementation, capability entry, standard library, container,
+  candidate execution, benchmark, E0.1 restart, migration, or default teaching
+  is authorized.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

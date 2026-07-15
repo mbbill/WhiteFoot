@@ -81,23 +81,25 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Performance-first minimal systems-capability research** — ACTIVE RESEARCH
-   TRACK; CANDIDATE COMPARISON PENDING (owner correction, 2026-07-15). The
+1. **Performance-first minimal systems-capability research** — OWNER REVIEW
+   PENDING (packet complete 2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
    representations and code shapes, not from a privilege gate, registry,
    intrinsic form, keyword, or prior candidate basis.
 
-   The required owner packet must compare at least three materially different
-   complete capability sets. For each set it must state the exact capabilities,
-   why each is needed, which performance gaps it closes, how ordinary checked
-   libraries derive required container and systems contracts, its checker/
-   compiler/backend/runtime shape, its hidden and explicit costs, its residual
-   correctness risks, and its falsifiers. A uniform matrix must explain the
-   candidates' pros, cons, and trade-offs for native representation, weaker-
-   shape tax, rule count, composition, checker feasibility, AI stability,
-   specification size, portability, runtime metadata, and extension risk.
+   The completed packet freezes 15 conjunctive performance-demand families,
+   three materially different capability hypotheses, 17 uniform comparison
+   dimensions, 42 protected/witness/held-out paper routes, 22 hostile attacks,
+   and six separately authorizable validation requests. There is no evidence-
+   backed winner. A is retained as the generality control, B as the first
+   repair-and-validation hypothesis, and C as the specialization control. B is
+   not a complete selectable set: its public Sparse admission, backing-root
+   provenance across owner-token relocation, and recursive/traversal exact
+   cleanup rules remain blocking definition gaps. It stays distinct only if
+   those gaps close without A-style general proof authority or C-style family-
+   specific operations.
 
    The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
    language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
@@ -119,12 +121,15 @@ Measured non-wins (equally load-bearing):
 
    The controlling research contract is
    `optimizer-language-research/implementation/minimal-systems-capability/
-   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`. No language or
-   specification change, compiler or verifier implementation, capability entry,
-   standard library, container, candidate construction or execution, benchmark,
-   E0.1 restart, xlc migration, production fact channel, or default teaching is
-   authorized. The separate xlc self-hosting build track must not be mixed into
-   this research.
+   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the owner decision surface
+   is `PERFORMANCE-FIRST-OWNER-DECISION-PACKET.md`. The packet recommends only
+   VR-0 exact paper repair for owner authorization. No repair, safety model,
+   structural prototype, machine-event model, performance measurement, AI trial,
+   language or specification change, compiler or verifier implementation,
+   capability entry, standard library, container, candidate implementation or
+   execution, benchmark, E0.1 restart, xlc migration, production fact channel,
+   or default teaching is authorized. The separate xlc self-hosting build track
+   must not be mixed into this research.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
