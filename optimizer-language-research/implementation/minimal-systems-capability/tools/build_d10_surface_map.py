@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build the exact Rust 1.97 D10 iteration/range contract crosswalk."""
+"""Build the exact Rust 1.97 iteration/range contract crosswalk.
+
+The selection predicate is intentionally independent of the domain classifier:
+the crosswalk must detect a bad D10 classification rather than inherit it.
+"""
 
 from __future__ import annotations
 
@@ -10,8 +14,19 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-CLASSIFICATION = ROOT / "RUST-1.97.0-DOMAIN-CLASSIFICATION.tsv"
+INVENTORY = ROOT / "RUST-1.97.0-API-INVENTORY.tsv"
 OUTPUT = ROOT / "RUST-D10-SURFACE-MAP.tsv"
+
+OPS_RANGE_PATHS = {
+    "core::ops::Bound",
+    "core::ops::Range",
+    "core::ops::RangeBounds",
+    "core::ops::RangeFrom",
+    "core::ops::RangeFull",
+    "core::ops::RangeInclusive",
+    "core::ops::RangeTo",
+    "core::ops::RangeToInclusive",
+}
 
 FIELDS = [
     "canonical_key",
@@ -132,6 +147,15 @@ ITER_FUNCTION_ROUTES = {
     "zip": "ITER-ADAPT-ZIP-01",
 }
 
+PEEKABLE_METHODS = {
+    "next_if",
+    "next_if_eq",
+    "next_if_map",
+    "next_if_map_mut",
+    "peek",
+    "peek_mut",
+}
+
 RANGE_OPERATION_ROUTES = {
     ("core::range::Range", "Range"): "RANGE-VALUE-HALFOPEN-01",
     ("core::range::Range", "contains"): "RANGE-CONTAINS-HALFOPEN-01",
@@ -149,6 +173,31 @@ RANGE_OPERATION_ROUTES = {
     ("core::range::RangeIter", "RangeIter"): "RANGE-ITER-HALFOPEN-01",
     ("core::range::RangeInclusiveIter", "RangeInclusiveIter"): "RANGE-ITER-INCLUSIVE-01",
     ("core::range::RangeFromIter", "RangeFromIter"): "RANGE-ITER-FROM-01",
+    ("core::ops::Bound", "Bound"): "RANGE-BOUND-VALUE-01",
+    ("core::ops::Bound", "as_ref"): "RANGE-BOUND-BORROW-01",
+    ("core::ops::Bound", "cloned"): "RANGE-BOUND-CLONE-01",
+    ("core::ops::Bound", "map"): "RANGE-BOUND-MAP-01",
+    ("core::ops::Range", "Range"): "RANGE-LEGACY-HALFOPEN-STATE-01",
+    ("core::ops::Range", "contains"): "RANGE-CONTAINS-HALFOPEN-01",
+    ("core::ops::Range", "is_empty"): "RANGE-EMPTY-HALFOPEN-01",
+    ("core::ops::RangeBounds", "RangeBounds"): "RANGE-BOUNDS-PROTOCOL-01",
+    ("core::ops::RangeBounds", "start_bound"): "RANGE-BOUNDS-PROTOCOL-01",
+    ("core::ops::RangeBounds", "end_bound"): "RANGE-BOUNDS-PROTOCOL-01",
+    ("core::ops::RangeBounds", "contains"): "RANGE-BOUNDS-CONTAINS-01",
+    ("core::ops::RangeFrom", "RangeFrom"): "RANGE-LEGACY-FROM-STATE-01",
+    ("core::ops::RangeFrom", "contains"): "RANGE-CONTAINS-FROM-01",
+    ("core::ops::RangeFull", "RangeFull"): "RANGE-VALUE-FULL-01",
+    ("core::ops::RangeInclusive", "RangeInclusive"): "RANGE-LEGACY-INCLUSIVE-STATE-01",
+    ("core::ops::RangeInclusive", "new"): "RANGE-LEGACY-INCLUSIVE-STATE-01",
+    ("core::ops::RangeInclusive", "contains"): "RANGE-LEGACY-INCLUSIVE-CONTAINS-01",
+    ("core::ops::RangeInclusive", "is_empty"): "RANGE-LEGACY-INCLUSIVE-EMPTY-01",
+    ("core::ops::RangeInclusive", "start"): "RANGE-LEGACY-INCLUSIVE-ACCESS-01",
+    ("core::ops::RangeInclusive", "end"): "RANGE-LEGACY-INCLUSIVE-ACCESS-01",
+    ("core::ops::RangeInclusive", "into_inner"): "RANGE-LEGACY-INCLUSIVE-INTO-01",
+    ("core::ops::RangeTo", "RangeTo"): "RANGE-VALUE-TO-EXCLUSIVE-01",
+    ("core::ops::RangeTo", "contains"): "RANGE-CONTAINS-TO-EXCLUSIVE-01",
+    ("core::ops::RangeToInclusive", "RangeToInclusive"): "RANGE-VALUE-TO-INCLUSIVE-01",
+    ("core::ops::RangeToInclusive", "contains"): "RANGE-CONTAINS-TO-INCLUSIVE-01",
 }
 
 
@@ -156,6 +205,7 @@ def route(row: dict[str, str]) -> tuple[str, str, str]:
     path = row["representative_path"]
     name = row["member_name"]
     item_kind = row["item_kind"]
+    member_kind = row["member_kind"]
 
     if path in {"core::iter", "std::iter"}:
         return (
@@ -214,10 +264,20 @@ def route(row: dict[str, str]) -> tuple[str, str, str]:
             "Stable reverse-iteration operation routes to its normalized caller contract.",
         )
     if path == "core::iter::Peekable":
-        return (
-            "redundant_surface" if item_kind == "struct" else "contract",
-            "ITER-ADAPT-PEEK-01",
-            "Peekable state and operations share one normalized cached-cursor contract.",
+        if name == "Peekable" and member_kind == "item":
+            return (
+                "redundant_surface",
+                "ITER-ADAPT-PEEK-01",
+                "The opaque Peekable type spelling is represented by its cached-cursor operation contract.",
+            )
+        if name in PEEKABLE_METHODS and member_kind == "provided_or_inherent_method":
+            return (
+                "contract",
+                "ITER-ADAPT-PEEK-01",
+                "A stable Peekable operation contributes to the normalized cached-cursor contract.",
+            )
+        raise ValueError(
+            f"unrouted stable Peekable declaration: {name} ({item_kind}/{member_kind})"
         )
     short_name = path.rsplit("::", 1)[-1]
     if short_name in ITER_TYPE_ROUTES and item_kind == "struct":
@@ -243,14 +303,57 @@ def route(row: dict[str, str]) -> tuple[str, str, str]:
     raise ValueError(f"unrouted D10 declaration: {path}::{name}")
 
 
+def canonical_stable_rows() -> list[dict[str, str]]:
+    with INVENTORY.open(encoding="utf-8", newline="") as handle:
+        raw = list(csv.DictReader(handle, delimiter="\t"))
+    by_key: dict[str, dict[str, str]] = {}
+    for row in raw:
+        if row["stability"] != "stable":
+            continue
+        key = row["canonical_key"]
+        current = by_key.get(key)
+        preference = ("core", "alloc", "std").index(row["surface_crate"])
+        if current is None:
+            by_key[key] = row
+            continue
+        current_preference = ("core", "alloc", "std").index(current["surface_crate"])
+        if (preference, len(row["item_path"]), row["item_path"]) < (
+            current_preference,
+            len(current["item_path"]),
+            current["item_path"],
+        ):
+            by_key[key] = row
+    return list(by_key.values())
+
+
+def is_iteration_or_range(row: dict[str, str]) -> bool:
+    path = row["item_path"]
+    return (
+        path in {"std::iter", "std::range"}
+        or path == "core::iter"
+        or path.startswith("core::iter::")
+        or path == "core::range"
+        or path.startswith("core::range::")
+        or path in OPS_RANGE_PATHS
+    )
+
+
 def build_rows() -> list[dict[str, str]]:
-    with CLASSIFICATION.open(encoding="utf-8", newline="") as handle:
-        declarations = list(csv.DictReader(handle, delimiter="\t"))
-    d10 = [row for row in declarations if row["domain_id"] == "D10"]
-    if len(d10) != 150:
-        raise ValueError(f"expected 150 canonical stable D10 declarations, found {len(d10)}")
+    selected = [
+        row
+        for row in canonical_stable_rows()
+        if row["caller_safety"] == "safe" and is_iteration_or_range(row)
+    ]
+    selected.sort(key=lambda row: (row["item_path"], row["member_name"], row["canonical_key"]))
+    if len(selected) != 175:
+        raise ValueError(
+            "expected 175 canonical stable declarations from the independent "
+            f"iteration/range predicate, found {len(selected)}"
+        )
     rows: list[dict[str, str]] = []
-    for declaration in d10:
+    for inventory_row in selected:
+        declaration = dict(inventory_row)
+        declaration["representative_path"] = inventory_row["item_path"]
         route_kind, route_id, reason = route(declaration)
         rows.append(
             {
@@ -281,10 +384,10 @@ def main() -> int:
     if args.check:
         if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != expected:
             raise SystemExit("D10 surface map is missing or stale")
-        print("D10 surface map: PASS — 150 canonical stable declarations routed exactly once")
+        print("D10 surface map: PASS — 175 canonical stable declarations routed exactly once")
         return 0
     OUTPUT.write_text(expected, encoding="utf-8")
-    print("D10 surface map: wrote 150 canonical stable declarations")
+    print("D10 surface map: wrote 175 canonical stable declarations")
     return 0
 
 

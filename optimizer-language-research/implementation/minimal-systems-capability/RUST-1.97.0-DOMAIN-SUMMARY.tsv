@@ -1,11 +1,13 @@
 domain_id	domain	caller_safety	surface_evidence_status	need_route_kind	canonical_stable_declarations
 D01	numeric values and algorithms	safe	rust_surface_only	NO_INDEPENDENT_NEED	22
-D01	numeric values and algorithms	safe	safe_contract_anchor	LATER_FAMILY	1928
+D01	numeric values and algorithms	safe	safe_contract_anchor	LATER_FAMILY	2032
 D01	numeric values and algorithms	unsafe	unsafe_boundary_evidence	LATER_FAMILY	69
-D01	scalar and aggregate values	safe	safe_contract_anchor	G0_CONTRACT	2
+D01	scalar and aggregate values	safe	safe_contract_anchor	G0_CONTRACT	3
+D01	scalar and aggregate values	safe	safe_contract_anchor	LATER_FAMILY	2
 D02	language organization and abstraction	safe	rust_surface_only	G0_CONTRACT	1
 D02	language organization and abstraction	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
-D02	language organization and abstraction	safe	safe_contract_anchor	LATER_FAMILY	110
+D02	language organization and abstraction	safe	safe_contract_anchor	LATER_FAMILY	5
+D02	language organization and abstraction	safe	safe_contract_anchor	LIB_CONTRACT	9
 D03	conversion and behavior	safe	rust_surface_only	LIB_CONTRACT	1
 D03	conversion and behavior	safe	rust_surface_only	NO_INDEPENDENT_NEED	4
 D03	conversion and behavior	safe	safe_contract_anchor	LIB_CONTRACT	18
@@ -18,28 +20,29 @@ D03	static behavior and views	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
 D03	static behavior and views	safe	safe_contract_anchor	G0_CONTRACT	4
 D03	static behavior contracts	safe	rust_surface_only	G0_CONTRACT	6
 D03	static behavior contracts	safe	rust_surface_only	NO_INDEPENDENT_NEED	6
-D03	static behavior contracts	safe	safe_contract_anchor	G0_CONTRACT	63
+D03	static behavior contracts	safe	safe_contract_anchor	G0_CONTRACT	76
+D03	static behavior contracts	safe	safe_contract_anchor	LATER_FAMILY	56
 D04	raw pointers and provenance	safe	rust_surface_only	LATER_FAMILY	1
 D04	raw pointers and provenance	safe	rust_surface_only	NO_INDEPENDENT_NEED	4
 D04	raw pointers and provenance	safe	safe_boundary_evidence	G0_CONTRACT	7
 D04	raw pointers and provenance	safe	safe_boundary_evidence	LATER_FAMILY	103
-D04	raw pointers and provenance	safe	safe_contract_anchor	G0_CONTRACT	4
-D04	raw pointers and provenance	safe	safe_contract_anchor	LATER_FAMILY	7
+D04	raw pointers and provenance	safe	safe_contract_anchor	G0_CONTRACT	6
+D04	raw pointers and provenance	safe	safe_contract_anchor	LATER_FAMILY	9
 D04	raw pointers and provenance	unsafe	unsafe_boundary_evidence	G0_CONTRACT	7
-D04	raw pointers and provenance	unsafe	unsafe_boundary_evidence	LATER_FAMILY	91
+D04	raw pointers and provenance	unsafe	unsafe_boundary_evidence	LATER_FAMILY	92
 D05	error presentation and chaining	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
-D05	error presentation and chaining	safe	safe_contract_anchor	LIB_CONTRACT	6
+D05	error presentation and chaining	safe	safe_contract_anchor	LIB_CONTRACT	7
 D05	recoverable results and variants	safe	rust_surface_only	NO_INDEPENDENT_NEED	4
 D05	recoverable results and variants	safe	safe_contract_anchor	G0_CONTRACT	89
 D05	recoverable results and variants	unsafe	unsafe_boundary_evidence	G0_CONTRACT	3
 D06	trap, panic, and diagnostics	safe	rust_surface_only	G0_CONTRACT	12
 D06	trap, panic, and diagnostics	safe	rust_surface_only	LATER_FAMILY	1
 D06	trap, panic, and diagnostics	safe	rust_surface_only	NO_INDEPENDENT_NEED	3
-D06	trap, panic, and diagnostics	safe	safe_contract_anchor	LATER_FAMILY	28
+D06	trap, panic, and diagnostics	safe	safe_contract_anchor	LATER_FAMILY	29
 D06	trap, panic, and diagnostics	safe	safe_contract_anchor	NG	2
 D07	heap allocation and runtime	safe	rust_surface_only	NO_INDEPENDENT_NEED	3
 D07	heap allocation and runtime	safe	safe_contract_anchor	FRAME	1
-D07	heap allocation and runtime	safe	safe_contract_anchor	LATER_FAMILY	16
+D07	heap allocation and runtime	safe	safe_contract_anchor	LATER_FAMILY	17
 D07	heap allocation and runtime	unsafe	unsafe_boundary_evidence	FRAME	6
 D07	heap allocation and runtime	unsafe	unsafe_boundary_evidence	LATER_FAMILY	4
 D07	unique ownership and data structures	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
@@ -59,13 +62,13 @@ D09	sequential data structures	safe	safe_boundary_evidence	G0_CONTRACT	1
 D09	sequential data structures	safe	safe_contract_anchor	G0_CONTRACT	214
 D09	sequential data structures	unsafe	unsafe_boundary_evidence	G0_CONTRACT	14
 D10	ranges and traversal	safe	rust_surface_only	REDUNDANT	5
-D10	ranges and traversal	safe	safe_contract_anchor	G0_CONTRACT	13
-D10	synchronous iteration	safe	rust_surface_only	REDUNDANT	38
-D10	synchronous iteration	safe	safe_contract_anchor	G0_CONTRACT	94
+D10	ranges and traversal	safe	safe_contract_anchor	G0_CONTRACT	38
+D10	synchronous iteration	safe	rust_surface_only	REDUNDANT	32
+D10	synchronous iteration	safe	safe_contract_anchor	G0_CONTRACT	100
 D11	bytes and text	safe	rust_surface_only	NO_INDEPENDENT_NEED	9
-D11	bytes and text	safe	safe_contract_anchor	G0_CONTRACT	154
-D11	bytes and text	safe	safe_contract_anchor	LATER_FAMILY	55
-D11	bytes and text	safe	safe_contract_anchor	LIB_CONTRACT	2
+D11	bytes and text	safe	safe_contract_anchor	G0_CONTRACT	155
+D11	bytes and text	safe	safe_contract_anchor	LATER_FAMILY	61
+D11	bytes and text	safe	safe_contract_anchor	LIB_CONTRACT	10
 D11	bytes and text	unsafe	unsafe_boundary_evidence	G0_CONTRACT	12
 D11	bytes and text	unsafe	unsafe_boundary_evidence	LATER_FAMILY	2
 D12	formatting and presentation	safe	rust_surface_only	LIB_CONTRACT	10
@@ -74,43 +77,44 @@ D12	formatting and presentation	safe	safe_contract_anchor	LIB_CONTRACT	75
 D13	runtime type identity and reflection	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
 D13	runtime type identity and reflection	safe	safe_contract_anchor	LATER_FAMILY	29
 D14	build-time metadata and code generation	safe	rust_surface_only	LATER_FAMILY	3
-D14	macros and convenience surface	safe	rust_surface_only	LATER_FAMILY	14
+D14	macros and convenience surface	safe	rust_surface_only	LATER_FAMILY	15
 D15	synchronous I/O	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
 D15	synchronous I/O	safe	safe_contract_anchor	LATER_FAMILY	118
 D15	synchronous I/O	safe	safe_contract_anchor	LIB_CONTRACT	14
 D16	filesystems and paths	safe	rust_surface_only	NO_INDEPENDENT_NEED	7
 D16	filesystems and paths	safe	safe_contract_anchor	G0_CONTRACT	1
-D16	filesystems and paths	safe	safe_contract_anchor	LATER_FAMILY	185
+D16	filesystems and paths	safe	safe_contract_anchor	LATER_FAMILY	186
 D16	filesystems and paths	safe	safe_contract_anchor	LIB_CONTRACT	75
 D17	process environment	safe	rust_surface_only	NO_INDEPENDENT_NEED	5
-D17	process environment	safe	safe_contract_anchor	LATER_FAMILY	90
+D17	process environment	safe	safe_contract_anchor	LATER_FAMILY	92
 D17	process environment	unsafe	unsafe_boundary_evidence	LATER_FAMILY	5
-D18	FFI, ABI, and OS resources	safe	rust_surface_only	NO_INDEPENDENT_NEED	27
-D18	FFI, ABI, and OS resources	safe	safe_boundary_evidence	LATER_FAMILY	5
-D18	FFI, ABI, and OS resources	safe	safe_contract_anchor	LATER_FAMILY	137
+D18	FFI, ABI, and OS resources	safe	rust_surface_only	NO_INDEPENDENT_NEED	30
+D18	FFI, ABI, and OS resources	safe	safe_boundary_evidence	LATER_FAMILY	6
+D18	FFI, ABI, and OS resources	safe	safe_contract_anchor	LATER_FAMILY	161
 D18	FFI, ABI, and OS resources	unsafe	unsafe_boundary_evidence	LATER_FAMILY	18
 D19	networking	safe	rust_surface_only	NO_INDEPENDENT_NEED	4
-D19	networking	safe	safe_contract_anchor	LATER_FAMILY	121
-D19	networking	safe	safe_contract_anchor	LIB_CONTRACT	63
+D19	networking	safe	safe_contract_anchor	LATER_FAMILY	123
+D19	networking	safe	safe_contract_anchor	LIB_CONTRACT	70
 D20	time and clocks	safe	rust_surface_only	NO_INDEPENDENT_NEED	2
-D20	time and clocks	safe	safe_contract_anchor	LATER_FAMILY	17
-D20	time and clocks	safe	safe_contract_anchor	LIB_CONTRACT	38
+D20	time and clocks	safe	safe_contract_anchor	LATER_FAMILY	18
+D20	time and clocks	safe	safe_contract_anchor	LIB_CONTRACT	40
 D21	threads and thread-local state	safe	rust_surface_only	LATER_FAMILY	1
 D21	threads and thread-local state	safe	rust_surface_only	NO_INDEPENDENT_NEED	3
-D21	threads and thread-local state	safe	safe_contract_anchor	LATER_FAMILY	47
+D21	threads and thread-local state	safe	safe_contract_anchor	LATER_FAMILY	50
 D21	threads and thread-local state	unsafe	unsafe_boundary_evidence	LATER_FAMILY	1
 D22	atomics and synchronization	safe	rust_surface_only	NO_INDEPENDENT_NEED	5
 D22	atomics and synchronization	safe	safe_boundary_evidence	LATER_FAMILY	33
-D22	atomics and synchronization	safe	safe_contract_anchor	LATER_FAMILY	312
+D22	atomics and synchronization	safe	safe_contract_anchor	LATER_FAMILY	317
 D22	atomics and synchronization	unsafe	unsafe_boundary_evidence	LATER_FAMILY	13
 D23	pinning and address-sensitive values	safe	rust_surface_only	LATER_FAMILY	2
 D23	pinning and address-sensitive values	safe	rust_surface_only	NO_INDEPENDENT_NEED	7
 D23	pinning and address-sensitive values	safe	safe_boundary_evidence	LATER_FAMILY	2
-D23	pinning and address-sensitive values	safe	safe_contract_anchor	LATER_FAMILY	52
+D23	pinning and address-sensitive values	safe	safe_contract_anchor	LATER_FAMILY	55
 D23	pinning and address-sensitive values	unsafe	unsafe_boundary_evidence	LATER_FAMILY	7
 D24	target intrinsics and dispatch	safe	rust_surface_only	LATER_FAMILY	5
 D24	target intrinsics and dispatch	safe	rust_surface_only	NO_INDEPENDENT_NEED	4
 D24	target intrinsics and dispatch	safe	safe_contract_anchor	LATER_FAMILY	4
 D24	target intrinsics and dispatch	unsafe	unsafe_boundary_evidence	LATER_FAMILY	7
+D24	target intrinsics and dispatch	unsafe	unsafe_boundary_evidence	NG	3
 D24	target intrinsics and dispatch	unsafe	unsafe_boundary_evidence	NO_INDEPENDENT_NEED	2
 D25	prelude and reexports	safe	rust_surface_only	NO_INDEPENDENT_NEED	54

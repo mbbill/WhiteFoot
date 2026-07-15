@@ -7,7 +7,7 @@ language rule, closes no capability family, and authorizes no implementation.
 
 ## 1. Purpose and claim discipline
 
-The detailed research now in progress concerns the **sequential, unique-owner
+The completed G0-Core synthesis concerns the **sequential, unique-owner
 data-structure floor**. That floor is necessary for a general-purpose systems
 language, but it is not the whole systems-language envelope. This ledger keeps
 the two scopes separate:
@@ -43,10 +43,10 @@ The anchor is Rust 1.97.0, released 2026-07-09:
 
 The checked-in mechanical inputs are:
 
-- [the item inventory](RUST-1.97.0-API-INVENTORY.tsv), containing 16,432
-  rendered rows, including 9,874 stable-safe and 554 stable-unsafe rows;
+- [the item inventory](RUST-1.97.0-API-INVENTORY.tsv), containing 17,135
+  rendered rows, including 10,267 stable-safe and 560 stable-unsafe rows;
 - [the module accounting](RUST-1.97.0-MODULE-ACCOUNTING.tsv), containing all
-  290 reachable public modules, including collapsed target catalogs;
+  297 reachable public modules, including collapsed target catalogs;
 - [the extraction manifest](RUST-1.97.0-CENSUS-MANIFEST.json), pinning tool,
   source, policy, counts, and hashes; and
 - [the census notes](RUST-CENSUS-NOTES.md), defining inclusion,
@@ -82,7 +82,7 @@ is applied.
 
 The mechanical declaration classification records exactly one `domain_id`, one
 `surface_evidence_status`, and one independent `need_route_kind` plus stable
-`need_route_id` per canonical source declaration: 5,096 safe and 273 unsafe.
+`need_route_id` per canonical source declaration: 5,278 safe and 277 unsafe.
 Every row retains Rust `caller_safety` without treating Rust-safe as approved
 xlang surface. The surface axis distinguishes safe contract anchors, safe
 boundary evidence, unsafe boundary evidence, and Rust-only namespace/source
@@ -133,7 +133,7 @@ select its implementation.
 | Label | Boundary to be priced before use |
 |---|---|
 | `F-MEM` | Compiler/runtime target layout, relocation, copying, zeroing, initialization truth, and destruction glue. |
-| `F-ALLOC` | Heap allocation, growth, shrinkage, deallocation, alignment, exhaustion, and allocation-failure mapping. |
+| `F-ALLOC` | Heap allocation-owner identity; checked owner transfer that does not relocate the owned allocation; growth, shrinkage, deallocation, alignment, actual acquired usable bytes and allocator rounding/slack, exhaustion, and allocation-failure mapping. |
 | `F-TRAP` | Aborting trap entry, diagnostic payload attenuation, process termination, and optional stack capture. |
 | `F-BUILD` | Immutable source/target configuration facts, package/build inputs, inclusion, linking, and compile-time environment. |
 | `F-IO` | OS byte I/O, standard streams, partial progress, interruption, blocking, and descriptor/handle transfer. |
@@ -146,7 +146,7 @@ select its implementation.
 | `F-SYNC` | Atomic machine operations, blocking/wakeup, scheduler interaction, and concurrent runtime bookkeeping. |
 | `F-ASYNC` | Wakeup delivery, executor/scheduler interaction, async I/O/timers, cancellation boundary, and progress reporting. |
 | `F-TARGET` | Target-feature truth, instruction selection, vector/architecture operations, and optimizer/compiler hint semantics. |
-| `F-MMIO` | Device-memory access authority and provenance, permitted widths and alignment, non-elision, ordering relative to other device accesses, platform side effects, and target/OS mapping. |
+| `F-MMIO` | Device-memory authority, provenance, mapping lifetime, and invalidation; permitted widths, alignment, event identity, and atomicity/tearing; exact source-path access-event multiplicity; prohibition of speculative, duplicated, fused, split, widened, narrowed, or elided accesses unless the caller contract expressly permits that transformation; ordering against both relevant ordinary-memory and device accesses; external device mutation and attenuation of cached facts for device state and ordinary-memory regions reachable by external agents, including DMA; platform side effects; fault/trap behavior; and target/OS mapping. |
 
 ## 4. Exact scope boundary
 
@@ -319,18 +319,37 @@ never be reported as passing the whole envelope.
   aliases, reexports, and duplicate macro spellings are `RED`.
 - **Blocked claim:** G0 accounting is not family closure. No one container,
   representation, language operation, or complexity promise is selected here.
-  The first detailed floor is region-free and borrow-free; `BR-STORED` remains
-  a named later family before containers of borrow-bearing payloads are covered.
+  The census accounts unrestricted caller demand, while the first experimental
+  base route is region-free and borrow-free. The exact payload-scope
+  classification and 294-branch overlay keep `BR-STORED` as a named later
+  family. Its six-state partition records 26 active, 138 deferred, 100 true
+  no-complement, nine boundary-evidence, two frame-scope-deferred, and one
+  delegated contract. `scope_owner_contract_ids` makes the singleton
+  allocation-error delegation and evidence/frame authority explicit. Every
+  deferred, delegated, boundary, or frame state blocks unrestricted `E`/`P`
+  until its exact owner and branch obligations close, and excluded scope adds
+  zero structural cost to the region-free/borrow-free default shape.
+  The partition includes active `RangeBounds`/callable/protocol state in
+  extract, splice, and filter rows; exact stored `BuildHasher` or caller
+  `Hasher` roles for set relations/algebra and trait entrances; exact callable
+  call-count partitions; and a singleton cached-key-array carrier at
+  `VIEW-SORT-01`. Adjacent non-hash, non-callable, or ephemeral-key branches may
+  not inherit those mechanisms or costs.
 
 ### D10. Synchronous iteration and ranges
 
-- **Rust families:** `core`/`std::{iter, range}`, slice/string/collection
-  iterator declarations, iterator adapters, range values, and owning,
-  borrowed, or mutable cursor behavior.
+- **Rust families:** `core`/`std::{iter, range}`, the legacy
+  `core::ops::{Bound, Range, RangeBounds, RangeFrom, RangeFull,
+  RangeInclusive, RangeTo, RangeToInclusive}` declarations,
+  slice/string/collection iterator declarations, iterator adapters, range
+  values, and owning, borrowed, or mutable cursor behavior.
 - **Disposition:** borrowed, unique, and owning synchronous iteration required
   by registered floor contracts is `G0`. Remaining synchronous adapters are
   `LIB` once their callback, ownership, invalidation, and complexity contracts
-  are derivable. Async iteration is D23 `LATER`; legacy aliases are `RED`.
+  are derivable. Async iteration is D23 `LATER`. Only mechanically proven
+  namespace, reexport, and duplicate helper spellings are `RED`; the legacy
+  `core::ops` range state and queries remain independent D10 contracts where
+  their caller observations differ.
 - **Blocked claim:** index loops do not close iterator invalidation, escape,
   exact destruction, short-circuiting, double-ended, fused, or size-hint
   contracts unless those exact clusters pass.
@@ -521,13 +540,19 @@ never be reported as passing the whole envelope.
   SIMD/vector contracts, target-specific operations, and the checked
   volatile/MMIO contract are `LATER`; compiler lowering and machine-feature
   truth are `FRAME` `F-TARGET`, while device-memory effects cross `FRAME`
-  `F-MMIO`. A future checked MMIO family must freeze access authority and
-  provenance, width/alignment, non-elision, ordering relative to other device
-  accesses, invalidation, platform effects, and resource ownership. Writer-
-  visible unsafe intrinsics, unchecked reachability promises, raw-pointer
-  volatile access, and raw target privilege are inadmissible boundary evidence
-  displaced by the named later families and frames. Duplicate `std` reexports
-  and feature-macro spellings are `RED`.
+  `F-MMIO`. A future checked MMIO family must freeze access authority,
+  provenance, mapping/resource lifetime and invalidation; permitted widths,
+  alignment, event identity, and atomicity/tearing; the exact number of access
+  events on each executed source path;
+  whether any speculation, duplication, fusion, splitting, widening,
+  narrowing, elision, or reordering is permitted; ordering against relevant
+  ordinary-memory as well as device accesses; fact attenuation for externally
+  mutable device state and any ordinary-memory region reachable by an external
+  agent, including DMA; platform side effects; and fault/trap behavior.
+  Writer-visible unsafe intrinsics, unchecked
+  reachability promises, raw-pointer volatile access, and raw target privilege
+  are inadmissible boundary evidence displaced by the named later families and
+  frames. Duplicate `std` reexports and feature-macro spellings are `RED`.
 - **Blocked claim:** ordinary optimized scalar code does not imply portable
   SIMD, architecture intrinsics, target-feature dispatch, cache-control
   operations, stable optimizer-hint behavior, or device-memory/MMIO access.
@@ -571,15 +596,20 @@ is stated explicitly; that does not duplicate any item.
 
 - D01: `core::{array, f32, f64, i8, i16, i32, i64, i128, isize, num, u8,
   u16, u32, u64, u128, usize}` and `core::{f32, f64}::consts`.
-- D03: `core::{borrow, clone, cmp, convert, default, hash, marker, ops}`.
-- D04/D07: `core::{alloc, mem, ptr}`, except the volatile device-memory
-  evidence members of `core::ptr`, which route to D24.
+- D02: the `core::ops` namespace plus `ControlFlow`, `Fn`, `FnMut`, and
+  `FnOnce` declarations.
+- D03: `core::{borrow, clone, cmp, convert, default, hash, marker}` plus
+  operator, `Deref`, and `Index` behavior declarations under `core::ops`.
+- D04/D07: `core::{alloc, mem, ptr}` plus `core::ops::Drop` in D04, except the
+  volatile device-memory evidence members of `core::ptr`, which route to D24.
 - D05: `core::{error, option, result}`.
 - D06: `core::panic`.
 - D08: `core::cell`.
 - D09: `core::{array, slice}`; `array` is listed with D01 at the module level,
   while its collection/view contracts route to D09 by member semantics.
-- D10: `core::{iter, range}`.
+- D10: `core::{iter, range}` plus
+  `core::ops::{Bound, Range, RangeBounds, RangeFrom, RangeFull,
+  RangeInclusive, RangeTo, RangeToInclusive}`.
 - D11: `core::{ascii, char, str}`.
 - D12: `core::fmt`.
 - D13: `core::any`.
@@ -587,7 +617,8 @@ is stated explicitly; that does not duplicate any item.
 - D19: `core::net`.
 - D20: `core::time`.
 - D22: `core::sync` and `core::sync::atomic`.
-- D23: `core::{future, pin, task}`.
+- D23: `core::{future, pin, task}` plus `core::ops::{AsyncFn, AsyncFnMut,
+  AsyncFnOnce}`.
 - D24: `core::{arch, hint}` and stable target families under
   `core::arch::{aarch64, wasm32, x86, x86_64}`.
 - D25: `core::prelude`, `core::prelude::{rust_2015, rust_2018, rust_2021,
@@ -620,7 +651,9 @@ through Section 7; root reexports are D25.
 
 - D01: `std::{array, f32, f64, i8, i16, i32, i64, i128, isize, num, u8,
   u16, u32, u64, u128, usize}` and `std::{f32, f64}::consts`.
-- D03: `std::{borrow, clone, cmp, convert, default, hash, marker, ops}`.
+- D02: the `std::ops` namespace; its canonical members follow the `core::ops`
+  semantic partition above.
+- D03: `std::{borrow, clone, cmp, convert, default, hash, marker}`.
 - D04/D07: `std::{alloc, mem, ptr}`, except the volatile device-memory
   evidence members of `std::ptr`, which route to D24.
 - D05: `std::{error, option, result}`.

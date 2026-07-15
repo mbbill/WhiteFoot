@@ -1378,3 +1378,28 @@ and witness registry
 This is research accounting only. It selects no syntax, substrate, runtime
 representation, trusted implementation, family closure, specification change,
 compiler change, production implementation, E0.1 restart, or default teaching.
+
+## G0-Core capability accounting is complete; mechanisms remain unselected (2026-07-14)
+
+The finite Rust 1.97.0 anchor, non-importable contract clustering, exact
+evidence universe, family routing, trait-implementation topology, payload
+scope, witness obligations, and combined dependency graph are frozen by the
+110-artifact manifest whose SHA-256 is
+`f0eced756688affef1732a133c43fb39ab6fc672334dca27b26129ddb5123719`.
+The closed accounting contains 276 contract clusters, 1,961 evidence
+relations, 334 implementation-topology keys, 378 owning-cluster relations,
+49 family obligations, and 294 payload branches. The corrected evidence
+policy binds all 97 two-target trait relations to their child-specific
+operation gates and full route prerequisites; the remaining 281 relations
+have one target. Independent exact-hash hostile reviews of coverage and
+provenance, semantic and ownership soundness, and performance and staging all
+returned PASS with no P-level finding. `verify_g0_core.py`, `make check`, the
+direct `make -C compiler check`, `git diff --check`, AGENTS/CLAUDE identity,
+and the MCTS-Mem linter are green.
+
+This completes D12's G0 research authorization. It selects no language
+mechanism or representation and authorizes no Family Lock, candidate,
+experiment, specification or compiler change, production implementation,
+E0.1 restart, xlc migration, or default teaching. The next possible owner
+decision is whether to authorize drafting the dense unique-owner Family Lock
+A for review; drafting would not authorize implementation or a scored run.

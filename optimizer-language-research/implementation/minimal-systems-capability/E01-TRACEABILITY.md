@@ -12,6 +12,21 @@ evidence and protocol input, not active preregistrations. G0-Core cannot restart
 them. A separately owner-authorized dense Family Lock A must explicitly retain,
 revise, or supersede every row below before candidate work.
 
+The exact hostile-reviewed ownership-route protocol is a historical Git object,
+not the later supersession edits in the working-tree file:
+
+- commit: `1c7b980e5eec19042839711ca54ad015a96bf0a2`;
+- path: `experiments/data-layout-owning-sequence/OWNERSHIP_ROUTE_PROTOCOL.md`;
+- byte count: 46,320; and
+- SHA-256: `88d70083f9cf0219d558675b34a42f54c851793125fccebc07c3f48f4aa1b003`.
+
+The detached candidate is durably archived at
+`experiments/data-layout-owning-sequence/DETACHED_CANDIDATE.patch`, against base
+commit `58baa71fb4c36a4728dd42aea6b05ce4be7aa0b1`, with 57,547 bytes and SHA-256
+`bed070414f9552ea105857404d6d1296b98542a28cc65fa6899a197830e6774e`.
+These identities make both reviewed inputs recoverable; neither is active or
+authorized.
+
 E0.1 mixed three questions that the capability census now separates:
 
 1. whether fixed contiguous record/AoS storage is expressible;
@@ -135,12 +150,32 @@ family. To close the dense contract, the new program must cover:
 
 - arbitrary region-free, borrow-free affine payloads or state a narrower claim
   that does not pretend to be general;
+- every selected dense coverage cluster's payload-scope classification and
+  `scope_owner_contract_ids`, with each applicable overlay branch rebound to an
+  exact Family Lock `member_contract_id` and `outcome_id`, its unit-specific
+  base capability list, conditional delta, and effective ordered union;
+- active extract/splice/filter `BR-STORED` state for live `RangeBounds` input
+  where present and retained callable/replacement/cursor state; exact
+  `BuildHasher`/caller-`Hasher` roles for set relations/algebra and trait
+  branches; zero-or-more, zero-or-one, and exactly-once callable partitions;
+  and the rule that only `VIEW-SORT-01` may retain a cached-key array;
+- zero fields, metadata bytes, checks, branches, allocations, generated-code
+  paths, payload traffic, or new fact dependencies from every excluded branch
+  or unresolved delegated/boundary/frame state on the protected
+  region-free/borrow-free shape, with all such states continuing to block
+  unrestricted `E` or `P`;
 - unknown-length append, pop, ordered/unordered remove, growth, relocation,
   truncate/clear, stable compaction, sorting, clone, and owning iteration;
 - exact element destruction and partial-construction cleanup;
 - recoverable failure semantics where the family freezes them;
 - dynamic disjoint mutation and result reborrows; and
-- ordinary-library derivation and H-STORE.
+- ordinary-library derivation and H-FLATSET.
+
+H-FLATSET is the dense-family held-out because its exact budget exercises
+public `ST-AOS`, `ST-DENSE`, and dense ownership transitions without importing
+`FAM-DENSE`. H-STORE requires public `ST-SPARSE`; it is explicitly deferred to
+sparse-family closure after dense adoption. A dense lock must neither import
+the unclosed sparse family nor use H-STORE as its G-14 closure witness.
 
 An unguarded public `take(index)` remains rejected because it would leave a
 writer-readable hole. A complete checked pop/remove/replace/Full-to-Vacant
@@ -158,6 +193,7 @@ section above and list:
 - the unchanged B-FIX/B-P2 controls;
 - the exact relationship between fixed AoS ownership and general dense storage;
 - the applicable W/H dependencies;
+- H-FLATSET as the dense held-out and H-STORE as a later sparse-family held-out;
 - the incremental META-5 ledger; and
 - a fresh independent hostile review of the exact lock bytes.
 

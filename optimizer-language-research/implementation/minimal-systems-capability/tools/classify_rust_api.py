@@ -242,6 +242,8 @@ def domain_override(row: dict[str, str], route: SurfaceRoute | None) -> str | No
     name = row["member_name"]
     path = row["item_path"]
     contract_id = route.contract_id if route is not None else ""
+    if route is not None and route.source == ITERATION_SURFACE_MAP.name:
+        return "D10"
     if name.startswith("downcast") and (
         "::Box" in path or "::Rc" in path or "::Arc" in path
     ):
@@ -334,7 +336,7 @@ def contract_need_route(
     return NeedRoute(
         "G0_CONTRACT",
         contract_id,
-        "the exact normalized contract is in the bounded sequential data-floor accounting",
+        "a coarse non-importable coverage cluster is in the bounded sequential data-floor accounting",
         frames=frames,
     )
 
@@ -604,13 +606,13 @@ def default_route(row: dict[str, str], rule: dict[str, str]) -> NeedRoute:
             return NeedRoute(
                 "G0_CONTRACT",
                 "MEM-REPLACE-01",
-                "whole-place replacement is an exact normalized G0 contract",
+                "whole-place replacement is routed to a coarse non-importable G0 coverage cluster",
             )
         if name == "take":
             return NeedRoute(
                 "G0_CONTRACT",
                 "MEM-TAKE-01",
-                "whole-place take is an exact normalized G0 contract",
+                "whole-place take is routed to a coarse non-importable G0 coverage cluster",
             )
         if name in {"drop", "drop_in_place"}:
             return NeedRoute(
@@ -731,7 +733,50 @@ def default_route(row: dict[str, str], rule: dict[str, str]) -> NeedRoute:
             "FAMILY:D13:RUNTIME-TYPE-IDENTITY",
             "runtime type identity and reflection require D13 closure",
         )
-    if rule_id.startswith("DOM-LANG-OPS-"):
+    if rule_id.startswith("DOM-ASYNC-OPS-"):
+        return NeedRoute(
+            "LATER_FAMILY",
+            "FAMILY:D23:ASYNC-TASK-CANCELLATION",
+            "async callable protocols require suspension, task, and cancellation semantics",
+            frames=("F-ASYNC",),
+        )
+    if rule_id.startswith("DOM-OWN-DROP-OPS-"):
+        return NeedRoute(
+            "G0_CONTRACT",
+            "CAP:OW-DROP",
+            "exact destruction is a G0 ownership and lifecycle obligation",
+        )
+    if rule_id.startswith("DOM-BEHAVIOR-OPS-"):
+        if row["item_path"].rsplit("::", 1)[-1] in {"Deref", "DerefMut"}:
+            return NeedRoute(
+                "G0_CONTRACT",
+                "TRAIT-DEREF-01",
+                "borrowed owner projection is routed to a coarse non-importable G0 coverage cluster",
+            )
+        if row["item_path"].rsplit("::", 1)[-1] in {"Index", "IndexMut"}:
+            return NeedRoute(
+                "G0_CONTRACT",
+                "TRAIT-INDEX-01",
+                "checked borrowed indexing is routed to a coarse non-importable G0 coverage cluster",
+            )
+        return NeedRoute(
+            "LATER_FAMILY",
+            "FAMILY:D03:STATIC-OPERATOR-BEHAVIOR",
+            "the complete generic operator-behavior family requires D03 closure",
+        )
+    if rule_id.startswith("DOM-LANG-CONTROL-OPS-"):
+        return NeedRoute(
+            "LIB_CONTRACT",
+            "LIB:D02:CONTROL-FLOW-VALUES",
+            "control-flow result values and combinators are ordinary checked-library contracts",
+        )
+    if rule_id.startswith("DOM-LANG-OPS-NAMESPACE-"):
+        return NeedRoute(
+            "REDUNDANT",
+            "RED:D02:OPS-NAMESPACE",
+            "the module namespace adds no independent caller capability",
+        )
+    if rule_id.startswith(("DOM-LANG-CALL-OPS-", "DOM-LANG-OPS-")):
         return NeedRoute(
             "LATER_FAMILY",
             "FAMILY:D02:CALLABLE-ABSTRACTION",
@@ -850,6 +895,12 @@ def default_route(row: dict[str, str], rule: dict[str, str]) -> NeedRoute:
             "G0_CONTRACT",
             "CAP:NT-FIXED",
             "the protected fixed/Copy scalar baseline is a G0 prerequisite",
+        )
+    if rule_id.startswith(("DOM-TUPLE-", "DOM-UNIT-")):
+        return NeedRoute(
+            "LATER_FAMILY",
+            "FAMILY:D01:AGGREGATE-VALUES",
+            "product and unit values require an explicit aggregate-value family disposition",
         )
     if rule_id.startswith(("DOM-PRIMITIVE-", "DOM-PRELUDE-")):
         return NeedRoute(
@@ -1157,9 +1208,9 @@ def main() -> None:
         print("\n".join(unclassified))
         raise SystemExit(1)
     safety_counts = Counter(row["caller_safety"] for row in output)
-    if len(output) != 5369 or safety_counts != {"safe": 5096, "unsafe": 273}:
+    if len(output) != 5555 or safety_counts != {"safe": 5278, "unsafe": 277}:
         raise SystemExit(
-            "expected 5369 canonical stable rows (5096 safe, 273 unsafe), "
+            "expected 5555 canonical stable rows (5278 safe, 277 unsafe), "
             f"got {len(output)} and {dict(safety_counts)}"
         )
 
@@ -1233,8 +1284,8 @@ def main() -> None:
                 "entry_digest": row["entry_digest"],
             }
         )
-    if len(module_output) != 290:
-        raise SystemExit(f"expected 290 reachable modules, got {len(module_output)}")
+    if len(module_output) != 297:
+        raise SystemExit(f"expected 297 reachable modules, got {len(module_output)}")
     with MODULE_OUTPUT.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
             handle,
@@ -1248,8 +1299,8 @@ def main() -> None:
     evidence_counts = Counter(row["surface_evidence_status"] for row in output)
     route_counts = Counter(row["need_route_kind"] for row in output)
     print(
-        "rust domain classification: PASS — 5369 canonical stable declarations "
-        "accounted (5096 safe, 273 unsafe); 290 reachable modules routed; "
+        "rust domain classification: PASS — 5555 canonical stable declarations "
+        "accounted (5278 safe, 277 unsafe); 297 reachable modules routed; "
         f"evidence={dict(sorted(evidence_counts.items()))}; "
         f"needs={dict(sorted(route_counts.items()))}"
     )

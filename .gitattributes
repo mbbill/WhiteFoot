@@ -1,2 +1,5 @@
 # Archived patches preserve reviewed bytes, including whitespace represented by the diff.
 experiments/data-layout-owning-sequence/DETACHED_CANDIDATE.patch whitespace=-blank-at-eol,-blank-at-eof
+
+# Generated TSV rows may end with an empty final field represented by a terminal tab.
+optimizer-language-research/implementation/minimal-systems-capability/RUST-1.97.0-API-INVENTORY.tsv whitespace=-blank-at-eol

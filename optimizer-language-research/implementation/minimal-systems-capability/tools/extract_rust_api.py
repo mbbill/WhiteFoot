@@ -25,11 +25,11 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass, asdict
-from typing import Iterable, Optional
+from typing import Iterable
 from urllib.parse import urldefrag
 
 
-SCRIPT_SCHEMA = "rustdoc-public-api-v1"
+SCRIPT_SCHEMA = "rustdoc-public-api-v3"
 ITEM_CLASSES = {
     "attr",
     "constant",
@@ -43,6 +43,7 @@ ITEM_CLASSES = {
     "static",
     "struct",
     "trait",
+    "traitalias",
     "type",
     "union",
 }
@@ -50,7 +51,11 @@ ITEM_CLASSES = {
 TAG_RE = re.compile(r"<[^>]+>")
 SPACE_RE = re.compile(r"\s+")
 ITEM_TABLE_RE = re.compile(r'<dl class="item-table">(.*?)</dl>', re.S)
-ITEM_PAIR_RE = re.compile(r"<dt>(.*?)</dt><dd>(.*?)</dd>", re.S)
+ITEM_DT_RE = re.compile(r"<dt(?:\s[^>]*)?>(?P<body>.*?)</dt>", re.S)
+ITEM_DD_SUFFIX_RE = re.compile(
+    r"\s*(?:<dd(?:\s[^>]*)?>(?P<body>.*?)</dd>)?\s*",
+    re.S,
+)
 ANCHOR_RE = re.compile(
     r'<a class="([^"]+)" href="([^"]+)"(?: title="([^"]+)")?>(.*?)</a>',
     re.S,
@@ -58,7 +63,7 @@ ANCHOR_RE = re.compile(
 ITEM_DECL_RE = re.compile(r'<pre class="rust item-decl"><code>(.*?)</code></pre>', re.S)
 SECTION_RE = re.compile(
     r'<section id="((?:method|tymethod|associatedtype|associatedconstant)\.[^"]+)" '
-    r'class="method">(.*?)</section>',
+    r'class="([^"]+)">(.*?)</section>',
     re.S,
 )
 HEADER_RE = re.compile(r'<h4 class="code-header">(.*?)</h4>', re.S)
@@ -134,15 +139,30 @@ def item_path_from_title(kind: str, title: str, module_path: str, name: str) -> 
     return f"{module_path}::{name}"
 
 
-def first_item_anchor(dt: str) -> Optional[tuple[str, str, str, str]]:
+def first_item_anchor(dt: str) -> tuple[str, str, str, str]:
+    recognized: list[tuple[str, str, str, str]] = []
     for match in ANCHOR_RE.finditer(dt):
         classes = set(match.group(1).split())
         kinds = classes & ITEM_CLASSES
         if not kinds:
             continue
-        kind = sorted(kinds)[0]
-        return kind, html.unescape(match.group(2)), html.unescape(match.group(3) or ""), plain(match.group(4))
-    return None
+        if len(kinds) != 1:
+            raise ValueError(f"ambiguous rustdoc item classes {sorted(kinds)} in {plain(dt)!r}")
+        kind = next(iter(kinds))
+        recognized.append(
+            (
+                kind,
+                html.unescape(match.group(2)),
+                html.unescape(match.group(3) or ""),
+                plain(match.group(4)),
+            )
+        )
+    if len(recognized) != 1:
+        raise ValueError(
+            "rustdoc item-table entry must contain exactly one recognized item anchor: "
+            f"{plain(dt)!r}"
+        )
+    return recognized[0]
 
 
 @dataclass
@@ -154,18 +174,39 @@ class ModuleEntry:
     summary: str
     status: str
     deprecated: bool
+    has_description: bool
     raw_digest: str
 
 
-def module_entries(text: str) -> list[ModuleEntry]:
+def module_entries(text: str) -> tuple[list[ModuleEntry], int]:
     entries: list[ModuleEntry] = []
+    without_description = 0
     for table in ITEM_TABLE_RE.findall(text):
-        for dt, dd in ITEM_PAIR_RE.findall(table):
-            anchor = first_item_anchor(dt)
-            if anchor is None:
-                continue
-            kind, href, title, name = anchor
-            raw = f"{dt}<dd>{dd}</dd>"
+        item_matches = list(ITEM_DT_RE.finditer(table))
+        prefix = table[: item_matches[0].start()] if item_matches else table
+        if prefix.strip():
+            raise ValueError(f"unparsed rustdoc item-table prefix: {plain(prefix)!r}")
+        for index, match in enumerate(item_matches):
+            dt = match.group("body")
+            next_start = (
+                item_matches[index + 1].start()
+                if index + 1 < len(item_matches)
+                else len(table)
+            )
+            suffix = table[match.end() : next_start]
+            dd_match = ITEM_DD_SUFFIX_RE.fullmatch(suffix)
+            if dd_match is None:
+                raise ValueError(
+                    "rustdoc item-table entry has unparsed or repeated description markup: "
+                    f"{plain(suffix)!r}"
+                )
+            dd_body = dd_match.group("body")
+            has_description = dd_body is not None
+            dd = dd_body or ""
+            if not has_description:
+                without_description += 1
+            kind, href, title, name = first_item_anchor(dt)
+            raw = f"{dt}<dd>{dd}</dd>" if has_description else f"{dt}<no-dd/>"
             entries.append(
                 ModuleEntry(
                     kind=kind,
@@ -175,11 +216,12 @@ def module_entries(text: str) -> list[ModuleEntry]:
                     summary=plain(dd),
                     status=stability(dt),
                     deprecated='class="stab deprecated"' in dt,
+                    has_description=has_description,
                     raw_digest=sha256_bytes(raw.encode("utf-8")),
                 )
             )
     entries.sort(key=lambda row: (row.kind, row.title, row.href, row.name))
-    return entries
+    return entries, without_description
 
 
 def member_name(anchor: str, signature: str) -> str:
@@ -188,7 +230,9 @@ def member_name(anchor: str, signature: str) -> str:
         "method": "fn",
         "tymethod": "fn",
         "associatedtype": "associatedtype",
-        "associatedconstant": "associatedconstant",
+        # Trait constants use `associatedconstant`; inherent constants use
+        # `constant` in Rust 1.97 rustdoc headers.
+        "associatedconstant": "(?:associatedconstant|constant)",
     }[prefix]
     pattern = re.compile(rf'<a [^>]*class="{class_name}"[^>]*>(.*?)</a>', re.S)
     match = pattern.search(signature)
@@ -234,7 +278,7 @@ def page_metadata(page: pathlib.Path, status_hint: str, doc_root: pathlib.Path) 
     signature = plain(declaration.group(1)) if declaration else ""
     prefix_end = declaration.start() if declaration else min(len(text), 30000)
     prefix = text[:prefix_end]
-    item_status = stability(prefix, status_hint)
+    item_status = stability(prefix, status_hint) if declaration else status_hint
     return item_status, since(prefix), 'class="stab deprecated"' in prefix, signature, source_path(page, prefix, doc_root)
 
 
@@ -244,14 +288,38 @@ def page_members(page: pathlib.Path, kind: str, doc_root: pathlib.Path) -> list[
     for region in member_regions(text, kind):
         for match in SECTION_RE.finditer(region):
             anchor = match.group(1)
-            body = match.group(2)
+            section_classes = set(match.group(2).split())
+            if "trait-impl" in section_classes:
+                continue
+            anchor_kind = anchor.split(".", 1)[0]
+            defining_classes = {
+                "method": {"method"},
+                "tymethod": {"method"},
+                "associatedtype": {"method", "associatedtype"},
+                "associatedconstant": {"method", "associatedconstant"},
+            }[anchor_kind]
+            if section_classes.isdisjoint(defining_classes):
+                continue
+            body = match.group(3)
             header = HEADER_RE.search(body)
             if not header:
                 continue
             signature_html = header.group(1)
             signature = plain(signature_html)
-            surrounding_end = region.find("</summary>", match.end())
-            surrounding = region[match.start() : surrounding_end if surrounding_end >= 0 else match.end()]
+            tail = region[match.end() :]
+            local_ends = [
+                position
+                for marker in (
+                    "</summary>",
+                    '<div class="docblock">',
+                    "<h2 ",
+                    '<section id="',
+                    '<details class="',
+                )
+                if (position := tail.find(marker)) >= 0
+            ]
+            local_end = min(local_ends) if local_ends else len(tail)
+            surrounding = region[match.start() : match.end() + local_end]
             members.append(
                 {
                     "anchor": anchor,
@@ -316,6 +384,7 @@ def extract(args: argparse.Namespace) -> None:
     module_rows: list[dict[str, object]] = []
     missing_pages: list[str] = []
     external_modules: list[str] = []
+    entries_without_descriptions = 0
 
     queue: list[tuple[str, str, pathlib.Path]] = [
         (crate, crate, doc_root / crate / "index.html") for crate in ("core", "alloc", "std")
@@ -334,7 +403,8 @@ def extract(args: argparse.Namespace) -> None:
             continue
 
         text = page.read_text(encoding="utf-8")
-        entries = module_entries(text)
+        entries, module_without_descriptions = module_entries(text)
+        entries_without_descriptions += module_without_descriptions
         collapsed = is_collapsed(module_path, args.collapse_prefix)
         stable_count = sum(entry.status == "stable" for entry in entries)
         unstable_count = sum(entry.status == "unstable" for entry in entries)
@@ -507,7 +577,11 @@ def extract(args: argparse.Namespace) -> None:
             "crates": ["core", "alloc", "std"],
             "collapse_prefixes": sorted(args.collapse_prefix),
             "trait_impl_policy": "count defining trait declarations; do not expand repeated concrete impl methods",
+            "member_section_policy": "count defining methods, deprecated methods, associated types, and associated constants; reject rustdoc trait-impl repeats",
             "stability_policy": "stable caller contracts are the anchor; unstable and unsafe rows remain evidence",
+            "item_class_policy": "fail closed on every unrecognized or ambiguous rustdoc item-table entry",
+            "item_table_policy": "consume every dt and require zero or one adjacent dd; reject all orphan markup",
+            "recognized_item_classes": sorted(ITEM_CLASSES),
         },
         "counts": {
             "inventory_rows": len(inventory),
@@ -524,6 +598,7 @@ def extract(args: argparse.Namespace) -> None:
             "collapsed_module_rows": sum(row["mode"] == "collapsed" for row in module_rows),
             "missing_pages": len(missing_pages),
             "external_module_links": len(external_modules),
+            "item_table_entries_without_descriptions": entries_without_descriptions,
         },
         "outputs": {
             inventory_path.name: sha256_file(inventory_path),

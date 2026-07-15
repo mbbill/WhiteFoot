@@ -43,11 +43,13 @@ The extractor starts at the public `core`, `alloc`, and `std` module indices and
 follows their public module tables. For each non-collapsed module it records:
 
 - every rendered public item;
-- inherent methods and associated functions before the trait-implementation
-  section; and
+- defining inherent methods and associated functions, including deprecated
+  method sections;
+- defining inherent associated types and associated constants; and
 - required and provided declarations on the defining trait.
 
-Concrete trait implementations are not expanded. Rustdoc repeats them on every
+Sections labeled as trait implementations are explicitly rejected rather than
+bounded by document order. Rustdoc repeats concrete implementations on every
 implementer, while the caller protocol is already represented by the trait
 declaration. Reexports remain visible as rows, then receive a `duplicate_of`
 link when their normalized source declaration is already present.
@@ -65,26 +67,42 @@ must classify its obligation separately.
 `core::arch` and `core::intrinsics` are collapsed by module rather than expanded
 into tens of thousands of target-specific rows. This is not an exclusion. Every
 reachable module has direct stable and unstable item counts plus a digest over
-its entries. The 28 collapsed module rows account for 16,888 direct stable and
-12,633 direct unstable entries. Their capability disposition is the explicit
+its entries. The 29 collapsed module rows account for 17,424 direct stable and
+14,174 direct unstable entries. Their capability disposition is the explicit
 target-intrinsic and compiler-runtime family, not the sequential data-structure
 floor.
 
 ## Exact counts
 
-The detailed inventory contains 16,432 rows:
+The detailed inventory contains 17,135 rows:
 
-- 9,874 stable-safe renderings;
-- 554 stable-unsafe renderings;
-- 6,004 unstable renderings;
-- 5,096 canonical stable-safe declarations after reexport/source
+- 10,267 stable-safe renderings;
+- 560 stable-unsafe renderings;
+- 6,308 unstable renderings;
+- 5,278 canonical stable-safe declarations after reexport/source
   canonicalization; and
-- 273 canonical stable-unsafe declarations.
+- 277 canonical stable-unsafe declarations.
 
-The module inventory has 290 rows, no missing page, and no unresolved external
+The module inventory has 297 rows, no missing page, and no unresolved external
 module link. These counts cover the installed 1.97.0 target's rendered public
 surface; platform and architecture families remain explicitly accounted rather
 than promoted to portable contracts.
+
+Top-level item tables are consumed one `dt` at a time. Each `dt` must contain
+exactly one recognized declaration anchor and may have zero or one adjacent
+`dd`; any orphan markup, ambiguous anchor, or unconsumed table content is a
+hard extraction failure. The pinned tree has 2,124 entries without a
+description: 2,051 in collapsed tables and 73 in detailed tables. This policy
+restores five reachable modules that a description-
+requiring parser missed: `core::intrinsics::gpu`,
+`core::panicking::panic_const`, `std::intrinsics::gpu`,
+`std::os::macos::raw`, and `std::os::windows::net`.
+
+Exact canaries cover `std::ascii`, `std::intrinsics`, `SipHasher`, `AsciiExt`,
+trait aliases, tuple/unit primitive pages, declaration-less module pages, the
+final member section on a page, and the deprecated direct memory intrinsics.
+The inventory contains 356 deprecated renderings and 198 canonical stable
+deprecated declarations.
 
 An independent seed extractor validates the data-structure-heavy boundary. The
 selected array, slice, string, box, sequence, deque, list, heap, ordered and hash

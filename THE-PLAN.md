@@ -82,30 +82,51 @@ Measured non-wins (equally load-bearing):
 ## 4. Active build track and ranked bets
 
 1. **Minimal systems-capability basis / data-structure capability floor** —
-   ACTIVE RESEARCH; NO MECHANISM IMPLEMENTATION. D12 authorizes completion of
-   the bounded G0-Core research using stable Rust `core`/`alloc`/`std` caller
-   contracts as a finite completeness anchor, supplemented by cross-ecosystem
-   and held-out generativity witnesses. Rust mechanisms receive no presumption;
-   the target is a Pareto-small checked basis from which ordinary no-unsafe
-   libraries derive the required contracts efficiently. The whole systems
-   envelope is accounted, while the first detailed closure remains the
-   sequential, unique-owner data-structure floor from D11. The
-   bounded G0-Core freezes only the global registry, coarse observable and
-   asymptotic contracts, safety/no-tax laws, family dependencies, reopening
-   rules, holdout identities, and later-gate schemas. Exact algorithms,
-   workloads, thresholds, soundness fixtures, and META-5 derivations freeze in
-   a Family Lock A immediately before that family's candidate work. Dense
-   affine sequence is first because it has the broadest dependency surface, not
-   because xlc has already selected a growable representation. A family that
-   passes its complete evidence gate may seek separate owner-approved adoption;
-   the full capability-floor claim waits for all protected B baselines and
-   mandatory M, W, and H obligations. E0.1 remains suspended before Lock A, and
-   its old fixed-record paired protocol does not restart automatically. Census,
-   normalization, derivation ledgers, proof sketches, and hostile reviews are
-   authorized. Syntax, substrate, Family Lock A, candidate or production
-   implementation, specification change, xlc migration, scored candidate run,
-   E0.1 restart, and default teaching are not. The next production-relevant
-   step remains an owner discussion after this research closes.
+   G0-CORE RESEARCH SYNTHESIS COMPLETE; OWNER REVIEW IS NEXT; NO MECHANISM
+   IMPLEMENTATION. Stable Rust 1.97.0 supplies a finite 5,555-declaration,
+   297-module demand anchor, not a design oracle. The full classifier separates
+   surface admissibility from the underlying need; panic unwind recovery under
+   current EFF-4 and writer-facing direct memory-intrinsic authority are the two
+   conceptual non-goals, while checked memory-copy needs remain live. The detailed sequential unique-owner
+   floor contains 276 coarse coverage and obligation clusters, an exact
+   175-declaration D10
+   iteration/range crosswalk, 49 operational obligations, 12 proof dimensions,
+   16 global laws, topology/cross-container witnesses, protected no-tax
+   baselines, and exact ordinary-library dependency budgets. The matrix records
+   current xlang honestly: E=0, P=0, U=15, X=229, FRAME=4, DEFERRED=19,
+   BOUNDARY=9, NG=0. Unrestricted demand is preserved while restricted
+   region-free/borrow-free sketches are closed by an exact generated payload
+   ledger: 26 active stored-borrow rows, 138 contracts with 294 deferred
+   branches, 100 genuine no-complement rows, nine boundary-evidence rows, two
+   trusted-frame scope deferrals, and one cross-family allocation-error
+   delegation. The 276 rows are not exact operation contracts and cannot be
+   imported as Family Lock, experiment, or closure units; their capability and
+   cost fields are conservative envelopes. Exact generated registries route all
+   276 clusters, 1,961 evidence relations, 334 concrete trait implementations,
+   and 49 B/M/W/H/O obligations. Their combined 453 source-dependency edges
+   collapse to a pinned acyclic 53-edge family/gate graph. This is an obligation
+   basis, not 49 proposed primitives. Each Family Lock must first load the complete safe, D10,
+   stable-unsafe, concrete-implementation, helper, and protocol evidence-key
+   universe of every routed cluster as an audit domain. It independently derives
+   each identity's exact target set and gives exactly one terminal to every
+   applicable `(evidence_identity, target_id)` pair, with no terminal for a
+   non-applicable target. It must then freeze
+   `member_contract_id` and `outcome_id` units with exact semantics,
+   capabilities, costs, algorithms, canaries, and endpoints before candidate
+   construction, `E`/`P`, or scoring. Every excluded key names the exact family,
+   cluster, and whole-floor claims it blocks.
+   The smallest production mechanism set remains a family-by-family measured
+   Pareto question. The whole systems envelope remains blocked by named later
+   families and reviewed frames, including stored borrows, shared ownership,
+   concurrency, resources/FFI, custom allocation, async cancellation,
+   pin/address sensitivity, complete text, target facilities, and checked
+   volatile/MMIO. Dense affine sequence remains first because it has the widest
+   dependency surface, not because a representation has been selected. The
+   next production-relevant discussion is whether to authorize drafting its
+   Family Lock A. Such approval would authorize an exact experimental lock only;
+   syntax, substrate, candidate or production implementation, specification
+   change, xlc migration, scored run, E0.1 restart, and default teaching remain
+   unauthorized.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver

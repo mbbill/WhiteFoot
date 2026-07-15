@@ -144,6 +144,14 @@ Clone is a distinct explicit semantic operation and may fail only according to
 its frozen contract. No operation acquires a hidden `Copy`, `Clone`, `Default`,
 or dummy-value requirement.
 
+Fresh cloning and in-place clone-from are separate ownership contracts. A fresh
+clone creates one new owner. Clone-from updates an already live destination,
+may reuse its resources, and neither returns nor necessarily destroys the
+previous whole value. Representative selection during duplicate insertion or
+replacement is branch-specific; every rejected, displaced, retained, or
+returned owner is accounted exactly once. Relocation never implies cloning or
+source destruction.
+
 ### G-4: Normal-exit closure
 
 Fallthrough, `return`, `break`, `give`, `try` propagation, recoverable
@@ -151,6 +159,11 @@ allocation/capacity failure, callback return, and permitted protocol-value
 abandonment are normal exits. Every one must satisfy G-1 through G-3 and the
 family's resource-accounting contract. Proof of the success path alone is not
 coverage.
+
+Deliberate resource-abandonment rows classified `BOUNDARY` do not instantiate
+this ordinary xlang law. `RAW-SAFE-LEAK-01` is the exact current exception: it
+records external demand for a separately gated process-lifetime transfer and is
+not an admissible ordinary cleanup mechanism.
 
 ### G-5: Affinity is not completion
 
@@ -175,6 +188,9 @@ live subset. Destruction authority comes from checked state, not from mutable
 client metadata. Recursive destruction must meet the family's termination and
 stack/resource bound.
 
+`RAW-SAFE-LEAK-01` therefore carries no ordinary exact-destruction claim. This
+boundary evidence does not authorize a library to weaken the rule above.
+
 ### G-7: Trap boundary
 
 Under current EFF-4, a trap aborts and runs no cleanup. A trap path owes no
@@ -193,19 +209,102 @@ must be infallible or carry a proved rollback state machine. Current OOM is a
 TCB-level condition under OP-9; a recoverable allocator is a separate contract
 and cannot be assumed by a family without its own lock.
 
+A consuming call kills each offered caller binding at entry. If recoverable
+failure is promised before commitment, failure returns the exact offered values
+as sole owners and preserves the base owner in the contractually frozen state;
+success transfers them exactly once; abort returns no normal result.
+`FL-ATOMIC` is member-specific and must not be inferred merely because an
+operation has a failure-valued branch.
+
 ### G-9: Borrow, provenance, and invalidation
 
 Every physical reference identifies an owning root, place, region, and any
 state/version required to prove continued validity. A live incompatible borrow
 blocks relocation, deletion, owner destruction, and any mutation that can
-invalidate its place. Multiple exclusive positions require a checked
-disjointness proof. A logical handle or index is not a physical reference; it
-must revalidate the identity and occupancy promised by its contract at access.
+invalidate its place. Mutation while another borrow of the common root remains
+live is legal only through an exact write footprint proved disjoint from every
+incompatible live access; that proof never widens authority to the common root.
+Multiple exclusive positions require the same kind of checked disjointness
+proof. `BR-DISJOINT` may be established by structural separation, monotone
+progression, a checked validation, or a frozen precondition; pointer inequality
+alone is never sufficient, including for empty or zero-sized places. A logical
+handle or index is not a physical reference; it must revalidate the identity
+and occupancy promised by its contract at access.
+
+`BR-PROV` is assigned independently to every borrowed leaf of a result. Fields
+of one product and alternatives of one sum or branch may derive from different
+owning roots, places, regions, or epochs. `BR-RESULT` composes those exact
+per-leaf relations; it never replaces them with one aggregate or
+container-wide origin.
+
+Every runtime behavior call is effectful by default, including a call through
+a shared receiver. A normal call boundary preserves every nonconsumed outer
+owner, but it does not imply that owner's internal leaf map is unchanged. The
+declared behavior-effect and result-provenance relations must jointly account
+for every pre-call leaf: each surviving leaf keeps its exact root, each ended
+leaf ends exactly once, each moved leaf has one destination, and each newly
+live leaf has relation-authorized provenance. A unique leaf moved to another
+owner or result ends at the source before destination liveness and is never
+simultaneously live in both. A temporary receiver reborrow, the address or
+storage of a receiver field or container, and the call frame mint no physical
+root unless the declared result relation identifies that field or container as
+the actual returned storage. Repeated calls consume the prior call's
+post-state, not a frozen original leaf map.
+
+Absent a declared relation or a machine-verified body proof, no caller or
+optimizer may infer purity, idempotence, repeatability, leaf-map preservation,
+call elision, duplication, common-subexpression elimination, fusion, or
+reordering. This rule covers equality, ordering, hashing, cloning,
+`RangeBounds`, iterator methods, projections, and every other runtime behavior;
+a marker or compile-time-only bound is not a runtime call. Direct
+monomorphization remains the canonical zero-runtime-tax route and adds no
+vtable, dynamic-dispatch metadata, or indirect-call branch.
+
 A payload that contains a borrow retains the same source provenance and cannot
 outlive its source merely because it was inserted, moved with a container,
-relocated between allocations, projected, or returned. Every family that admits
-such payloads must prove source-mutation invalidation and exact lifetime
-relations independently of the container's storage lifetime.
+relocated between allocations, projected, or returned. Arbitrary retained
+borrow-bearing `Item`, seed, callable environment, `State`, cache, or collection
+payload requires `BR-STORED`. Every family that admits such payloads must prove
+source-mutation invalidation, relocation, exact lifetime relations, and
+destruction independently of the container's storage lifetime.
+
+This includes owned behavior state. A lazy predicate, callable environment, or
+text `Pattern`/searcher moves into its cursor and may itself contain affine,
+drop-bearing, or borrowed leaves. `AB-STATEFUL` supplies invocation shape, not
+ownership, lifetime extension, or cleanup: the state requires `OW-MOVEOUT`,
+`OW-DROP`, and `BR-STORED`, and normal cursor destruction or abandonment must
+destroy it exactly once.
+
+`BR-CURSOR` is narrower. It grants only an opaque cursor protocol authority to
+retain its source relation and may carry a field-, branch-, and epoch-sensitive
+multi-root provenance map. It does not authorize arbitrary retained
+borrow-bearing `T`, callable environments, `State`, caches, or collection
+payloads.
+
+A returned source-borrowing cursor jointly requires owner-bound cursor
+authority, source provenance, result-region provenance, and, for a unique
+source, a bounded parent `BR-REBORROW`. Its source borrow does not imply that
+its `Item` borrows: a cursor may borrow a source while yielding owned,
+borrow-free values. Conversely, each borrowed yield retains its exact branch or
+field provenance. If a non-lending cursor permits multiple unique yielded
+siblings to remain live, it requires `BR-DISJOINT` as well as `BR-REBORROW`.
+Cursor invalidation ends authority to produce future results. An already
+yielded external borrow ends only when its declared source relation ends
+through region completion, incompatible source mutation, or owner death;
+ordinary cursor or adapter destruction does not end it. Receiver-bounded
+`peek`, `peek_mut`, and `by_ref` results remain bounded by that receiver.
+Scalar and truly borrow-free owned yields mint no payload borrow, but a copied,
+cloned, or behavior-produced value may preserve borrow provenance carried by
+its type.
+
+A consumer may keep an earlier unique `Item` live while advancing its source:
+fold accumulators, extremum candidates, fanout destinations, `Extend`, and
+`FromIterator` are concrete examples. Such a branch requires pairwise
+`BR-DISJOINT` for source yields and `BR-STORED` for the retained value.
+Returning a collection that contains those leaves additionally requires
+per-leaf `BR-RESULT`; extending an existing destination does not. Destination
+allocation identity never substitutes for the retained leaf's external source
+provenance.
 
 ### G-10: Identity dimensions remain distinct
 
@@ -235,9 +334,11 @@ revocation. Silent wrap and identity resurrection are forbidden.
 Initialization alone does not prove semantic validity such as UTF-8, sortedness,
 heap order, or tree balance. A checked producer establishes each refinement,
 and every mutating transition must preserve it or invalidate the corresponding
-capability/fact. An invalid behavior law may cause a contained data-structure
-logic error, but it must not authorize an invalid payload read or memory
-corruption.
+capability/fact. A broken equality, ordering, hashing, `RangeBounds`, Pattern,
+iterator, projection, or other logical law may cause a contained logic, result,
+complexity, or refinement failure. It must never relax ownership or provenance,
+authorize an invalid payload read, forge occupancy, liveness, uniqueness, or
+disjointness, mint check-elision authority, or cause memory corruption.
 
 ### G-13: Fact-channel integrity
 
@@ -274,6 +375,55 @@ address-stability, and platform envelope it actually proves. An excluded
 dimension is a recorded scoped deferral with a blocked claim and reopening
 trigger, not an implicit success.
 
+For stored-borrow scope, this law is mechanical. The full census remains the
+unrestricted Rust-demand ledger. Every derivation row appears exactly once in
+`PAYLOAD-SCOPE-CLASSIFICATION.tsv`; every conditionally omitted live
+borrow-bearing generic-payload member appears in
+`PAYLOAD-SCOPE-OVERLAY.tsv` with its role and exact capability delta. Direct
+borrowed results stay in the base matrix rather than the stored-payload
+overlay. The six classification states distinguish active stored-borrow
+accounting, exact deferred branches, true no-complement rows, delegated scope,
+inadmissible boundary evidence, and trusted-frame scope deferral. A payload
+classification is never by itself a complete-contract closure claim.
+
+The role partition is exact over all live generic state:
+
+- an `ACTIVE_BR_STORED` extract, splice, or filter row owns its live
+  `RangeBounds` descriptor where present and its retained callable,
+  replacement-source, or cursor state; active coverage must not be duplicated
+  or weakened by a conditional overlay;
+- stored `BuildHasher` state is preserved, call-scoped-reborrowed, used by a
+  lazy cursor, or destroyed exactly once only on the exact hash-set relation,
+  set-algebra, `Index`, `IntoIterator`, `Extend`, or `Collect` path that owns
+  that role; the `Hash` path of `Cmp` instead reborrows caller-owned mutable
+  `Hasher` state, and no hasher grants element or result provenance;
+- an owned callable environment receives the exact zero-or-more, zero-or-one,
+  or exactly-once call partition of its member and is destroyed exactly once
+  on every normal route, including a not-invoked branch where one exists; and
+- `CACHED_KEY_BORROW_STATE` belongs only to `VIEW-SORT-01`. Other key-producing
+  branches may own a short-lived `KEY_RESULT_BORROW_STATE`, but they neither
+  allocate nor retain a cached-key array.
+
+`scope_owner_contract_ids` is a machine-readable edge, not explanatory prose.
+The only delegated row is `ALLOC-ERROR-01`; its exact owners are
+`SEQ-TRY-RESERVE-01`, `DEQUE-RESERVE-01`, `HEAP-RESERVE-01`,
+`HMAP-RESERVE-01`, `HSET-RESERVE-01`, and `STRING-RESERVE-01`. Boundary and
+frame rows self-identify the evidence authority that keeps them outside
+ordinary safe-library derivation. A deferred overlay, delegated owner,
+boundary-evidence row, or frame-scope deferral blocks `E` and `P` for the
+unrestricted cluster demand. A later Family Lock must select the applicable
+cluster classification, scope-owner, and branch evidence keys, rebind them to
+exact lock-local member/outcome units, and then form each effective capability
+list from that unit's exact base capabilities and exact conditional delta. It
+must not import a cluster-wide union or silently widen a
+region-free/borrow-free result.
+
+An excluded branch or non-closed route is free on the protected default shape:
+its stronger scope adds no field, metadata byte, check, branch, allocation,
+generated-code path, payload traffic, or new fact dependency. A stronger
+included branch may pay only its own contract cost, and derivable proof state
+must erase.
+
 ## 5. Separating Rust 1.97.0 witnesses
 
 These source witnesses establish independent obligations. They do not select
@@ -282,16 +432,20 @@ Rust's unsafe implementation techniques for xlang.
 | Witness | Exact source evidence | Separating result |
 |---|---|---|
 | `MaybeUninit<T>` and partial arrays | [`maybe_uninit.rs` validity invariant](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L7-L16), [invalid-byte rules](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L42-L93), [partial-array accounting](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L119-L164), and [`write_iter` guard](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L1385-L1405) | Invalid bytes are not `T`; partial construction needs a live-count proof and exact partial drop. `MaybeUninit` is implementation evidence, not an admissible xlang writer surface. |
+| Array `IntoIter<T, N>` | [Public iterator construction and destruction, including the `needs_drop` gate](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/array/iter.rs#L54-L338) and [private live-interval invariant and transitions](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/array/iter/iter_inner.rs#L34-L256) | A sealed `[front, back)` interval is the exact live set; both exteriors are dead. Front/back move-out invalidates the previous interval fact. Destruction performs exactly `back-front` drops for drop-bearing `T`, while a statically no-drop `T` emits no scan or partial-drop code. This requires checked hole/live-state, invalidation, exact drop, and sealed fact authority, but no per-slot bitmap. |
 | `Vec<T>` | [`vec/mod.rs` representation guarantees](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L303-L410), [`push`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L1035-L1049), [`set_len`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L2138-L2222), and [`pop`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L2843-L2852) | Optimal growable affine sequence requires spare capacity that is not `T`, ordered state updates, move-out, relocation, and failure preservation. A fully initialized buffer cannot derive this contract for arbitrary `T` without dummy construction or hidden requirements. |
 | `Vec::Drain` | [`Drain` creation commits a shortened base vector](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L2942-L3003) and [`Drain::drop` repairs the tail](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/drain.rs#L173-L220) | Partial consumption exposes the difference between an always-valid base owner, cleanup/liveness restoration, and a must-finish protocol. |
+| `slice::clone_from_slice` | [Rust 1.97.0 `clone_from_slice` delegates each live destination to `Clone::clone_from`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/slice/mod.rs#L5602-L5613) | A live destination may reuse its resources. Clone-from is therefore neither replacement-return nor unconditional whole-value drop, and a candidate may not impose mandatory destruction or reallocation. |
+| `slice::{fill,fill_with}` | [Rust 1.97.0 general `fill` specialization](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/slice/specialize.rs#L8-L17) and [`fill`/`fill_with` entry points](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/slice/mod.rs#L4167-L4197) | One API cluster contains clone-from destination reuse, a final seed move, producer-before-replace, and empty-input seed/callable destruction. Member-specific ownership cannot be replaced by one whole-value-drop rule. |
+| `Iterator::Item` and `next` | [Rust 1.97.0 non-lending iterator signature](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/iter/traits/iterator.rs#L42-L78) | Ordinary yielded references carry pre-existing external provenance and may outlive adapter destruction. Receiver-bounded `peek`, `peek_mut`, and `by_ref` results are a separate reborrow layer; adapter state cannot be treated as the provenance of every `Item`. Multiple live unique yielded siblings additionally require proved disjointness, including when a consumer retains them in an accumulator, candidate, or destination. |
 | `VecDeque<T>` | [`VecDeque` ring representation](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/vec_deque/mod.rs#L75-L116) | A wrapped live set of at most two intervals is neither one prefix nor optimally represented by arbitrary per-slot occupancy. |
 | `BTreeMap<K,V>` nodes | [`node.rs` invariants and layout](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/btree/node.rs#L1-L93), [`split`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/btree/node.rs#L1221-L1307), and [`merge`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/btree/node.rs#L1392-L1454) | One node has dependent prefixes of `n` keys, `n` values, and `n+1` edges; split and merge require source/destination transition proofs across allocations. |
 | `hashbrown` raw table used by `std::collections::HashMap` | Rust 1.97 pins `hashbrown` 0.17.1; exact source commit [`c62a63a...`, table and control state](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L557-L580), [`prepare_insert_index`](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L1907-L1919), and [`set_ctrl`](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L2564-L2595) | Sparse control state authorizes payload access. Split control/payload mutation is a temporal unsafe obligation in Rust and must become one checked transition or an unforgeable relation in xlang. |
 | `String` | [`String` is a `Vec<u8>` plus an always-valid UTF-8 invariant](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/string.rs#L114-L117), [`from_utf8`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/string.rs#L515-L573), and unchecked-construction consequences at [lines 993-1005](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/string.rs#L993-L1005) | Live-byte topology does not imply a semantic refinement. Validation/sealing and boundary-preserving mutation are separate obligations. |
-| `Rc<T>` and `Weak<T>` | [`RcInner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L285-L289), [`new_cyclic_in`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L870-L910), [`try_unwrap`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L1054-L1067), and [`Weak::upgrade`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L3545-L3558) | Payload-live and allocation-live are distinct states; weak identity can remain after the payload is dead. This is not solved by unique-owner stable handles. |
+| `Rc<T>` and `Weak<T>` | [`RcInner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L285-L289), [`new_cyclic_in`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L870-L910), [`try_unwrap`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L1054-L1067), [`get_mut` and the three `make_mut` branches](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L1935-L2132), and [`Weak::upgrade`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L3545-L3558) | Payload-live and allocation-live are distinct states. `make_mut` mutates in place when uniquely strong with no external weak owner, dissociates weak handles by relocating under weak-only sharing, and performs arbitrary `CloneToUninit` work under strong sharing; `get_mut(None)` makes no destructive transition. The `Rc` path must charge its own strong/weak count loads and branches, while unrelated statically unique-owner structures pay no reference-count tax. OOM is the divergent OP-9 edge and a clone trap is an EFF-4 edge, not a recoverable `FL-ATOMIC` contract. |
 | `Arc<T>` and atomic weak ownership | [`ArcInner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L388-L397), [`Arc::clone`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L2399-L2432), [`Arc` destruction](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L2827-L2875), and [`Weak::upgrade`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L3276-L3304) | Shared lifecycle becomes a synchronization proof: atomic memory order must publish initialization, prevent resurrection from zero, and order last-owner destruction. Unique-owner results cannot be generalized to concurrency. |
 | `Pin<T>` and intrusive structures | [`pin.rs` address-stability contract](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/pin.rs#L1-L28) and [drop guarantee](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/pin.rs#L513-L586) | Logical identity across relocation is weaker than a stable address plus notification before storage reuse. |
-| `RefCell<T>` guards | [`RefCell` state](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L844-L858), guard release at [lines 1552-1603](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1552-L1603), and leaked-guard behavior at [lines 1814-1821](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1814-L1821) | Memory safety can survive abandonment while usability or capacity is permanently lost. Safety, exact cleanup, and liveness are separate contract choices. |
+| `RefCell<T>` owner and guards | [`RefCell` state](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L844-L858), [`new` and `into_inner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L971-L1000), [`get_mut`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1310-L1335), guard release at [lines 1552-1603](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1552-L1603), shared [`map_split`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1750-L1792), mutable [`filter_map`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1875-L1920) and [`map_split`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1967-L2007), and leaked-guard behavior at [lines 1814-1821](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1814-L1821) | Owner `new`, consuming `into_inner`, unique `get_mut`, and ordinary destruction require exact initialize/move-out/drop accounting. `RefMut::filter_map(None)` returns the original guard with callback mutation retained, so it is not `FL-ATOMIC`. Mutable split consumes its input and creates two member-scoped disjoint unique guards without a parent reborrow; shared split outputs may overlap. Guard bookkeeping provenance may differ from the mapped referent's storage provenance when the callback returns captured external storage. Memory safety can survive guard abandonment while usability is permanently lost, so safety, exact cleanup, and liveness remain separate choices. |
 | `mem::forget` and `ManuallyDrop<T>` | [`mem::forget` safety rationale](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/mod.rs#L73-L170) and [`ManuallyDrop` validity and derived-behavior hazards](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/manually_drop.rs#L8-L149) | Rust unsafe code may not rely on destructor execution, and derived behaviors must not inspect dead fields. xlang may deliberately require stronger exact normal-exit cleanup, but that is an explicit xlang law, not an inference from Rust. |
 | `LinkedList<T>` | [`LinkedList` node topology](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/linked_list.rs#L50-L65) and [cursor operations](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/linked_list.rs#L573-L610) | Doubly linked mutation combines stable nodes, non-owning links, multi-place access, deallocation, and cursor validity; unique recursive ownership alone does not cover it. |
 
@@ -357,6 +511,9 @@ Rust permits safe resource leaks and permanently leaked `RefCell` borrow state;
 xlang's current STOR-3 instead intends compiler-derived exact normal-exit
 destruction. A family must state which usability guarantees accompany that
 stronger resource rule. It may not derive them merely from the word `affine`.
+The deliberate-leak contract remains classified `BOUNDARY`: it records an
+external need but does not instantiate ordinary xlang normal-exit or
+exact-destruction semantics.
 
 ## 8. Fact-channel registry schema
 
@@ -417,15 +574,22 @@ The criterion names are global; the concrete state machine is family-local.
    every normal result.
 3. **Slot ledger:** every physical slot has a unique abstract live/dead state;
    reads and drops occur if and only if live; ownership is neither duplicated
-   nor lost.
+   nor lost; relocated source slots are dropped zero times; and duplicate or
+   displaced representatives have an exact retained, returned, or destroyed
+   disposition.
 4. **Exit closure:** every non-trap control-flow exit, including early errors
    and affine-token abandonment, is enumerated and proves G-4 through G-6.
 5. **Failure refinement:** each recoverable failure point refines the frozen
    failure contract and accounts for the original owner and every offered
-   affine value.
+   affine value, with exact owner sets for success, recoverable failure, and
+   abort.
 6. **Borrow theorem:** every reference or physical cursor has a root,
    provenance, and validity interval; invalidating transitions reject while it
-   is live; multi-place unique access proves disjointness.
+   is live; multi-place unique access proves disjointness; and every returned
+   source-borrowing cursor proves owner-bound authority, result provenance, and
+   any required bounded parent reborrow. The proof distinguishes receiver-
+   bounded results from externally sourced yielded borrows that may outlive the
+   cursor while their own source remains valid.
 7. **Identity theorem:** stale, cross-pool, relocated, cleared, reused, and
    exhausted identities behave according to the exact contract; no identity
    silently resurrects.
@@ -433,16 +597,33 @@ The criterion names are global; the concrete state machine is family-local.
    every admitted mutation proves preservation or invalidates the seal.
 9. **Behavior containment:** a comparator, hash, equality, clone, or callback
    cannot forge storage validity or turn a logic-law violation into memory
-   corruption.
+   corruption. Every invoked behavior finishes before a commitment that would
+   make failure unsafe. Rehash hashing behavior cannot forge occupancy,
+   liveness, or ownership facts.
 10. **Fact theorem:** every fact has a producer, proposition, scope,
     invalidators, and consumer; facts-on and facts-off are semantically
     equivalent.
 11. **Destruction theorem:** normal destruction drops exactly the live payloads,
     skips dead/moved locations, frees each allocation once, and meets recursive
     destruction bounds.
-12. **Ordinary-library derivation:** H-STORE implements the implicated storage
-    topology using only its frozen public dependency budget, with no completed
-    container or privileged raw path.
+12. **Ordinary-library derivation:** each family closes G-14 with its assigned
+    held-out using only that witness's frozen public dependency budget and no
+    privileged raw path. The dense family uses H-FLATSET to exercise the public
+    `ST-AOS`, `ST-DENSE`, and dense ownership transitions under selection without
+    importing `FAM-DENSE` or another completed container. After dense adoption,
+    the sparse family uses H-STORE to exercise public `ST-SPARSE` while consuming
+    only the adopted exact dense capabilities, not a completed sequence or a
+    private sentinel or fact. Any allocation-bearing multi-block witness
+    separately proves that every
+    committed backing allocation has one retained affine owner in a public,
+    charged owner registry until exact release; allocation acquisition alone is
+    not owner retention. Relocating a sealed registry token must preserve the
+    exact backing-allocation identity and every live borrow rooted in that
+    allocation, without deriving provenance from the token's slot or address.
+    Every payload is destroyed while its backing owner remains live, before
+    that owner is released. Actual acquired bytes, including alignment,
+    allocator rounding, and unused tail, are charged rather than inferred from
+    payload extent alone.
 13. **Structural-cost derivation:** the implementation meets the frozen
     asymptotic contract and accounts allocations, initialized/touched/moved
     bytes, metadata, checks, branches, drops, and code size before timing.
@@ -476,13 +657,14 @@ alone. That supports an explicit transition proof, not any Rust representation.
 
 ## 10. Scoped deferrals and blocked claims
 
-The detailed first closure is the sequential, unique-owner data-structure
-floor. The following domains remain accounted but are not silently inherited by
-that closure.
+The detailed first accounting boundary is the sequential, unique-owner
+data-structure floor. Its G0 rows are coarse non-importable obligation clusters,
+not exact family closure. The following domains remain accounted but are not
+silently inherited by any later exact family closure.
 
 | Domain | G0 disposition | Claim blocked until a later lock closes | Reopening trigger |
 |---|---|---|---|
-| Borrow-bearing stored payloads (`BR-STORED`) | Deferred stored-borrow family; the first detailed floor and initial dense experiments remain explicitly region-free and borrow-free | General storage/relocation for values containing borrows, including source-owner invalidation across container moves | A candidate stores, moves, projects, returns, or destroys a borrow-bearing payload, or claims the complete sequential payload envelope |
+| Borrow-bearing stored payloads (`BR-STORED`) | Exact six-state partition: 26 active rows; 138 clusters with 294 deferred branches; 100 true no-complement rows; nine boundary-evidence rows; two frame-scope deferrals; and singleton `ALLOC-ERROR-01` delegation to six reserve clusters. The first dense experiment remains explicitly region-free and borrow-free. | General storage/relocation for values containing borrows, including source-owner invalidation across container moves. Delegated, boundary, and frame scope are not closure. | A candidate maps an overlay branch to an exact lock-local member/outcome unit; reaches a `scope_owner_contract_ids` edge; stores, moves, projects, returns, or destroys a borrow-bearing payload; uses boundary/frame authority; or claims the complete sequential payload envelope. |
 | Shared ownership and weak identity | Deferred separate lifecycle family | `Rc`/`Weak`-class payload/allocation lifetime, cycle policy, and O(1) share/clone | Any candidate relies on shared ownership, weak references, or payload-dead/allocation-live state |
 | Concurrency and atomic sharing | Deferred systems family | Data-race freedom and `Arc`/atomic memory-order contracts | Cross-thread sharing, atomic reference counts, concurrent collection access, or parallel reclamation |
 | Pinning and address-sensitive values | Deferred address-stability family | `Pin`-class immobility, intrusive links, and notification before invalidation/reuse | A contract promises stable physical address or contains self/address-sensitive links |
@@ -511,7 +693,7 @@ implementation or exposure of the shared mechanism.
 | Facts | Fact-channel schema and hostile-review requirement | Exact fact proposition, producer, scope, invalidators, consumers, artifact form, and negative fixtures |
 | Performance | Protected no-tax laws, asymptotic/coarse structural contracts, same-shape/end-to-end control schemas | Algorithms, capacity policy, allocator, payloads, traces, targets, structural thresholds, timing margins, endpoints, and selection rule |
 | Soundness | Global attack and proof schemas | Exact executable fixtures and justification for every inapplicable attack |
-| Deferrals | Domain identity, blocked claim, and reopening trigger | Any family-local narrowing, with precise excluded payload/contract |
+| Deferrals | Domain identity, blocked claim, reopening trigger, and exact payload-scope classification/overlay keys | Any family-local narrowing, with precise excluded payload/contract and imported conditional branch IDs |
 | Adoption | Nothing beyond eligibility for owner discussion | Nothing automatically; closure permits a separate owner adoption request |
 
 G0-Core must not freeze a storage spelling, builder token, finalizer rule,

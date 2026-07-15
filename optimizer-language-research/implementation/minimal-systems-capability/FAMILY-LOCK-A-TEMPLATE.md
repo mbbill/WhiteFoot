@@ -58,6 +58,18 @@ The lock is invalid if it depends on an unlocked family or if a supposedly
 family-local candidate exposes semantics whose admissible behavior spans an
 unfrozen family.
 
+Every lock freezes a required predecessor DAG for imported family contracts and
+witness execution. A witness importing `FAM-X` cannot be an adoption or closure
+gate for that same imported family; it must name `FAM-X` as a closed predecessor
+and run only in a post-adoption witness stage. The import grants the predecessor's
+public API and counters, never its representation, private facts, or unchecked
+capabilities. All imported allocation, memory, traffic, and code-size counters
+remain separately charged. Using a capability selected by another family
+creates a predecessor edge even when no `FAM-X` token is imported. A held-out
+assigned to the current family may exercise capabilities being selected in that
+lock, but it may not import that family's completed `FAM-X` container. A dependency
+cycle invalidates the lock.
+
 ## 3. Frozen input manifest
 
 The instantiated lock must hash the exact bytes it relies on. A repository path
@@ -71,9 +83,21 @@ without a digest is not a frozen input.
 | Mechanical census manifest | `RUST-1.97.0-CENSUS-MANIFEST.json` | `<required: SHA-256>` | Exact Rust source, tool, inventory, module-ledger, count, and digest authority |
 | Semantic obligations | `SEMANTIC-OBLIGATION-REGISTRY.md` | `<required: SHA-256>` | Global laws, proof criteria, fact schema, and deferrals |
 | Capability obligations | `CAPABILITY-OBLIGATION-REGISTRY.tsv` | `<required: SHA-256>` | Exact implicated capability IDs and no-tax laws |
-| Rust contract census | `RUST-DATA-CONTRACT-CENSUS.tsv` | `<required: SHA-256>` | Caller contracts and exact Rust 1.97 source anchors |
-| Rust surface map | `RUST-DATA-SURFACE-MAP.tsv` | `<required: SHA-256>` | Exact stable-safe primary mapping; stable-unsafe coverage is verified through evidence clusters |
-| Contract derivation matrix | `DERIVATION-MATRIX.tsv` | `<required: SHA-256>` | Contract-to-capability routes, gaps, costs, facts, canaries, and later gates |
+| Rust coverage-cluster census | `RUST-DATA-CONTRACT-CENSUS.tsv` | `<required: SHA-256>` | Coarse caller-demand and obligation envelopes; explicitly not exact operation contracts or import units |
+| G0 coverage-cluster registry | `G0-COVERAGE-CLUSTER-REGISTRY.tsv` | `<required: SHA-256>` | Exact cluster bytes, non-importable semantic class, and Family Lock expansion policy |
+| Rust surface map | `RUST-DATA-SURFACE-MAP.tsv` | `<required: SHA-256>` | Exact stable-safe declaration evidence identities and their primary G0 coverage clusters; stable-unsafe coverage is verified through evidence clusters |
+| Rust D10 route map | `RUST-D10-SURFACE-MAP.tsv` | `<required: SHA-256>` | Exact iteration/range declaration routes, including redundant-surface identities |
+| Stable-unsafe evidence map | `RUST-DATA-UNSAFE-EVIDENCE-MAP.tsv` | `<required: SHA-256>` | Exact evidence-only routing for every stable-unsafe data-floor declaration |
+| Concrete trait-implementation crosswalk | `RUST-1.97.0-TRAIT-IMPL-CROSSWALK.tsv` | `<required: SHA-256>` | Exact concrete implementation and stable-reachability evidence identities |
+| Concrete trait-implementation topology routing | `G0-TRAIT-IMPL-TOPOLOGY-ROUTING.tsv` | `<required: SHA-256>` | Exact primary refinement family/gate, predecessor, and implicated/reopening targets for every concrete implementation key; no fuzzy or default classifier |
+| Coverage evidence universe | `G0-COVERAGE-EVIDENCE-UNIVERSE.tsv` | `<required: SHA-256>` | Machine-derived complete evidence-key relation for every G0 cluster |
+| Cluster family routing | `G0-CLUSTER-FAMILY-ROUTING.tsv` | `<required: SHA-256>` | Exact coarse-cluster primary refinement stage, predecessors, implicated/reopening families, and route state; never a closure unit |
+| Family role and canary registry | `G0-FAMILY-REQUIREMENT-REGISTRY.tsv` | `<required: SHA-256>` | Exact Section-4 plus witness-registry B/M/W/H/O obligation union and family policies |
+| Family and gate vocabulary | `G0-FAMILY-GATE-VOCABULARY.md` | `<required: SHA-256>` | Human-readable identities, applicability equations, assignments, rationales, and source authority |
+| D11 capability-matrix source | `../general-purpose-data-structure-capability-RESEARCH.md` | `<required: SHA-256>` | Owner-ratified role, staging, family, and closure boundary |
+| Contract derivation matrix | `DERIVATION-MATRIX.tsv` | `<required: SHA-256>` | Coarse cluster-to-capability screens, gaps, costs, facts, canaries, and later gates; not exact member derivations |
+| Payload-scope classification | `PAYLOAD-SCOPE-CLASSIFICATION.tsv` | `<required: SHA-256>` | Exact six-state per-cluster stored-borrow partition and machine-readable `scope_owner_contract_ids` |
+| Payload-scope overlay | `PAYLOAD-SCOPE-OVERLAY.tsv` | `<required: SHA-256>` | Cluster-scoped conditional payload-role obligations, capability deltas, dispositions, and reopening triggers that must be rebound to exact lock-local units |
 | Witness registry | `WITNESS-REGISTRY.md` | `<required: SHA-256>` | B, W, O, and H contracts, dependency budgets, and custody |
 | Systems-domain ledger | `SYSTEMS-DOMAIN-LEDGER.md` | `<required: SHA-256>` | Detailed-floor boundary and deferred whole-envelope claims |
 | E0.1 traceability | `E01-TRACEABILITY.md` | `<required: SHA-256>` | Historical arm, control, and measurement disposition |
@@ -86,33 +110,215 @@ without a digest is not a frozen input.
 | Toolchain baseline | `<required: compiler, linker, runtime, target, and tool versions>` | `<required: executable and configuration digests>` | Reproducible construction and measurement |
 | Repository baseline | `<required: clean commit and permitted uncommitted state>` | `<required: commit ID and status digest>` | Candidate starting point |
 
-Any later input-byte change follows Section 18 rather than being silently
+Any later input-byte change follows Section 20 rather than being silently
 accepted as a refresh.
 
 ## 4. Family boundary and dependency closure
 
-### 4.1 Contract coverage
+### 4.1 Coverage-cluster and evidence-key accounting
 
-List every contract assigned to or implicated by the family. Convenience
-spellings may share one row only when result, ownership, invalidation, failure,
-drop, complexity, layout, identity, order, behavior, and resource guarantees
-are identical.
+List every G0 coverage cluster assigned to or implicated by the family and its
+complete evidence-key universe. For each cluster, that universe is the union of
+all matching stable-safe keys in `RUST-DATA-SURFACE-MAP.tsv`, all routed keys
+in `RUST-D10-SURFACE-MAP.tsv`, stable-unsafe keys in
+`RUST-DATA-UNSAFE-EVIDENCE-MAP.tsv`, concrete implementation keys in
+`RUST-1.97.0-TRAIT-IMPL-CROSSWALK.tsv`, and explicit helper or protocol
+selectors named by the cluster row. A filtered subset is not a completeness
+universe.
+The 276 G0 rows are coarse obligation envelopes with semantic class
+`G0_COVERAGE_CLUSTER`; they are not exact operation contracts, closure units,
+experiment units, or Family Lock imports. Their capability and cost fields may
+be conservative unions and therefore cannot be copied into an exact member row.
+`G0-COVERAGE-CLUSTER-REGISTRY.tsv` binds that class and policy to the exact
+census and matrix row bytes.
 
-| Contract ID | Role | Exact census rows | Observable contract summary | Required asymptotic/resource class | Capability dependencies | B/W/H dependencies | Disposition in this lock |
+Before candidate construction, the instantiated lock must provide a
+machine-readable evidence-disposition ledger, role-disposition ledger,
+member/outcome ledger, canary ledger, and a fail-closed validator with exact
+source and executable hashes. The validator derives expected sets from the
+frozen G0 inputs rather than from rows selected by the lock. It rejects missing,
+duplicate, unknown, or illegally excluded rows and proves all of the following:
+
+1. the current-family primary and implicated/reopening cluster sets equal the
+   applicable rows in `G0-CLUSTER-FAMILY-ROUTING.tsv` for the frozen family or
+   gate-stage ID and every exposed cross-family state, transition, fact, or
+   trusted path; separately referenced predecessor proof units equal the exact
+   required predecessor sets, but predecessor membership never makes a
+   downstream cluster applicable backwards;
+2. the evidence-key set equals the complete audit-domain relation in
+   `G0-COVERAGE-EVIDENCE-UNIVERSE.tsv` for those clusters; for each evidence
+   identity `e`, the validator independently derives its exact applicable target
+   set `A(e)`, and the current family or gate has exactly one terminal
+   disposition if and only if it is in `A(e)`, plus one terminal for every
+   additional applicable gate; no target in `A(e)` is orphaned globally;
+3. every applicable row in `G0-FAMILY-REQUIREMENT-REGISTRY.tsv` has exactly one
+   legal owner-lock disposition; each cross-topology implicated-family use has
+   its separate compound reuse-and-local-rebind disposition; every B control
+   runs against every candidate; M/W/H non-inclusion blocks the assigned family
+   and complete-floor claim; and `OPTIONAL_NOT_PROMOTED` is used only for an O
+   row that no mandatory contract requires;
+4. every required primary and cross-cut canary maps to exact member/outcome
+   units and frozen executable or generated-fixture bytes;
+5. every refined declaration, implementation, helper, protocol, capability,
+   payload branch, witness, and canary maps to exact `member_contract_id` and
+   `outcome_id` units without inheriting a cluster-wide union; and
+6. member/outcome totality covers every normal, recoverable-failure,
+   checked-trap, abandonment, and destruction outcome admitted by the exact
+   contract.
+
+For a lock owned by family `F`, the applicable role set is exactly: every B
+row; every non-O row whose `closure_owner_or_gate_stage` is `F`; and every O row
+explicitly promoted by the owner or required by a mandatory contract in that
+lock. A post-adoption row belongs only to its exact named gate stage. The
+registry's `implicated_family_ids` affect claim boundaries and reopening, not
+closure ownership. The lock's predecessor set must equal the union of
+`required_predecessor_family_ids` for its applicable rows, after exact
+predecessor proofs are resolved; it may neither omit a required predecessor nor
+turn an implicated family into an imported predecessor.
+
+A cluster route places that cluster's complete evidence universe in the current
+lock's audit domain; it does not make every child applicable to the lock. For
+each exact identity `e`, `A(e)` comes from an independent child-applicability
+authority. A concrete trait-implementation identity uses its exact `impl_key`
+topology route composed with the closed owning-cluster operation-gate assignment
+in `G0-FAMILY-GATE-VOCABULARY.md`. Its exact target set is the topology primary
+plus the additional operation gate when that cluster has one; topology
+predecessors are dependencies rather than members of `A(e)`. A direct key or
+selector child requires a lock-local exhaustive applicability ledger before
+disposition. If the current family or gate is not in
+`A(e)`, the lock records the routed non-applicable child but may not refine it,
+claim predecessor proof for it, or exclude it. One target's exclusion never
+erases another target's obligation. The global validator proves that every
+target in every `A(e)` receives exactly one legal terminal. Cluster routing
+never transfers the cluster's `E`/`P` status, capability union, cost envelope,
+or closure to a family.
+
+Cross-cut dimensions such as access/reborrow, ownership transition, failure,
+and behavior are not predecessor families. They appear under exact `DIM-*`
+identities in the routing registry and must be bound locally to the applicable
+member/outcome units of the current family. A lock may not invent an unclosed
+`F-*` predecessor from ordinary `BR-*`, `OW-*`, `EX-*`, `FL-*`, or `AB-*`
+capability obligations. Genuine scoped later families remain explicit `F-*`
+routes with claim-blocking exclusions and reopening triggers.
+
+For a route marked as cross-topology or per-evidence-child rebind, the lock must
+also supply an independently derived evidence-child applicability ledger. Its
+key set equals every exact evidence identity and every independently expanded
+selector child for the cluster. Each row binds implementer, declaration path,
+or source identity to all applicable family/gate IDs and the exact derivation
+rule or source-audit record. Cross-cut trait clusters therefore expose their
+dense, deque, linked, sparse, ordered, heap, text, shared, dynamic-borrow, and
+other concrete implementation children to the corresponding locks. A
+self-selected child-to-family map, a cluster-primary shortcut, or exclusion
+without this independently reviewed applicability evidence is invalid.
+For every concrete implementation identity, the validator additionally joins
+the exact `impl_key` to `G0-TRAIT-IMPL-TOPOLOGY-ROUTING.tsv` and proves equality
+of its primary refinement family or gate, predecessor set, and
+implicated/reopening set. It also joins the owning cluster to the closed
+operation-gate assignment and proves the additional gate and its immediate
+child-specific predecessor. When present, that predecessor is exactly the
+topology primary; it is additive to, not a replacement for, the operation gate's
+complete route-level predecessor family/gate set. The two targets are distinct
+and require separate terminals, while the topology primary retains its own
+predecessor sets. An ungated concrete identity carries
+an explicit closed `NONE`/`NONE`, not missing evidence. A cluster-level family
+union cannot override that child route. Exclusion in one family does not erase
+the same child's independently applicable local-rebind obligation elsewhere.
+
+A row marked `EACH_IMPLICATED_FAMILY_REBINDS_EXACT_TOPOLOGY` is also an
+accounting obligation in every listed implicated family. Its closure owner
+freezes the reusable contract, but each implicated lock must bind that family's
+topology-specific traversal members, outcomes, invalidation, costs, and
+canaries. The only successful implicated-family role terminal is the compound
+`PREDECESSOR_REUSE_AND_LOCAL_REBIND_PROVED`; predecessor reuse or a local
+topology record alone cannot discharge a deque, sparse, ordered, heap,
+identity, recursive, arena, text, or other topology-specific traversal.
+
+No candidate construction, Candidate Freeze B, `E` or `P` claim, scored or
+held-out execution, family closure, or adoption request may begin until that
+validator passes, independent hostile review passes on the same exact lock and
+validator bytes, and the owner separately authorizes the next action.
+
+| G0 coverage cluster ID | Applicable G0 obligation IDs and roles | Complete evidence-key audit domain | Exact target sets and per-applicable-target terminals | Obligation-envelope summary | Candidate member-contract IDs | B/W/H dependencies | Claims blocked by exclusions |
 |---|---|---|---|---|---|---|---|
-| `<required: stable contract ID>` | `<required: B, M, W, H, or promoted O>` | `<required: exact row IDs>` | `<required: bounded caller-visible contract>` | `<required: exact bounds and conditions>` | `<required: exact capability IDs>` | `<required: exact witness IDs>` | `<required: directly tested, derived with proof, or excluded with blocking claim>` |
+| `<required: exact G0 cluster ID>` | `<required: complete many-to-many obligation IDs with each frozen role>` | `<required: every safe, D10, unsafe, concrete-impl, helper, and protocol key>` | `<required: independently derived A(e); one terminal per applicable (e, target), none for non-applicable targets>` | `<required: bounded coarse demand; do not claim member equality>` | `<required: complete stable member_contract_id list>` | `<required: exact witness IDs>` | `<required: exact family, cluster, and whole-floor claims or NONE>` |
 
-The final table must account for every census row assigned to the family and
-every neighboring row whose implementation would consume a proposed public
-transition, state topology, fact, or trusted path.
+The final table must record every census row assigned to the family, every key in
+each routed cluster's complete audit domain, and every neighboring row whose
+implementation would consume a proposed public transition, state topology,
+fact, or trusted path. There is no ignored or missing audit input. Each key has
+an independently derived target set, and there is no ignored or not-selected
+disposition for an applicable `(evidence_identity, target_id)` pair. A
+non-applicable target has no terminal in this lock. Every `REFINED_IN_LOCK` key
+for the current target maps to exactly one
+`member_contract_id`; every `PREDECESSOR_PROVED` key names the exact frozen
+predecessor unit; every `EXCLUDED_BLOCKS_CLAIM` key names each blocked family,
+cluster, and whole-floor claim. Multiple keys may share one member contract only when the
+lock proves exact equality of result, ownership, provenance, invalidation,
+failure, drop, complexity, layout, identity, order, behavior-call, allocation,
+and resource guarantees. Similar names, directionality, or a shared G0 cluster
+are not that proof.
+
+For each selector relation, the lock records the parent
+`selected_source_value_sha256`, the exact materialized child count, the ordered
+child-identity digest, every child's independently derived exact target set, and
+one terminal disposition for every applicable child-target pair. The child
+set must equal an independently derived exhaustive expansion of the frozen
+`selected_source_value`: use a frozen expansion grammar and tool for parseable
+selectors, or an independent source-audit ledger binding every token or anchor
+to exact Rust source identities and hashes. A refined selector requires that
+set equality plus every terminal applicable to the current target.
+`PREDECESSOR_PROVED` requires the exact predecessor child universe, applicable
+terminal records, lock/unit identities, and hashes.
+`EXCLUDED_BLOCKS_CLAIM` blocks every claim that depends on any unresolved child.
+Parent-only or partial expansion is invalid; a self-selected child count and
+digest is not completeness evidence.
+
+| Selector evidence identity | Parent selected-source-value SHA-256 | Independent expansion authority and SHA-256 | Exact child count | Ordered child-identity digest | Per-child target and terminal ledger | Disposition |
+|---|---|---|---|---|---|---|
+| `<required: exact selector identity>` | `<required: frozen parent value hash>` | `<required: parser/grammar or independent source-audit ledger plus exact hashes>` | `<required: exhaustive count>` | `<required: digest over independently derived ordered identities>` | `<required: A(e) for every child; one terminal per applicable target and none for a non-applicable target>` | `<required: refined, predecessor-proved, or claim-blocking exclusion for each applicable pair>` |
+
+### 4.1.1 B/M/W/H/O role and canary dispositions
+
+For every validator-derived applicable row in
+`G0-FAMILY-REQUIREMENT-REGISTRY.tsv`, record exactly one owner-lock disposition.
+An M, W, or H row may use only `REQUIRED_IN_LOCK` or
+`EXCLUDED_BLOCKS_FAMILY_AND_FLOOR`; a predecessor is an input and cannot prove
+the owner's requirement. A B row must use `PROTECTED_CONTROL`; a missing or
+failing B row rejects candidate construction and scoring. An O row may also use
+`OPTIONAL_NOT_PROMOTED`, but only when no mandatory contract or selected
+candidate requires it.
+
+Only `EACH_IMPLICATED_FAMILY_REBINDS_EXACT_TOPOLOGY` creates a role terminal in
+an implicated lock. Success requires the indivisible
+`PREDECESSOR_REUSE_AND_LOCAL_REBIND_PROVED`, which names the closure owner's
+exact reusable lock/member/outcome bytes and the current family's exact local
+topology/member/outcome/canary bytes. Claim-blocking exclusion is the only
+other mandatory terminal. All other implication policies use
+`NOT_APPLICABLE_REOPENING_ONLY`: they affect claim boundaries and reopening but
+do not create a second role-closure obligation.
+
+The compound reuse record is valid only when every affecting specification,
+compiler, lowering, optimizer, toolchain, target, shared-capability, and public
+dependency byte or frozen identity is unchanged. The validator compares that
+complete predecessor environment, not only the public contract and old result
+hashes. Any mismatch either reruns every affected predecessor soundness,
+structural, and performance canary against the current candidate/configuration,
+or reopens the closure-owner lock; it cannot remain reusable by
+assertion.
+
+| G0 obligation ID | Role | Subject, owner/gate, predecessor, implicated-family, and rebind fields | Owner-lock disposition | Implicated-family rebind disposition | Exact proof, reuse authority, or blocked claims | Exact member/outcome units | Primary and cross-cut canary fixture IDs and hashes |
+|---|---|---|---|---|---|---|---|
+| `<required: exact obligation ID>` | `<required: B, M, W, H, or O>` | `<required: exact frozen IDs>` | `<required: legal owner-lock disposition or NOT_APPLICABLE_IMPLICATED_REBIND>` | `<required: compound reuse-and-local-rebind proof, claim-blocking exclusion, or NOT_APPLICABLE_REOPENING_ONLY>` | `<required: exact evidence and byte-identical environment>` | `<required: complete exact units or claim-blocking exclusion>` | `<required: exact fixture identities and SHA-256 values>` |
 
 ### 4.2 Capability applicability
 
 For each row of `CAPABILITY-OBLIGATION-REGISTRY.tsv`, record one of:
 `REQUIRED`, `PROTECTED`, `DEFERRED-BLOCKS-CLAIM`, or `NOT-IMPLICATED`, with a
-contract-backed reason. Wildcard applicability is not sufficient for closure.
+member-and-outcome-backed reason. Wildcard or cluster-wide applicability is not
+sufficient for closure.
 
-| Capability ID | Applicability | Exact obligation in this family | Candidate-visible dependency | Proof or fixture destination |
+| Capability ID | Applicability | Exact member_contract_id and outcome_id obligations | Candidate-visible dependency | Proof or fixture destination |
 |---|---|---|---|---|
 | `<required: capability ID>` | `<required: one allowed applicability state>` | `<required: exact family-local obligation or reason>` | `<required: public dependency or none>` | `<required: section, proof, or exact fixture ID>` |
 
@@ -125,7 +331,7 @@ or solved; the row must say why.
 
 | Deferred domain | Included or excluded | Exact blocked claim | Candidate restriction | Reopening trigger |
 |---|---|---|---|---|
-| Borrow-bearing stored payloads | `<required: disposition>` | `<required: exact claim boundary>` | `<required: enforceable payload restriction>` | `<required: trigger>` |
+| Borrow-bearing stored payloads | `<required: disposition plus applicable G0 overlay branch IDs rebound to exact member/outcome units>` | `<required: exact claim boundary>` | `<required: enforceable payload restriction and base-route scope>` | `<required: trigger>` |
 | Shared ownership and weak identity | `<required: disposition>` | `<required: exact claim boundary>` | `<required: enforceable restriction>` | `<required: trigger>` |
 | Concurrency and atomic sharing | `<required: disposition>` | `<required: exact claim boundary>` | `<required: enforceable restriction>` | `<required: trigger>` |
 | Pinning and address-sensitive values | `<required: disposition>` | `<required: exact claim boundary>` | `<required: enforceable restriction>` | `<required: trigger>` |
@@ -141,23 +347,109 @@ or solved; the row must say why.
 An included row becomes a family dependency and must receive exact semantics,
 candidate coverage, fixtures, performance accounting, and hostile review in
 this or a predecessor lock. An excluded row may not be used by any candidate.
+For stored-borrow scope, the lock must list every selected cluster's exact
+classification, `scope_owner_contract_ids`, and applicable overlay branch keys,
+then bind each selected key to exact lock-local member and outcome units.
+It may not replace those keys with “all generic payloads,” infer adjacent
+members, or promote a region-free/borrow-free experiment to unrestricted
+contract closure. The frozen G0 input contains 26 active, 138 deferred, 100
+true no-complement, nine boundary-evidence, two frame-scope-deferred, and one
+delegated contract, plus 294 exact overlay branches.
+
+| G0 cluster ID | Member contract ID | Outcome ID | Classification | Scope-owner cluster IDs | Overlay branch ID | Exact unit base capability IDs | Conditional delta | Exact effective capability IDs | Disposition and proof destination |
+|---|---|---|---|---|---|---|---|---|---|
+| `<required: exact G0 cluster ID>` | `<required: stable member_contract_id>` | `<required: stable outcome_id>` | `<required: exact six-state value>` | `<required: exact field value>` | `<required: exact branch ID or NONE>` | `<required: exact ordered IDs derived for this unit, not copied cluster union>` | `<required: exact ordered delta or NONE>` | `<required: exact ordered union>` | `<required: included, excluded, or predecessor-proved plus section and fixture IDs>` |
+
+The effective capability list is the registry-ordered, duplicate-free union of
+the exact lock-local member/outcome base capabilities and that exact branch's
+conditional delta. The G0 cluster capability list is only an obligation
+envelope and is never the base list by implication. The
+singleton delegated row `ALLOC-ERROR-01` must name exactly
+`SEQ-TRY-RESERVE-01;DEQUE-RESERVE-01;HEAP-RESERVE-01;HMAP-RESERVE-01;HSET-RESERVE-01;STRING-RESERVE-01`;
+the lock then selects the applicable owner clusters and maps their exact branch
+keys to lock-local member/outcome units.
+Delegation creates no independent payload mechanism or closure. A
+`BOUNDARY_EVIDENCE_ONLY` row may only be excluded as an inadmissible spelling.
+A `FRAME_SCOPE_DEFERRED` row may proceed only through its exact separately
+locked and hostile-reviewed frame/ABI authority. Neither state is a safe
+ordinary-library derivation.
+
+The lock must preserve the generated role carrier sets and member partitions.
+Active extract, splice, and filter rows consume their existing `BR-STORED`
+obligation for live `RangeBounds` state where present and for retained callable,
+replacement-source, or cursor state; they may not be restated as a weaker
+conditional branch. Hash-set relations/algebra and exact trait branches must
+state whether stored `BuildHasher` or caller-owned mutable `Hasher` state is
+preserved, reborrowed, used lazily, retained by `Extend`/`Collect`, or destroyed
+by owning `IntoIterator`. Non-hash siblings may not inherit that state or its
+cost. Every callable row freezes zero-or-more, zero-or-one, or exactly-once
+invocation and exactly-one normal-route destruction. Only
+`VIEW-SORT-01::CACHED_KEY_BORROW_STATE` may budget a retained cached-key array;
+a `KEY_RESULT_BORROW_STATE` does not authorize one.
+
+Every instantiated lock must treat each runtime behavior call as effectful by
+default, including calls through shared receivers. For every selected member,
+freeze the exact behavior-effect and result-provenance relations over the
+joint pre-state and post-state: nonconsumed outer owners remain valid;
+surviving leaves keep roots; ended leaves end once; moved leaves have one
+destination and end at the source before destination liveness; new leaves are
+relation-authorized; and no unique leaf is simultaneously live in two roles.
+Temporary reborrows, receiver or field addresses, container storage, and call
+frames mint no root unless the result relation identifies actual returned
+storage. Repeated calls use the preceding post-state. Unless a stronger
+relation or verified-body proof is locked, candidates and optimizers must not
+assume purity, idempotence, repeatability, leaf-map preservation, call elision,
+duplication, common-subexpression elimination, fusion, or reordering. Logical
+law failure may affect logic, results, complexity, or refinement only and must
+never weaken safety or fact firewalls. The lock must measure the direct
+monomorphized zero-runtime-tax path and reject hidden dynamic dispatch.
+
+An excluded conditional branch, unresolved delegation, boundary-evidence row,
+or frame-scope deferral must contribute zero additional fields, metadata bytes,
+checks, branches, allocations, generated-code paths, payload traffic, or new
+fact dependencies from its stronger scope to the frozen region-free/borrow-free
+default shape. An included branch may pay only for its stronger contract, and
+its proof state must erase when derivable from existing fields. The performance
+matrix must contain a facts-off and structural control that can detect either
+conditional-cost leakage or a hidden generic fallback.
+Any unresolved `DEFERRED_BRANCHES`,
+`DELEGATED_TO_FAMILY_BRANCHES`, `BOUNDARY_EVIDENCE_ONLY`, or
+`FRAME_SCOPE_DEFERRED` row forbids unrestricted `E` or `P`.
+No G0 coverage cluster, derivation-matrix row, or overlay key alone can support
+`E`, `P`, candidate construction, or a scored experiment. Those actions remain
+blocked until every key in each routed cluster's complete evidence audit domain
+has an independently derived target set, every applicable
+`(evidence_identity, target_id)` pair has exactly one terminal disposition, no
+non-applicable pair has a terminal, and every refined pair has exact
+member/outcome semantics, capabilities, costs, algorithms, canaries, and
+endpoints frozen by this lock. Any exclusion blocks every claim named by its
+disposition.
 
 ## 5. Exact caller semantics
 
-Each operation is normalized as:
+Each exact member operation is frozen as:
 
 ```text
 pre-state + input ownership + behavior parameters
     -> post-state + result ownership + failure/destruction effects
 ```
 
-| Operation ID | Pre-state | Input ownership and borrows | Behavior parameters | Success result and post-state | Invalidation | Recoverable failure | Trap behavior | Normal-exit/drop behavior | Complexity and resource ceiling | Layout, identity, order, and range guarantees |
-|---|---|---|---|---|---|---|---|---|---|---|
-| `<required: stable operation ID>` | `<required: exact state predicates>` | `<required: modes, provenance, and offered affine values>` | `<required: static behavior and effects, or none>` | `<required: exact result ownership and state>` | `<required: exact references, cursors, facts, and identities invalidated>` | `<required: exact error and retained/returned ownership>` | `<required: exact checked trap conditions>` | `<required: every normal exit and exact disposition>` | `<required: conditional asymptotic and enforceable resource contract>` | `<required: exact observable guarantees>` |
+| Member contract ID | Outcome ID | Exact declaration and implementation evidence keys | Outcome class and trigger | Pre-state | Input ownership and borrows | Behavior parameters, effects, and call count | Result and post-state | Invalidation | Error or trap behavior | Normal-exit/drop/abandonment behavior | Complexity, allocation, and resource ceiling | Layout, identity, order, and range guarantees | Exact capability IDs and payload branches |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `<required: stable member_contract_id>` | `<required: stable outcome_id>` | `<required: exact canonical declaration and concrete-impl keys>` | `<required: normal success, recoverable failure, checked trap, abandonment, destruction, or other exact class plus trigger>` | `<required: exact state predicates>` | `<required: modes, provenance, and offered affine values>` | `<required: static behavior, leaf effects, exact invocation partition, or none>` | `<required: exact result ownership, provenance, and state>` | `<required: exact references, cursors, facts, and identities invalidated>` | `<required: exact error ownership or checked-trap conditions>` | `<required: every owner, live value, allocation, callable, and protocol-state disposition>` | `<required: conditional asymptotic and enforceable structural resource contract>` | `<required: exact observable guarantees>` | `<required: exact ordered IDs and overlay keys for this unit>` |
 
-The completed table must distinguish trapping and recoverable forms, ordered and
-unordered removal, shared/unique/owning traversal, eager and lazy protocols,
-deep clone and shared identity, and any other difference recorded by the census.
+Every `member_contract_id` must enumerate all normal, recoverable-failure,
+checked-trap, abandonment, and destruction outcomes that can affect ownership,
+provenance, invalidation, cleanup, behavior calls, allocation, or cost. The
+completed table must distinguish trapping and recoverable forms, reserve and
+shrink families, drain and clear, resize and truncate, strict and lossy text
+conversion, borrowed and allocating text transforms, ordered and unordered
+removal, shared/unique/owning traversal, eager and lazy protocols, iterator
+consumers, Rc and RefCell branches, trait members and concrete implementation
+classes, deep clone and shared identity, and every other difference preserved by
+the complete applicable evidence. Candidate construction and scored execution are invalid
+until this table and its complete evidence-key mapping pass exact-hash hostile
+review.
 
 ## 6. Abstract state and preservation proof
 
@@ -211,6 +503,20 @@ Clone is recorded separately from relocation. No row may rely on hidden
 | Affine protocol abandonment | `<required: every token/cursor/guard>` | `<required: valid base-owner state>` | `<required: exact>` | `<required: exact>` | `<required: IDs>` |
 | Owner destruction | `<required: every owner form>` | `<required: owner dead>` | `<required: exactly-once live payload drop>` | `<required: exactly-once release>` | `<required: IDs>` |
 | Trap | `<required: every trap site>` | No recoverable post-state | No cleanup required; no invalid read or other undefined behavior before abort | No cleanup required | `<required: IDs>` |
+
+For every lazy cursor, the exit matrix separately records construction,
+yielding, logical exhaustion (`next` returns `None`), any permitted repeated
+terminal call, and destruction or consuming close from unused, partial, and
+exhausted states. Logical exhaustion does not by itself release a source borrow,
+destroy retained state, or run deferred repair unless the frozen API consumes
+or invalidates the cursor at that transition. It may retire or replace a named
+subcursor or epoch only when the exact concrete transition says so. Proven last
+use may release only pure source-borrow authority after every incompatible
+yielded child ends and only when no repair, owned-state destruction, or
+allocation disposition remains; it never substitutes for those effects.
+Base-owner reuse requires cursor authority and every incompatible yielded child
+to end and every required repair, destruction, and allocation disposition to
+complete.
 
 Affinity is not a must-finish proof. For every protocol value, the lock must
 freeze one exact policy: eager valid commit before abandonment, statically
@@ -427,7 +733,7 @@ or algorithm choice.
 
 | Control field | Required locked value |
 |---|---|
-| Shared observable contract | `<required: exact contract IDs>` |
+| Shared observable contract | `<required: exact member_contract_id and outcome_id set>` |
 | Algorithm identity | `<required: exact matched algorithm specification>` |
 | Representation identity | `<required: field/layout/capacity-state equivalence rule>` |
 | Capacity/growth policy | `<required: exact matched policy>` |
@@ -450,7 +756,7 @@ unmodified idiomatic Rust 1.97 route for the same caller contract.
 
 | Control field | Required locked value |
 |---|---|
-| Caller contract | `<required: exact contract IDs and equivalence oracle>` |
+| Caller contract | `<required: exact member_contract_id and outcome_id set plus equivalence oracle>` |
 | Canonical xlang route | `<required: candidate-selection result that would supply this route>` |
 | Rust 1.97 route | `<required: exact stable API and unmodified source authority>` |
 | Permitted adapters | `<required: contract-only harness adapters applied symmetrically>` |
@@ -581,7 +887,7 @@ witness cannot substitute for it.
 
 | Custody field | Required locked value |
 |---|---|
-| Applicable held-outs | `<required: exact subset of H-STORE, H-LRU, H-IPQ, and any owner-approved replacement>` |
+| Applicable held-outs | `<required: exact subset of H-FLATSET, H-STORE, H-LRU, H-IPQ, and any owner-approved replacement>` |
 | Visible contract and allowlist | `<required: exact frozen text and hash>` |
 | Custodian | `<required: identity independent of candidate construction>` |
 | Hidden source location | `<required: non-candidate-visible custody location>` |
@@ -645,6 +951,7 @@ fixed AoS ownership, semantic Copy, and partially live affine storage.
 | Artifact | Exact path/identity | SHA-256 | Producer | Reviewer | Status |
 |---|---|---|---|---|---|
 | Instantiated Family Lock A | `<required: path>` | `<required: SHA-256>` | `<required: identity>` | `<required: independent identities>` | `<required: exact-hash PASS before construction>` |
+| Fail-closed Family Lock validator and PASS record | `<required: source, executable, and result paths>` | `<required: SHA-256 per artifact>` | `<required: identity>` | `<required: independent exact-hash reviewer>` | `<required: PASS on exact lock bytes before construction>` |
 | Contract tables | `<required: paths>` | `<required: SHA-256 per artifact>` | `<required: identity>` | `<required: identity>` | `<required: status>` |
 | Soundness fixtures/generators | `<required: paths>` | `<required: SHA-256 per artifact>` | `<required: identity>` | `<required: identity>` | `<required: status>` |
 | Performance protocol/tools | `<required: paths>` | `<required: SHA-256 per artifact>` | `<required: identity>` | `<required: identity>` | `<required: status>` |
