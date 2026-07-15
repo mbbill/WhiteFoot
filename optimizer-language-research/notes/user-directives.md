@@ -340,3 +340,36 @@ compiler implementation, production adoption, E0.1 restart, xlc migration, or
 default teaching. Completing and reviewing the draft returns it to the owner.
 Any permission to construct candidates or make a language change requires a
 separate explicit decision after review of the frozen lock.
+
+## D14 (2026-07-15): Select the privileged capability basis before container mechanisms
+
+The prior capability research was operating one layer too high when it treated
+dense-container mechanisms as the next design choice. Preserve G0-Core as the
+finite completeness ledger and preserve the dense Family Lock A as detailed
+obligation and adversarial evidence, but do not select or construct a dense
+candidate until the common privileged foundation has been researched and
+reviewed. OD-0 through OD-5 are therefore not the current owner action.
+
+Research one elegant, minimal, nonforgeable privileged admission route and the
+smallest public checked capability basis that it can establish. Distinguish one
+gate from one semantic operation: allocation, atomics, OS calls, target
+operations, and typed storage transitions may be irreducible actions even when
+they share one admission mechanism and proof ledger. Do not minimize by hiding
+independent effects, facts, cleanup obligations, or TCB branches behind one
+name.
+
+xlang need not ship a standard library. Ordinary unprivileged libraries must be
+able to implement the required container and systems contracts through the
+public checked basis without a privileged named container, writer-visible
+unsafe, a hidden Copy/Clone/Default requirement, pathological simulation,
+asymptotic regression, or unavoidable runtime tax on weaker protected shapes.
+The prior registries and held-out witnesses are tests of this basis, not a list
+of language primitives to add one by one.
+
+This ruling authorizes literature and production-language research, proof and
+derivability arguments, cost analysis, and hostile review. It does not
+authorize a language or specification change, compiler implementation,
+standard-library or container implementation, candidate construction or
+execution, E0.1 restart, xlc migration, production fact channel, or default
+teaching. Any production design or implementation requires a later explicit
+owner decision.

@@ -82,6 +82,49 @@ Measured non-wins (equally load-bearing):
 ## 4. Active build track and ranked bets
 
 1. **Minimal systems-capability basis / data-structure capability floor** —
+   CURRENT RESEARCH FOCUS (D14, 2026-07-15): select the common privileged
+   capability foundation below the container layer before choosing any dense
+   mechanism. The research-level gate direction now under owner review is one
+   sealed capability admission verifier: a fixed compiler-embedded root plus
+   out-of-band capsules accepted by one authenticated signed approval-snapshot
+   predicate, with zero ordinary-source privilege spellings or enabling flags.
+   Distinct allocator, OS, atomic, target, and device operations retain separate
+   semantic, proof, trust, scope, approval, and review identities even though
+   they enter through this one gate. Proof over existing public semantics is an
+   ordinary artifact; only a new executable machine, helper, lowering, backend,
+   ABI, OS, device, or foreign edge requires a capsule.
+
+   Hostile review rejected a premature claim that a short list of storage
+   transitions already forms a universal public basis. The current bounded
+   candidate has nine roles, including shape-preserving swap and replace. A
+   decidable range grammar can cover sequential unique-owner full, prefix,
+   interval, ring, gap, and transient-hole shapes. The mandatory proof boundary
+   is narrower:
+   propositions consumed for safety, resource authority, or optimizer facts
+   require static proof, runtime validation/enforcement, or explicit trust;
+   ordinary map, sort, and graph correctness does not automatically require a
+   machine proof. H-STORE can keep payload safety in a dense prefix guarded by
+   a bounds check, so its abstract key/position invariant does not yet justify
+   a general proof logic or `ST-SPARSE` gate. Ordinary abandonment separately
+   requires exact-linear manual close or a selected
+   verified disposer; proof certificates cannot execute cleanup. Generative
+   sealing, full/inline adoption, exact focus rules, allocation failure,
+   cleanup, and protected-path cost therefore remain open. Named
+   containers are still intended to remain ordinary code, but whole-systems
+   derivability and no-tax have not been established.
+
+   The next requested research actions are staged. Gate Authentication Lock A
+   freezes and attacks the signed acceptance predicate, artifact revalidation,
+   rollback/replay behavior, and ordinary-proof/capsule boundary. Bounded
+   Sequential Safety Kernel Lock B freezes the nine roles, `LiveShape`, opaque
+   sealing, focus, full/inline adoption, cleanup, safety-only H-STORE route,
+   and a future protected-path protocol without executing it. A general-
+   predicate lock opens only if a formal counterexample or later separately
+   authorized measurement proves bounded reasoning, runtime validation, and an
+   alternative representation all insufficient. Recursive, shared, and
+   concurrent families wait for their own semantics. These locks would
+   authorize no implementation or language change.
+
    G0-Core and the research-only dense unique-owner Family Lock A are complete
    for owner review. Stable Rust 1.97.0 remains a finite demand anchor rather
    than a design oracle. G0 accounts for 5,555 declarations, 276 coarse
@@ -100,19 +143,13 @@ Measured non-wins (equally load-bearing):
    and whole-dossier hostile reviews pin the exact bytes. No pilot, candidate,
    score, held-out observation, or production design exists.
 
-   The next action is owner resolution of OD-0 through OD-5: common experimental
-   substrate, recoverable allocation surface, native target scope, affine ZST
-   scope, removal-consumption contract, and compile-time crossover policy. The
-   dossier recommends common substrate, reserve-first recovery, dual native
-   targets, ZST inclusion, eager plus scoped consumption, and no crossover.
-   Accepting those recommendations still does not authorize candidate
-   construction. Operational identities, equal resources, custody, runners,
-   allocator/harness pins, and power-engine resource limits must be frozen and
-   reviewed before a separate next-stage authorization. That later
-   authorization may permit the reference-only pilot and candidate construction
-   contingent on a feasible pilot closure, in that order. The pilot artifacts
-   must remain frozen through Candidate Freeze B and every candidate-primary
-   execution. Language or
+   D14 supersedes the previously recorded next action of resolving OD-0 through
+   OD-5. Those six dense-protocol decisions and all reference-pilot, candidate,
+   freeze, execution, and scoring work are suspended while the common basis is
+   reviewed. The frozen dossier remains evidence: its 303 exact contracts,
+   ownership oracle, 97 operation gates, 520 performance cells, protected
+   paths, held-outs, and hostile attacks are tests that any proposed common
+   basis must pass without container-specific privilege. Language or
    specification selection, compiler or production implementation, E0.1
    restart, xlc migration, scored or held-out execution, and default teaching
    remain unauthorized. Later sparse, identity, recursive, heap, ordered,

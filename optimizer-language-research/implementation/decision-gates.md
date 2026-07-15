@@ -1584,3 +1584,45 @@ implementation, production adoption, production fact channel, E0.1 restart,
 xlc migration, or default teaching. Every operational or production action
 requires a later separate owner authorization and its exact prerequisite
 closure.
+
+## D14-R1 closes the privileged-gate synthesis for owner review (2026-07-15)
+
+The hostile-reviewed research selects one admission-gate direction and rejects
+premature public-basis closure. The direction is a sealed capability admission
+verifier with a compiler-embedded base root and one authenticated signed
+approval-snapshot predicate for scoped out-of-band capsules. Ordinary source
+has no privilege-admission spelling or flag. Proof over existing public checked
+semantics remains an ordinary artifact available to every producer; only a new
+machine, helper, lowering, backend, ABI, OS, device, or foreign semantic edge
+requires a capsule. Every proposition consumed for safety, resource authority,
+or optimizer facts must come from static proof, runtime
+validation/enforcement, or explicit ledgered trust; ordinary abstract
+container correctness is outside that obligation unless promoted to a checked
+contract or fact.
+
+The bounded sequential candidate now has nine schematic roles over full,
+prefix, interval, and two-range shapes, including shape-preserving swap and
+replace. It remains blocked on opaque generative sealing, full/inline adoption,
+focus, cleanup, allocation policy, arbitrary relocation, exact static rules,
+and protected-path evidence. H-STORE's dense-prefix route establishes payload
+safety through checked indexing, so its abstract key/position invariant does
+not justify a general proof logic; the frozen `ST-SPARSE` requirement is
+recorded for re-adjudication as a possible mechanism overconstraint. The
+26-domain companion is an admission/dependency map, not a derivability proof.
+
+Two independent exact-byte hostile reviews report no remaining P0 or P1
+finding. The reviewed report, witness derivations, admission map, and review
+hashes are respectively
+`3f1998623e2278585867f512a20da2d9c218b1b0a114f26b28932a655254acf8`,
+`fd334c57d76f064d69d2bd9c6f114c94ff6caad6fbd666c76bf98947de2d3deb`,
+`ebab8f2e0592d9524d0fd7db7382d961b60b52bab5e9e519a797b19606cdf4bd`,
+and `72fb432f1db15b97faa400592a4fc83c1f86fd121b312bd11e6e70b989b17a92`.
+
+The requested next research is staged: Gate Authentication Lock A and Bounded
+Sequential Safety Kernel Lock B only. A general-predicate lock opens only after
+a formal counterexample or later separately authorized measurement proves it
+necessary; shared and concurrent families remain later. This step selects no
+public basis, language or specification rule, compiler feature, standard
+library, container, experiment, fact channel, or production action. Stages A
+and B, every implementation, and every execution require explicit owner
+authorization.
