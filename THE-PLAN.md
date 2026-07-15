@@ -1,4 +1,4 @@
-# THE PLAN (consolidated 2026-07-13)
+# THE PLAN (consolidated 2026-07-15)
 
 The single current-state document: what this project believes, what it has
 proven, and what it does next. Supersedes the DECISION_SPRINT/ROADMAP phase plans
@@ -81,81 +81,71 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Minimal systems-capability basis / data-structure capability floor** —
-   CURRENT RESEARCH FOCUS (D14, 2026-07-15): select the common privileged
-   capability foundation below the container layer before choosing any dense
-   mechanism. The research-level gate direction now under owner review is one
-   sealed capability admission verifier: a fixed compiler-embedded root plus
-   out-of-band capsules accepted by one authenticated signed approval-snapshot
-   predicate, with zero ordinary-source privilege spellings or enabling flags.
-   Distinct allocator, OS, atomic, target, and device operations retain separate
-   semantic, proof, trust, scope, approval, and review identities even though
-   they enter through this one gate. Proof over existing public semantics is an
-   ordinary artifact; only a new executable machine, helper, lowering, backend,
-   ABI, OS, device, or foreign edge requires a capsule.
+1. **Minimal systems-capability basis / privileged gate** — RESEARCH SELECTION
+   PENDING OWNER REVIEW (D14, 2026-07-15). The proposed architecture has two
+   planes and one privilege boundary. One sealed stateful admission verifier per
+   authenticated semantic toolchain root admits every irreducible machine,
+   allocator, helper, lowering, ABI, OS, device, or foreign edge. Compiler-
+   embedded and later signed entries pass the same exact current-membership,
+   implementation-cone, consumer-cone, target/frame, and final-resolution
+   predicate. No source keyword, attribute, module path, package, build flag,
+   plugin, helper name, or cache record grants privilege. Exact certified bytes
+   and explicitly trusted opaque foreign providers remain distinct outcomes.
 
-   Hostile review rejected a premature claim that a short list of storage
-   transitions already forms a universal public basis. The current bounded
-   candidate has nine roles, including shape-preserving swap and replace. A
-   decidable range grammar can cover sequential unique-owner full, prefix,
-   interval, ring, gap, and transient-hole shapes. The mandatory proof boundary
-   is narrower:
-   propositions consumed for safety, resource authority, or optimizer facts
-   require static proof, runtime validation/enforcement, or explicit trust;
-   ordinary map, sort, and graph correctness does not automatically require a
-   machine proof. H-STORE can keep payload safety in a dense prefix guarded by
-   a bounds check, so its abstract key/position invariant does not yet justify
-   a general proof logic or `ST-SPARSE` gate. Ordinary abandonment separately
-   requires exact-linear manual close or a selected
-   verified disposer; proof certificates cannot execute cleanup. Generative
-   sealing, full/inline adoption, exact focus rules, allocation failure,
-   cleanup, and protected-path cost therefore remain open. Named
-   containers are still intended to remain ordinary code, but whole-systems
-   derivability and no-tax have not been established.
+   Above that gate, ordinary unapproved modules use one fixed public reference
+   policy for proof-carrying resource protocols. The proposed semantic basis has
+   six independent axes: spatial resources, place identity, lifecycle/control,
+   interference and weak memory, external frames, and final loaded-code binding.
+   Its common storage vocabulary is a generative byte carrier partitioned into
+   checked typed places and padding space, with vacant/full state, linear move
+   and release authority, exact focus, proof-only partition reshape, structural
+   `CoreCopy`, checked callables/code leases, and executable static disposition.
+   Opaque modules may choose dense, ring, gap, sparse, recursive, shared,
+   concurrent, pinned, or external protocol metadata; no universal topology tag,
+   liveness bitmap, destructor pointer, named container, or privileged standard
+   library is selected. `LiveShape` is derived automation for common shapes, not
+   the semantic boundary.
 
-   The next requested research actions are staged. Gate Authentication Lock A
-   freezes and attacks the signed acceptance predicate, artifact revalidation,
-   rollback/replay behavior, and ordinary-proof/capsule boundary. Bounded
-   Sequential Safety Kernel Lock B freezes the nine roles, `LiveShape`, opaque
-   sealing, focus, full/inline adoption, cleanup, safety-only H-STORE route,
-   and a future protected-path protocol without executing it. A general-
-   predicate lock opens only if a formal counterexample or later separately
-   authorized measurement proves bounded reasoning, runtime validation, and an
-   alternative representation all insufficient. Recursive, shared, and
-   concurrent families wait for their own semantics. These locks would
-   authorize no implementation or language change.
+   The paper dossier supplies candidate architecture-level routes across all 26
+   systems-domain categories and constructive witnesses for sequential growth,
+   arbitrary sparse occupancy, stable recyclable identity, recursion and
+   arenas, traversal and cleanup, shared/dynamic borrowing, weak-memory
+   protocols, pinning, partial I/O, callbacks, async cancellation, and final
+   loaded-image closure. Four independently selected held-outs cover concurrent
+   cuckoo migration, crash-consistent LSM state, hot-swappable JIT code, and
+   sparse GPU residency. These listed witnesses support further study; they do
+   not close exact D-2 or P-1. The frozen dense dossier contributes 93 members
+   and 303 exact outcomes. Its generated basis ledger is fail-closed: 340 unique
+   required route obligations across 150 contexts remain unresolved. The
+   disjoint partition is 168 coarse Convert-route, 24 Convert-callable, 136
+   allocator-applicability, six IntoOwner ZST/capacity-reshape, and six
+   IntoBoxed fullness/ZST obligations. Sixteen allocator obligations also
+   implicate Convert, so 208 obligations are Convert-related in total. Every
+   unresolved obligation receives no D-2 or cost credit.
 
-   G0-Core and the research-only dense unique-owner Family Lock A are complete
-   for owner review. Stable Rust 1.97.0 remains a finite demand anchor rather
-   than a design oracle. G0 accounts for 5,555 declarations, 276 coarse
-   obligation clusters, 49 operational obligations, exact payload-scope
-   branches, protected no-tax baselines, and a 53-edge acyclic family/gate
-   dependency graph. The dense lock then refines the complete applicable
-   evidence universe into 65 audit clusters, 426 selector children, 1,400 exact
-   target terminals, 303 exact member/outcome contracts, and five
-   pairwise-distinct partial-state mechanism contracts. The E0.1 reconciliation
-   classifies all 93 unique members: 84 new mandatory exact contracts, six
-   raw/initialization-authority rejection-evidence members, and three lazy
-   lifecycle evidence members. Its executable soundness oracle
-   covers 2,002 traces; its same-shape Rust protocol contains 97 operation gates
-   and 520 exact performance cells with 27 explicit fail-closed operational
-   blockers. Coverage, contract/soundness, performance,
-   and whole-dossier hostile reviews pin the exact bytes. No pilot, candidate,
-   score, held-out observation, or production design exists.
+   The performance position is a candidate hypothesis, not a completed P-1
+   result: the architecture is intended to permit contract-selected payload
+   layout, metadata, allocation, indirection, ownership traffic, and asymptotic
+   algorithms without a universal container tax. Exact same-contract parity is
+   still pending for route multiplicity, allocator applicability, Rotate
+   dispatch, stable-sort scheduling, and cached-key sorting. Proof erasure and
+   P-2 through P-4 remain architecture-level claims only. No throughput, code-
+   size, compile-time, proof-size, automatic-proof, or default-writer result is
+   claimed.
 
-   D14 supersedes the previously recorded next action of resolving OD-0 through
-   OD-5. Those six dense-protocol decisions and all reference-pilot, candidate,
-   freeze, execution, and scoring work are suspended while the common basis is
-   reviewed. The frozen dossier remains evidence: its 303 exact contracts,
-   ownership oracle, 97 operation gates, 520 performance cells, protected
-   paths, held-outs, and hostile attacks are tests that any proposed common
-   basis must pass without container-specific privilege. Language or
-   specification selection, compiler or production implementation, E0.1
-   restart, xlc migration, scored or held-out execution, and default teaching
-   remain unauthorized. Later sparse, identity, recursive, heap, ordered,
-   arena, text, shared, dynamic-borrow, concurrency, resource/FFI, async,
-   pin/address-sensitive, target-facility, and volatile/MMIO families remain
-   independently blocked.
+   Owner review is now the next decision. Ratification would select only this
+   architecture for further research and would keep exact D-2 and P-1 pending.
+   It would not authorize a language/specification change, compiler
+   implementation, capability entry, standard library, container candidate,
+   E0.1 restart, xlc migration, benchmark, or default teaching. Before any
+   combined D14 completion claim, direction-specific Convert contracts,
+   allocator applicability, ZST/full-storage subcontracts, Rotate dispatch, and
+   stable/cached-key sort schedules must be resolved independently. If ratified,
+   the smallest separately authorized implementation-oriented study is a
+   formalization research lock for the sequential R-1/R-2/R-3 kernel,
+   `CoreCopy`, reshape, exact focus, opaque sealing, allocation outcomes, and
+   disposition. Weak-memory profile selection and surface syntax remain later
+   independent decisions.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver

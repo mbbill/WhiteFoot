@@ -1660,3 +1660,48 @@ implementation locks that may not weaken the selected semantics. No public
 resource basis, language or specification change, compiler implementation,
 capability entry, standard library, experiment, or production action is
 authorized by this step.
+
+## D14-R3 proposes the certified-resource architecture and keeps exact closure pending (2026-07-15)
+
+The owner packet proposes one sealed stateful admission verifier per
+authenticated semantic toolchain root and one fixed checked public
+resource-policy plane for ordinary proof-carrying modules. The candidate basis
+separates spatial resource, place identity, lifecycle/control, interference,
+external-frame, and final-loaded-code authority. Category-level paper witnesses
+cover all 26 systems-demand categories and four independently selected
+held-outs. Architecture hostile review found no architecture-shape blocker, but
+the proposal remains pending owner selection.
+
+The exact dense ledger is fail-closed rather than complete. Its full 303 by 14
+authority expands to 1,773 contexts and 44,689 route obligations: 8,075 required
+routes are activated, 35,021 forbidden routes have zero violations, and 340
+required obligations across 150 contexts remain unresolved with no positive
+D-2 or P-1 credit. The unresolved partition is 168 coarse Convert-route, 24
+Convert-callable, 136 allocator-applicability, six IntoOwner ZST/capacity-
+reshape, and six IntoBoxed fullness/ZST obligations. Five independent
+multiplicity rows preserve one-versus-two carrier lower bounds in 39 admitted
+structural-cost contexts without measurement credit. D-2 and P-1 remain
+`PENDING`; the D14 completion lock remains open.
+
+Independent authority reproduction, two deterministic exact verifies, and all
+thirteen hostile mutations pass. The root and compiler verification gates pass,
+and the changed research scope contains no non-English prose or filename. The
+owner verdict, architecture decision/review, exact report/review, manifest,
+route authority, and multiplicity authority SHA-256 values are respectively
+`b8f75ef88d3a9a5f6ec954ac1f4edf4f9b5d1daca446d9af7c191a09d059ff98`,
+`94fab00f99909f5211d18e11eb86d596523bb94c77a2f0c71af598bd10551e0d`,
+`55ddddea054bcb8edad195ed260d854e34f6fb9d070889745e1ee85a25d2b2a6`,
+`dab4e72f4b115f76eb7f1ff8e7981f8545bade96d68041385ed423a396de8164`,
+`6d68d0ef13f7184dbf1b4e719f4ae0f42cec4446ee70331aac2a176aedb88aa5`,
+`5a8e697e4c1df54b2362cbf08883a20d9daebdd53ee4915867a152542d757aa0`,
+`e952e286f7ffc5ee0bd115a32d962dc1fb12f172050769d09540070fca277889`,
+and `d40cde6c75682c0750f94f951c78294ba618d38aaccb48ade339287acb0cf081`.
+
+This completed research packet requests only two owner decisions: whether to
+select the architecture for further research, and whether to authorize one
+bounded source-normalization/reference-trace pass covering Convert,
+allocator events, ZST/fullness, all seven trace classifiers, Rotate, and stable
+and cached-key sorting. It authorizes no language or specification change,
+compiler or verifier implementation, capability entry, standard library,
+container, candidate execution, benchmark, E0.1 restart, migration, or default
+teaching.
