@@ -85,10 +85,10 @@ proof discharges them — speed is earned by proof, never by weakening a check.
   declaration, implementation, and helper evidence universe as an audit domain,
   derives exact applicability per evidence identity and target, and freezes exact
   `member_contract_id` and `outcome_id` units before candidate work,
-  `E`/`P`, or scoring. The next possible step is
-  owner authorization to draft dense Family Lock A. Language mechanisms,
-  production implementation, E0.1 restart, scored candidate runs, and default
-  teaching remain unauthorized.
+  `E`/`P`, or scoring. D13 now authorizes drafting the dense unique-owner
+  Family Lock A for owner review. It does not authorize candidate construction,
+  a language or specification decision, compiler or production implementation,
+  E0.1 restart, scored or held-out runs, xlc migration, or default teaching.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

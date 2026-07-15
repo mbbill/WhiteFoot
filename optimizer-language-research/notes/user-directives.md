@@ -322,3 +322,21 @@ not authorize a Family Lock A, candidate or production mechanism, language or
 specification change, compiler implementation, xlc migration, scored candidate
 run, E0.1 restart, or default teaching. The next production-relevant action
 after the research remains an owner review.
+
+## D13 (2026-07-14): Draft the dense unique-owner Family Lock A
+
+The owner authorizes drafting a complete dense unique-owner Family Lock A for
+review. The draft may expand the exact G0 audit domain, refine exact member and
+outcome contracts, describe a finite candidate and reference-mechanism set,
+freeze soundness fixtures and generators, preregister structural and measured
+performance protocols, instantiate protected no-tax controls, record META-5
+and E0.1 dispositions, build fail-closed lock validators, and receive hostile
+review. These are research and protocol artifacts; they may not contain or
+select a production implementation.
+
+This authorization does not permit candidate construction, Candidate Freeze
+B, scored or held-out execution, a language or specification decision,
+compiler implementation, production adoption, E0.1 restart, xlc migration, or
+default teaching. Completing and reviewing the draft returns it to the owner.
+Any permission to construct candidates or make a language change requires a
+separate explicit decision after review of the frozen lock.

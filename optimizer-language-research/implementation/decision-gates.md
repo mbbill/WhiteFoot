@@ -1403,3 +1403,15 @@ experiment, specification or compiler change, production implementation,
 E0.1 restart, xlc migration, or default teaching. The next possible owner
 decision is whether to authorize drafting the dense unique-owner Family Lock
 A for review; drafting would not authorize implementation or a scored run.
+
+## D13 authorizes the dense unique-owner Family Lock A draft only (2026-07-14)
+
+After reviewing the completed G0-Core result, the owner authorized drafting
+the dense unique-owner Family Lock A. The permitted work is exact audit-domain
+refinement, member/outcome contracts, finite mechanism descriptions and
+reference algorithms, soundness and performance protocol freeze, protected
+controls, validators, META-5 and E0.1 accounting, and hostile review. Candidate
+construction, Candidate Freeze B, scored or held-out execution, language or
+specification decisions, compiler or production implementation, E0.1 restart,
+xlc migration, and default teaching remain prohibited. The completed reviewed
+draft returns to the owner before any further authorization.

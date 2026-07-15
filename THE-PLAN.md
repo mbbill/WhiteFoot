@@ -82,8 +82,9 @@ Measured non-wins (equally load-bearing):
 ## 4. Active build track and ranked bets
 
 1. **Minimal systems-capability basis / data-structure capability floor** —
-   G0-CORE RESEARCH SYNTHESIS COMPLETE; OWNER REVIEW IS NEXT; NO MECHANISM
-   IMPLEMENTATION. Stable Rust 1.97.0 supplies a finite 5,555-declaration,
+   G0-CORE RESEARCH SYNTHESIS COMPLETE; DENSE UNIQUE-OWNER FAMILY LOCK A
+   DRAFTING IS AUTHORIZED; NO CANDIDATE OR MECHANISM IMPLEMENTATION. Stable
+   Rust 1.97.0 supplies a finite 5,555-declaration,
    297-module demand anchor, not a design oracle. The full classifier separates
    surface admissibility from the underlying need; panic unwind recovery under
    current EFF-4 and writer-facing direct memory-intrinsic authority are the two
