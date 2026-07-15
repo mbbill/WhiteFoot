@@ -1626,3 +1626,37 @@ public basis, language or specification rule, compiler feature, standard
 library, container, experiment, fact channel, or production action. Stages A
 and B, every implementation, and every execution require explicit owner
 authorization.
+
+## D14-R2 selects Gate Authentication Lock A at the semantic level (2026-07-15)
+
+The exact-byte hostile-reviewed lock selects one sealed stateful admission
+verifier per fixed authenticated semantic toolchain root. Compiler-shipped
+entries are authorization records in the embedded genesis snapshot; later
+entries use signed sequential successor snapshots. Every privileged use passes
+one current-membership, exact evidence, target/frame, implementation-cone,
+consumer-cone, final-resolution, and review predicate. Ordinary source has no
+privilege-enabling keyword, attribute, module, path, package, flag, plugin,
+helper name, or cache route.
+
+The review repaired mandatory dependency-cone binding, three-layer identity
+separation, compiler-derived use scope, threshold key continuity, local-only
+freshness claims, base/extension unification, revocation scope, ordinary
+abstraction classification, and the exact distinction between certified bytes
+and an explicitly trusted opaque provider. Proofs and hidden representations
+using only existing public semantics remain ordinary. A new root-governed
+primitive, machine/helper/lowering/backend edge, ABI/OS/device/foreign
+assumption, proof axiom, or fact/effect kind requires an exact admitted entry or
+a new semantic root.
+
+The gate lock, completion contract, and hostile review hashes are respectively
+`6c104f0cba7a3fe2c3e354be37d4351bd4f9413ab38cdd4bfa35d4cbd6eb4e13`,
+`395279c549aa37137d122282eed5c5e4a732521697f41ae406632bd4e2141e4d`,
+and `54818aa3045824bdb8b3c922829e2d5c6d7882970776786be62b5fe40f31ccc1`.
+
+This closes the research-level authentication architecture only. Wire format,
+cryptographic suite, key custody, protected-state provider, dynamic-provider
+mechanism, verifier limits, test vectors, and conformance corpus remain
+implementation locks that may not weaken the selected semantics. No public
+resource basis, language or specification change, compiler implementation,
+capability entry, standard library, experiment, or production action is
+authorized by this step.
