@@ -1485,3 +1485,29 @@ OD-0, OD-1, OD-3, and OD-4 remain unresolved. This step authorizes no candidate
 construction, execution, scoring, selection, production fact channel,
 language or specification decision, compiler or production implementation,
 E0.1 restart, xlc migration, or default teaching.
+
+## D13-R5 closes the dense performance and statistical protocol (2026-07-14)
+
+The exact Dense Family Lock A performance layer passes independent exact-byte
+hostile review. The frozen registry derives all 303 contract dispositions into
+97 standalone same-shape Rust operation gates and 520 exact cells, including
+502 timed-primary cells, across eight unresolved owner branches and 25 explicit
+external blockers. Primary decisions use fixed-n strict raw-integer scheduled-
+mixture successes, exact worst-case Poisson-binomial tails, one global Holm
+benefit family, reference-only clustered Q/P/M planning power, typed hidden
+randomization manifests, and a counted 175,667,428-operation power-engine
+ceiling. The verifier rejects all 39 registered mutations; the independent
+review additionally rejects eight hostile probes, reconstructs every family,
+law, task, multiplicity, partition, randomization, and resource identity, and
+regenerates all 29 generated files byte-for-byte. The report preserves six
+invalidated coherent-looking freeze histories, including the final stale
+median/log-ratio endpoint authority, so none can silently recur. All 39 current
+reviewed file hashes and the strict research-only boundary are recorded in
+`dense-family-lock-a/DENSE-PERFORMANCE-HOSTILE-REVIEW-PASS.md` at SHA-256
+`83e9135ba26348c6f89423c4710259da76a65381aca2e7d2e54799ef386541ff`.
+Post-report `make check` and the separate `make -C compiler check` both pass.
+No pilot or candidate observation has occurred. This step authorizes no
+reference pilot, candidate construction, Candidate Freeze B, execution,
+scoring, held-out access, selection, language or specification decision,
+compiler or production implementation, production fact channel, E0.1 restart,
+xlc migration, or default teaching.

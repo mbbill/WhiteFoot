@@ -1,0 +1,584 @@
+{
+  "active_owner_branch_count": 8,
+  "artifact_count_excluding_summary": 28,
+  "artifacts": [
+    {
+      "bytes": 136786,
+      "path": "DENSE-PERFORMANCE-ALGORITHMS.tsv",
+      "sha256": "65c531a4b77338d1b651b539c2ca8c6aa2e122f92168b3c234a814973a3ef887"
+    },
+    {
+      "bytes": 1556,
+      "path": "DENSE-PERFORMANCE-ALLOCATORS.tsv",
+      "sha256": "cc218b4330640a9cad12eb5c9c2c14e5cfdaf912fdfd3bf6cb96e753d6f5e5df"
+    },
+    {
+      "bytes": 8074,
+      "path": "DENSE-PERFORMANCE-BLOCKERS.tsv",
+      "sha256": "95f843a3f3448c4ead37611f4e9f07505ad9882d1df23910b73c7ce45b65dda6"
+    },
+    {
+      "bytes": 7176,
+      "path": "DENSE-PERFORMANCE-COMMON-SUBSTRATE.tsv",
+      "sha256": "23b2b1f652f7d28f6d9722ae082f10bef8c797c59a63d507fba579ede87fbc3e"
+    },
+    {
+      "bytes": 5077,
+      "path": "DENSE-PERFORMANCE-CONTROLS.tsv",
+      "sha256": "1bc594003697c3868e0ac42720de56df1680922f22426b090ad12fa029eeea09"
+    },
+    {
+      "bytes": 2494,
+      "path": "DENSE-PERFORMANCE-COUNTER-POLICIES.tsv",
+      "sha256": "89a9212a6982b4e37c211e2dcc3641be55bd64fcdaa9e1d70720761c16768117"
+    },
+    {
+      "bytes": 238023,
+      "path": "DENSE-PERFORMANCE-DISPOSITIONS.tsv",
+      "sha256": "5899086d5ed5b9ac75397b21994d741972f2fef41a443a7e577f0e33e87bb8c6"
+    },
+    {
+      "bytes": 9240,
+      "path": "DENSE-PERFORMANCE-DISTRIBUTIONS.tsv",
+      "sha256": "54dc16eec707b918321872ce7c05afee4ceafe258a87a8080df998c4a1be1c72"
+    },
+    {
+      "bytes": 4863,
+      "path": "DENSE-PERFORMANCE-ENDPOINTS.tsv",
+      "sha256": "0018182e1e15f1a18725742cf0fa3ee08dbf05e900603e29b13a4faa74934c5a"
+    },
+    {
+      "bytes": 1231,
+      "path": "DENSE-PERFORMANCE-FACTS-POLICIES.tsv",
+      "sha256": "899925e9744f472732a8efa102cd53306772706f0fb9ead369969bcae2e319cc"
+    },
+    {
+      "bytes": 815,
+      "path": "DENSE-PERFORMANCE-FAILURE-POLICIES.tsv",
+      "sha256": "bd6331cc05d6af867a77a416644a92ed143cab669c9145cea4e39089128af742"
+    },
+    {
+      "bytes": 769,
+      "path": "DENSE-PERFORMANCE-GENERATORS.tsv",
+      "sha256": "bf9ff60553e0157ba6a92fbf0cfa672e81b0b8668db8abdcc3c56c631f543f9e"
+    },
+    {
+      "bytes": 1813,
+      "path": "DENSE-PERFORMANCE-GROWTH-POLICIES.tsv",
+      "sha256": "768645fd68ed1de1699dac7f92d30b51ebb3ba99efc1b8a294368255f0f4c431"
+    },
+    {
+      "bytes": 1383246,
+      "path": "DENSE-PERFORMANCE-INPUT-DESCRIPTORS.jsonl",
+      "sha256": "3e8e983faae0d1acdaf3acf0785d9dc2153b3e6f0cf37818a397a3e510ec77a0"
+    },
+    {
+      "bytes": 265676,
+      "path": "DENSE-PERFORMANCE-INPUTS.jsonl",
+      "sha256": "ca84619308a575c81648d25d93853552f2c331a1327bf0c5a914635cbb83999e"
+    },
+    {
+      "bytes": 1445,
+      "path": "DENSE-PERFORMANCE-LAYOUTS.tsv",
+      "sha256": "de5a054494d944ab70cd3aac56c2dfff6ddfa6f2271f030064ed2642ff198768"
+    },
+    {
+      "bytes": 944633,
+      "path": "DENSE-PERFORMANCE-MATRIX.tsv",
+      "sha256": "67d65ba70b58eb3a1c54ae798a8852d9df05fadedaf5a034585dcd749db21568"
+    },
+    {
+      "bytes": 71499,
+      "path": "DENSE-PERFORMANCE-OPERATION-GATES.tsv",
+      "sha256": "2a6faa63f95b9140c0f8203022c9526a83681bf4f27b6fd0a270b151b35245a9"
+    },
+    {
+      "bytes": 5478,
+      "path": "DENSE-PERFORMANCE-OWNER-BRANCHES.tsv",
+      "sha256": "c48bbc27e51db13094cd4486dddf09001b8c2725cd38c2922f7dbbf3b94f09f5"
+    },
+    {
+      "bytes": 2356,
+      "path": "DENSE-PERFORMANCE-PAYLOADS.tsv",
+      "sha256": "68ccb0cb9e85e2b83e6cdb4e586a8fd789f264966f1d9f71881b42338dfd52e0"
+    },
+    {
+      "bytes": 7918,
+      "path": "DENSE-PERFORMANCE-PROTOCOL.md",
+      "sha256": "79bb9682d5e3e2e2f4b1d28d6becc379ef73f05bf0e25a586512ebe38b4803c5"
+    },
+    {
+      "bytes": 7325,
+      "path": "DENSE-PERFORMANCE-REFERENCE-ROUTES.tsv",
+      "sha256": "ae89b2b13e4e438de70a70006c43d8d0f7044227f54dc81bf5df513c094cf6a7"
+    },
+    {
+      "bytes": 1097,
+      "path": "DENSE-PERFORMANCE-REPETITIONS.tsv",
+      "sha256": "0ad5eb53324573507e9f4db7f5afdabd29c053334595ae6d2e40a3b03397c359"
+    },
+    {
+      "bytes": 10917,
+      "path": "DENSE-PERFORMANCE-SCHEDULES.tsv",
+      "sha256": "06e0a002f799fa82dc4e77d9f46914fb1762ac9659ab6a18d0a145c24f3bbc94"
+    },
+    {
+      "bytes": 123212,
+      "path": "DENSE-PERFORMANCE-STATISTICS.json",
+      "sha256": "5c4c607dc38b1793657e1493217271ab1e81d62bcfe574865689673ecaf5f393"
+    },
+    {
+      "bytes": 4770,
+      "path": "DENSE-PERFORMANCE-STRUCTURAL-GATES.tsv",
+      "sha256": "6196995de9b7f1ad2518c38c730a4c081ddb465a2bb00cff52734e9b351c9f32"
+    },
+    {
+      "bytes": 1489,
+      "path": "DENSE-PERFORMANCE-TARGETS.tsv",
+      "sha256": "9dcc86dc85fdcf87c77f7c1e6c411c22761b44aac50a7973348df335997dcf94"
+    },
+    {
+      "bytes": 643,
+      "path": "DENSE-PERFORMANCE-WARMUPS.tsv",
+      "sha256": "0b048f6ab95c9c48d6bb963f0a4be6d648258b86c88dd6944ed0251ad908c41b"
+    }
+  ],
+  "blocked_or_reopen_branch_count": 4,
+  "candidate_construction_authorized": false,
+  "cell_role_counts": {
+    "ARITHMETIC_STRUCTURAL": 3,
+    "BYTE_BOUNDARY_PRIMARY": 10,
+    "OD4_SCOPED_PRIMARY": 4,
+    "PAYLOAD_SEPARATOR_PRIMARY": 18,
+    "PRIMARY_OPERATION": 470,
+    "PROTECTED_STRUCTURAL": 15
+  },
+  "derivation_kind_counts": {
+    "EXCLUDED": 9,
+    "FUNCTIONAL": 144,
+    "REPRESENTATIVE": 137,
+    "STRUCTURAL": 13
+  },
+  "descriptive_latency_endpoint_count": 6,
+  "disposition_counts": {
+    "EXCLUDED": 9,
+    "FUNCTIONAL_ONLY": 144,
+    "STRUCTURAL_ONLY": 13,
+    "TIMED_PRIMARY": 137
+  },
+  "exact_cluster_member_unit_count": 97,
+  "exact_contract_count": 303,
+  "exact_member_count": 93,
+  "explicit_blocker_count": 25,
+  "frozen_inputs": {
+    "DENSE-CANDIDATE-CONTRACT-BINDINGS.tsv": "efb9336256340fd4b49177ba738fa3de1099f3e9f8157e77b6232979afee01d3",
+    "DENSE-CANDIDATE-LIFECYCLE-REGISTRY.tsv": "63f6c1e0cad521ea718b40b9570857e2401a2e83e4d36d1d58785b7276a041df",
+    "DENSE-CANDIDATE-OPERATION-REGISTRY.tsv": "e6309a06014fbc573974786e91597344d29c665b463bd4589553d1e8a55812bd",
+    "DENSE-COMMON-SUBSTRATE-REGISTRY.tsv": "99fa5fc0c0ad44033c360027a0b2d5caf2bdb65253013776995f21e145e28e3f",
+    "DENSE-EXACT-MEMBER-OUTCOME-REGISTRY.tsv": "3016206708a63b858b655e81de0e5c08e21055b0c4aa4c1ce37c2561c73e3418",
+    "DENSE-OD4-POLICY-REGISTRY.tsv": "073c206be16fb9d85cfd7d90bd3743c21633b30ef1a93fd21828d3a1a5938bdd",
+    "dense_contract_registry.py": "31dda5ccfd33202860022946fdf456404b104a14118ffcd286406595e2da2d06"
+  },
+  "matrix_cell_count": 520,
+  "operation_gate_count": 97,
+  "payload_separator_counts": {
+    "AFFINE24": 2,
+    "AFFINE256": 2,
+    "AFFINE64": 2,
+    "BEHAVIOR": 2,
+    "ROW24": 2,
+    "ROW56": 2,
+    "U64": 2,
+    "U8": 2,
+    "ZST": 2
+  },
+  "schema": "xlang-dense-performance-registry-summary-v4",
+  "schemas": {
+    "algorithms": [
+      "algorithm_id",
+      "operation_gate_id",
+      "member_contract_id",
+      "contract_ids",
+      "exact_trigger_and_prestate",
+      "exact_commit_and_poststate",
+      "behavior_schedule",
+      "allocation_and_capacity_rule",
+      "resource_ceiling",
+      "rust_reference_route_id",
+      "member_declaration_sha256",
+      "status"
+    ],
+    "allocators": [
+      "allocator_id",
+      "applies_to",
+      "implementation_identity",
+      "adapter_sha256",
+      "common_across_treatments_rule",
+      "requested_byte_rule",
+      "usable_byte_rule",
+      "failure_rule",
+      "zst_rule",
+      "status",
+      "blocking_fact"
+    ],
+    "blockers": [
+      "blocker_id",
+      "kind",
+      "missing_fact",
+      "required_resolution",
+      "blocks_stage",
+      "mechanism_failure_rule",
+      "status"
+    ],
+    "common_substrate": [
+      "candidate_id",
+      "od0_option_id",
+      "sealing_contract",
+      "generic_contract",
+      "reborrow_contract",
+      "result_provenance_contract",
+      "allocator_contract",
+      "affine_interval_contract",
+      "owning_cursor_contract",
+      "cost_accounting_contract",
+      "private_substitution_rule",
+      "substrate_contract_sha256",
+      "cost_model_sha256",
+      "status",
+      "blocking_fact"
+    ],
+    "controls": [
+      "control_id",
+      "role",
+      "source_authority",
+      "source_sha256",
+      "artifact_authorities",
+      "layout_oracle",
+      "code_shape_oracle",
+      "structural_oracle",
+      "equality_rule",
+      "required_target_ids",
+      "status",
+      "blocking_fact"
+    ],
+    "counter_policies": [
+      "counter_policy_id",
+      "target_id",
+      "counter_names",
+      "collection_command_template",
+      "availability_probe",
+      "repetition_and_group_rule",
+      "raw_schema_rule",
+      "unavailable_counter_rule",
+      "claim_rule",
+      "status",
+      "blocking_fact"
+    ],
+    "dispositions": [
+      "performance_unit_id",
+      "contract_id",
+      "member_contract_id",
+      "outcome_id",
+      "cluster_id",
+      "policy_variant_id",
+      "profile_id",
+      "source_contract_status",
+      "source_contract_sha256",
+      "derivation_kind",
+      "disposition",
+      "representative_operation_gate_id",
+      "structural_gate_ids",
+      "functional_oracle_id",
+      "exact_reason",
+      "status"
+    ],
+    "distributions": [
+      "shape_id",
+      "workload_family",
+      "exact_definition",
+      "seed_use",
+      "independence_rule",
+      "post_result_changes",
+      "status"
+    ],
+    "endpoints": [
+      "endpoint_id",
+      "unit",
+      "direction",
+      "observation",
+      "estimator",
+      "selection_role",
+      "pooling_rule",
+      "missing_data_rule",
+      "status"
+    ],
+    "facts": [
+      "facts_policy_id",
+      "primary_treatments",
+      "facts_off_role",
+      "facts_off_pairing",
+      "required_reports",
+      "selection_use",
+      "mismatch_rule",
+      "status",
+      "blocking_fact"
+    ],
+    "failures": [
+      "failure_policy_id",
+      "commit_point",
+      "arithmetic_failure",
+      "allocation_failure",
+      "callback_failure",
+      "owner_disposition",
+      "timing_rule",
+      "status"
+    ],
+    "generators": [
+      "generator_id",
+      "schema",
+      "seed_rule",
+      "operation_encoding",
+      "trace_hash_rule",
+      "oracle_hash_rule",
+      "authorization",
+      "status"
+    ],
+    "growth": [
+      "growth_policy_id",
+      "applies_to",
+      "capacity_formula",
+      "allocation_formula",
+      "overflow_rule",
+      "zst_rule",
+      "rust_source_pin",
+      "status"
+    ],
+    "layouts": [
+      "layout_id",
+      "triple",
+      "rust_1_97_datalayout",
+      "candidate_module_equality_rule",
+      "pointer_bits",
+      "endianness",
+      "payload_layout_rule",
+      "protected_control_rule",
+      "status",
+      "blocking_fact"
+    ],
+    "matrix": [
+      "cell_id",
+      "cell_role",
+      "operation_gate_id",
+      "performance_unit_id",
+      "contract_id",
+      "member_contract_id",
+      "outcome_id",
+      "policy_variant_id",
+      "derivation_reason_sha256",
+      "shape_id",
+      "payload_id",
+      "payload_code",
+      "target_id",
+      "layout_id",
+      "owner_branch_ids",
+      "algorithm_id",
+      "rust_reference_route_id",
+      "rust_floor_upper_ratio",
+      "initial_len",
+      "initial_capacity",
+      "request_count",
+      "operation_count",
+      "logical_bytes",
+      "allocator_id",
+      "growth_policy_id",
+      "failure_policy_id",
+      "primary_endpoint_id",
+      "descriptive_endpoint_ids",
+      "structural_gate_ids",
+      "counter_policy_id",
+      "warmup_id",
+      "repetition_id",
+      "facts_policy_id",
+      "generator_id",
+      "trace_sha256",
+      "oracle_sha256",
+      "status",
+      "blocker_ids",
+      "candidate_execution_authorized"
+    ],
+    "operation_gates": [
+      "operation_gate_id",
+      "member_contract_id",
+      "policy_variant_id",
+      "profile_id",
+      "representative_contract_ids",
+      "representative_contract_set_sha256",
+      "rust_reference_route_id",
+      "rust_floor_upper_ratio",
+      "required_shape_ids",
+      "required_native_target_ids",
+      "primary_cell_ids",
+      "primary_cell_set_sha256",
+      "derivation_reason",
+      "status"
+    ],
+    "owner_branches": [
+      "branch_id",
+      "branch_class",
+      "od0_option_id",
+      "od1_option_id",
+      "od2_option_id",
+      "od3_option_id",
+      "od4_option_id",
+      "od5_option_id",
+      "required_target_ids",
+      "required_payload_ids",
+      "primary_cell_count",
+      "primary_cell_ids_sha256",
+      "power_plan_id",
+      "selection_scope",
+      "blocked_or_reopening_reason",
+      "status"
+    ],
+    "payloads": [
+      "payload_id",
+      "payload_code",
+      "semantic_class",
+      "declared_bytes",
+      "declared_alignment",
+      "behavior_contract",
+      "logical_byte_rule",
+      "capacity_rule",
+      "allocator_byte_rule",
+      "destruction_rule",
+      "latency_rule",
+      "status"
+    ],
+    "references": [
+      "reference_route_id",
+      "reference_kind",
+      "contract_route",
+      "rust_version",
+      "rust_commit",
+      "source_paths",
+      "source_sha256s",
+      "rawvec_sha256",
+      "rustc_sha256",
+      "baseline_commit",
+      "capacity_and_allocator_rule",
+      "adapter_rule",
+      "status",
+      "blocking_fact"
+    ],
+    "repetitions": [
+      "repetition_id",
+      "applies_to",
+      "block_count_rule",
+      "observations_per_block",
+      "fresh_process_rule",
+      "stopping_rule",
+      "raw_retention_rule",
+      "status",
+      "blocking_fact"
+    ],
+    "schedules": [
+      "schedule_id",
+      "shape_id",
+      "operation_order",
+      "operation_count_rule",
+      "reset_rule",
+      "status"
+    ],
+    "structural": [
+      "structural_gate_id",
+      "applies_to",
+      "collection_method",
+      "pass_rule",
+      "failure_consequence",
+      "status",
+      "blocking_fact"
+    ],
+    "targets": [
+      "target_id",
+      "triple",
+      "measurement_scope",
+      "machine_identity",
+      "os_kernel_libc",
+      "cpu_features",
+      "power_affinity_thermal_noise",
+      "layout_id",
+      "toolchain_identity",
+      "required_for_selection",
+      "status",
+      "blocking_fact"
+    ],
+    "warmups": [
+      "warmup_id",
+      "applies_to",
+      "untimed_trace_count",
+      "cache_state_rule",
+      "candidate_symmetry",
+      "status"
+    ]
+  },
+  "source_authorities": [
+    {
+      "bytes": 708227,
+      "path": "DENSE-EXACT-MEMBER-OUTCOME-REGISTRY.tsv",
+      "sha256": "3016206708a63b858b655e81de0e5c08e21055b0c4aa4c1ce37c2561c73e3418"
+    },
+    {
+      "bytes": 187462,
+      "path": "dense_contract_registry.py",
+      "sha256": "31dda5ccfd33202860022946fdf456404b104a14118ffcd286406595e2da2d06"
+    },
+    {
+      "bytes": 605495,
+      "path": "DENSE-CANDIDATE-OPERATION-REGISTRY.tsv",
+      "sha256": "e6309a06014fbc573974786e91597344d29c665b463bd4589553d1e8a55812bd"
+    },
+    {
+      "bytes": 695983,
+      "path": "DENSE-CANDIDATE-CONTRACT-BINDINGS.tsv",
+      "sha256": "efb9336256340fd4b49177ba738fa3de1099f3e9f8157e77b6232979afee01d3"
+    },
+    {
+      "bytes": 8657,
+      "path": "DENSE-CANDIDATE-LIFECYCLE-REGISTRY.tsv",
+      "sha256": "63f6c1e0cad521ea718b40b9570857e2401a2e83e4d36d1d58785b7276a041df"
+    },
+    {
+      "bytes": 2944,
+      "path": "DENSE-COMMON-SUBSTRATE-REGISTRY.tsv",
+      "sha256": "99fa5fc0c0ad44033c360027a0b2d5caf2bdb65253013776995f21e145e28e3f"
+    },
+    {
+      "bytes": 3564,
+      "path": "DENSE-OD4-POLICY-REGISTRY.tsv",
+      "sha256": "073c206be16fb9d85cfd7d90bd3743c21633b30ef1a93fd21828d3a1a5938bdd"
+    },
+    {
+      "bytes": 237840,
+      "path": "dense_performance_registry.py",
+      "sha256": "dedb9c0ced8f937f8e9b67536db681f7185326f79001ad0d5255ac071e7d6ee9"
+    },
+    {
+      "bytes": 89933,
+      "path": "verify_dense_performance.py",
+      "sha256": "9d71fddf010c1cd1c8eb6178310dad597025445b41615c098b70bc2660f07c80"
+    },
+    {
+      "bytes": 3042,
+      "path": "generate_dense_performance_inputs.py",
+      "sha256": "47a2bfd1bcd0e7a7d96a39f21080a8f3ca61e0bc906a55042c76200d4ed36c81"
+    }
+  ],
+  "status": "RESEARCH_PROTOCOL_FROZEN_CONSTRUCTION_BLOCKED",
+  "supersession_scope": "These v4 protocol/statistics artifacts replace both the rejected Cartesian matrix and the incomplete v2 sparse protocol. No earlier DENSE-PERFORMANCE output is live authority.",
+  "target_cell_counts": {
+    "TARGET-AARCH64-DARWIN": 257,
+    "TARGET-I686-STRUCTURAL": 6,
+    "TARGET-X86_64-LINUX": 257
+  },
+  "timed_primary_cell_count": 502
+}

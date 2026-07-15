@@ -1,0 +1,4 @@
+warmup_id	applies_to	untimed_trace_count	cache_state_rule	candidate_symmetry	status
+WARMUP-EXACT-3	No-grow reads, borrows, edits, and repeated traversal	3	Run the identical trace exactly three times, then reconstruct the subject; no adaptive warmup.	Same descriptor and order for all six treatments.	FROZEN_PROTOCOL
+WARMUP-NONE-FRESH	Allocation, growth, clone, sort, drop, and witness cells	0	Fresh child and subject for every observation.	Same rule for all six treatments.	FROZEN_PROTOCOL
+WARMUP-NONE-STRUCTURAL	Protected and structural cells	0	Two clean deterministic output directories.	Same build graph for all candidates.	FROZEN_PROTOCOL

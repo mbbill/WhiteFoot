@@ -1,0 +1,51 @@
+shape_id	workload_family	exact_definition	seed_use	independence_rule	post_result_changes	status
+ARITHMETIC-32-LAST-FIRST	ARITHMETIC_BOUNDARY	i686 last-valid and first-invalid add, multiply, layout, isize, and usize tuples.	No randomness	Independent structural cell.	FORBIDDEN	FROZEN_PROTOCOL
+ARITHMETIC-64-LAST-FIRST	ARITHMETIC_BOUNDARY	64-bit last-valid and first-invalid add, multiply, layout, isize, and usize tuples.	No randomness	Independent structural cell on each native layout.	FORBIDDEN	FROZEN_PROTOCOL
+BASE	CANONICAL_OPERATION	One exact canonical operation outcome at 4096 logical payload bytes.	Seed fixes values and positions without changing the shape.	No aggregation with any other shape.	FORBIDDEN	FROZEN_PROTOCOL
+BYTE-262144	BYTE_BOUNDARY	Exactly 262144 logical payload bytes.	No randomness	Independent primary boundary cell.	FORBIDDEN	FROZEN_PROTOCOL
+BYTE-4096	BYTE_BOUNDARY	Exactly 4096 logical payload bytes.	No randomness	Independent primary boundary cell.	FORBIDDEN	FROZEN_PROTOCOL
+BYTE-4194304	BYTE_BOUNDARY	Exactly 4194304 logical payload bytes.	No randomness	Independent primary boundary cell.	FORBIDDEN	FROZEN_PROTOCOL
+BYTE-64	BYTE_BOUNDARY	Exactly 64 logical payload bytes.	No randomness	Independent primary boundary cell.	FORBIDDEN	FROZEN_PROTOCOL
+BYTE-67108864	BYTE_BOUNDARY	Exactly 67108864 logical payload bytes.	No randomness	Independent primary boundary cell.	FORBIDDEN	FROZEN_PROTOCOL
+CLONE-FROM-DST-LONGER	CLONE_FROM_LENGTH	destination length=source length+floor(source length/2).	No randomness	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+CLONE-FROM-DST-SHORTER	CLONE_FROM_LENGTH	destination length=floor(source length/2).	No randomness	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+CLONE-FROM-EQUAL	CLONE_FROM_LENGTH	destination length=source length.	No randomness	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+EDIT-BACK	EDIT_INDEX	Last valid index, or insertion index len.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+EDIT-FRONT	EDIT_INDEX	Index 0 on a nonempty valid owner.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+EDIT-MIDDLE	EDIT_INDEX	Index floor(len/2) on a nonempty valid owner.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-AFFINE24	PAYLOAD_SEPARATOR	Timed separating witness for AFFINE24.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-AFFINE256	PAYLOAD_SEPARATOR	Timed separating witness for AFFINE256.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-AFFINE64	PAYLOAD_SEPARATOR	Timed separating witness for AFFINE64.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-BEHAVIOR	PAYLOAD_SEPARATOR	Timed separating witness for BEHAVIOR.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-ROW24	PAYLOAD_SEPARATOR	Timed separating witness for ROW24.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-ROW56	PAYLOAD_SEPARATOR	Timed separating witness for ROW56.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-U64	PAYLOAD_SEPARATOR	Timed separating witness for U64.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-U8	PAYLOAD_SEPARATOR	Timed separating witness for U8.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PAYLOAD-ZST	PAYLOAD_SEPARATOR	Timed separating witness for ZST.	Seed fixes values and positions without changing the shape.	Independent native-target primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+PROTECTED-B-FIX	PROTECTED_CONTROL	Exact structural B-FIX control on the target layout.	No randomness	Independent structural layout cell.	FORBIDDEN	FROZEN_PROTOCOL
+PROTECTED-B-P2	PROTECTED_CONTROL	Exact structural B-P2 control on the target layout.	No randomness	Independent structural layout cell.	FORBIDDEN	FROZEN_PROTOCOL
+PROTECTED-H-FLATSET	PROTECTED_CONTROL	Exact structural H-FLATSET control on the target layout.	No randomness	Independent structural layout cell.	FORBIDDEN	FROZEN_PROTOCOL
+PROTECTED-W-GAP	PROTECTED_CONTROL	Exact structural W-GAP control on the target layout.	No randomness	Independent structural layout cell.	FORBIDDEN	FROZEN_PROTOCOL
+PROTECTED-W-SMALL	PROTECTED_CONTROL	Exact structural W-SMALL control on the target layout.	No randomness	Independent structural layout cell.	FORBIDDEN	FROZEN_PROTOCOL
+RETAIN-10	SURVIVOR_SELECTIVITY	Exactly 10 percent survivors with stable seeded positions.	Seed fixes values and positions without changing the shape.	Independent primary cell; never pooled with 50 or 90 percent.	FORBIDDEN	FROZEN_PROTOCOL
+RETAIN-50	SURVIVOR_SELECTIVITY	Exactly 50 percent survivors with stable seeded positions.	Seed fixes values and positions without changing the shape.	Independent primary cell; never pooled with 10 or 90 percent.	FORBIDDEN	FROZEN_PROTOCOL
+RETAIN-90	SURVIVOR_SELECTIVITY	Exactly 90 percent survivors with stable seeded positions.	Seed fixes values and positions without changing the shape.	Independent primary cell; never pooled with 10 or 50 percent.	FORBIDDEN	FROZEN_PROTOCOL
+SCOPED-CONTINUE	OD4_SCOPED_CONSUME	Consumer continues through every selected owner in source order.	No randomness	Independent primary cell with zero removed-result allocation.	FORBIDDEN	FROZEN_PROTOCOL
+SCOPED-EARLY-STOP	OD4_SCOPED_CONSUME	Consumer stops after exactly 50 percent of selected owners; repair completes before return.	No randomness	Independent primary cell with zero removed-result allocation.	FORBIDDEN	FROZEN_PROTOCOL
+SORT-DUPLICATE-90	SORT_INPUT	Exactly 90 percent duplicate keys at seeded positions.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SORT-ORGAN-PIPE	SORT_INPUT	Increasing to the midpoint then decreasing.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SORT-RANDOM	SORT_INPUT	Seeded random permutation of unique keys.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SORT-REVERSE	SORT_INPUT	Strictly decreasing keys.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SORT-SORTED	SORT_INPUT	Strictly increasing keys.	Seed fixes values and positions without changing the shape.	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-BACK-REPL-EQUAL	SPLICE_RANGE_REPLACEMENT	back removal range with equal replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-BACK-REPL-LONGER	SPLICE_RANGE_REPLACEMENT	back removal range with longer replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-BACK-REPL-SHORTER	SPLICE_RANGE_REPLACEMENT	back removal range with shorter replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-FRONT-REPL-EQUAL	SPLICE_RANGE_REPLACEMENT	front removal range with equal replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-FRONT-REPL-LONGER	SPLICE_RANGE_REPLACEMENT	front removal range with longer replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-FRONT-REPL-SHORTER	SPLICE_RANGE_REPLACEMENT	front removal range with shorter replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-MIDDLE-REPL-EQUAL	SPLICE_RANGE_REPLACEMENT	middle removal range with equal replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-MIDDLE-REPL-LONGER	SPLICE_RANGE_REPLACEMENT	middle removal range with longer replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SPLICE-MIDDLE-REPL-SHORTER	SPLICE_RANGE_REPLACEMENT	middle removal range with shorter replacement.	No randomness	Independent primary cell; position and replacement length never pool.	FORBIDDEN	FROZEN_PROTOCOL
+SWAP-ADJACENT-MIDDLE	SWAP_INDEX	The two valid adjacent middle indices.	No randomness	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SWAP-EQUAL	SWAP_INDEX	left=right=floor(len/2); exact no-op owner identity.	No randomness	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL
+SWAP-FRONT-BACK	SWAP_INDEX	left=0 and right=len-1.	No randomness	Independent primary cell.	FORBIDDEN	FROZEN_PROTOCOL

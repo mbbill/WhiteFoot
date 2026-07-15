@@ -1,0 +1,4 @@
+failure_policy_id	commit_point	arithmetic_failure	allocation_failure	callback_failure	owner_disposition	timing_rule	status
+FP-NORMAL	Exact contract commitment_point	Excluded from the successful timed row	Excluded from the successful timed row	Excluded from the successful timed row	Exact normal post-state and owner roles	Only the named normal outcome enters this cell.	FROZEN_PROTOCOL
+FP-FUNCTIONAL-ONLY	Exact contract commitment_point	Exact checked error or trap outcome	Exact allocation error or OOM outcome	Exact behavior abort outcome	Exact returned owners or pre-abort invariant from the contract row	Functional and failure-injection oracle only; never pooled into successful timing.	FROZEN_PROTOCOL
+FP-PROTECTED-IDENTITY	Historical	Historical	Historical	Historical	Historical	Structural only	FROZEN_PROTOCOL
