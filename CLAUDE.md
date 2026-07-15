@@ -70,20 +70,17 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- G0-Core and the research-only dense unique-owner Family Lock A are complete
-  for owner review. The lock closes exact coverage (65 clusters, 426 selector
-  children, 1,400 terminals), 303 member/outcome contracts, five
-  candidate-neutral mechanism descriptions, 2,002 mathematical soundness
-  traces, 93 exact E0.1 member classifications (84 newly mandatory), 97
-  same-shape Rust operation gates, 520 exact performance cells, and 27
-  fail-closed operational blockers.
-  Exact-byte coverage, contract/soundness, performance, and whole-dossier
-  hostile reviews pass. No candidate, pilot, score, held-out observation, or
-  production mechanism exists. The next action is owner resolution of OD-0
-  through OD-5; even accepting all recommendations does not authorize candidate
-  construction. Language or specification selection, compiler or production
-  implementation, E0.1 restart, scored or held-out execution, xlc migration,
-  and default teaching remain unauthorized.
+- D14 privileged-basis research is the active design track; OD-0 through OD-5
+  are no longer the next action. The current candidate uses one sealed stateful
+  admission verifier per authenticated semantic toolchain root plus one fixed
+  checked public resource-policy plane for ordinary proof-carrying modules; the
+  combined architecture remains pending owner selection. Exact dense D-2 has
+  340 unresolved obligations across 150 contexts, and exact P-1 remains pending.
+  The owner packet requests decisions on the architecture and one bounded source-
+  normalization/reference-trace pass. No language or specification change,
+  compiler or verifier implementation, capability entry, standard library,
+  container, candidate execution, benchmark, E0.1 restart, migration, or default
+  teaching is authorized.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

@@ -1705,3 +1705,5 @@ and cached-key sorting. It authorizes no language or specification change,
 compiler or verifier implementation, capability entry, standard library,
 container, candidate execution, benchmark, E0.1 restart, migration, or default
 teaching.
+
+D14-R3a (2026-07-15): synchronized `AGENTS.md` and `CLAUDE.md` with D14-R3; the obsolete OD-0-through-OD-5 next action is removed, both files remain byte-identical, and no research or production conclusion changes.
