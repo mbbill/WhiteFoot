@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import importlib.util
 import io
 import re
 import subprocess
@@ -26,13 +27,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
-from dense_lock_model import CLUSTER_MEMBERS, EXCLUDED_MEMBERS
-
-
 FAMILY_ID = "F-DENSE"
 G0_CLOSING_COMMIT = "a4de0eb70c345dcd198b11f435a5538ccc863113"
 G0_MANIFEST_SHA256 = "f0eced756688affef1732a133c43fb39ab6fc672334dca27b26129ddb5123719"
 HERE = Path(__file__).resolve().parent
+CLOSED_LITERAL_LOADER_PATH = HERE / "dense_literal_registry.py"
+CLOSED_LITERAL_LOADER_SHA256 = "a8eb255184ebf560f2fcd5eab659405b08185431a224cee69bfca9e32233cdc2"
+CLOSED_REGISTRY_PATH = HERE / "dense_coverage_closed_registry.py"
+CLOSED_REGISTRY_SHA256 = "84bc687641746607ba3798b8cf419f427ef4a4fe7b3a402e377287804f1024a3"
 CAPABILITY_ROOT = HERE.parent
 REPO = CAPABILITY_ROOT.parents[2]
 CAPABILITY_PREFIX = (
@@ -68,7 +70,64 @@ LEGAL_TERMINALS = {
 NO_FUZZY_MARKERS = ("FUZZY", "DEFAULT", "SUBSTRING", "FALLBACK")
 
 
+def load_shared_literal_loader(
+    path: Path = CLOSED_LITERAL_LOADER_PATH,
+    expected_sha256: str = CLOSED_LITERAL_LOADER_SHA256,
+):
+    """Load the reviewed parser implementation only after exact SHA approval."""
+    data = path.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != expected_sha256:
+        raise ValueError(
+            "shared literal-registry loader digest mismatch: "
+            f"expected {expected_sha256}, got {digest}"
+        )
+    spec = importlib.util.spec_from_file_location(
+        "dense_literal_registry_for_coverage", path
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("cannot load SHA-locked literal-registry loader")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.load_literal_assignments
+
+
+load_literal_assignments = load_shared_literal_loader()
+
+
+def load_closed_registry(path: Path = CLOSED_REGISTRY_PATH) -> dict[str, object]:
+    """Load a SHA-locked registry containing literal assignments only."""
+    required = {
+        "SCHEMA_VERSION",
+        "CLUSTER_MEMBERS",
+        "EXCLUDED_MEMBERS",
+        "PROTOCOL_SYNTHETIC_MEMBERS",
+        "DIRECT_ROUTE_CLASSES",
+        "DIRECT_EVIDENCE_ASSIGNMENTS",
+        "SELECTOR_CHILD_ASSIGNMENTS",
+    }
+    return load_literal_assignments(path, CLOSED_REGISTRY_SHA256, required)
+
+
+_CLOSED_REGISTRY = load_closed_registry()
+CLUSTER_MEMBERS: Mapping[str, tuple[str, ...]] = _CLOSED_REGISTRY["CLUSTER_MEMBERS"]  # type: ignore[assignment]
+EXCLUDED_MEMBERS: Mapping[str, str] = _CLOSED_REGISTRY["EXCLUDED_MEMBERS"]  # type: ignore[assignment]
+PROTOCOL_SYNTHETIC_MEMBERS: tuple[str, ...] = _CLOSED_REGISTRY["PROTOCOL_SYNTHETIC_MEMBERS"]  # type: ignore[assignment]
+DIRECT_ROUTE_CLASSES: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]] = _CLOSED_REGISTRY["DIRECT_ROUTE_CLASSES"]  # type: ignore[assignment]
+DIRECT_EVIDENCE_ASSIGNMENTS: Mapping[str, str] = _CLOSED_REGISTRY["DIRECT_EVIDENCE_ASSIGNMENTS"]  # type: ignore[assignment]
+SELECTOR_CHILD_ASSIGNMENTS: tuple[tuple[object, ...], ...] = _CLOSED_REGISTRY["SELECTOR_CHILD_ASSIGNMENTS"]  # type: ignore[assignment]
+CLOSED_REGISTRY_SCHEMA_VERSION = str(_CLOSED_REGISTRY["SCHEMA_VERSION"])
+
+
 OUTPUT_FIELDS: Mapping[str, tuple[str, ...]] = {
+    "DENSE-LOCAL-DECLARATIVE-INPUT-AUTHORITY.tsv": (
+        "source_path",
+        "byte_count",
+        "sha256",
+        "access_method",
+        "schema_version",
+        "consumer",
+    ),
     "DENSE-FROZEN-G0-INPUT-AUTHORITY.tsv": (
         "source_path",
         "git_commit",
@@ -174,6 +233,47 @@ def sha256_bytes(value: bytes) -> str:
 
 def sha256_text(value: str) -> str:
     return sha256_bytes(value.encode("utf-8"))
+
+
+def local_input_authority() -> list[dict[str, object]]:
+    """Describe both local semantic dependencies after exact verification."""
+    load_shared_literal_loader()
+    load_closed_registry()
+    sources = (
+        (
+            CLOSED_LITERAL_LOADER_PATH,
+            CLOSED_LITERAL_LOADER_SHA256,
+            "dense-literal-registry-loader-v1",
+            "LOCAL_REVIEWED_EXECUTABLE_SHA256_LOCKED",
+        ),
+        (
+            CLOSED_REGISTRY_PATH,
+            CLOSED_REGISTRY_SHA256,
+            CLOSED_REGISTRY_SCHEMA_VERSION,
+            "LOCAL_REVIEWED_LITERAL_DATA_SHA256_LOCKED",
+        ),
+    )
+    result: list[dict[str, object]] = []
+    for path, expected_sha256, schema_version, access_method in sources:
+        data = path.read_bytes()
+        digest = sha256_bytes(data)
+        if digest != expected_sha256:
+            raise ValueError(f"local semantic input digest differs: {path}")
+        try:
+            source_path = str(path.relative_to(REPO))
+        except ValueError:
+            source_path = str(path)
+        result.append(
+            {
+                "source_path": source_path,
+                "byte_count": len(data),
+                "sha256": digest,
+                "access_method": access_method,
+                "schema_version": schema_version,
+                "consumer": "dense_coverage_authority.py",
+            }
+        )
+    return result
 
 
 def ordered_digest(values: Iterable[str]) -> str:
@@ -372,68 +472,6 @@ def grammar_children(selector_kind: str, selected_value: str) -> list[tuple[str,
     return result
 
 
-# Exact operation-to-member assignments.  A cluster with one frozen member is
-# assigned by singleton equality; every multi-member direct surface must occur
-# in this closed table.  There is no textual containment or fallback rule.
-EXACT_OPERATION_MEMBERS: Mapping[tuple[str, str], tuple[str, ...]] = {
-    ("VIEW-SORT-01", "sort"): ("DENSE-SORT-STABLE",),
-    ("VIEW-SORT-01", "sort_by"): ("DENSE-SORT-STABLE",),
-    ("VIEW-SORT-01", "sort_by_key"): ("DENSE-SORT-STABLE",),
-    ("VIEW-SORT-01", "sort_by_cached_key"): ("DENSE-SORT-STABLE-CACHED-KEY",),
-    ("VIEW-REORDER-01", "reverse"): ("DENSE-REVERSE",),
-    ("VIEW-REORDER-01", "rotate_left"): ("DENSE-ROTATE",),
-    ("VIEW-REORDER-01", "rotate_right"): ("DENSE-ROTATE",),
-    ("VIEW-SWAP-01", "swap"): ("DENSE-SWAP",),
-    ("VIEW-SWAP-01", "swap_with_slice"): ("DENSE-SWAP-WITH-VIEW",),
-    ("VIEW-COPY-01", "copy_from_slice"): ("DENSE-COPY-FROM",),
-    ("VIEW-COPY-01", "copy_within"): ("DENSE-COPY-WITHIN",),
-    ("VIEW-FILL-01", "fill"): ("DENSE-FILL-CLONE",),
-    ("VIEW-FILL-01", "fill_with"): ("DENSE-FILL-WITH",),
-    ("VIEW-ALLOC-01", "to_vec"): ("DENSE-FRESH-CLONE",),
-    ("VIEW-ALLOC-01", "into_vec"): ("DENSE-INTO-OWNER",),
-    ("VIEW-CONCAT-01", "concat"): ("DENSE-CONCAT",),
-    ("VIEW-CONCAT-01", "join"): ("DENSE-JOIN",),
-    ("VIEW-CONCAT-01", "connect"): ("DENSE-JOIN",),
-    ("VIEW-CONCAT-01", "repeat"): ("DENSE-REPEAT",),
-    ("INIT-WRITE-01", "write_copy_of_slice"): ("DENSE-INIT-COPY",),
-    ("INIT-WRITE-01", "write_clone_of_slice"): ("DENSE-INIT-CLONE",),
-    ("SEQ-META-01", "new"): ("DENSE-NEW",),
-    ("SEQ-META-01", "with_capacity"): ("DENSE-WITH-CAPACITY",),
-    ("SEQ-META-01", "capacity"): ("DENSE-META",),
-    ("SEQ-META-01", "len"): ("DENSE-META",),
-    ("SEQ-META-01", "is_empty"): ("DENSE-META",),
-    ("SEQ-RESERVE-01", "reserve"): ("DENSE-RESERVE",),
-    ("SEQ-RESERVE-01", "reserve_exact"): ("DENSE-RESERVE-EXACT",),
-    ("SEQ-TRY-RESERVE-01", "try_reserve"): ("DENSE-TRY-RESERVE",),
-    ("SEQ-TRY-RESERVE-01", "try_reserve_exact"): ("DENSE-TRY-RESERVE-EXACT",),
-    ("SEQ-SHRINK-01", "shrink_to"): ("DENSE-SHRINK-TO",),
-    ("SEQ-SHRINK-01", "shrink_to_fit"): ("DENSE-SHRINK-TO-FIT",),
-    ("SEQ-PUSH-01", "push"): ("DENSE-PUSH",),
-    ("SEQ-PUSH-01", "push_mut"): ("DENSE-PUSH-UNIQ",),
-    ("SEQ-INSERT-01", "insert"): ("DENSE-INSERT",),
-    ("SEQ-INSERT-01", "insert_mut"): ("DENSE-INSERT-UNIQ",),
-    ("SEQ-POP-01", "pop"): ("DENSE-POP",),
-    ("SEQ-POP-01", "pop_if"): ("DENSE-POP-IF",),
-    ("SEQ-REMOVE-01", "remove"): ("DENSE-REMOVE",),
-    ("SEQ-REMOVE-01", "swap_remove"): ("DENSE-SWAP-REMOVE",),
-    ("SEQ-EXTEND-COPY-01", "extend_from_slice"): ("DENSE-EXTEND-CLONE",),
-    ("SEQ-EXTEND-COPY-01", "extend_from_within"): ("DENSE-EXTEND-WITHIN",),
-    ("SEQ-RESIZE-01", "resize"): ("DENSE-RESIZE-CLONE",),
-    ("SEQ-RESIZE-01", "resize_with"): ("DENSE-RESIZE-WITH",),
-    ("SEQ-TRUNCATE-01", "truncate"): ("DENSE-TRUNCATE",),
-    ("SEQ-TRUNCATE-01", "clear"): ("DENSE-CLEAR",),
-    ("SEQ-RETAIN-01", "retain"): ("DENSE-RETAIN",),
-    ("SEQ-RETAIN-01", "retain_mut"): ("DENSE-RETAIN-MUT",),
-    ("SEQ-DEDUP-01", "dedup"): ("DENSE-DEDUP",),
-    ("SEQ-DEDUP-01", "dedup_by"): ("DENSE-DEDUP-BY",),
-    ("SEQ-DEDUP-01", "dedup_by_key"): ("DENSE-DEDUP-BY-KEY",),
-    ("SEQ-EXTRACT-01", "extract_if"): ("DENSE-LAZY-EXTRACT-EVIDENCE",),
-    ("SEQ-SPLICE-01", "splice"): ("DENSE-LAZY-SPLICE-EVIDENCE",),
-    ("SEQ-CONVERT-01", "into_boxed_slice"): ("DENSE-INTO-BOXED",),
-    ("SEQ-CONVERT-01", "into_flattened"): ("DENSE-INTO-FLATTENED",),
-}
-
-
 def members_of_clusters(*cluster_ids: str) -> set[str]:
     unknown = set(cluster_ids) - set(CLUSTER_MEMBERS)
     if unknown:
@@ -445,17 +483,114 @@ ALL_MEMBERS = {member for members in CLUSTER_MEMBERS.values() for member in memb
 INCLUDED_MEMBERS = ALL_MEMBERS - set(EXCLUDED_MEMBERS)
 
 
-def direct_operation_members(cluster_id: str, member_name: str) -> tuple[str, ...]:
-    members = tuple(CLUSTER_MEMBERS[cluster_id])
-    if len(members) == 1:
-        return members
-    key = (cluster_id, member_name)
-    if key not in EXACT_OPERATION_MEMBERS:
-        raise ValueError(f"missing exact operation/member assignment: {key}")
-    result = EXACT_OPERATION_MEMBERS[key]
-    if not set(result) <= set(members):
-        raise ValueError(f"operation/member assignment escapes cluster: {key}")
+def validate_closed_direct_registry() -> None:
+    """Validate the finite exact-equality authority for all direct identities."""
+    if len(DIRECT_EVIDENCE_ASSIGNMENTS) != 456:
+        raise ValueError(
+            "closed direct evidence assignment count is not 456: "
+            f"{len(DIRECT_EVIDENCE_ASSIGNMENTS)}"
+        )
+    used_classes = set(DIRECT_EVIDENCE_ASSIGNMENTS.values())
+    if used_classes != set(DIRECT_ROUTE_CLASSES):
+        raise ValueError("closed direct route classes are missing or unused")
+    for identity, class_id in DIRECT_EVIDENCE_ASSIGNMENTS.items():
+        if not re.fullmatch(r"[0-9a-f]{64}", identity):
+            raise ValueError(f"invalid closed direct evidence identity: {identity}")
+        if class_id not in DIRECT_ROUTE_CLASSES:
+            raise ValueError(f"unknown closed direct route class: {class_id}")
+    for class_id, (targets, members) in DIRECT_ROUTE_CLASSES.items():
+        if (
+            not targets
+            or len(targets) != len(set(targets))
+            or len(members) != len(set(members))
+            or not set(members) <= ALL_MEMBERS
+            or (FAMILY_ID in targets and not members)
+            or (
+                members
+                and FAMILY_ID not in targets
+                and not set(members) <= set(EXCLUDED_MEMBERS)
+            )
+        ):
+            raise ValueError(f"invalid closed direct route class: {class_id}")
+
+
+validate_closed_direct_registry()
+
+
+@dataclass(frozen=True)
+class ClosedChildAssignment:
+    parent_evidence_identity: str
+    child_ordinal: int
+    child_kind: str
+    child_value_sha256: str
+    anchored_evidence_identity_ids: tuple[str, ...]
+    target_ids: tuple[str, ...]
+    member_contract_ids: tuple[str, ...]
+    assignment_sha256: str
+
+    @property
+    def key(self) -> tuple[str, int, str, str]:
+        return (
+            self.parent_evidence_identity,
+            self.child_ordinal,
+            self.child_kind,
+            self.child_value_sha256,
+        )
+
+
+def closed_child_assignment_index() -> dict[tuple[str, int, str, str], ClosedChildAssignment]:
+    result: dict[tuple[str, int, str, str], ClosedChildAssignment] = {}
+    for raw in SELECTOR_CHILD_ASSIGNMENTS:
+        if len(raw) != 8:
+            raise ValueError("closed selector assignment has the wrong arity")
+        assignment = ClosedChildAssignment(
+            parent_evidence_identity=str(raw[0]),
+            child_ordinal=int(raw[1]),
+            child_kind=str(raw[2]),
+            child_value_sha256=str(raw[3]),
+            anchored_evidence_identity_ids=tuple(raw[4]),  # type: ignore[arg-type]
+            target_ids=tuple(raw[5]),  # type: ignore[arg-type]
+            member_contract_ids=tuple(raw[6]),  # type: ignore[arg-type]
+            assignment_sha256=str(raw[7]),
+        )
+        material = "\0".join(
+            (
+                assignment.parent_evidence_identity,
+                str(assignment.child_ordinal),
+                assignment.child_kind,
+                assignment.child_value_sha256,
+                ",".join(assignment.anchored_evidence_identity_ids),
+                ",".join(assignment.target_ids),
+                ",".join(assignment.member_contract_ids),
+            )
+        )
+        if sha256_text(material) != assignment.assignment_sha256:
+            raise ValueError(f"closed selector assignment digest mismatch: {assignment.key}")
+        if assignment.key in result:
+            raise ValueError(f"duplicate closed selector assignment: {assignment.key}")
+        if (
+            assignment.child_kind not in {"SELECTOR_CLAUSE", "HELPER_CANARY", "HELPER_TYPE"}
+            or not assignment.target_ids
+            or len(assignment.target_ids) != len(set(assignment.target_ids))
+            or len(assignment.member_contract_ids) != len(set(assignment.member_contract_ids))
+            or len(assignment.anchored_evidence_identity_ids)
+            != len(set(assignment.anchored_evidence_identity_ids))
+            or not set(assignment.member_contract_ids) <= ALL_MEMBERS
+            or (FAMILY_ID in assignment.target_ids and not assignment.member_contract_ids)
+            or (
+                assignment.member_contract_ids
+                and FAMILY_ID not in assignment.target_ids
+                and not set(assignment.member_contract_ids) <= set(EXCLUDED_MEMBERS)
+            )
+        ):
+            raise ValueError(f"invalid closed selector assignment: {assignment.key}")
+        result[assignment.key] = assignment
+    if len(result) != 426:
+        raise ValueError(f"closed selector assignment count is not 426: {len(result)}")
     return result
+
+
+CLOSED_CHILD_ASSIGNMENT_BY_KEY = closed_child_assignment_index()
 
 
 def unique_index(
@@ -484,6 +619,8 @@ class AuthorityContext:
     safe_by_key: dict[str, dict[str, str]]
     d10_by_key: dict[str, dict[str, str]]
     unsafe_by_key: dict[str, dict[str, str]]
+    payload_rows: list[dict[str, str]]
+    payload_by_contract: dict[str, dict[str, str]]
     overlay_rows: list[dict[str, str]]
     requirement_rows: list[dict[str, str]]
     capability_rows: list[dict[str, str]]
@@ -511,6 +648,17 @@ def load_context(snapshot: FrozenG0Snapshot | None = None) -> AuthorityContext:
     all_evidence = snapshot.rows("G0-COVERAGE-EVIDENCE-UNIVERSE.tsv")
     evidence_rows = [row for row in all_evidence if row["cluster_id"] in audit_clusters]
     evidence_by_identity = unique_index(evidence_rows, "evidence_identity", "evidence universe")
+    direct_identities = {
+        row["evidence_identity"]
+        for row in evidence_rows
+        if row["evidence_kind"] not in SELECTOR_KINDS
+    }
+    if direct_identities != set(DIRECT_EVIDENCE_ASSIGNMENTS):
+        raise ValueError(
+            "closed direct evidence authority differs from the immutable 456-identity universe: "
+            f"missing={sorted(direct_identities - set(DIRECT_EVIDENCE_ASSIGNMENTS))}, "
+            f"extra={sorted(set(DIRECT_EVIDENCE_ASSIGNMENTS) - direct_identities)}"
+        )
     evidence_by_cluster: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in evidence_rows:
         evidence_by_cluster[row["cluster_id"]].append(row)
@@ -518,6 +666,11 @@ def load_context(snapshot: FrozenG0Snapshot | None = None) -> AuthorityContext:
         expected = int(route_by_cluster[cluster_id]["evidence_child_count"])
         if len(evidence_by_cluster[cluster_id]) != expected:
             raise ValueError(f"immutable evidence count mismatch for {cluster_id}")
+    payload_rows = [
+        row
+        for row in snapshot.rows("PAYLOAD-SCOPE-CLASSIFICATION.tsv")
+        if row["contract_id"] in audit_clusters
+    ]
     return AuthorityContext(
         snapshot=snapshot,
         route_rows=route_rows,
@@ -550,6 +703,12 @@ def load_context(snapshot: FrozenG0Snapshot | None = None) -> AuthorityContext:
             snapshot.rows("RUST-DATA-UNSAFE-EVIDENCE-MAP.tsv"),
             "canonical_key",
             "unsafe evidence map",
+        ),
+        payload_rows=payload_rows,
+        payload_by_contract=unique_index(
+            payload_rows,
+            "contract_id",
+            "dense payload classification",
         ),
         overlay_rows=[
             row
@@ -584,70 +743,34 @@ ACTIVE_SOURCE_TARGET_BY_ITEM_PATH: Mapping[str, str] = {
 }
 
 
-def concrete_members(crosswalk: Mapping[str, str], cluster_id: str) -> tuple[str, ...]:
-    if cluster_id == "TRAIT-INTOITER-01":
-        implementer = crosswalk["implementer"]
-        if re.fullmatch(r"&'a mut .+", implementer):
-            return ("DENSE-ITER-UNIQ",)
-        if re.fullmatch(r"&'a .+", implementer):
-            return ("DENSE-ITER-SHARED",)
-        if implementer.startswith("&"):
-            raise ValueError(f"unrecognized IntoIterator reference grammar: {implementer}")
-        return ("DENSE-ITER-OWN",)
-    if cluster_id == "TRAIT-INDEX-01":
-        trait_path = crosswalk["trait_path"]
-        terminal = trait_path.rsplit("::", 1)[-1]
-        if terminal == "Index":
-            return ("DENSE-INDEX-SHARED",)
-        if terminal == "IndexMut":
-            return ("DENSE-INDEX-UNIQ",)
-        raise ValueError(f"unrecognized index trait path: {trait_path}")
-    if cluster_id == "TRAIT-CMP-01":
-        terminal = crosswalk["trait_path"].rsplit("::", 1)[-1]
-        if terminal == "Hash":
-            return ("DENSE-HASH-TRAVERSAL",)
-        if terminal in {"PartialEq", "Eq", "PartialOrd", "Ord"}:
-            return ("DENSE-COMPARE",)
-        raise ValueError(f"unrecognized comparison/hash trait: {terminal}")
-    fixed = {
-        "TRAIT-EXTEND-01": ("DENSE-EXTEND-ITER",),
-        "TRAIT-COLLECT-01": ("DENSE-COLLECT",),
-        "TRAIT-DEREF-01": ("DENSE-OWNER-VIEW",),
-        "TRAIT-BORROW-01": ("DENSE-OWNER-VIEW",),
-        "TRAIT-CONVERT-01": ("DENSE-CONVERT",),
-        "TRAIT-CLONE-01": ("DENSE-FRESH-CLONE", "DENSE-CLONE-FROM"),
-        "TRAIT-DEFAULT-01": ("DENSE-DEFAULT",),
-        "TRAIT-DROP-01": ("DENSE-DROP",),
-    }
-    if cluster_id not in fixed:
-        raise ValueError(f"concrete implementation in unsupported cluster: {cluster_id}")
-    return fixed[cluster_id]
-
-
 def direct_subject(context: AuthorityContext, evidence: dict[str, str]) -> SubjectAuthority:
     kind = evidence["evidence_kind"]
     if kind in SELECTOR_KINDS:
         raise ValueError("selector parent is not a direct subject")
+    identity = evidence["evidence_identity"]
+    if identity not in DIRECT_EVIDENCE_ASSIGNMENTS:
+        raise ValueError(f"direct evidence identity lacks a closed assignment: {identity}")
+    class_id = DIRECT_EVIDENCE_ASSIGNMENTS[identity]
+    targets, members = DIRECT_ROUTE_CLASSES[class_id]
     cluster_id = evidence["cluster_id"]
     route = context.route_by_cluster[cluster_id]
     predecessors_f: dict[str, tuple[str, ...]] = {}
     predecessors_g: dict[str, tuple[str, ...]] = {}
-    members: tuple[str, ...] = ()
 
     if kind == "CONCRETE_TRAIT_IMPL":
         key = evidence["evidence_key"]
         topology = context.topology_by_impl[key]
-        crosswalk = context.crosswalk_by_impl[key]
+        context.crosswalk_by_impl[key]
         primary = topology["primary_refinement_family_or_gate"]
         if primary != evidence["applicability_primary_refinement_family_or_gate"]:
             raise ValueError(f"concrete primary target mismatch: {key}")
-        targets = list(csv_ids(primary))
+        frozen_targets = list(csv_ids(primary))
         additional = csv_ids(evidence["applicability_additional_operation_gate_stage_ids"])
         for target in additional:
-            if target not in targets:
-                targets.append(target)
-        if FAMILY_ID in targets:
-            members = concrete_members(crosswalk, cluster_id)
+            if target not in frozen_targets:
+                frozen_targets.append(target)
+        if targets != tuple(frozen_targets):
+            raise ValueError(f"closed direct target assignment differs from topology: {identity}")
         predecessors_f[primary] = csv_ids(topology["required_predecessor_family_ids"])
         predecessors_g[primary] = csv_ids(topology["required_predecessor_gate_stage_ids"])
         for target in additional:
@@ -660,14 +783,12 @@ def direct_subject(context: AuthorityContext, evidence: dict[str, str]) -> Subje
             route_g = csv_ids(route["required_predecessor_gate_stage_ids"])
             predecessors_f[target] = tuple(dict.fromkeys(route_f + tuple(x for x in immediate if x.startswith("F-"))))
             predecessors_g[target] = tuple(dict.fromkeys(route_g + tuple(x for x in immediate if x.startswith("GATE-"))))
-        target_authority = "EXACT_IMPL_KEY_TO_FROZEN_TOPOLOGY_ROUTE_AND_OPERATION_GATE"
-        member_authority = "EXACT_TRAIT_PATH_AND_IMPLEMENTER_GRAMMAR"
     else:
         primary = route["primary_refinement_owner_or_gate_stage"]
         if route["route_state"] == "BOUNDARY":
-            targets = list(csv_ids(primary))
-            target_authority = "EXACT_BOUNDARY_SOURCE_KEY_TO_FROZEN_REJECTION_GATE"
-            member_authority = "NONE_NON_DENSE_BOUNDARY_TARGET"
+            frozen_targets = csv_ids(primary)
+            if targets != frozen_targets:
+                raise ValueError(f"closed boundary target differs from frozen route: {identity}")
         elif kind == "STABLE_SAFE_SURFACE":
             source = context.safe_by_key[evidence["evidence_key"]]
             item_path = source["item_path"]
@@ -679,25 +800,20 @@ def direct_subject(context: AuthorityContext, evidence: dict[str, str]) -> Subje
                     f"exact source topology disagrees with route for {evidence['evidence_key']}: "
                     f"{target} != {primary}"
                 )
-            targets = [target]
-            if target == FAMILY_ID:
-                members = direct_operation_members(cluster_id, source["member_name"])
-            target_authority = "EXACT_SAFE_KEY_ITEM_PATH_CLOSED_TOPOLOGY_ENUM"
-            member_authority = "EXACT_SAFE_MEMBER_NAME_CLOSED_ASSIGNMENT"
+            if targets != (target,):
+                raise ValueError(f"closed safe-surface target differs: {identity}")
         elif kind in {"D10_CONTRACT_ROUTE", "D10_REDUNDANT_SURFACE_ROUTE"}:
             source = context.d10_by_key[evidence["evidence_key"]]
             if source["route_id"] != cluster_id:
                 raise ValueError(f"D10 route mismatch for {evidence['evidence_key']}")
-            targets = list(csv_ids(primary))
-            target_authority = "EXACT_D10_KEY_TO_FROZEN_ROUTE_OWNER"
-            member_authority = "NONE_GENERIC_PROTOCOL_DECLARATION_TARGET"
+            if targets != csv_ids(primary):
+                raise ValueError(f"closed D10 target differs from frozen route: {identity}")
         elif kind == "STABLE_UNSAFE_EVIDENCE":
             source = context.unsafe_by_key[evidence["evidence_key"]]
             if source["evidence_cluster_id"] != cluster_id:
                 raise ValueError(f"unsafe route mismatch for {evidence['evidence_key']}")
-            targets = list(csv_ids(primary))
-            target_authority = "EXACT_UNSAFE_KEY_TO_FROZEN_REJECTION_GATE"
-            member_authority = "NONE_NON_DENSE_BOUNDARY_TARGET"
+            if targets != csv_ids(primary):
+                raise ValueError(f"closed unsafe target differs from frozen route: {identity}")
         else:
             raise ValueError(f"unknown direct evidence kind: {kind}")
         for target in targets:
@@ -705,21 +821,29 @@ def direct_subject(context: AuthorityContext, evidence: dict[str, str]) -> Subje
             predecessors_g[target] = csv_ids(route["required_predecessor_gate_stage_ids"])
 
     if not targets or len(targets) != len(set(targets)):
-        raise ValueError(f"missing or duplicate exact targets: {evidence['evidence_identity']}")
+        raise ValueError(f"missing or duplicate exact targets: {identity}")
     if FAMILY_ID in targets and not members:
-        raise ValueError(f"dense direct subject has no exact member: {evidence['evidence_identity']}")
+        raise ValueError(f"dense direct subject has no exact member: {identity}")
     if not set(members) <= set(CLUSTER_MEMBERS[cluster_id]):
-        raise ValueError(f"direct subject member escapes cluster: {evidence['evidence_identity']}")
+        raise ValueError(f"direct subject member escapes cluster: {identity}")
+    assignment_sha256 = sha256_text(
+        "\0".join((identity, class_id, ",".join(targets), ",".join(members)))
+    )
     return SubjectAuthority(
         subject_kind="DIRECT_EVIDENCE",
-        subject_identity=evidence["evidence_identity"],
+        subject_identity=identity,
         parent_evidence_identity="NONE",
         cluster_id=cluster_id,
         evidence_kind=kind,
         targets=tuple(targets),
         members=members,
-        target_authority=target_authority,
-        member_authority=member_authority,
+        target_authority="EXACT_CLOSED_DIRECT_TARGET_ASSIGNMENT:" + assignment_sha256,
+        member_authority=(
+            "EXACT_CLOSED_DIRECT_MEMBER_ASSIGNMENT:"
+            if members
+            else "NONE_CLOSED_DIRECT_MEMBER_ASSIGNMENT:"
+        )
+        + assignment_sha256,
         predecessor_families=predecessors_f,
         predecessor_gates=predecessors_g,
     )
@@ -834,68 +958,54 @@ def selector_children(
     context: AuthorityContext,
     direct: Mapping[str, SubjectAuthority],
 ) -> tuple[list[dict[str, object]], list[SubjectAuthority]]:
+    """Materialize the exact frozen grammar through the closed child registry."""
     expansion_rows: list[dict[str, object]] = []
     authorities: list[SubjectAuthority] = []
-    for parent in (row for row in context.evidence_rows if row["evidence_kind"] in SELECTOR_KINDS):
+    observed_registry_keys: set[tuple[str, int, str, str]] = set()
+    for parent in (
+        row for row in context.evidence_rows if row["evidence_kind"] in SELECTOR_KINDS
+    ):
         cluster_id = parent["cluster_id"]
         route = context.route_by_cluster[cluster_id]
-        anchored = [
-            row
-            for row in context.evidence_by_cluster[cluster_id]
-            if row["evidence_kind"] not in SELECTOR_KINDS
-        ]
-        children = grammar_children(
+        grammar = grammar_children(
             parent["evidence_kind"], parent["selected_source_value"]
         )
-        if len(children) != len(set(children)):
-            raise ValueError(f"duplicate materialized selector child: {parent['evidence_identity']}")
-        anchor_assignments = (
-            rust_selector_anchor_assignments(context, parent, children)
+        exact_anchor_assignments = (
+            rust_selector_anchor_assignments(context, parent, grammar)
             if parent["evidence_kind"] == "CLUSTER_RUST_SURFACES_SELECTOR"
-            else tuple(() for _ in children)
+            else tuple(() for _ in grammar)
         )
-
-        anchored_authorities = [direct[row["evidence_identity"]] for row in anchored]
-        anchored_targets = tuple(
-            dict.fromkeys(target for authority in anchored_authorities for target in authority.targets)
-        )
-        anchored_dense_members = tuple(
-            dict.fromkeys(member for authority in anchored_authorities for member in authority.members)
-        )
-        child_ids: list[str] = []
-        for ordinal, ((child_kind, child_value), anchor_ids) in enumerate(
-            zip(children, anchor_assignments), 1
+        for ordinal, ((child_kind, child_value), exact_anchor_ids) in enumerate(
+            zip(grammar, exact_anchor_assignments), 1
         ):
-            child_identity = sha256_text(
-                f"{parent['evidence_identity']}\0{ordinal}\0{child_kind}\0{child_value}"
+            child_value_sha256 = sha256_text(child_value)
+            assignment_key = (
+                parent["evidence_identity"],
+                ordinal,
+                child_kind,
+                child_value_sha256,
             )
-            child_ids.append(child_identity)
-            if anchor_ids:
-                source_authorities = [direct[identity] for identity in anchor_ids]
-                targets = tuple(
-                    dict.fromkeys(
-                        target
-                        for source_authority in source_authorities
-                        for target in source_authority.targets
-                    )
+            if assignment_key not in CLOSED_CHILD_ASSIGNMENT_BY_KEY:
+                raise ValueError(f"missing closed selector child assignment: {assignment_key}")
+            if assignment_key in observed_registry_keys:
+                raise ValueError(f"duplicate frozen selector grammar child: {assignment_key}")
+            observed_registry_keys.add(assignment_key)
+            assignment = CLOSED_CHILD_ASSIGNMENT_BY_KEY[assignment_key]
+            if assignment.anchored_evidence_identity_ids != exact_anchor_ids:
+                raise ValueError(
+                    f"closed selector anchor assignment differs from frozen exact join: {assignment_key}"
                 )
-                members = tuple(
-                    dict.fromkeys(
-                        member
-                        for source_authority in source_authorities
-                        for member in source_authority.members
-                    )
-                )
-                target_authority = (
-                    "EXACT_GRAMMAR_CHILD_TO_DIRECT_EVIDENCE_IDENTITY_JOIN"
-                )
-                member_authority = (
-                    "EXACT_UNION_OF_GRAMMAR_CHILD_ANCHORED_DIRECT_MEMBERS"
-                    if members
-                    else "NONE_ANCHORED_NON_DENSE_TARGETS"
-                )
-                predecessors_f = {
-                    target: tuple(
+
+            targets = assignment.target_ids
+            members = assignment.member_contract_ids
+            if not set(members) <= set(CLUSTER_MEMBERS[cluster_id]):
+                raise ValueError(f"closed selector member escapes its cluster: {assignment_key}")
+            if exact_anchor_ids:
+                source_authorities = [direct[identity] for identity in exact_anchor_ids]
+                predecessors_f = {}
+                predecessors_g = {}
+                for target in targets:
+                    inherited_f = tuple(
                         dict.fromkeys(
                             predecessor
                             for source_authority in source_authorities
@@ -904,10 +1014,7 @@ def selector_children(
                             )
                         )
                     )
-                    for target in targets
-                }
-                predecessors_g = {
-                    target: tuple(
+                    inherited_g = tuple(
                         dict.fromkeys(
                             predecessor
                             for source_authority in source_authorities
@@ -916,76 +1023,13 @@ def selector_children(
                             )
                         )
                     )
-                    for target in targets
-                }
-            elif child_kind == "HELPER_TYPE":
-                match = OWNING_HELPER_RE.fullmatch(child_value)
-                if not match:
-                    raise ValueError(f"helper type grammar mismatch: {child_value}")
-                namespace = match.group("namespace")
-                targets = (HELPER_TARGETS[namespace],)
-                members = ("DENSE-ITER-OWN",) if targets == (FAMILY_ID,) else ()
-                target_authority = "EXACT_OWNING_HELPER_NAMESPACE_CLOSED_ENUM"
-                member_authority = (
-                    "EXACT_OWNING_HELPER_TO_DENSE_OWNING_ITERATION"
-                    if members
-                    else "NONE_NON_DENSE_HELPER_TARGET"
-                )
-                predecessors_f = {targets[0]: ()}
-                predecessors_g = {targets[0]: ()}
+                    predecessors_f[target] = inherited_f or csv_ids(
+                        route["required_predecessor_family_ids"]
+                    )
+                    predecessors_g[target] = inherited_g or csv_ids(
+                        route["required_predecessor_gate_stage_ids"]
+                    )
             else:
-                if child_kind == "HELPER_CANARY" and child_value.startswith("xlang_buildhasher_"):
-                    targets_list = ["F-SPARSE"]
-                    primary = route["primary_refinement_owner_or_gate_stage"]
-                    if primary.startswith("GATE-"):
-                        targets_list.append(primary)
-                    targets = tuple(targets_list)
-                    members = ()
-                    target_authority = "EXACT_HASHER_CANARY_NAME_TO_SPARSE_AND_OPERATION_GATE"
-                    member_authority = "NONE_NON_DENSE_HASHER_CANARY"
-                elif (
-                    parent["evidence_kind"] == "CLUSTER_RUST_SURFACES_SELECTOR"
-                    and (surface_match := SURFACE_SELECTOR_CHILD_RE.match(child_value))
-                ):
-                    targets = csv_ids(route["primary_refinement_owner_or_gate_stage"])
-                    members = (
-                        direct_operation_members(
-                            cluster_id, surface_match.group("member")
-                        )
-                        if FAMILY_ID in targets
-                        else ()
-                    )
-                    target_authority = "EXACT_UNANCHORED_SURFACE_TO_FROZEN_ROUTE_OWNER"
-                    member_authority = (
-                        "EXACT_UNANCHORED_SURFACE_MEMBER_CLOSED_ASSIGNMENT"
-                        if members
-                        else "NONE_NON_DENSE_UNANCHORED_SURFACE"
-                    )
-                else:
-                    targets = anchored_targets or csv_ids(
-                        route["primary_refinement_owner_or_gate_stage"]
-                    )
-                    members = anchored_dense_members if FAMILY_ID in targets else ()
-                    if FAMILY_ID in targets and not members:
-                        frozen_members = tuple(CLUSTER_MEMBERS[cluster_id])
-                        if len(frozen_members) != 1:
-                            raise ValueError(
-                                "selector-only dense clause requires an explicit single member: "
-                                f"{cluster_id} {child_value}"
-                            )
-                        members = frozen_members
-                        member_authority = "EXACT_SELECTOR_ONLY_SINGLE_FROZEN_MEMBER"
-                    else:
-                        member_authority = (
-                            "EXACT_UNION_OF_ANCHORED_DENSE_CHILD_MEMBERS"
-                            if members
-                            else "NONE_NON_DENSE_SELECTOR_SCOPE"
-                        )
-                    target_authority = (
-                        "EXACT_SELECTOR_DECLARED_SCOPE_ANCHORED_TARGET_UNION"
-                        if anchored_targets
-                        else "EXACT_SELECTOR_ONLY_FROZEN_ROUTE_OWNER"
-                    )
                 predecessors_f = {
                     target: csv_ids(route["required_predecessor_family_ids"])
                     if target == route["primary_refinement_owner_or_gate_stage"]
@@ -998,18 +1042,27 @@ def selector_children(
                     else ()
                     for target in targets
                 }
-            if not targets:
-                raise ValueError(f"selector child has no exact target: {child_identity}")
-            if FAMILY_ID in targets and not members:
-                raise ValueError(f"dense selector child has no exact member: {child_identity}")
+
+            child_identity = sha256_text(
+                f"{parent['evidence_identity']}\0{ordinal}\0{child_kind}\0{child_value}"
+            )
+            target_authority = (
+                "EXACT_CLOSED_CHILD_TARGET_ASSIGNMENT:"
+                + assignment.assignment_sha256
+            )
+            member_authority = (
+                "EXACT_CLOSED_CHILD_MEMBER_ASSIGNMENT:"
+                if members
+                else "NONE_CLOSED_CHILD_MEMBER_ASSIGNMENT:"
+            ) + assignment.assignment_sha256
             authority = SubjectAuthority(
                 subject_kind="SELECTOR_CHILD",
                 subject_identity=child_identity,
                 parent_evidence_identity=parent["evidence_identity"],
                 cluster_id=cluster_id,
                 evidence_kind=parent["evidence_kind"],
-                targets=tuple(targets),
-                members=tuple(members),
+                targets=targets,
+                members=members,
                 target_authority=target_authority,
                 member_authority=member_authority,
                 predecessor_families=predecessors_f,
@@ -1026,17 +1079,21 @@ def selector_children(
                     "child_identity": child_identity,
                     "child_kind": child_kind,
                     "child_value": child_value,
-                    "child_value_sha256": sha256_text(child_value),
-                    "anchored_evidence_identity_ids": ",".join(anchor_ids) or "NONE",
+                    "child_value_sha256": child_value_sha256,
+                    "anchored_evidence_identity_ids": ",".join(exact_anchor_ids) or "NONE",
                     "applicable_target_ids": ",".join(targets),
                     "f_dense_member_contract_ids": ",".join(members) or "NONE",
                     "target_authority": target_authority,
                     "member_authority": member_authority,
-                    "expansion_grammar": "DENSE-SELECTOR-EXPANSION-v3",
+                    "expansion_grammar": "DENSE-SELECTOR-EXPANSION-v4-CLOSED",
                 }
             )
-        if not child_ids:
-            raise ValueError(f"selector parent has no children: {parent['evidence_identity']}")
+    if observed_registry_keys != set(CLOSED_CHILD_ASSIGNMENT_BY_KEY):
+        missing = set(CLOSED_CHILD_ASSIGNMENT_BY_KEY) - observed_registry_keys
+        extra = observed_registry_keys - set(CLOSED_CHILD_ASSIGNMENT_BY_KEY)
+        raise ValueError(
+            f"closed selector assignment universe mismatch: missing={len(missing)} extra={len(extra)}"
+        )
     return expansion_rows, authorities
 
 
@@ -1088,7 +1145,15 @@ def target_and_member_rows(
                 raise ValueError(f"duplicate evidence/target pair: {pair}")
             seen_pairs.add(pair)
             terminal, blocked = terminal_for(authority, target)
-            members = authority.members if target == FAMILY_ID else ()
+            members = (
+                authority.members
+                if target == FAMILY_ID
+                or (
+                    authority.members
+                    and set(authority.members) <= set(EXCLUDED_MEMBERS)
+                )
+                else ()
+            )
             target_rows.append(
                 {
                     "subject_kind": authority.subject_kind,
@@ -1113,8 +1178,13 @@ def target_and_member_rows(
                     "member_authority": authority.member_authority,
                 }
             )
-            if terminal == "REFINED_IN_LOCK":
+            if members:
                 for member in members:
+                    unit_status = (
+                        "EXCLUDED_MEMBER_EXACT_OUTCOME_BINDING_REQUIRED"
+                        if member in EXCLUDED_MEMBERS
+                        else "MEMBER_EXACT_OUTCOME_BINDING_REQUIRED"
+                    )
                     member_rows.append(
                         {
                             "subject_kind": authority.subject_kind,
@@ -1124,7 +1194,7 @@ def target_and_member_rows(
                             "target_id": target,
                             "member_contract_id": member,
                             "outcome_id": OUTCOME_BINDING,
-                            "unit_status": "MEMBER_EXACT_OUTCOME_BINDING_REQUIRED",
+                            "unit_status": unit_status,
                             "mapping_authority": authority.member_authority,
                             "outcome_binding_authority": "DECLARATIVE_CONTRACT_REGISTRY_REQUIRED_BEFORE_LOCK_CLOSE",
                         }
@@ -1428,6 +1498,41 @@ ALLOC_MEMBERS = members_of_clusters(
     "TRAIT-CLONE-01",
 ) & INCLUDED_MEMBERS
 
+ACTIVE_BR_STORED_BINDINGS: Mapping[str, tuple[str, ...]] = {
+    "SEQ-EXTRACT-01": (
+        "DENSE-EAGER-EXTRACT",
+        "DENSE-LAZY-EXTRACT-EVIDENCE",
+    ),
+    "SEQ-SPLICE-01": (
+        "DENSE-EAGER-SPLICE",
+        "DENSE-LAZY-SPLICE-EVIDENCE",
+    ),
+    "TRAIT-EXTEND-01": ("DENSE-EXTEND-ITER",),
+    "TRAIT-COLLECT-01": ("DENSE-COLLECT",),
+}
+PAYLOAD_PARTITION_COUNTS = {
+    "DEFERRED_BRANCHES": 39,
+    "NO_STORED_BORROW_COMPLEMENT": 17,
+    "ACTIVE_BR_STORED": 4,
+    "BOUNDARY_EVIDENCE_ONLY": 5,
+}
+
+
+def validate_payload_partition(context: AuthorityContext) -> None:
+    counts = Counter(row["stored_borrow_scope"] for row in context.payload_rows)
+    if dict(counts) != PAYLOAD_PARTITION_COUNTS:
+        raise ValueError(f"dense payload partition is not 39/17/4/5: {dict(counts)}")
+    active = {
+        row["contract_id"]
+        for row in context.payload_rows
+        if row["stored_borrow_scope"] == "ACTIVE_BR_STORED"
+    }
+    if active != set(ACTIVE_BR_STORED_BINDINGS):
+        raise ValueError(f"active BR-STORED cluster set differs: {sorted(active)}")
+    for cluster_id, members in ACTIVE_BR_STORED_BINDINGS.items():
+        if not set(members) <= set(CLUSTER_MEMBERS[cluster_id]):
+            raise ValueError(f"active BR-STORED member binding is invalid: {cluster_id}")
+
 
 def capability_groups() -> dict[str, set[str]]:
     groups: dict[str, set[str]] = {
@@ -1447,6 +1552,11 @@ def capability_groups() -> dict[str, set[str]]:
         "BR-PROV": BORROW_MEMBERS,
         "BR-REBORROW": BORROW_MEMBERS,
         "BR-RESULT": RESULT_BORROW_MEMBERS,
+        "BR-STORED": {
+            member
+            for members in ACTIVE_BR_STORED_BINDINGS.values()
+            for member in members
+        },
         "BR-DISJOINT": DISJOINT_MEMBERS,
         "BR-INVALIDATE": BORROW_MEMBERS | RELOCATE_MEMBERS | DROP_MEMBERS,
         "BR-CURSOR": members_of_clusters("TRAIT-INTOITER-01") & INCLUDED_MEMBERS,
@@ -1467,6 +1577,24 @@ def capability_groups() -> dict[str, set[str]]:
         if not members <= ALL_MEMBERS:
             raise ValueError(f"capability group escapes member registry: {capability}")
     return groups
+
+
+def audited_capability_groups() -> dict[str, set[str]]:
+    """Return the exact member universes for the six closure-sensitive rows.
+
+    These definitions stay separate from table emission so the validator can
+    audit both omission and substitution.  In particular, AB-SEAL is a family
+    seal over every included dense member, including the ordinary-library
+    H-FLATSET witness units; it is not a built-in-only marker.
+    """
+    return {
+        "AB-SEAL": set(INCLUDED_MEMBERS),
+        "AB-GENERIC": set(INCLUDED_MEMBERS),
+        "AB-BEHAVIOR": CALLBACK_MEMBERS | CLONE_MEMBERS,
+        "BR-REBORROW": BORROW_MEMBERS,
+        "BR-RESULT": RESULT_BORROW_MEMBERS,
+        "FT-STATE": STORAGE_MEMBERS | HOLE_MEMBERS,
+    }
 
 
 def member_capabilities(
@@ -1710,7 +1838,8 @@ def applicable_requirement_rows(context: AuthorityContext) -> list[dict[str, str
             row["linked_registry_ids"] == "W-PIPE"
             and FAMILY_ID in csv_ids(row["implicated_family_ids"])
         )
-        if is_baseline or is_owner or is_pipe_rebind:
+        is_rope_reopening = row["linked_registry_ids"] == "O-ROPE-UNIQUE"
+        if is_baseline or is_owner or is_pipe_rebind or is_rope_reopening:
             result.append(row)
     return result
 
@@ -1722,6 +1851,7 @@ def role_authority_rows(context: AuthorityContext) -> list[dict[str, object]]:
         is_baseline = role == "B"
         is_owner = source["closure_owner_or_gate_stage"] == FAMILY_ID
         is_pipe = source["linked_registry_ids"] == "W-PIPE" and not is_owner
+        is_rope = source["linked_registry_ids"] == "O-ROPE-UNIQUE"
         if is_baseline:
             owner_disposition = "PROTECTED_CONTROL"
             rebind_disposition = "PROTECTED_CONTROL"
@@ -1737,6 +1867,17 @@ def role_authority_rows(context: AuthorityContext) -> list[dict[str, object]]:
             owner_disposition = "NOT_APPLICABLE_IMPLICATED_REBIND"
             rebind_disposition = "EXCLUDED_BLOCKS_FAMILY_AND_FLOOR"
             units = [("CLAIM_BLOCKING_EXCLUSION", "NONE", "NONE", "W-PIPE")]
+        elif is_rope:
+            owner_disposition = "NOT_APPLICABLE_REOPENING_ONLY"
+            rebind_disposition = "NOT_APPLICABLE_REOPENING_ONLY"
+            units = [
+                (
+                    "NO_MEMBER_NOT_APPLICABLE_REOPENING_ONLY",
+                    "NONE",
+                    "NONE",
+                    "O-ROPE-UNIQUE",
+                )
+            ]
         elif role == "O":
             owner_disposition = "OPTIONAL_NOT_PROMOTED"
             rebind_disposition = "NOT_APPLICABLE_REOPENING_ONLY"
@@ -1799,16 +1940,26 @@ def capability_authority_rows(
         base_members = tuple(member for member in ALL_MEMBERS if member in groups.get(capability, set()))
         deferred = conditional_by_capability.get(capability, [])
         if capability in protected:
-            applicability = "PROTECTED"
-            bindings = [("CONTROL", "NONE", "NONE", "NONE", protected[capability])]
-        elif base_members:
-            applicability = "REQUIRED"
             bindings = [
-                ("MEMBER", member, OUTCOME_BINDING, "NONE", "NONE")
+                ("PROTECTED", "CONTROL", "NONE", "NONE", "NONE", protected[capability])
+            ]
+        elif base_members:
+            bindings = [
+                (
+                    "EXCLUDED-BLOCKS-CLAIM"
+                    if member in EXCLUDED_MEMBERS
+                    else "REQUIRED",
+                    "EXCLUDED_MEMBER" if member in EXCLUDED_MEMBERS else "MEMBER",
+                    member,
+                    OUTCOME_BINDING,
+                    "NONE",
+                    "NONE",
+                )
                 for member in sorted(base_members)
             ]
             bindings.extend(
                 (
+                    "DEFERRED-BLOCKS-CLAIM",
                     "DEFERRED_OVERLAY",
                     str(row["member_contract_id"]),
                     OUTCOME_BINDING,
@@ -1818,9 +1969,9 @@ def capability_authority_rows(
                 for row in deferred
             )
         elif deferred:
-            applicability = "DEFERRED-BLOCKS-CLAIM"
             bindings = [
                 (
+                    "DEFERRED-BLOCKS-CLAIM",
                     "DEFERRED_OVERLAY",
                     str(row["member_contract_id"]),
                     OUTCOME_BINDING,
@@ -1830,9 +1981,8 @@ def capability_authority_rows(
                 for row in deferred
             ]
         else:
-            applicability = "NOT-IMPLICATED"
-            bindings = [("NONE", "NONE", "NONE", "NONE", "NONE")]
-        for binding_kind, member, outcome, branch, control in bindings:
+            bindings = [("NOT-IMPLICATED", "NONE", "NONE", "NONE", "NONE", "NONE")]
+        for applicability, binding_kind, member, outcome, branch, control in bindings:
             result.append(
                 {
                     "capability_id": capability,
@@ -1851,16 +2001,10 @@ def capability_authority_rows(
     return result
 
 
-def build_authorities(
-    snapshot: FrozenG0Snapshot | None = None,
-) -> tuple[AuthorityContext, dict[str, list[dict[str, object]]]]:
-    """Build every authority from the frozen G0 snapshot.
-
-    No current worktree G0 file and no heuristic member/outcome ledger is an
-    input.  Outcome columns remain explicitly unresolved for later expansion
-    from the separately supplied declarative contract registry.
-    """
-    context = load_context(snapshot)
+def derive_authorities(
+    context: AuthorityContext,
+) -> dict[str, list[dict[str, object]]]:
+    """Derive every ordered table from frozen inputs and closed local data."""
     direct: dict[str, SubjectAuthority] = {}
     for evidence in context.evidence_rows:
         if evidence["evidence_kind"] not in SELECTOR_KINDS:
@@ -1872,6 +2016,7 @@ def build_authorities(
     )
     overlay_rows = overlay_authority_rows(context)
     outputs: dict[str, list[dict[str, object]]] = {
+        "DENSE-LOCAL-DECLARATIVE-INPUT-AUTHORITY.tsv": local_input_authority(),
         "DENSE-FROZEN-G0-INPUT-AUTHORITY.tsv": context.snapshot.input_authority(),
         "DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv": expansion,
         "DENSE-EVIDENCE-TARGET-AUTHORITY.tsv": target_rows,
@@ -1882,6 +2027,21 @@ def build_authorities(
             context, overlay_rows
         ),
     }
+    return outputs
+
+
+def build_authorities(
+    snapshot: FrozenG0Snapshot | None = None,
+) -> tuple[AuthorityContext, dict[str, list[dict[str, object]]]]:
+    """Build every authority from immutable G0 and SHA-locked local inputs.
+
+    No current worktree G0 file and no heuristic member/outcome ledger is an
+    input. Outcome columns remain explicitly unresolved for later expansion
+    from the separately supplied declarative contract registry.
+    """
+    context = load_context(snapshot)
+    validate_payload_partition(context)
+    outputs = derive_authorities(context)
     validate_authorities(context, outputs)
     return context, outputs
 
@@ -1890,6 +2050,18 @@ def validate_selector_authority(
     context: AuthorityContext,
     rows: Sequence[Mapping[str, object]],
 ) -> None:
+    direct = {
+        authority.subject_identity: authority
+        for authority in (
+            direct_subject(context, evidence)
+            for evidence in context.evidence_rows
+            if evidence["evidence_kind"] not in SELECTOR_KINDS
+        )
+    }
+    expected_rows, _ = selector_children(context, direct)
+    fields = OUTPUT_FIELDS["DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv"]
+    if tsv_bytes(fields, rows) != tsv_bytes(fields, expected_rows):
+        raise ValueError("selector authority differs from the closed child registry")
     parents = {
         row["evidence_identity"]: row
         for row in context.evidence_rows
@@ -1954,6 +2126,26 @@ def validate_selector_authority(
         raise ValueError("direct evidence was incorrectly materialized as a selector child")
     if kinds["HELPER_TYPE"] == 0 or kinds["HELPER_CANARY"] == 0:
         raise ValueError("selector expansion omitted independently named helper identities")
+    if kinds != Counter(
+        {"SELECTOR_CLAUSE": 382, "HELPER_CANARY": 35, "HELPER_TYPE": 9}
+    ):
+        raise ValueError(f"selector child-kind population differs: {dict(kinds)}")
+    anchored = [
+        identity
+        for row in rows
+        for identity in csv_ids(str(row["anchored_evidence_identity_ids"]))
+    ]
+    expected_anchors = {
+        row["evidence_identity"]
+        for row in context.evidence_rows
+        if row["evidence_kind"] not in SELECTOR_KINDS
+    }
+    if (
+        len(anchored) != 456
+        or len(anchored) != len(set(anchored))
+        or set(anchored) != expected_anchors
+    ):
+        raise ValueError("the 456 direct anchors are not assigned exactly once")
 
 
 def validate_target_member_authority(
@@ -1962,6 +2154,30 @@ def validate_target_member_authority(
     target_rows: Sequence[Mapping[str, object]],
     member_rows: Sequence[Mapping[str, object]],
 ) -> None:
+    direct_authorities = [
+        direct_subject(context, evidence)
+        for evidence in context.evidence_rows
+        if evidence["evidence_kind"] not in SELECTOR_KINDS
+    ]
+    expected_direct_targets, expected_direct_members = target_and_member_rows(
+        direct_authorities
+    )
+    actual_direct_targets = [
+        row for row in target_rows if row["subject_kind"] == "DIRECT_EVIDENCE"
+    ]
+    actual_direct_members = [
+        row for row in member_rows if row["subject_kind"] == "DIRECT_EVIDENCE"
+    ]
+    target_fields = OUTPUT_FIELDS["DENSE-EVIDENCE-TARGET-AUTHORITY.tsv"]
+    member_fields = OUTPUT_FIELDS["DENSE-EVIDENCE-MEMBER-AUTHORITY.tsv"]
+    if tsv_bytes(target_fields, actual_direct_targets) != tsv_bytes(
+        target_fields, expected_direct_targets
+    ):
+        raise ValueError("direct target authority differs from the closed identity registry")
+    if tsv_bytes(member_fields, actual_direct_members) != tsv_bytes(
+        member_fields, expected_direct_members
+    ):
+        raise ValueError("direct member authority differs from the closed identity registry")
     expected_direct = {
         row["evidence_identity"]
         for row in context.evidence_rows
@@ -2034,26 +2250,54 @@ def validate_target_member_authority(
         if len(gate_rows) != 1 or gate_rows[0]["terminal_disposition"] != "EXCLUDED_BLOCKS_CLAIM":
             raise ValueError(f"second gate lacks one legal terminal: {subject}")
 
-    refined = {
-        str(row["subject_identity"]): set(csv_ids(str(row["member_contract_ids"])))
+    expected_member_bindings = {
+        (str(row["subject_identity"]), str(row["target_id"])): set(
+            csv_ids(str(row["member_contract_ids"]))
+        )
         for row in target_rows
-        if row["target_id"] == FAMILY_ID
-        and row["terminal_disposition"] == "REFINED_IN_LOCK"
+        if row["member_contract_ids"] != "NONE"
     }
-    observed_members: dict[str, set[str]] = defaultdict(set)
-    seen_member_rows: set[tuple[str, str]] = set()
+    observed_members: dict[tuple[str, str], set[str]] = defaultdict(set)
+    seen_member_rows: set[tuple[str, str, str]] = set()
     for row in member_rows:
-        key = (str(row["subject_identity"]), str(row["member_contract_id"]))
+        key = (
+            str(row["subject_identity"]),
+            str(row["target_id"]),
+            str(row["member_contract_id"]),
+        )
         if key in seen_member_rows:
-            raise ValueError(f"duplicate exact evidence/member binding: {key}")
+            raise ValueError(f"duplicate exact evidence/target/member binding: {key}")
         seen_member_rows.add(key)
-        if row["target_id"] != FAMILY_ID or row["outcome_id"] != OUTCOME_BINDING:
+        if row["outcome_id"] != OUTCOME_BINDING:
             raise ValueError(f"member authority bypasses declarative outcome binding: {key}")
         if row["member_contract_id"] not in ALL_MEMBERS:
             raise ValueError(f"member authority uses unknown member: {key}")
-        observed_members[key[0]].add(key[1])
-    if dict(observed_members) != refined:
-        raise ValueError("refined evidence/member authority is not exact")
+        if row["target_id"] != FAMILY_ID and row["member_contract_id"] not in EXCLUDED_MEMBERS:
+            raise ValueError(f"non-dense target binds a non-excluded dense member: {key}")
+        expected_status = (
+            "EXCLUDED_MEMBER_EXACT_OUTCOME_BINDING_REQUIRED"
+            if row["member_contract_id"] in EXCLUDED_MEMBERS
+            else "MEMBER_EXACT_OUTCOME_BINDING_REQUIRED"
+        )
+        if row["unit_status"] != expected_status:
+            raise ValueError(f"member authority has the wrong unit status: {key}")
+        observed_members[(key[0], key[1])].add(key[2])
+    if dict(observed_members) != expected_member_bindings:
+        raise ValueError("evidence/member authority is not exact for all dense terminals")
+    evidence_bound_members = {
+        str(row["member_contract_id"])
+        for row in member_rows
+    }
+    expected_bound_members = ALL_MEMBERS - set(PROTOCOL_SYNTHETIC_MEMBERS)
+    if evidence_bound_members != expected_bound_members:
+        raise ValueError(
+            "evidence-bound/synthetic member partition differs: "
+            f"missing={sorted(expected_bound_members - evidence_bound_members)} "
+            f"extra={sorted(evidence_bound_members - expected_bound_members)}"
+        )
+    excluded_bound_members = evidence_bound_members & set(EXCLUDED_MEMBERS)
+    if excluded_bound_members != set(EXCLUDED_MEMBERS):
+        raise ValueError("all nine excluded members are not bound to real evidence")
 
 
 def validate_overlay_authority(
@@ -2106,10 +2350,21 @@ def validate_role_capability_authority(
     role_rows: Sequence[Mapping[str, object]],
     capability_rows: Sequence[Mapping[str, object]],
 ) -> None:
+    exact_role_rows = role_authority_rows(context)
+    exact_overlay_rows = overlay_authority_rows(context)
+    exact_capability_rows = capability_authority_rows(context, exact_overlay_rows)
+    role_fields = OUTPUT_FIELDS["DENSE-ROLE-UNIT-AUTHORITY.tsv"]
+    capability_fields = OUTPUT_FIELDS["DENSE-CAPABILITY-UNIT-AUTHORITY.tsv"]
+    if tsv_bytes(role_fields, role_rows) != tsv_bytes(role_fields, exact_role_rows):
+        raise ValueError("role authority differs from the exact frozen assignment")
+    if tsv_bytes(capability_fields, capability_rows) != tsv_bytes(
+        capability_fields, exact_capability_rows
+    ):
+        raise ValueError("capability authority differs from the exact audited assignment")
     expected_roles = {row["obligation_id"] for row in applicable_requirement_rows(context)}
     actual_roles = {str(row["obligation_id"]) for row in role_rows}
-    if actual_roles != expected_roles or len(expected_roles) != 24:
-        raise ValueError("role authority is not the exact 24-row applicable obligation set")
+    if actual_roles != expected_roles or len(expected_roles) != 25:
+        raise ValueError("role authority is not the exact 25-identity obligation set")
     grouped_roles: dict[str, list[Mapping[str, object]]] = defaultdict(list)
     for row in role_rows:
         grouped_roles[str(row["obligation_id"])].append(row)
@@ -2123,6 +2378,21 @@ def validate_role_capability_authority(
             row["binding_kind"] == "MEMBER" for row in rows_for_obligation
         ):
             raise ValueError(f"required role has no exact member: {obligation}")
+    rope_rows = [
+        row
+        for row in role_rows
+        if row["control_or_witness_id"] == "O-ROPE-UNIQUE"
+    ]
+    if (
+        len(rope_rows) != 1
+        or rope_rows[0]["binding_kind"]
+        != "NO_MEMBER_NOT_APPLICABLE_REOPENING_ONLY"
+        or rope_rows[0]["member_contract_id"] != "NONE"
+        or rope_rows[0]["outcome_id"] != "NONE"
+        or rope_rows[0]["owner_lock_disposition"]
+        != "NOT_APPLICABLE_REOPENING_ONLY"
+    ):
+        raise ValueError("O-ROPE-UNIQUE lacks its explicit no-member terminal")
 
     expected_capabilities = {row["capability_id"] for row in context.capability_rows}
     actual_capabilities = {str(row["capability_id"]) for row in capability_rows}
@@ -2135,17 +2405,115 @@ def validate_role_capability_authority(
             raise ValueError("capability member bypasses declarative outcome binding")
     for capability, rows_for_capability in grouped_capabilities.items():
         applicability = {str(row["applicability"]) for row in rows_for_capability}
-        if len(applicability) != 1:
-            raise ValueError(f"capability has inconsistent applicability: {capability}")
-        state = next(iter(applicability))
-        if state == "REQUIRED" and not any(
+        if not applicability <= {
+            "REQUIRED",
+            "EXCLUDED-BLOCKS-CLAIM",
+            "DEFERRED-BLOCKS-CLAIM",
+            "PROTECTED",
+            "NOT-IMPLICATED",
+        }:
+            raise ValueError(f"capability has invalid applicability: {capability}")
+        if "REQUIRED" in applicability and not any(
             row["binding_kind"] == "MEMBER" for row in rows_for_capability
         ):
             raise ValueError(f"required capability has no exact member: {capability}")
-        if state == "PROTECTED" and not any(
+        if "PROTECTED" in applicability and not any(
             row["binding_kind"] == "CONTROL" for row in rows_for_capability
         ):
             raise ValueError(f"protected capability has no control: {capability}")
+
+    groups = capability_groups()
+    audited_groups = audited_capability_groups()
+    for capability, expected_members in audited_groups.items():
+        if groups.get(capability) != expected_members:
+            raise ValueError(
+                f"closure-sensitive capability definition differs: {capability}"
+            )
+        rows_for_capability = grouped_capabilities[capability]
+        member_rows = [
+            row
+            for row in rows_for_capability
+            if row["binding_kind"] in {"MEMBER", "EXCLUDED_MEMBER"}
+        ]
+        actual_members = {
+            str(row["member_contract_id"])
+            for row in member_rows
+        }
+        if actual_members != expected_members or len(member_rows) != len(expected_members):
+            raise ValueError(
+                f"closure-sensitive capability omits, duplicates, or substitutes a member: {capability}"
+            )
+        for row in member_rows:
+            member = str(row["member_contract_id"])
+            expected_applicability = (
+                "EXCLUDED-BLOCKS-CLAIM" if member in EXCLUDED_MEMBERS else "REQUIRED"
+            )
+            expected_kind = (
+                "EXCLUDED_MEMBER" if member in EXCLUDED_MEMBERS else "MEMBER"
+            )
+            if (
+                row["applicability"] != expected_applicability
+                or row["binding_kind"] != expected_kind
+            ):
+                raise ValueError(
+                    f"closure-sensitive capability has a false closure disposition: {capability}/{member}"
+                )
+
+    flatset_role_members = {
+        str(row["member_contract_id"])
+        for row in role_rows
+        if row["workload_or_operation"] == "H-FLATSET"
+        and row["binding_kind"] == "MEMBER"
+    }
+    expected_flatset_members = set(ROLE_MEMBER_BINDINGS["H-FLATSET"])
+    if flatset_role_members != expected_flatset_members:
+        raise ValueError("H-FLATSET ordinary-library witness member binding differs")
+    seal_required_members = {
+        str(row["member_contract_id"])
+        for row in grouped_capabilities["AB-SEAL"]
+        if row["applicability"] == "REQUIRED"
+        and row["binding_kind"] == "MEMBER"
+    }
+    if not expected_flatset_members <= seal_required_members:
+        raise ValueError(
+            "AB-SEAL omits an ordinary-library H-FLATSET generativity unit"
+        )
+
+    stored_rows = grouped_capabilities["BR-STORED"]
+    required_stored = {
+        str(row["member_contract_id"])
+        for row in stored_rows
+        if row["applicability"] == "REQUIRED"
+        and row["binding_kind"] == "MEMBER"
+    }
+    expected_active_members = {
+        member
+        for members in ACTIVE_BR_STORED_BINDINGS.values()
+        for member in members
+        if member not in EXCLUDED_MEMBERS
+    }
+    if required_stored != expected_active_members:
+        raise ValueError("BR-STORED omits or substitutes an active member binding")
+    excluded_stored = {
+        str(row["member_contract_id"])
+        for row in stored_rows
+        if row["applicability"] == "EXCLUDED-BLOCKS-CLAIM"
+        and row["binding_kind"] == "EXCLUDED_MEMBER"
+    }
+    expected_excluded_stored = {
+        member
+        for members in ACTIVE_BR_STORED_BINDINGS.values()
+        for member in members
+        if member in EXCLUDED_MEMBERS
+    }
+    if excluded_stored != expected_excluded_stored:
+        raise ValueError("BR-STORED omits its exact excluded active-branch terminals")
+    if any(
+        row["binding_kind"] == "DEFERRED_OVERLAY"
+        and row["applicability"] != "DEFERRED-BLOCKS-CLAIM"
+        for row in stored_rows
+    ):
+        raise ValueError("BR-STORED stronger overlay complement is not explicitly deferred")
 
 
 def validate_authorities(
@@ -2154,9 +2522,40 @@ def validate_authorities(
 ) -> None:
     if set(outputs) != set(OUTPUT_FIELDS):
         raise ValueError("authority output file set is not exact")
-    if context.snapshot.file("G0-CORE-ARTIFACT-MANIFEST.json").sha256 != G0_MANIFEST_SHA256:
+    fresh_context = load_context(
+        FrozenG0Snapshot(
+            repo=context.snapshot.repo,
+            commit=G0_CLOSING_COMMIT,
+            capability_prefix=context.snapshot.capability_prefix,
+        )
+    )
+    validate_payload_partition(fresh_context)
+    expected = derive_authorities(fresh_context)
+    for name, fields in OUTPUT_FIELDS.items():
+        if tsv_bytes(fields, outputs[name]) != tsv_bytes(fields, expected[name]):
+            raise ValueError(f"authority table differs from independent derivation: {name}")
+    if fresh_context.snapshot.file("G0-CORE-ARTIFACT-MANIFEST.json").sha256 != G0_MANIFEST_SHA256:
         raise ValueError("frozen G0 manifest digest differs from the reviewed close")
-    inputs = outputs["DENSE-FROZEN-G0-INPUT-AUTHORITY.tsv"]
+    local_inputs = expected["DENSE-LOCAL-DECLARATIVE-INPUT-AUTHORITY.tsv"]
+    expected_local = (
+        (
+            str(CLOSED_LITERAL_LOADER_PATH.relative_to(REPO)),
+            CLOSED_LITERAL_LOADER_SHA256,
+            "LOCAL_REVIEWED_EXECUTABLE_SHA256_LOCKED",
+        ),
+        (
+            str(CLOSED_REGISTRY_PATH.relative_to(REPO)),
+            CLOSED_REGISTRY_SHA256,
+            "LOCAL_REVIEWED_LITERAL_DATA_SHA256_LOCKED",
+        ),
+    )
+    observed_local = tuple(
+        (str(row["source_path"]), str(row["sha256"]), str(row["access_method"]))
+        for row in local_inputs
+    )
+    if observed_local != expected_local:
+        raise ValueError("local semantic input authority is not the exact two-file lock")
+    inputs = expected["DENSE-FROZEN-G0-INPUT-AUTHORITY.tsv"]
     if len(inputs) != len(G0_INPUTS) or any(
         row["git_commit"] != G0_CLOSING_COMMIT
         or row["access_method"] != "GIT_SHOW_COMMIT_PATH_ONLY"
@@ -2164,19 +2563,19 @@ def validate_authorities(
     ):
         raise ValueError("G0 inputs are not immutable git-show authorities")
     validate_selector_authority(
-        context, outputs["DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv"]
+        fresh_context, outputs["DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv"]
     )
     validate_target_member_authority(
-        context,
-        outputs["DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv"],
+        fresh_context,
+        expected["DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv"],
         outputs["DENSE-EVIDENCE-TARGET-AUTHORITY.tsv"],
         outputs["DENSE-EVIDENCE-MEMBER-AUTHORITY.tsv"],
     )
     validate_overlay_authority(
-        context, outputs["DENSE-OVERLAY-BRANCH-AUTHORITY.tsv"]
+        fresh_context, outputs["DENSE-OVERLAY-BRANCH-AUTHORITY.tsv"]
     )
     validate_role_capability_authority(
-        context,
+        fresh_context,
         outputs["DENSE-ROLE-UNIT-AUTHORITY.tsv"],
         outputs["DENSE-CAPABILITY-UNIT-AUTHORITY.tsv"],
     )
@@ -2223,8 +2622,8 @@ def resolve_evidence_outcomes(
 ) -> list[dict[str, object]]:
     """Resolve evidence/member placeholders against the exact contract registry.
 
-    The relational join is ``(target_id='F-DENSE', cluster_id,
-    member_contract_id)`` plus exact membership of ``subject_identity`` in the
+    The relational join is ``(cluster_id, member_contract_id)`` plus exact
+    membership of ``subject_identity`` in the
     contract row's ``evidence_identity_ids``.  The returned unit key is
     ``(subject_kind, subject_identity, target_id, member_contract_id,
     policy_variant_id, outcome_id)``.  Zero matches, unknown members, duplicate
@@ -2278,23 +2677,24 @@ def resolve_evidence_outcomes(
         registry_by_join[(cluster_id, member)].append(row)
 
     result: list[dict[str, object]] = []
-    seen_authority_units: set[tuple[str, str, str, str]] = set()
+    seen_authority_units: set[tuple[str, str, str, str, str]] = set()
     seen_resolved_units: set[tuple[str, str, str, str, str, str]] = set()
     authority_relations: set[tuple[str, str, str]] = set()
     for source in authority_rows:
-        if source.get("target_id") != FAMILY_ID:
-            raise ValueError("evidence/member authority target is not F-DENSE")
         if source.get("outcome_id") != OUTCOME_BINDING:
             raise ValueError("evidence/member authority is not fail-closed")
         subject_kind = str(source.get("subject_kind", ""))
         subject = str(source.get("subject_identity", ""))
         cluster_id = str(source.get("cluster_id", ""))
         member = str(source.get("member_contract_id", ""))
-        authority_unit = (subject_kind, subject, cluster_id, member)
+        target = str(source.get("target_id", ""))
+        authority_unit = (subject_kind, subject, cluster_id, target, member)
         if (
             not subject_kind
             or not subject
             or member not in ALL_MEMBERS
+            or not target
+            or (target != FAMILY_ID and member not in EXCLUDED_MEMBERS)
             or authority_unit in seen_authority_units
         ):
             raise ValueError(f"invalid or duplicate evidence/member authority: {authority_unit}")
@@ -2323,7 +2723,7 @@ def resolve_evidence_outcomes(
             resolved_key = (
                 subject_kind,
                 subject,
-                FAMILY_ID,
+                target,
                 member,
                 policy,
                 outcome,
@@ -2409,6 +2809,7 @@ def main() -> None:
     context, outputs = build_authorities()
     write_or_check(outputs, arguments.check)
     counts = {
+        "local_inputs": len(outputs["DENSE-LOCAL-DECLARATIVE-INPUT-AUTHORITY.tsv"]),
         "frozen_inputs": len(outputs["DENSE-FROZEN-G0-INPUT-AUTHORITY.tsv"]),
         "selector_children": len(outputs["DENSE-SELECTOR-EXPANSION-AUTHORITY.tsv"]),
         "target_terminals": len(outputs["DENSE-EVIDENCE-TARGET-AUTHORITY.tsv"]),

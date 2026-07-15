@@ -1448,3 +1448,20 @@ in `dense-family-lock-a/DENSE-COVERAGE-HOSTILE-REVIEW-ROUND-2-FAIL.md` and the
 preceding Git snapshot. A fresh exact-hash review is required after repair.
 Candidate construction and every production-relevant action remain
 unauthorized.
+
+## D13-R3 closes the exact dense coverage authority (2026-07-14)
+
+The repaired dense Family Lock A coverage authority passes exact-byte hostile
+review. An independent G0-only oracle reproduced all 65 audit clusters, 426
+selector children, 1,400 target terminals, and 780 evidence/member bindings;
+all 456 direct identities anchor exactly once; and all 22 mutation attacks are
+rejected. Five cross-topology raw identities retain their real gate-local
+excluded outcomes without inheriting F-DENSE applicability. The reviewed
+sources, generated authorities, immutable G0 inputs, hashes, adjudication, and
+strict authorization boundary are recorded in
+`dense-family-lock-a/DENSE-COVERAGE-HOSTILE-REVIEW-ROUND-3-PASS.md` at SHA-256
+`d8ee4c161e84a3996c0167b54576893074a16775b30994ab8236e79fa63d4798`.
+This step closes coverage and provenance only. Candidate construction,
+selection, execution, scoring, language or specification decisions, compiler
+or production implementation, E0.1 restart, xlc migration, and default
+teaching remain unauthorized.
