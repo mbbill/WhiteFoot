@@ -28,22 +28,22 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "Candidate C bounded validation is active",
+        "Candidate C bounded validation has stopped at Gate 1",
         "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-        "Stage 1's five-operation Hashbrown paper calibration",
-        "mandatory stop at Gate 1",
-        "No Stage 2",
+        "Stage 1 are complete",
+        "`C-REVISE`",
+        "The authorization is exhausted; no Stage 2",
         "exact D-2/P-1 fail-",
     )
     require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "CANDIDATE C\n   BOUNDED VALIDATION ACTIVE",
+            "CANDIDATE C\n   GATE 1 STOPPED: C-REVISE",
             "There is no evidence-\n   backed winner.",
             "C as the first bounded validation",
             "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-            "mandatory stop at Gate 1",
+            "mandatory Gate 1 stop with `C-REVISE`",
             "No Stage 2",
         ),
     )
@@ -54,7 +54,7 @@ def main() -> int:
             "There is no evidence-backed production winner.",
             "C as the first bounded validation hypothesis",
             "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-            "stop at Gate 1",
+            "stopped at Gate 1 with `C-REVISE`",
         ),
     )
     plan_text = (ROOT / "THE-PLAN.md").read_text(encoding="utf-8")
@@ -79,7 +79,18 @@ def main() -> int:
             "`UNKNOWN` is unresolved, never a pass",
         ),
     )
-    print("performance research status: Candidate C bounded validation, Stages 0/1 only")
+    require(
+        ROOT
+        / "optimizer-language-research"
+        / "implementation"
+        / "minimal-systems-capability"
+        / "CANDIDATE-C-HASHBROWN-AUDIT.md",
+        (
+            "Gate 1 disposition: `C-REVISE`.",
+            "Stage 2 is not authorized.",
+        ),
+    )
+    print("performance research status: Candidate C Gate 1 stopped, C-REVISE")
     return 0
 
 

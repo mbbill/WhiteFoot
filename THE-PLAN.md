@@ -82,7 +82,7 @@ Measured non-wins (equally load-bearing):
 ## 4. Active build track and ranked bets
 
 1. **Performance-first minimal systems-capability research** — CANDIDATE C
-   BOUNDED VALIDATION ACTIVE (owner-authorized 2026-07-15). The
+   GATE 1 STOPPED: C-REVISE (owner-authorized stages completed 2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
@@ -96,9 +96,13 @@ Measured non-wins (equally load-bearing):
    backed winner. The owner has selected C as the first bounded validation
    hypothesis, B as the later compression challenge over evidenced families,
    and A as the generality fallback. These are research roles, not a production
-   ranking. The current authorization is limited to the durable plan, Stage 0's
-   frozen C v0 baseline, and Stage 1's five-operation Hashbrown paper
-   calibration, followed by a mandatory stop at Gate 1.
+   ranking. Stage 0 froze C v0, and Stage 1's five-operation Hashbrown paper
+   calibration reached the mandatory Gate 1 stop with `C-REVISE`. The slice
+   needs exact reusable sparse control-to-payload, transition/cleanup,
+   provenance, and fact rules plus exact C0 group-operation and growth-
+   allocation rows. It found no need for Hashbrown-name recognition, no new
+   admitted family, and no unavoidable structural tax, but provides no safety,
+   code-shape, or measured-performance closure.
 
    The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
    language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
@@ -121,7 +125,8 @@ Measured non-wins (equally load-bearing):
    The controlling research charter is
    `optimizer-language-research/implementation/minimal-systems-capability/
    PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the controlling bounded
-   execution plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`. No Stage 2,
+   execution plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`; its current
+   authorization is exhausted at Gate 1. No Stage 2,
    allocator, SQLite, Crossbeam, Tokio, Wasmtime, safety model, structural
    prototype, machine-event model, performance measurement, AI trial, language
    or specification change, compiler or verifier implementation, capability
