@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the final active status for performance-first capability research."""
+"""Verify the active bounded Candidate C validation status."""
 
 from __future__ import annotations
 
@@ -28,30 +28,33 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "complete for owner review",
-        "there is no evidence-backed winner",
-        "VR-0",
-        "No repair, model, prototype",
-        "exact D-2/P-1 fail-closed",
+        "Candidate C bounded validation is active",
+        "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+        "Stage 1's five-operation Hashbrown paper calibration",
+        "mandatory stop at Gate 1",
+        "No Stage 2",
+        "exact D-2/P-1 fail-",
     )
     require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "OWNER REVIEW",
+            "CANDIDATE C\n   BOUNDED VALIDATION ACTIVE",
             "There is no evidence-\n   backed winner.",
-            "not a complete selectable set",
-            "PERFORMANCE-FIRST-OWNER-DECISION-PACKET.md",
-            "VR-0 exact paper repair",
+            "C as the first bounded validation",
+            "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+            "mandatory stop at Gate 1",
+            "No Stage 2",
         ),
     )
     require(
         ROOT / "HANDOVER.md",
         (
             "The performance-first owner packet is complete",
-            "There is no evidence-backed winner.",
-            "B is not selectable",
-            "VR-0 paper repair only",
+            "There is no evidence-backed production winner.",
+            "C as the first bounded validation hypothesis",
+            "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+            "stop at Gate 1",
         ),
     )
     plan_text = (ROOT / "THE-PLAN.md").read_text(encoding="utf-8")
@@ -61,7 +64,22 @@ def main() -> int:
             fail(f"THE-PLAN.md retains stale status {stale!r}")
     if "Performance-first minimal-capability research is the active design track" in agents_text:
         fail("agent instructions retain stale active-design-track status")
-    print("performance research status: owner review pending, no winner, VR-0 only recommended")
+    require(
+        ROOT
+        / "optimizer-language-research"
+        / "implementation"
+        / "minimal-systems-capability"
+        / "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+        (
+            "controlling research contract",
+            "Work must stop at Gate 1",
+            "Stage 0 — freeze Candidate C v0 and the rubric",
+            "Stage 1 — bounded Hashbrown calibration",
+            "Later stages — not authorized",
+            "`UNKNOWN` is unresolved, never a pass",
+        ),
+    )
+    print("performance research status: Candidate C bounded validation, Stages 0/1 only")
     return 0
 
 

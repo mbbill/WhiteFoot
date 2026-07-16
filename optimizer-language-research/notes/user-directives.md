@@ -425,3 +425,22 @@ The existing research-only authorization and all production prohibitions remain
 unchanged. Exact D-2 and P-1 stay fail-closed; category routing and paper cost
 arguments do not close exact derivability, formal safety, or measured
 performance.
+
+### D14 Candidate C bounded-validation ruling (2026-07-15)
+
+The owner accepts Candidate C as the first bounded validation hypothesis.
+Candidate B is retained as a later compression challenge over evidenced
+families, and Candidate A as the generality fallback if a finite family set
+cannot express a required efficient mechanism. These research roles select no
+production design.
+
+The controlling operational contract is
+`optimizer-language-research/implementation/minimal-systems-capability/
+CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`. The current authorization covers only
+making that plan durable, Stage 0's frozen Candidate C v0 audit baseline, and
+Stage 1's five-operation Hashbrown paper calibration. Work must stop at Gate 1.
+Every allocator, SQLite, Crossbeam, Tokio, Wasmtime, safety-model, prototype,
+machine-event, benchmark, AI, language, specification, checker, compiler,
+runtime, standard-library, and production step requires separate owner
+authorization. Time-bounded uncertainty remains `UNKNOWN`; it does not permit
+scope expansion or a pass claim.

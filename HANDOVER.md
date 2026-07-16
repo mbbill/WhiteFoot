@@ -35,14 +35,17 @@ derivations, implementation shapes, safety and cleanup rules, residual problems,
 falsifiers, a 17-dimension pros/cons comparison, hostile review, and six separate
 validation requests.
 
-There is no evidence-backed winner. Candidate A is the generality control,
-Candidate B is the first repair-and-validation hypothesis, and Candidate C is
-the specialization control. B is not selectable: public Sparse admission,
-backing-root provenance across owner-token relocation, and recursive/traversal
-exact cleanup remain blocking. The packet recommends owner authorization of
-VR-0 paper repair only. No repair, model, prototype, candidate, experiment,
-machine-event work, performance or AI trial, language/specification/compiler/
-runtime change, standard library, or production work is authorized.
+There is no evidence-backed production winner. The owner has selected Candidate
+C as the first bounded validation hypothesis, B as the later compression
+challenge over evidenced families, and A as the generality fallback. The
+controlling execution contract is
+`optimizer-language-research/implementation/minimal-systems-capability/
+CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`. Only plan durability, Stage 0, and
+Stage 1's five-operation Hashbrown paper calibration are authorized. Work must
+stop at Gate 1. No Stage 2, allocator, SQLite, Crossbeam, Tokio, Wasmtime,
+safety model, prototype, candidate execution, experiment, machine-event work,
+performance or AI trial, language/specification/compiler/runtime change,
+standard library, or production work is authorized.
 
 ## 0.1 Earlier scope correction retained as historical context
 

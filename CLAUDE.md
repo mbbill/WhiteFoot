@@ -70,19 +70,19 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Performance-first minimal-capability research is complete for owner review.
-  The packet compares proof-indexed A, bounded-kernel B, and family-specialized
-  C across 15 demand families and 17 dimensions; no candidate is selectable and
-  there is no evidence-backed winner. Retain A as the generality control, B as
-  the first repair-and-validation hypothesis, and C as the specialization
-  control. B's public Sparse admission, cross-root provenance, and exact cleanup
-  rules remain blocking; the packet recommends owner authorization of VR-0
-  paper repair only. Keep the 340 unresolved dense obligations across 150
-  contexts and exact D-2/P-1 fail-closed. No repair, model, prototype, machine-
-  event work, performance or AI trial, language/specification/compiler/verifier/
-  runtime implementation, capability entry, standard library, container,
-  candidate execution, benchmark, E0.1 restart, migration, or default teaching
-  is authorized.
+- Candidate C bounded validation is active under
+  `optimizer-language-research/implementation/minimal-systems-capability/
+  CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`. The owner selected C as the first
+  bounded validation hypothesis, B as the later compression challenge, and A
+  as the generality fallback; this is not a production ranking. Only plan
+  durability, Stage 0, and Stage 1's five-operation Hashbrown paper calibration
+  are authorized, followed by a mandatory stop at Gate 1. Keep the 340
+  unresolved dense obligations across 150 contexts and exact D-2/P-1 fail-
+  closed. No Stage 2, allocator, SQLite, Crossbeam, Tokio, Wasmtime, safety
+  model, prototype, machine-event work, performance or AI trial, language/
+  specification/compiler/verifier/runtime implementation, capability entry,
+  standard library, container, candidate execution, benchmark, E0.1 restart,
+  migration, or default teaching is authorized.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

@@ -81,8 +81,8 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Performance-first minimal systems-capability research** — OWNER REVIEW
-   PENDING (packet complete 2026-07-15). The
+1. **Performance-first minimal systems-capability research** — CANDIDATE C
+   BOUNDED VALIDATION ACTIVE (owner-authorized 2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
@@ -93,13 +93,12 @@ Measured non-wins (equally load-bearing):
    three materially different capability hypotheses, 17 uniform comparison
    dimensions, 42 protected/witness/held-out paper routes, 22 hostile attacks,
    and six separately authorizable validation requests. There is no evidence-
-   backed winner. A is retained as the generality control, B as the first
-   repair-and-validation hypothesis, and C as the specialization control. B is
-   not a complete selectable set: its public Sparse admission, backing-root
-   provenance across owner-token relocation, and recursive/traversal exact
-   cleanup rules remain blocking definition gaps. It stays distinct only if
-   those gaps close without A-style general proof authority or C-style family-
-   specific operations.
+   backed winner. The owner has selected C as the first bounded validation
+   hypothesis, B as the later compression challenge over evidenced families,
+   and A as the generality fallback. These are research roles, not a production
+   ranking. The current authorization is limited to the durable plan, Stage 0's
+   frozen C v0 baseline, and Stage 1's five-operation Hashbrown paper
+   calibration, followed by a mandatory stop at Gate 1.
 
    The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
    language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
@@ -119,17 +118,17 @@ Measured non-wins (equally load-bearing):
    credit, paper routes receive no measured-performance credit, and structural
    analysis is not a formal safety proof.
 
-   The controlling research contract is
+   The controlling research charter is
    `optimizer-language-research/implementation/minimal-systems-capability/
-   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the owner decision surface
-   is `PERFORMANCE-FIRST-OWNER-DECISION-PACKET.md`. The packet recommends only
-   VR-0 exact paper repair for owner authorization. No repair, safety model,
-   structural prototype, machine-event model, performance measurement, AI trial,
-   language or specification change, compiler or verifier implementation,
-   capability entry, standard library, container, candidate implementation or
-   execution, benchmark, E0.1 restart, xlc migration, production fact channel,
-   or default teaching is authorized. The separate xlc self-hosting build track
-   must not be mixed into this research.
+   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the controlling bounded
+   execution plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`. No Stage 2,
+   allocator, SQLite, Crossbeam, Tokio, Wasmtime, safety model, structural
+   prototype, machine-event model, performance measurement, AI trial, language
+   or specification change, compiler or verifier implementation, capability
+   entry, standard library, container, candidate implementation or execution,
+   benchmark, E0.1 restart, xlc migration, production fact channel, or default
+   teaching is authorized. The separate xlc self-hosting build track must not be
+   mixed into this research.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
