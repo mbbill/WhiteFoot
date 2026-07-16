@@ -485,3 +485,37 @@ It does not authorize another project or operation, a formal safety model,
 prototype, candidate construction or execution, generated-code inspection,
 benchmarking, measurement, AI trials, language/specification/checker/compiler/
 runtime changes, standard-library or container work, or a production choice.
+
+### D14 B-Strata decisive ruling (2026-07-15)
+
+After the `B-REVISE` gate, the owner selected B-Strata as the sole architecture
+to pursue. Do not pivot to Candidate C and do not develop B-Graphs as a
+competing design. The required outcome is forced: make B-Strata coherent and
+show that it works under the standing performance and safety constraints, or
+return a concrete explanation of the irreducible reason it cannot work. An
+open-ended recommendation to continue research is not a final result. The
+owner prioritizes reaching a landable answer soon over expanding the candidate
+or project search.
+
+The controlling plan is `optimizer-language-research/implementation/minimal-
+systems-capability/CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. It retains the exact
+four projects and fourteen complete operations, treats the existing eight
+strata as analytical jobs rather than preselected primitives, and requires one
+normalized minimal core, exact full-route derivations, hostile safety and
+erasure analysis, implementable deterministic checking and lowering, and
+bounded cross-project structural and performance evidence. The final verdict
+is exactly `STRATA-YES` or `STRATA-NO`.
+
+This ruling authorizes the plan, semantic normalization, exact-route work, a
+general operational safety model and preservation/resource/race/release
+arguments supported—but not replaced—by bounded executable counterexample
+search, hostile review, and—only after the paper and model gates pass—the
+smallest preregistered prototypes, generated-code inspection, and measurements
+needed to decide the B-Strata claims. It
+does not authorize another candidate, another project or operation, arbitrary
+writer predicates or proofs, project/container/reclamation-policy language
+forms, hidden runtime state, weakened checks, or production specification,
+checker, compiler, runtime, standard-library, container, xlc, migration,
+default-teaching, or shipping changes. A final `STRATA-YES` returns an exact
+production landing proposal for owner review; it does not silently ship the
+design.

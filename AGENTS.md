@@ -70,24 +70,25 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Candidate B's bounded cross-project design research stopped at the mandatory
-  Design Gate with `B-REVISE`. Across exactly 42 routes over Hashbrown,
-  mimalloc, SQLite, and Crossbeam Epoch, the original `B-FORMS` has 14 open
-  rows; `B-STRATA` has six closed and eight open rows; and `B-GRAPHS` has six
-  closed and eight open rows. `B-STRATA` is the best-defined revision hypothesis
-  only: eight project-independent layers compress physical places, liveness,
-  owner traffic, progress/repair, provenance, finite disposition, facts, and
-  concurrent custody, but final allocator-page disposition, policy-neutral
-  quiescence, heterogeneous erased one-shot actions, and exact SQLite pager/
-  VFS/WAL/reinitializer rows remain open.
-  Candidate C v0 is unchanged, there is no production winner, and the bounded
-  authorization is exhausted. Keep the 340 unresolved dense obligations across
-  150 contexts and exact D-2/P-1 fail-closed. No further project or operation,
-  formal safety model, prototype, candidate execution, generated-code
-  inspection, benchmark, measurement, AI trial, language/specification/
-  compiler/verifier/runtime implementation, capability entry, standard
-  library, container, production selection, E0.1 restart, migration, or
-  default teaching is authorized.
+- B-Strata is the sole active minimal systems-capability architecture under
+  `optimizer-language-research/implementation/minimal-systems-capability/
+  CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. The outcome must be `STRATA-YES` with a
+  normalized closed core, complete derivations for the same fourteen frozen
+  Hashbrown, mimalloc, SQLite, and Crossbeam operations, hostile safety and
+  erasure review, implementable checking/lowering, and bounded structural and
+  performance evidence; or `STRATA-NO` with an irreducible reason. Do not pivot
+  to Candidate C or develop B-Graphs as a competing design.
+  Phase 1 treats the existing eight strata as analytical jobs rather than
+  preselected language primitives and front-loads nonforgeable liveness,
+  policy-neutral quiescence, erased one-shot disposition, and exact external-
+  repair boundaries. A paper YES is required before safety modeling, and a
+  model YES before the smallest preregistered prototypes,
+  generated-code inspection, or measurement. Keep the four-project/fourteen-
+  operation corpus fixed, the 340 unresolved dense obligations across 150
+  contexts visible, and exact D-2/P-1 fail-closed. No production language,
+  specification, checker, compiler, verifier, runtime, standard-library,
+  container, xlc, migration, fact-channel, teaching, or shipping change is
+  authorized before the final verdict and separate landing review.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

@@ -81,22 +81,33 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Performance-first minimal systems-capability research** — CANDIDATE B
-   DESIGN GATE COMPLETE: `B-REVISE` (2026-07-15). The
+1. **Performance-first minimal systems-capability research** — B-STRATA
+   DECISIVE TRACK ACTIVE (2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
    representations and code shapes, not from a privilege gate, registry,
    intrinsic form, keyword, or prior candidate basis.
 
+   After the completed `B-REVISE` gate, the owner selected `B-STRATA` as the
+   sole capability architecture to pursue. The outcome is forced:
+   `STRATA-YES` with a normalized closed core, hostile safety and erasure
+   review, implementable deterministic checking/lowering, and bounded
+   structural/performance evidence; or `STRATA-NO` with the irreducible safety,
+   performance, interaction-growth, or implementation reason it cannot work.
+   Candidate C is not a fallback, and B-Graphs receives no competing design
+   track. The controlling plan is `optimizer-language-research/implementation/
+   minimal-systems-capability/CANDIDATE-B-STRATA-DECISIVE-PLAN.md`.
+
    The completed packet freezes 15 conjunctive performance-demand families,
    three materially different capability hypotheses, 17 uniform comparison
    dimensions, 42 protected/witness/held-out paper routes, 22 hostile attacks,
-   and six separately authorizable validation requests. There is no evidence-
-   backed winner. The owner has selected C as the first bounded validation
-   hypothesis, B as the later compression challenge over evidenced families,
-   and A as the generality fallback. These are research roles, not a production
-   ranking. Stage 0 froze C v0, and Stage 1's five-operation Hashbrown paper
+   and six separately authorizable validation requests. That comparison found
+   no evidence-backed winner. The earlier research order selected C as the
+   first bounded validation hypothesis, B as the later compression challenge,
+   and A as a generality control; the new B-Strata-only ruling supersedes that
+   active ordering without changing its historical evidence. Stage 0 froze C
+   v0, and Stage 1's five-operation Hashbrown paper
    calibration reached the mandatory Gate 1 stop with `C-REVISE`. The slice
    needs exact reusable sparse control-to-payload, transition/cleanup,
    provenance, and fact rules plus exact C0 group-operation and growth-
@@ -155,22 +166,32 @@ Measured non-wins (equally load-bearing):
    credit, paper routes receive no measured-performance credit, and structural
    analysis is not a formal safety proof.
 
-   The controlling research charter is
+   The controlling active contract is `optimizer-language-research/
+   implementation/minimal-systems-capability/
+   CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. Phase 1 first normalizes the eight
+   analytical strata into the smallest exact semantic core and front-loads
+   liveness authority, policy-neutral quiescence, erased one-shot disposition,
+   and exact external-repair boundaries. Exact full-route closure for the same
+   fourteen operations precedes hostile safety and
+   erasure modeling; only a paper YES and model YES authorize the smallest
+   preregistered cross-project prototypes, generated-code inspection, and
+   measurement needed for the final verdict. No additional candidate, project,
+   or operation is authorized. Production language, specification, checker,
+   compiler, verifier, runtime, standard-library, container, xlc, migration,
+   fact-channel, selection, teaching, or shipping changes remain separately
+   gated after a final `STRATA-YES`. Exact D-2/P-1 remain fail-closed, and the
+   separate xlc self-hosting build track must not be mixed into this research.
+
+   The completed research charter is
    `optimizer-language-research/implementation/minimal-systems-capability/
-   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the controlling bounded
-   validation plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`; its authorization
-   is exhausted at Gate 1. The completed paper-repair contract is
+   PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the completed bounded
+   Candidate C validation plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`,
+   exhausted at Gate 1. The completed paper-repair contract is
    `CANDIDATE-C-SPARSE-REPAIR-PLAN.md`; its authorization is exhausted at the
    Sparse Repair Gate. The completed bounded contract is
    `CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`; its authorization is exhausted at the
-   `B-REVISE` Design Gate. No Stage 2, additional project or operation, safety
-   model, structural prototype, candidate
-   implementation or execution, generated-code inspection, machine-event
-   model, performance measurement, AI trial, language or specification change,
-   compiler or verifier implementation, capability entry, standard library,
-   container, benchmark, E0.1 restart, xlc migration, production fact channel,
-   production selection, or default teaching is authorized. The separate xlc
-   self-hosting build track must not be mixed into this research.
+   `B-REVISE` Design Gate. Their old authorization boundaries remain historical
+   facts rather than constraints on the new decisive plan.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver

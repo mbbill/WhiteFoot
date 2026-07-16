@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the completed bounded Candidate B cross-project design status."""
+"""Verify the active B-Strata decisive-research status."""
 
 from __future__ import annotations
 
@@ -28,32 +28,44 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "Candidate B's bounded cross-project design research stopped",
-        "Design Gate with `B-REVISE`",
-        "`B-FORMS` has 14 open",
-        "`B-STRATA` has six closed and eight open",
-        "`B-GRAPHS` has six\n  closed and eight open",
-        "policy-neutral\n  quiescence",
-        "authorization is exhausted",
+        "B-Strata is the sole active minimal systems-capability architecture",
+        "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
+        "outcome must be `STRATA-YES`",
+        "or `STRATA-NO` with an irreducible reason",
+        "Do not pivot\n  to Candidate C",
+        "A paper YES is required before safety modeling",
+        "model YES before the smallest preregistered prototypes",
+        "No production language",
         "D-2/P-1 fail-closed.",
     )
     require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "CANDIDATE B\n   DESIGN GATE COMPLETE: `B-REVISE`",
-            "There is no evidence-\n   backed winner.",
+            "B-STRATA\n   DECISIVE TRACK ACTIVE",
+            "`STRATA-YES` with a normalized closed core",
+            "or `STRATA-NO` with the irreducible safety",
+            "Candidate C is not a fallback",
             "complete across fourteen\n   operations and four pinned source revisions",
             "`B-STRATA` six closed and eight open rows",
             "`B-GRAPHS` six closed and\n   eight open rows",
             "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
+            "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
+            "Phase 1 first normalizes the eight",
+            "only a paper YES and model YES authorize",
             "Sparse Repair Gate selects `SR-PROFILE`",
-            "authorization is exhausted at the\n   `B-REVISE` Design Gate",
+            "Exact D-2/P-1 remain fail-closed",
         ),
     )
     require(
         ROOT / "HANDOVER.md",
         (
+            "Current B-Strata-only decision",
+            "B-Strata as the sole capability architecture",
+            "work must end in `STRATA-YES`",
+            "Another open-ended revision recommendation is not an allowed final result",
+            "Paper closure precedes a hostile",
+            "final `STRATA-YES` returns an exact landing proposal",
             "The performance-first owner packet is complete",
             "There is no evidence-backed production winner.",
             "Candidate B's bounded cross-project comparison is now complete.",
@@ -74,11 +86,62 @@ def main() -> int:
         fail("agent instructions retain stale active-design-track status")
     for stale in (
         "Candidate B's bounded cross-project design research is active",
+        "Candidate B's bounded cross-project design research stopped",
         "CANDIDATE B\n   CROSS-PROJECT DESIGN ACTIVE",
         "The active work has now moved to Candidate B.",
     ):
         if stale in agents_text or stale in plan_text or stale in handover_text:
             fail(f"status documents retain stale Candidate B status {stale!r}")
+    if "## 0. Current correction — read this first" in handover_text:
+        fail("HANDOVER.md retains a superseded second read-this-first section")
+    require(
+        ROOT
+        / "optimizer-language-research"
+        / "implementation"
+        / "minimal-systems-capability"
+        / "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
+        (
+            "controlling plan for the owner-selected B-Strata-only research track",
+            "`STRATA-YES`",
+            "`STRATA-NO`",
+            "The existing eight strata are analytical jobs",
+            "Every rule must preserve one common resource-conservation invariant",
+            "`K1 ROOTED-PLACE`",
+            "`K2 SEALED-STATE`",
+            "`K3 LINEAR-STEP`",
+            "authority-origin ledger with no cycles",
+            "No leaf may directly mint `Quiescent`, `Stable`, `RepairComplete`",
+            "Front-load four verdict-forcing definitions",
+            "one semantic-repair budget",
+            "The route matrix has exactly fourteen rows",
+            "stable `outcome_id` rows",
+            "general operational semantics",
+            "Bounded execution and negative corpora\nsupport the general proofs but never substitute for them",
+            "decisive cross-project vertical evidence",
+            "The operation-to-entrypoint map is exact",
+            "its own quantitative non-inferiority test passes",
+            "The goal may not\nstop at unexplained evidence insufficiency.",
+            "CANDIDATE-B-STRATA-PRODUCTION-LANDING-PROPOSAL.md",
+            "Do not use a broad brainstorming or mind-expansion workflow.",
+            "The work is complete only at `STRATA-YES` or `STRATA-NO`.",
+        ),
+    )
+    require(
+        ROOT / "optimizer-language-research" / "notes" / "user-directives.md",
+        (
+            "D14 B-Strata decisive ruling",
+            "selected B-Strata as the sole architecture",
+            "is exactly `STRATA-YES` or `STRATA-NO`",
+        ),
+    )
+    require(
+        ROOT / "mcts_mem" / "xlang.md",
+        (
+            "B-Strata is now the sole capability architecture under development",
+            "forced `STRATA-YES` or `STRATA-NO` verdict",
+            "Candidate C is not a fallback",
+        ),
+    )
     require(
         ROOT
         / "optimizer-language-research"
@@ -144,7 +207,7 @@ def main() -> int:
             "Stage 2 is not authorized.",
         ),
     )
-    print("performance research status: Candidate B Design Gate complete at B-REVISE")
+    print("performance research status: B-Strata decisive track active at Phase 1")
     return 0
 
 

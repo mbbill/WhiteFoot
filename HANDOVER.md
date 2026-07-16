@@ -1,13 +1,38 @@
 # xlang Research Handover
 
-Status: historical handover corrected by the owner on 2026-07-15. The
-mechanism-first sequencing below is superseded by
+Status: active handover updated by the owner on 2026-07-15. Historical sections
+remain useful evidence, but the controlling current contract is
 `optimizer-language-research/implementation/minimal-systems-capability/
-PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`. The evidence inventories,
-cost fields, fail-closed ledgers, and non-production boundary remain useful.
-This document does not select a language design or authorize an implementation.
+CANDIDATE-B-STRATA-DECISIVE-PLAN.md`.
 
-## 0. Current correction — read this first
+## Current B-Strata-only decision — read this first
+
+The owner selected B-Strata as the sole capability architecture to pursue after
+the completed `B-REVISE` comparison. Do not pivot to Candidate C and do not
+develop B-Graphs as a competing design. The work must end in `STRATA-YES`, with
+one normalized core, complete derivations for all fourteen frozen operations,
+hostile safety and erasure review, implementable deterministic checking and
+lowering, and bounded cross-project structural/performance evidence; or
+`STRATA-NO`, with the irreducible reason B-Strata cannot meet the constraints.
+Another open-ended revision recommendation is not an allowed final result.
+
+The existing eight strata are analytical jobs rather than eight selected
+language primitives. Phase 1 must normalize them and front-load the two most
+dangerous authority boundaries: liveness that metadata cannot forge and a
+policy-neutral quiescence producer that covers the audited mimalloc and
+Crossbeam event paths without per-load or per-object tax. Erased one-shot
+disposition and exact external-repair leaves are the other two front-loaded
+boundaries. The exact four projects and fourteen operations remain fixed.
+Paper closure precedes a hostile safety/erasure model; model closure precedes
+the smallest preregistered cross-project prototypes, generated-code inspection,
+and measurement.
+
+The new ruling authorizes this decisive research sequence and conditional
+validation. It does not authorize production language, specification, checker,
+compiler, runtime, library, xlc, migration, teaching, or shipping changes. A
+final `STRATA-YES` returns an exact landing proposal for separate owner review.
+
+## 0. Historical performance-first correction — superseded
 
 The active objective is performance. Current xlang semantics cannot express
 some required native representations and code shapes without initialization,
