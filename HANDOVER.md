@@ -1,11 +1,38 @@
 # xlang Research Handover
 
-Status: active handover updated by the owner on 2026-07-15. Historical sections
-remain useful evidence, but the controlling current contract is
-`optimizer-language-research/implementation/minimal-systems-capability/
-CANDIDATE-B-STRATA-DECISIVE-PLAN.md`.
+Status: active handover updated under D15 on 2026-07-16. Historical sections
+remain useful evidence; the controlling current ruling is D15 in
+`optimizer-language-research/notes/user-directives.md`, and the active
+research record is
+`optimizer-language-research/implementation/systems-performance-coverage/`.
 
-## Current B-Strata-only decision — read this first
+## Current D15 status — read this first
+
+The owner redirected the capability research on 2026-07-16 to a fresh,
+fully autonomous derivation: for most systems-programming scenarios, at
+least one blessed way of writing must reach or exceed the performance of
+the best existing implementations; the provided form count n must stay
+small under the binding spec-compactness requirement; line-by-line
+reproduction of existing software is explicitly not required; and
+compiler-known forms with disciplined trusted internals are readmitted to
+the answer space. The D14 B-Strata-only lock is suspended; every prior
+candidate artifact remains historical evidence and a falsifier.
+
+The first fresh pass is complete and recorded in
+`optimizer-language-research/implementation/systems-performance-coverage/`:
+a 9-family/51-scenario demand map, four independent complete designs,
+twelve hostile attack reports, and one cross-design judgment. The
+recommendation is a three-tier architecture — narrow language core, sealed
+parameterized taught forms, composition cards — explicitly conditional on
+gate #1: a decidable loan/freeze judgment plus confined borrow-carrying
+values, the one kernel gap all four designs failed on. The validation
+ladder M1-M10 is preregistered with frozen pass/fail bands; M1 is a
+one-week paper falsification that can kill the architecture. The owner
+decision points are listed in
+`DESIGN-COMPARISON-AND-RECOMMENDATION.md` section 6. No production change
+is authorized before those decisions.
+
+## Historical B-Strata-only decision (superseded by D15 as active authority)
 
 The owner selected B-Strata as the sole capability architecture to pursue after
 the completed `B-REVISE` comparison. Do not pivot to Candidate C and do not

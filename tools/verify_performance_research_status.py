@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the active B-Strata decisive-research status."""
+"""Verify the active D15 systems-performance coverage research status."""
 
 from __future__ import annotations
 
@@ -21,215 +21,161 @@ def require(path: Path, phrases: tuple[str, ...]) -> None:
             fail(f"{path.relative_to(ROOT)} omits {phrase!r}")
 
 
+COVERAGE = (
+    ROOT / "optimizer-language-research" / "implementation" / "systems-performance-coverage"
+)
+CAPABILITY = (
+    ROOT / "optimizer-language-research" / "implementation" / "minimal-systems-capability"
+)
+
+
 def main() -> int:
     agents = (ROOT / "AGENTS.md").read_bytes()
     claude = (ROOT / "CLAUDE.md").read_bytes()
     if agents != claude:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
-    status_phrases = (
-        "B-Strata is the sole active minimal systems-capability architecture",
-        "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
-        "outcome must be `STRATA-YES`",
-        "or `STRATA-NO` with an irreducible reason",
-        "Reference\n  source operations are fixed baselines and stress cases, not mandatory final",
-        "exact source-route failure alone is not NO",
-        "freezes a bounded reference/substitute frontier",
-        "Do not pivot to Candidate C",
-        "A paper YES is required\n  before safety modeling",
-        "model YES before the smallest preregistered\n  prototypes",
-        "No production language",
-        "D-2/P-1 fail-closed.",
+    # Active status layer: D15 fresh-derivation track.
+    require(
+        ROOT / "AGENTS.md",
+        (
+            "D15 systems-performance coverage research is the active capability track",
+            "at least one blessed way of writing",
+            "The D14 B-Strata-only lock is suspended",
+            "remain historical evidence and\n  falsifiers",
+            "systems-performance-coverage/",
+            "conditional on gate #1",
+            "loan/freeze judgment plus\n  confined borrow-carrying values",
+            "Validation ladder M1-M10 is preregistered",
+            "no\n  production language",
+        ),
     )
-    require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "B-STRATA\n   DECISIVE TRACK ACTIVE",
-            "`STRATA-YES` with a normalized minimal core",
-            "or `STRATA-NO` with the irreducible safety",
-            "source operations now serve as fixed demand cases",
-            "Exact source-route failure\n   alone is not `STRATA-NO`",
-            "bounded reference/substitute\n   route frontier",
-            "Candidate C is\n   not a fallback",
-            "complete across fourteen\n   operations and four pinned source revisions",
-            "`B-STRATA` six closed and eight open rows",
-            "`B-GRAPHS` six closed and\n   eight open rows",
-            "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
-            "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
-            "Phase 1 first normalizes the eight",
-            "only a paper YES and\n   model YES authorize",
-            "Sparse Repair Gate selects `SR-PROFILE`",
-            "Exact D-2/P-1 remain fail-closed",
+            "D15 FRESH-DERIVATION TRACK\n   ACTIVE",
+            "at least one blessed way of writing",
+            "The\n   D14 B-Strata-only lock no longer constrains the active derivation",
+            "systems-performance-coverage/",
+            "three-tier architecture",
+            "loan/freeze judgment\n   plus confined borrow-carrying values",
+            "M1 (paper falsification of the loan judgment",
+            "Historical context of the superseded lock",
+            "historical evidence, not active authority",
+            "suspended under D15, retained as evidence",
         ),
     )
     require(
         ROOT / "HANDOVER.md",
         (
-            "Current B-Strata-only decision",
-            "B-Strata as the sole capability architecture",
-            "work must end in `STRATA-YES`",
-            "Another open-ended\nrevision recommendation is not an allowed final result",
-            "reference baselines and stress\ncases, not mandatory final data structures",
-            "Exact source-route failure is therefore not\na NO result by itself",
-            "bounded\nreference/substitute frontier",
-            "Paper closure precedes a hostile",
-            "final `STRATA-YES` returns an exact landing proposal",
-            "The performance-first owner packet is complete",
-            "There is no evidence-backed production winner.",
-            "Candidate B's bounded cross-project comparison is now complete.",
-            "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
-            "exact fourteen-operation, 42-route result",
-            "`B-STRATA`: six closed and eight open",
-            "The gate is `B-REVISE`.",
-            "Sparse Repair Gate selects `SR-PROFILE`",
-        ),
-    )
-    plan_text = (ROOT / "THE-PLAN.md").read_text(encoding="utf-8")
-    agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    handover_text = (ROOT / "HANDOVER.md").read_text(encoding="utf-8")
-    for stale in ("CANDIDATE COMPARISON PENDING", "candidate comparison pending"):
-        if stale in plan_text:
-            fail(f"THE-PLAN.md retains stale status {stale!r}")
-    if "Performance-first minimal-capability research is the active design track" in agents_text:
-        fail("agent instructions retain stale active-design-track status")
-    for stale in (
-        "Candidate B's bounded cross-project design research is active",
-        "Candidate B's bounded cross-project design research stopped",
-        "CANDIDATE B\n   CROSS-PROJECT DESIGN ACTIVE",
-        "The active work has now moved to Candidate B.",
-    ):
-        if stale in agents_text or stale in plan_text or stale in handover_text:
-            fail(f"status documents retain stale Candidate B status {stale!r}")
-    if "## 0. Current correction — read this first" in handover_text:
-        fail("HANDOVER.md retains a superseded second read-this-first section")
-    require(
-        ROOT
-        / "optimizer-language-research"
-        / "implementation"
-        / "minimal-systems-capability"
-        / "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
-        (
-            "controlling plan for the owner-selected B-Strata-only research track",
-            "`STRATA-YES`",
-            "`STRATA-NO`",
-            "The existing eight strata are analytical jobs",
-            "Every rule must preserve one common resource-conservation invariant",
-            "`K1 ROOTED-PLACE`",
-            "`K2 SEALED-STATE`",
-            "`K3 LINEAR-STEP`",
-            "authority-origin ledger with no cycles",
-            "No leaf may directly mint `Quiescent`, `Stable`, `RepairComplete`",
-            "Front-load four verdict-forcing definitions",
-            "There is no arbitrary numerical quota on semantic corrections.",
-            "Frozen demand corpus and reference baselines",
-            "Demand closure and substitution",
-            "The final minimum is the union of semantic rules required by one passing route",
-            "CANDIDATE-B-STRATA-DEMANDS.tsv",
-            "CANDIDATE-B-STRATA-ROUTES.tsv",
-            "route_kind=REFERENCE|SUBSTITUTE",
-            "stable `outcome_id` rows",
-            "general operational semantics",
-            "Bounded execution and negative corpora\nsupport the general proofs but never substitute for them",
-            "decisive cross-project vertical evidence",
-            "The demand-to-evidence-scenario map is exact",
-            "Every\n  `SUBSTITUTE` route must use this quantitative path",
-            "select one passing route per demand so that the union of core\nrules is minimal",
-            "its own quantitative non-inferiority test passes",
-            "The goal may not stop at unexplained evidence insufficiency.",
-            "CANDIDATE-B-STRATA-PRODUCTION-LANDING-PROPOSAL.md",
-            "Do not use a broad brainstorming or mind-expansion workflow.",
-            "The work is complete only at `STRATA-YES` or `STRATA-NO`.",
+            "Status: active handover updated under D15 on 2026-07-16.",
+            "## Current D15 status — read this first",
+            "The D14 B-Strata-only lock is suspended",
+            "a 9-family/51-scenario demand map, four independent complete designs,",
+            "gate #1: a decidable loan/freeze judgment plus confined borrow-carrying\nvalues",
+            "M1-M10 is preregistered with frozen pass/fail bands",
+            "No production change\nis authorized before those decisions.",
+            "## Historical B-Strata-only decision (superseded by D15 as active authority)",
         ),
     )
     require(
         ROOT / "optimizer-language-research" / "notes" / "user-directives.md",
         (
+            "## D15 (2026-07-16): Fresh autonomous derivation of the systems-performance capability set",
+            "at least one blessed way of writing whose performance reaches or\n  exceeds the best existing implementations",
+            "The D14 B-Strata-only lock no longer constrains the active derivation.",
+            "readmits compiler-known forms with disciplined\n  trusted internals",
+            # Historical rulings must remain intact in the append-only record.
             "D14 B-Strata decisive ruling",
-            "selected B-Strata as the sole architecture",
-            "is exactly `STRATA-YES` or `STRATA-NO`",
             "D14 B-Strata demand-substitution amendment",
-            "reference baselines, and stress evidence, not as mandatory final",
-            "Exact-route failure alone is not a B-Strata failure",
         ),
     )
     require(
         ROOT / "mcts_mem" / "xlang.md",
         (
+            "2026-07-16 owner D15 redirection and first fresh-pass finding",
+            "the D14 B-Strata-only lock is suspended",
+            "decidable per-binding loan/freeze judgment plus confined borrow-carrying values",
+            # Historical facts must remain intact.
             "B-Strata is now the sole capability architecture under development",
-            "forced `STRATA-YES` or `STRATA-NO` verdict",
-            "Candidate C is not a fallback",
-            "owner demand-substitution amendment",
-            "reference baselines, and stress witnesses rather than mandatory final",
-            "Exact source-route failure alone cannot yield `STRATA-NO`",
         ),
     )
+
+    # Active research record.
     require(
-        ROOT
-        / "optimizer-language-research"
-        / "implementation"
-        / "minimal-systems-capability"
-        / "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
+        COVERAGE / "DESIGN-COMPARISON-AND-RECOMMENDATION.md",
         (
-            "controlling bounded paper-design and source-audit contract",
-            "Audit exactly fourteen operations.",
-            "Derive exactly three alternatives before routing any operation",
-            "Produce exactly 42 candidate-operation rows",
-            "at least two independent projects",
-            "Stop after the deliverables",
+            "Status: research result under D15.",
+            "9-family, 51-scenario demand map",
+            "## 3. The decisive cross-cutting finding",
+            "Confined borrow-carrying values",
+            "Loan/freeze judgment",
+            "## 5. Recommended catalog skeleton",
+            "## 6. Owner decision points",
+            "## 8. Validation plan (preregistered, cheapest-decisive first)",
+            "kills the architecture on failure",
         ),
     )
     require(
-        ROOT
-        / "optimizer-language-research"
-        / "implementation"
-        / "minimal-systems-capability"
-        / "CANDIDATE-B-ELEGANT-DESIGN.md",
+        COVERAGE / "SCENARIO-DEMAND-MAP.md",
+        (
+            "Status: research coverage target under D15.",
+            "not a normative language document",
+        ),
+    )
+    for name in (
+        "scenario-map.json",
+        "design-builtin.json",
+        "design-core.json",
+        "design-hybrid.json",
+        "design-schema.json",
+        "attacks-builtin.json",
+        "attacks-core.json",
+        "attacks-hybrid.json",
+        "attacks-schema.json",
+        "judge.json",
+    ):
+        if not (COVERAGE / "evidence" / name).is_file():
+            fail(f"missing evidence artifact {name!r}")
+
+    # Historical documents keep their frozen dispositions.
+    require(
+        CAPABILITY / "CANDIDATE-B-STRATA-DECISIVE-PLAN.md",
+        (
+            "controlling plan for the owner-selected B-Strata-only research track",
+            "`K1 ROOTED-PLACE`",
+            "`K2 SEALED-STATE`",
+            "`K3 LINEAR-STEP`",
+            "The work is complete only at `STRATA-YES` or `STRATA-NO`.",
+        ),
+    )
+    require(
+        CAPABILITY / "CANDIDATE-B-ELEGANT-DESIGN.md",
         (
             "Candidate B Design Gate disposition: `B-REVISE`.",
             "`B-STRATA` has six closed and eight open rows.",
             "`B-GRAPHS` has six closed and eight open rows.",
-            "Work stops at\nthis gate.",
         ),
     )
     require(
-        ROOT
-        / "optimizer-language-research"
-        / "implementation"
-        / "minimal-systems-capability"
-        / "CANDIDATE-C-SPARSE-REPAIR-CANDIDATES.md",
+        CAPABILITY / "CANDIDATE-C-SPARSE-REPAIR-CANDIDATES.md",
         (
             "Sparse Repair Gate disposition: `SPARSE-SELECT: SR-PROFILE`.",
             "Candidate C v0 is unchanged.",
-            "Work stops at this gate.",
         ),
     )
     require(
-        ROOT
-        / "optimizer-language-research"
-        / "implementation"
-        / "minimal-systems-capability"
-        / "CANDIDATE-C-SPARSE-REPAIR-PLAN.md",
-        (
-            "controlling paper-repair contract",
-            "Derive exactly three alternatives",
-            "Exactly three alternatives and fifteen candidate-operation rows.",
-            "Sparse Repair Gate",
-            "The gate authorizes no implementation or further audit.",
-        ),
-    )
-    require(
-        ROOT
-        / "optimizer-language-research"
-        / "implementation"
-        / "minimal-systems-capability"
-        / "CANDIDATE-C-HASHBROWN-AUDIT.md",
+        CAPABILITY / "CANDIDATE-C-HASHBROWN-AUDIT.md",
         (
             "Gate 1 disposition: `C-REVISE`.",
             "Stage 2 is not authorized.",
         ),
     )
-    print("performance research status: B-Strata decisive track active at Phase 1")
+
+    print(
+        "performance research status: D15 systems-performance coverage track "
+        "active; M1 pending owner authorization"
+    )
     return 0
 
 

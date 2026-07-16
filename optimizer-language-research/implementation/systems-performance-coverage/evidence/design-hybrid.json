@@ -1,0 +1,457 @@
+{
+ "stance": "EVIDENCE-SPLIT HYBRID with a hard, predictive criterion applied per family. EXTEND THE LANGUAGE only when (1) the semantic capability is reused by >=3 catalog forms, (2) its client-side obligation is decidable syntax-directed with compile-time constants only (no inference, no invariant synthesis beyond the existing requires prologue), and (3) its absence would force per-instance trusted code rather than a per-mechanism rule. SEAL AS BUILTIN-TCB when par depends on internals whose safety argument is either a partial-initialization invariant no frontend-simple checker can verify (vec spare capacity, SwissTable slot/control coupling, B-tree nodes, slot recycling) or a paper-grade concurrency proof (memory orderings, deferred reclamation, Chase-Lev fences) \u2014 i.e., exactly the implement-rarely/use-often structures where one hostile review + model checking amortizes over all users, and where the sealed interface leaves zero writer-suppliable trust. REJECT (existing pattern/composition) when the demand map's own substitutability analysis shows a taught composition of catalog forms reaches par (graphs, trees, LRU, interning, timer wheel, sharded maps, intrusive links). The criterion is falsifiable: if a checked-source form built on a claimed language delta misses its preregistered band, the delta was wrong and the form moves to the sealed side (preregistered for codecs in experiment 3).",
+ "summary": "The catalog is n=22 taught forms plus 8 taught composition patterns, split by the criterion into three tiers. Tier A (language-primitive, 6 deltas that each serve >=3 forms): branded region indices id<'r,T> (check-free arena/graph/tree/interner deref), margin byte buffers (codec wild copies, cursor amortized bounds, SIMD tails), declarative layout schemas instantiating validated zero-copy views, a portable SIMD value core with named intrinsics and one-time ISA dispatch, a machine scalar kit (endian unaligned load/store, bit ops, guaranteed-lowering select, prefetch/NT, alignment), and a minimal concurrency core (region-scoped spawn, structural share judgment, linear channel endpoints, DRF-by-construction \u2014 writers never see a memory ordering). Tier B (builtin-TCB, sealed internals behind fully checked interfaces): the sequence family vec/deque with inline-capacity knob, SwissTable map and B-tree omap, generational pool, mutex/once, SPSC+MPMC channels, snapshot cell + atomic counter/flag, scoped-thread + work-stealing parallel runtime, buffered/direct file I/O, completion I/O ring with linearly-loaned buffers, read-only filemap, OS facade, and the runtime allocator \u2014 roughly 15k LOC of ledgered trusted kernels verified by hostile review, exhaustive small-bound model checking, and differential fuzzing against reference oracles (hashbrown, slotmap, crossbeam, liburing). Tier C (checked-library, fully inside the safety proof): sort/search, hash/checksum kernels, formatting/builder kernels, byte cursors, WAL/atomic-replace recipes, and all SIMD scan/classify kernels \u2014 these ride the measured requires-prologue elision (27/27 bounds discharged, 1.71x) so every check stays on. Estimated kernel growth: ~47 rules (90 -> ~137), with sealed-form op signatures living in the taught catalog, not the kernel. Coverage of the 51-scenario map: 44 PAR, 1 WIN (checked-law deterministic parallel reduction, backed by the measured 3.3x reassociation result), 6 honest PARTIAL (papaya-class read-mostly concurrent maps, unproven codec parity, shared-mutable mmap/IPC, inbound FFI callbacks), 0 silent gaps.",
+ "forms": [
+  {
+   "name": "vec<T, INLINE=0> (sequence family root)",
+   "kind": "builtin-TCB",
+   "contract": "Owns a contiguous growable run of any owned T. push moves T in (amortized O(1), geometric growth); pop moves T out as option<T>; index read/write borrows (OOB traps deterministically \u2014 one spelling); reserve/truncate; as_view yields slice<'r,T> region-tied borrow so all algorithms are written against views; spare-capacity loan op fill_via(sink) lets sealed I/O fill the uninitialized tail and advance len by the count actually written; bulk copy/fill ops with an NT-store flag. INLINE=N keeps storage in the owner footprint until len>N, then spills transparently (sealed). Growth OOM traps; try_reserve is the fallible spelling.",
+   "perf_mechanism": "Sealed (ptr,len,cap) kernel preserves the exact Vec machine shape: tail-line-only appends, one predicted capacity branch, memcpy growth at DRAM bandwidth, stride-1 prefetched iteration; the partial-initialization invariant ([0,len) init, [len,cap) uninit) lives in ~300 LOC of TCB because no frontend-simple checker can carry it; INLINE knob eliminates the malloc/free pair for SmallVector workloads (3-5x on 2-8 element lists).",
+   "source_shape": "let mut v: vec<u64> = vec.new(); v.reserve(n); loop { v.push(x); }; let s: slice<'r,u64> = v.as_view(); ... let ops: vec<Op, 4> = vec.new(); // inline until 5th push"
+  },
+  {
+   "name": "deque<T> (ring sibling of vec)",
+   "kind": "builtin-TCB",
+   "contract": "Same ownership contract as vec plus push_front/pop_front; as_views yields the two contiguous slice views; grows on demand; single-threaded, no synchronization. OOB traps; pops return option<T>.",
+   "perf_mechanism": "Power-of-two masked head/tail indices over the same sealed storage kernel: push/pop = one masked index update + one move, VecDeque-class cache behavior, growth = one bulk memcpy; shares the vec TCB so it costs ~2 extra op rules, not a new kernel.",
+   "source_shape": "let mut q: deque<Node> = deque.new(); q.push_back(n); match q.pop_front() { some(n) => ..., none => break }"
+  },
+  {
+   "name": "map<K,V, INLINE=0> (SwissTable)",
+   "kind": "builtin-TCB",
+   "contract": "Owns K,V. insert moves both in, returns option<V> (displaced); find -> option<&V>, find_uniq -> option<&uniq V>; remove -> option<V>; entry API without closures: entry(k) returns enum { occupied(&uniq V), vacant(tok) } where tok is an affine region-tied vacancy token consumed by insert_at(tok, v) \u2014 get-or-insert in one hash + one probe; find_by(env, keyview) probes by a borrowed byte/key view via an env-struct comparator (no allocation, enables interning); hasher is an env-struct contract instance (default = checked foldhash-class). Growth OOM traps; INLINE=N is a linear-scan inline array until spill (SsoHashMap shape).",
+   "perf_mechanism": "Sealed internals keep the full SwissTable mechanism: separate control-byte array, 7-bit fragments, 16-byte SIMD group probe (~2 cache lines per hit at any size), 87.5% load factor, group tombstone elision; the control-byte/slot init coupling is unverifiable frontend-simply, hence TCB (~2k LOC); the affine vacancy token preserves the one-probe entry idiom without closures.",
+   "source_shape": "match m.entry(k) { occupied(v) => { v.count = add(v.count, 1); }, vacant(t) => { m.insert_at(t, new_counter()); } }"
+  },
+  {
+   "name": "omap<K,V> (B-tree ordered map)",
+   "kind": "builtin-TCB",
+   "contract": "Ordered-key map: insert/find/remove plus range(lo,hi) -> in-order region-tied cursor, first/last, pred/succ. Same ownership and trap behavior as map. Point users are taught to use map; omap exists only for the range contract.",
+   "perf_mechanism": "Sealed B-tree with fanout ~11-16, ~256B nodes, branchless intra-node scan: ~5-8 line touches per lookup at 1M keys and near-streaming leaf walks for ranges \u2014 the absl::btree/BTreeMap machine shape; node partial-init invariants are why it is TCB (~1.5k LOC) rather than checked source.",
+   "source_shape": "let mut r = t.range(lo, hi); loop { match r.next() { some(kv) => ..., none => break } }"
+  },
+  {
+   "name": "pool<T> (generational slab)",
+   "kind": "builtin-TCB",
+   "contract": "insert(T) -> handle<T> (8-byte copy struct: index+generation); get(h) -> option<&T> and get_uniq(h) -> option<&uniq T> return none on stale generation \u2014 never trap, never alias freed data; remove(h) -> option<T> moves the value out and recycles the slot O(1) WITHOUT re-zeroing; dense iteration over live slots. Handles are plain data: storable in structs, sendable, and the blessed substitute for pointer graphs.",
+   "perf_mechanism": "Sealed slot array with intrusive in-place freelist (union of T and next-free) and per-slot generation: insert/remove ~2-5 ns with zero allocator traffic, get = bounds+generation compare+indexed load (1 line), iteration near vec speed; slot reuse is type-changing storage \u2014 exactly the well-typed-UAF shape the checker rightly rejects in source \u2014 so it is TCB (~200 LOC) with dynamically-detected staleness keeping T1 intact.",
+   "source_shape": "copy struct Conn { fd: i32, state: u8 } ... let h: handle<Sess> = pool.insert(sess); match pool.get_uniq(h) { some(s) => { s.state = 2; }, none => { /* stale: connection already closed */ } }"
+  },
+  {
+   "name": "arena<'r,T> + id<'r,T> (region arena with branded indices)",
+   "kind": "language-primitive",
+   "contract": "Existing lexical-region arena extended so alloc(v) -> id<'r,T>: a copy, storable, nonforgeable index branded by the arena's region. arena[id] dereferences with ZERO dynamic checks \u2014 the brand proves the id was minted by this arena and the arena is append-only while 'r lives. Whole-region mass free at scope end; drop-carrying T runs compiler-derived drops at region exit; reset-and-reuse via the existing region staircase pattern (fresh 'r each cycle statically invalidates all old ids).",
+   "perf_mechanism": "Allocation stays bump-class (~1-2 ns) and deref becomes base + id*stride with no bounds or generation check \u2014 matching C pointer graphs and strictly beating safe Rust's checked index arenas; because ids are data, parent pointers and cross-links are plain fields, giving allocation-order locality for tree/IR traversal (the bumpalo/rustc-arena win) fully inside the safety proof.",
+   "source_shape": "region 'a { let ar: arena<'a, Expr> = arena.new(); let lhs: id<'a,Expr> = ar.alloc(e1); let e: id<'a,Expr> = ar.alloc(Expr.add { lhs: lhs, rhs: rhs }); let n: &Expr = &ar[e]; }"
+  },
+  {
+   "name": "layout views (declarative zero-copy overlays)",
+   "kind": "schema-instantiated",
+   "contract": "Writer declares a layout schema: field name, scalar type, endianness, byte offset, total size, alignment; the compiler instantiates validate(bytes<'r>) -> option<view<'r,L>> (one length/shape/invariant check) and typed field accessors on the view. Each field read after validation is guaranteed to compile to exactly one load (+one bswap for foreign endianness), zero residual checks; uniq views permit field writes. View lifetime is region-tied to the buffer. Malformed input yields none at validate, never a fault later.",
+   "perf_mechanism": "Moves the entire checking cost to one amortized validation, exactly the zerocopy/capnp validate-then-view discipline, but machine-generated from a declarative schema instead of trusted derive code \u2014 codegen is bit-identical to a C packed-struct dereference (asm-diff gate), covering packets, DB page headers, records, and mmap'd formats.",
+   "source_shape": "layout Ipv4 { ver_ihl: u8 @0; total_len: u16be @2; ttl: u8 @8; src: u32be @12; size 20; align 1 } ... match Ipv4.validate(pkt) { some(v) => { let len: u16 = v.total_len; ... }, none => drop_packet() }"
+  },
+  {
+   "name": "byte cursor over margin buffers",
+   "kind": "checked-library",
+   "contract": "bytes<'r, margin M> is a byte view refinement guaranteeing M writable/readable slop bytes past the logical length (created by vec/allocator slop or validated framing; margin bytes are never observable as initialized data). The cursor library provides take_u8/u16le/u32be/u64le/varint/skip with one compile-time-elidable bounds check per field (not per byte); exhaustion returns an error value at the boundary, never a trap mid-parse; decoded string/byte fields are zero-copy sub-views.",
+   "perf_mechanism": "Varint decode = one unaligned 8-byte load + shift/mask (kills the byte-loop mispredict chain); margin makes the wide load at the tail legal without a slow path; requires-prologue facts hoist per-field checks to one per message \u2014 the upb/prost machine shape, prost-class GB/s, fully checked source.",
+   "source_shape": "let mut c = cursor.new(msg); let tag: u32 = c.varint32()?; let len: u32 = c.varint32()?; let body: bytes<'r> = c.take(len)?;"
+  },
+  {
+   "name": "SIMD core (portable vectors + named intrinsics + dispatch)",
+   "kind": "language-primitive",
+   "contract": "Width-explicit vector value types (u8x16/u8x32/u16x16/u32x8/u64x4/f32x8...) with lane ops, shuffle (pshufb-as-table), compare-to-mask, movemask-to-scalar, masked load/store legal only within a margin or proven bounds; a closed named-intrinsic set (clmul, crc32step, aes-round, vpermb) behind the same types with per-ISA availability; a dispatch attribute compiles a function per ISA (SSE2/AVX2/AVX-512/NEON) and selects once at startup. Pure value semantics: misuse is a type error or a slow kernel, never UB; slice loads carry the ordinary (elidable) bounds obligations.",
+   "perf_mechanism": "Preserves the highway/std::simd mechanism: 16-64 lanes per instruction, movemask+tzcnt bridging to scalar control in 2 instructions, one-time CPUID dispatch; this is the substrate that makes memchr-class, simdjson-stage-1-class, simdutf-class, and hash kernels writable as checked source instead of trusted blobs.",
+   "source_shape": "dispatch(avx2, neon) fn find(h: bytes<'r, margin 32>, n: u8) -> option<u64> { loop { let v: u8x32 = load(h, i); let m: u32 = movemask(eq(v, splat(n))); match m { 0 => { i = add(i, 32); }, _ => { break some(add(i, tzcnt(m))); } } } }"
+  },
+  {
+   "name": "machine scalar kit",
+   "kind": "language-primitive",
+   "contract": "load_le/load_be/store_le/store_be of u16/u32/u64/u128 at arbitrary byte offsets in a byte view (one elidable bounds check, guaranteed single load/store + at most one bswap); integer methods popcount/tzcnt/lzcnt/rotl/rotr/pdep/pext each guaranteed one instruction (dispatch fallback on pre-BMI AMD); select(cond, a, b) with two tiers \u2014 perf tier (guaranteed cmov-class lowering unless the compiler proves the branch profitable) and strict tier (verified never-branch, for constant time); prefetch(place) with no-op semantics (never faults, never observable, exempt from borrow obligations); NT-store flag on bulk copy/fill; align(N) attribute on types and allocations; padded<T> 64-byte wrapper.",
+   "perf_mechanism": "These are the leaf mechanisms every SOTA kernel bottoms out in: single-instruction bit ops make SwissTable-probe/roaring/bitboard loops exact; select makes branchless partition and branchless lower_bound expressible with a lowering guarantee Rust does not give; padding kills false sharing (5-20x on contended counters); all are pure value ops with zero new aliasing surface.",
+   "source_shape": "let x: u64 = load_le_u64(buf, off); let lo: u64 = select(lt(probe, key), add(lo, half), lo); prefetch(&table[h1]);"
+  },
+  {
+   "name": "sort & search library",
+   "kind": "checked-library",
+   "contract": "sort(slice, cmp_env) unstable (ipnsort shape, O(n log n) worst-case guaranteed, near-O(n) on sorted input) and sort_stable(slice, cmp_env) (driftsort shape) \u2014 stability is the only flag, one spelling each; internal radix specialization for primitive keys; lower_bound/binary_search/partition_point branchless over sorted slices; no allocation in search, bounded scratch in stable sort. Comparator is an env-struct contract instance.",
+   "perf_mechanism": "Branchless partition = unconditional store + select-predicated pointer advance (the pdqsort trick) written directly against the select primitive; insertion sort at small n stays in L1; all index arithmetic is slice-local so requires facts discharge the bounds checks \u2014 checked source at ipnsort-class throughput, no TCB.",
+   "source_shape": "sort(v.as_view_uniq(), ByKey { key: extract_ts }); let i: u64 = lower_bound(s, k);"
+  },
+  {
+   "name": "hash & checksum kernels",
+   "kind": "checked-library",
+   "contract": "Env-struct hasher instances over byte views: foldhash-class (default map hasher), siphash (keyed, DoS-resistant), xxh3-class bulk, crc32c (hardware, 3 interleaved streams), one-shot and streaming; seeds from the OS facade entropy. Pure functions of their input; no failure modes.",
+   "perf_mechanism": "Wide unaligned loads + widening multiplies / clmul / crc32step from the machine kit and SIMD core run entirely in registers: ~4-6 ns 16B one-shot, 15-50 GB/s bulk \u2014 the xxh3/isa-l machine shape as checked source, since hashing has no ownership surface at all.",
+   "source_shape": "let h: u64 = foldhash.hash(seed, key_bytes); let c: u32 = crc32c.frame(page_view);"
+  },
+  {
+   "name": "byte builder & numeric formatting",
+   "kind": "checked-library",
+   "contract": "A write-protocol contract (env-struct sink over vec<u8>) that third-party formatters target; append bytes/ASCII/str at memcpy speed into reserved tail; itoa-class integer emission and ryu-class shortest-float emission from const lookup tables; final move-out of the vec as the finished buffer. Growth traps on OOM like vec.",
+   "perf_mechanism": "u64->decimal via digit-pair tables is ~4 ns vs ~100 ns snprintf (no locale, no format parse); all table indices are provably in-range so checks elide; appends are bounds-elided memcpy into reserved capacity \u2014 the String+itoa/ryu shape with zero trusted code.",
+   "source_shape": "let mut b: vec<u8> = vec.new(); b.reserve(256); append_str(&uniq b, \"id=\"); append_u64(&uniq b, id); let out: vec<u8> = b;"
+  },
+  {
+   "name": "scoped threads + parallel runtime (parallel-for / fork-join)",
+   "kind": "builtin-TCB",
+   "contract": "scope 'p { spawn(s, env) } spawns threads whose env is either moved in or borrows 'p-region data; all threads provably join before 'p ends (same lexical discipline as arena drop); join returns the worker's value or propagates its trap to the boundary. parallel_for(slice, body_env) splits recursively and mutates provably disjoint chunks (split_at consumes the uniq view, so disjointness is by construction); parallel_reduce(slice, monoid_env) requires the checked assoc/identity laws and is deterministic when asked. Per-worker mutable state is an env struct handed to each worker (replaces TLS for writers). The sealed interior is a Chase-Lev work-stealing deque, also exposed as wsdeque owner-push/pop/steal ops for runtime authors.",
+   "perf_mechanism": "Owner-side deque ops have no atomic RMW (release store; one SeqCst fence on pop; CAS only on the last-element race) so task overhead is rayon-class ~20-50 ns; geometric splitting makes steals logarithmically rare and bandwidth the ceiling; the fence pairing is a paper-grade proof done once in TCB with model checking \u2014 exactly the implement-rarely case; checked reassociation laws additionally license vectorized/reassociated reductions C and Rust compilers cannot legally do on floats/overflow-checked ints (measured 3.3x class).",
+   "source_shape": "scope 'p { parallel_for(data.as_view_uniq(), 4096, Body { lut: &lut }); } let s: u64 = parallel_reduce(v.as_view(), SumMonoid {});"
+  },
+  {
+   "name": "mutex<T> / once<T> / condvar",
+   "kind": "builtin-TCB",
+   "contract": "mutex<T> owns the protected data (lock-protects-data, not a bare lock); lock() returns an affine region-tied guard granting &uniq T, released at scope end; adaptive futex parking (bounded spin then wait), no busy burn; condvar wait(guard, pred_env); once<T> race-safe one-shot init then &T at a load+predicted-branch. A trap while holding is a deterministic process-boundary trap (traps-to-the-boundary; no poisoning state).",
+   "perf_mechanism": "Word-sized lock inline with the data keeps lock word + protected state on one line: ~10-20 ns uncontended lock/unlock (two RMWs on an owned line, zero syscalls), parking_lot/absl shape; the guard-as-affine-borrow makes leaking or double-unlocking unrepresentable without any checker addition beyond existing move rules.",
+   "source_shape": "let g = m.lock(); g.data.hits = add(g.data.hits, 1); /* guard drops at scope end */"
+  },
+  {
+   "name": "channels: spsc<T> ring + mpmc<T> bounded",
+   "kind": "builtin-TCB",
+   "contract": "spsc.new(cap) -> (tx, rx): two AFFINE endpoints \u2014 single-producer/single-consumer is compile-time fact, not runtime hope; push/pop are wait-free, allocation-free, fail with full/empty result values (backpressure is the API); batched reserve/commit for slot batches. mpmc.new(cap) -> cloneable endpoints, Vyukov slot-sequence internals, ownership of T moves through the queue; blocking recv integrates futex parking. Values crossing must satisfy the share/send judgment.",
+   "perf_mechanism": "Because endpoint uniqueness is a linear-type fact, the SPSC form keeps the zero-RMW single-writer-per-counter mechanism (padded counters, cached opposing index): ~8-15 ns/round-trip, >100M items/s batched \u2014 the exact win MPMC must give up, and the unification-by-linearity the demand map wished for; MPMC keeps Vyukov's one-RMW-per-op with slot-local publication (~15-25 ns uncontended).",
+   "source_shape": "let (tx, rx) = spsc.new::<Frame>(1024); scope 'p { spawn(s, Producer { tx: tx }); spawn(s, Consumer { rx: rx }); }"
+  },
+  {
+   "name": "shared<T> snapshot cell + counter/flag atomic cells",
+   "kind": "builtin-TCB",
+   "contract": "shared<T>: publish(v) moves a new value in and retires the old via internal epoch reclamation; read() returns a guard-scoped &T snapshot (pin ~2 ns, readers write no shared lines). counter: relaxed fetch_add/load for statistics. flag: release set / acquire check, the shutdown and once idiom. This closed trio plus channels/mutex IS the writer-facing atomics vocabulary \u2014 there is no ordering parameter anywhere in source.",
+   "perf_mechanism": "Covers the three stereotyped idioms that are ~95% of real atomic use at hardware par (fixed per-form orderings chosen once, so ARM pays no blanket SeqCst tax); snapshot reads scale linearly with cores (arc-swap/RCU shape, ~2 ns/read) where RwLock-class reader counts plateau at 2-3 threads; all epoch machinery is invisible TCB.",
+   "source_shape": "let cfg: &Routes = routes.read(&pin); ... routes.publish(new_table); stats.requests.add(1); match shutdown.check() { true => break, false => continue }"
+  },
+  {
+   "name": "file I/O: buffered streams + direct mode + durability ops",
+   "kind": "builtin-TCB",
+   "contract": "open/read/write over a 64-256KB internal buffer; fill_buf() -> region-tied &[u8] borrow of the internal buffer + consume(n) for zero-copy in-place parsing; read_into(vec) fills spare capacity via the uninit-extent loan (no memset ever); explicit flush; O_DIRECT mode requiring align(4096) buffers for database engines; low-level durability ops: fdatasync, fsync_dir, atomic rename. Errors are result values with OS error codes; no failure is silent.",
+   "perf_mechanism": "Amortizes the ~300-600 ns syscall to ~0.01 ns/byte; borrow-the-buffer removes the second copy (ripgrep-class >2 GB/s scanning); direct mode preserves the RocksDB/SQLite discipline; the zero-memset read path is a codegen-gated guarantee, matching C exactly.",
+   "source_shape": "let b: &[u8] = r.fill_buf()?; let n: u64 = parse_records(b); r.consume(n); w.write(frame)?; f.fdatasync()?;"
+  },
+  {
+   "name": "completion I/O ring + sockets",
+   "kind": "builtin-TCB",
+   "contract": "ring.submit(op { fd, buf, kind }) MOVES the buffer (a vec<u8>) into the in-flight op and returns an affine completion token; completions() yields (token, result, buffer moved back) \u2014 the buffer is linearly loaned to the kernel and untouchable while in flight, by the existing affine rules; multishot accept/recv, vectored writes, integrated timers and cancellation; lowers to io_uring where available, epoll/kqueue + nonblocking emulation elsewhere. Socket options (NODELAY, REUSEPORT) exposed as declarative flags.",
+   "perf_mechanism": "Syscalls-per-op approach 0 via batched submission and shared-memory completions (io_uring ~2x epoll on syscall-bound echo); because buffer loans are static ownership facts rather than runtime refcounts, registered fixed buffers are usable by default \u2014 the exact lifetime problem that forces Arc-based buffer management in Rust io_uring wrappers disappears; steady state is allocation-free via buffer recycling.",
+   "source_shape": "let t = ring.submit(op.recv { fd: c, buf: buf })?; ... match ring.next_completion() { (t, ok(n), b) => { handle(b.as_view_len(n)); ring.submit(op.send { fd: c, buf: b })?; } }"
+  },
+  {
+   "name": "filemap (read-only memory map)",
+   "kind": "builtin-TCB",
+   "contract": "map_ro(path) -> filemap owning the mapping; view() -> region-tied frozen byte view for layout views and cursors; madvise hints as declarative flags; external truncation SIGBUS is converted to a defined deterministic trap (with an optional advisory-lock discipline to prevent it). Shared-mutable MAP_SHARED IPC is explicitly NOT in this form (deferred; see risks).",
+   "perf_mechanism": "Warm access is pure page-cache loads \u2014 zero syscalls, zero copies (LMDB-class ~100-200 ns warm gets when combined with layout views); hugepage/advice flags preserve the tuning surface; immutability of the mapped file is the trust boundary the form states honestly rather than hides.",
+   "source_shape": "let m = filemap.map_ro(path)?; let idx: bytes<'m> = m.view(); match PageHdr.validate(slice(idx, off, 4096)) { some(p) => ..., none => err }"
+  },
+  {
+   "name": "extern-C boundary records",
+   "kind": "builtin-TCB (trusted-record mechanism)",
+   "contract": "An extern declaration names a C function with its ABI signature, repr(C) layouts, and a stated ownership/aliasing/lifetime contract per parameter (in/out/borrowed, pointer+len pairs from views, who frees); declarations live only in toolchain-gated, human-approved trusted record files \u2014 ordinary source cannot introduce them (no writer-suppliable trust); calls compile to a bare ABI call. Out-calls only (D4); xlang-called-from-C and callback in-calls are deferred.",
+   "perf_mechanism": "The machine shape is identical to a C-to-C call (~1-2 ns: ABI registers, no pinning, no stack switch, no marshaling) \u2014 cgo's ~40-60 ns is the explicit anti-target; buffers cross as pointer+len derived from views with zero copies because layout is bit-compatible by the repr(C) rule.",
+   "source_shape": "// in approved.trust: extern c fn BLAS_dgemm(a: cptr<f64> borrowed(len=an), ...) effects(io) ... // in source: BLAS_dgemm(av.as_cptr(), ...)"
+  },
+  {
+   "name": "OS facade (process/time/entropy/shutdown)",
+   "kind": "builtin-TCB",
+   "contract": "spawn_process (posix_spawn-backed: fds/env/cwd control, pipes, wait->status), monotonic and wall clocks (vDSO, hot-path safe), entropy (getrandom-seeded userspace CSPRNG buffer), and shutdown signals delivered as a flag/channel \u2014 signals are consumed, never handled in user code. All failures are result values.",
+   "perf_mechanism": "The differentiating choices are sealed implementation facts invisible to consumers: posix_spawn is ~60 us independent of parent RSS vs millisecond fork of large parents (ninja-class throughput), clock reads ~20-25 ns with no kernel entry, entropy ~2-5 ns per call from the buffer \u2014 the clearest n=1 facade in the map.",
+   "source_shape": "let t0: u64 = clock.monotonic_ns(); let child = proc.spawn(cmd)?; let st = child.wait()?;"
+  },
+  {
+   "name": "runtime allocator (not writer-facing)",
+   "kind": "builtin-TCB",
+   "contract": "The single global allocator behind box/vec/map/pool/arena chunks: alloc/free/realloc any size from any thread, cross-thread free, size-class + per-thread heaps; writers never call it directly and cannot replace it from ordinary source. Authoring a NEW allocator in checked xlang is out of scope by design (its internals are the canonical type-changing-reuse shape).",
+   "perf_mechanism": "mimalloc-class internals: TLS heap, size-class free-list push/pop ~10-20 instructions, zero atomics on the fast path, batched remote frees \u2014 ~15-25 ns alloc+free pair and larson-class scaling; sealing it lets every container above inherit SOTA allocation without any writer-visible unsafety.",
+   "source_shape": "(invisible: let b: box<T> = box.new(v); v.push(x); \u2014 all routed through it)"
+  }
+ ],
+ "language_deltas": [
+  "copy struct declaration: records whose fields are all scalars/copy types may be declared 'copy struct', making them Copy (bitwise duplicable, no drop); resolves the open records question explicitly and declaratively \u2014 one spelling, checker verifies field-wise copyability structurally. (~1 rule)",
+  "Branded region index id<'r,T>: arena alloc mints an id branded with the arena's region; ids are copy data, storable in structs; the deref form arena[id] typechecks only when the arena's region syntactically matches the brand, and is defined check-free because arenas are append-only while 'r lives and ids are nonforgeable (no arithmetic on ids, no construction from integers). (~3 rules)",
+  "Margin byte views bytes<'r, margin M>: a refinement type guaranteeing M extra allocated bytes past the logical length; ops may load/store up to a compile-time-constant M past len; margin contents are never observable as initialized program values (writes into margin are semantically discarded; reads feed only lane operations whose margin lanes are masked out of results). Created by allocation slop (vec reserve) or validated framing. (~3 rules)",
+  "Layout schemas + validated views: a declarative layout item (typed fields with endianness, constant offsets, size, align); a validation judgment producing view<'r,L> from a byte view; a field-access rule guaranteeing single-load lowering on validated views; uniq-view field writes; a handoff rule from views to cursors for variable-offset regions. (~6 rules)",
+  "SIMD value core: vector types as first-class values; lane-op, shuffle, compare-to-mask, movemask typing rules; masked load/store legal only under margin or discharged bounds; the closed named-intrinsic table with per-ISA availability; the dispatch attribute (per-ISA compilation, one startup selection, semantic equivalence obligation across variants). (~8 rules)",
+  "Machine scalar kit: endian-explicit unaligned load/store on byte views with single-instruction lowering guarantee; the fixed bit-op method table (popcount/tzcnt/lzcnt/rot/pdep/pext) with one-instruction guarantee and declared fallbacks; select(c,a,b) value form with perf and strict (verified branch-free) tiers; prefetch with vacuous semantics exempt from borrow/validity obligations; NT flag on bulk copy/fill; align(N) attribute and padded<T>. (~8 rules)",
+  "Concurrency core: region-scoped spawn (thread lifetime = lexical region, join-before-region-end reuses the existing region discipline); a structural share judgment computed like Copy (a type is sendable if it contains no borrows \u2014 already banned in data \u2014 and shareable-by-& if it transitively contains no sealed interior-mutable cell); linear endpoint rule (channel/ring endpoints are affine non-copy values); the DRF-by-construction theorem: programs cannot express unsynchronized shared mutation, so sealed-form publication contracts (stated per form) suffice and NO user-facing memory-ordering vocabulary exists; blocks effect-row label for parking ops. (~8 rules)",
+  "Uninit-extent loan: a vec spare-capacity loan op type (fill_via) whereby a sealed filler receives the uninitialized tail and the length advances only by the filler's returned count, with the TCB boundary (syscall/decoder kernel) trusted to have initialized exactly that prefix; checked-source writers never touch the loan \u2014 they use cursor/push ops. (~2 rules)",
+  "Sealed-form mechanism: opaque builtin type families with fixed op signatures, effect rows, and stated semantic contracts; no reflection into internals; op calls typecheck as ordinary function calls; the spec rule states what a sealed op may assume and must guarantee (the general mechanism is 3 rules; each form's op signatures live in the taught catalog appendix, not the kernel). (~3 rules)",
+  "io effect-row label: boundary operations carry io in their effect row so purity remains visible to the optimizer and to reviewers. (~1 rule)",
+  "Extern-C trusted records: extern declaration grammar with repr(C) layout rule, parameter ownership/lifetime contract vocabulary, bare-call typing, and the rule that such declarations are only admissible from toolchain-gated human-approved trusted record files. (~4 rules)"
+ ],
+ "est_new_spec_rules": 47,
+ "coverage": [
+  {
+   "scenario": "Growable contiguous vector (append-heavy owned buffer)",
+   "verdict": "PAR",
+   "how": "Sealed vec preserves the exact (ptr,len,cap) machine shape: tail-line append, one predicted branch, memcpy growth, stride-1 iteration; slice views make all algorithms container-independent; requires-prologue elision (measured 27/27 discharge class) keeps interior bounds checks free in loops. Experiment-class evidence (D9a first-green wins vs shipped Rust) says the shape is reachable by weak writers."
+  },
+  {
+   "scenario": "Small/inline vector (allocation-count-dominated short sequences)",
+   "verdict": "PAR",
+   "how": "INLINE=N knob on the same sealed vec (absl::InlinedVector shape): no heap while len<=N, sealed spill; eliminates the malloc/free pair and keeps elements on the owner's lines \u2014 the 3-5x LLVM-workload win with zero new catalog surface."
+  },
+  {
+   "scenario": "String/byte builder (append-only formatting and serialization buffer)",
+   "verdict": "PAR",
+   "how": "vec<u8> + the checked write-protocol and itoa/ryu-class table kernels: memcpy-tail appends, ~4 ns u64 emission, one reservation; snprintf-class is structurally impossible to write accidentally because the taught spelling IS the table kernel."
+  },
+  {
+   "scenario": "Sorting owned runs (comparison and key-based)",
+   "verdict": "PAR",
+   "how": "Checked-library ipnsort/driftsort shapes built on the select primitive (branchless partition = unconditional store + predicated advance), small-n insertion, run detection, internal radix path for primitive keys; all index math is slice-local so checks elide \u2014 no TCB needed."
+  },
+  {
+   "scenario": "Binary search / lookup over sorted contiguous runs",
+   "verdict": "PAR",
+   "how": "Branchless lower_bound via select (offset += (probe<key)*half) as checked library over slice views; Eytzinger is a taught layout transform over the same search with prefetch hints \u2014 covers the giant-frozen-table split without a new container."
+  },
+  {
+   "scenario": "General hash map/set (unordered point lookup, medium-to-large n)",
+   "verdict": "PAR",
+   "how": "Sealed SwissTable (control bytes, SIMD group probe, 87.5% load, tombstone elision) with checked foldhash-class default; entry via affine vacancy token keeps get-or-insert at one hash + one probe without closures; gated by experiment 1 (<=1.10x hashbrown)."
+  },
+  {
+   "scenario": "Tiny map/set (n <= ~8-16, allocation- and hash-cost dominated)",
+   "verdict": "PAR",
+   "how": "INLINE knob on the same map: inline linear-scan pairs until spill (SsoHashMap/SmallDenseMap shape) \u2014 skips hashing and allocation at tiny n; a knob, not a form."
+  },
+  {
+   "scenario": "Ordered map with range queries (B-tree class)",
+   "verdict": "PAR",
+   "how": "Sealed B-tree omap with fanout ~11-16 and region-tied range cursors; genuinely a second associative form per the map's own analysis; RB-tree-class shapes are not in the catalog at all, so the fail shape is unwritable."
+  },
+  {
+   "scenario": "Bounded cache with eviction (LRU class)",
+   "verdict": "PAR",
+   "how": "Taught composition exactly as the map prescribes: map (handle values) + pool slab + embedded u32/handle recency links as plain copy fields; CLOCK/S3-FIFO are link-discipline variants of the same pattern. The required micro-capability (embedded index links) exists because handles are data."
+  },
+  {
+   "scenario": "Interning / deduplication (value -> stable small id)",
+   "verdict": "PAR",
+   "how": "Taught composition: arena byte store + map.find_by with an env-struct comparator resolving (offset,len) spans against the arena (borrowed-key probe, no allocation) + id vector; branded ids serve as symbols; the real requirement the map identified \u2014 borrowed-key lookup \u2014 is a map op, delivered."
+  },
+  {
+   "scenario": "Concurrent hash map (shared read-mostly or sharded-write lookup)",
+   "verdict": "PARTIAL",
+   "how": "Sharded = checked composition (array<mutex<map>> + hash-bit shard pick) reaches dashmap-class for mixed loads; read-copy tables via shared<T> snapshot cell reach arc-swap-class linear read scaling. MISSING: papaya/evmap-class per-key-mutable read-mostly maps with linear read scaling \u2014 that needs exposed deferred reclamation, deliberately deferred; workloads needing per-key writes AND wait-free reads fall back to sharding's ~1.5-2x tax."
+  },
+  {
+   "scenario": "Bump arena (mass-free allocation for build-then-drop object graphs)",
+   "verdict": "PAR",
+   "how": "Existing arena<'r,T> + branded id<'r,T>: bump-class ~1-2 ns alloc, check-free deref by brand, cross-references as plain id fields with allocation-order locality; reset-reuse via the existing region staircase (fresh brand statically kills old ids). Matches bumpalo and beats safe-Rust checked-index arenas on deref."
+  },
+  {
+   "scenario": "Slab/pool with generational handles (stable identity + individual free)",
+   "verdict": "PAR",
+   "how": "Sealed pool: intrusive freelist reuse without re-zeroing, per-slot generation, get->option stale detection (never trap/alias) \u2014 slotmap-class ~2-5 ns insert/remove, 8-byte copy handles; also the safety keystone: detected-stale replaces well-typed UAF, so it strengthens T1 rather than taxing it."
+  },
+  {
+   "scenario": "Graphs (CFGs, dependency graphs, meshes) via index adjacency",
+   "verdict": "PAR",
+   "how": "Taught two-phase pattern over existing forms: build as vec-of-vecs keyed by u32/branded ids, freeze to CSR (two vecs); u32 ids halve traversal bytes; nothing new needed beyond ergonomic parallel arrays, which branded ids give."
+  },
+  {
+   "scenario": "Trees with parent pointers / cross-links (navigable node soups)",
+   "verdict": "PAR",
+   "how": "Taught pattern: nodes in pool (or arena for build-then-drop), parent/child/sibling as handle/id fields \u2014 the rowan/indextree shape; detach/reattach = 3-5 index stores; parent pointers are plain data, the exact safe-Rust production answer, within ~10-20% of pointer DOMs."
+  },
+  {
+   "scenario": "Intrusive lists / membership links (O(1) unlink from within the element)",
+   "verdict": "PAR",
+   "how": "Embedded index links inside pool elements: unlink = 2-4 stores to already-fetched lines + one base add, measured-parity class with list_del; multi-list membership = multiple link-pair fields. The irreducible residue (links through unowned free memory) exists only inside the sealed allocator, where it belongs."
+  },
+  {
+   "scenario": "Deque / FIFO work buffer (single-threaded)",
+   "verdict": "PAR",
+   "how": "Sealed deque as vec's ring sibling: masked power-of-two indices, push/pop ~2-3 ns, as_views two-slice access, one-memcpy growth \u2014 VecDeque-class by construction; chunked/linked fail shapes are not writable."
+  },
+  {
+   "scenario": "SPSC ring buffer (two-thread streaming handoff)",
+   "verdict": "PAR",
+   "how": "Sealed Lamport-refined ring (padded counters, cached opposing index, acquire/release only) with AFFINE endpoints: single-producer/single-consumer is a compile-time linearity fact, so the zero-RMW mechanism is retained safely \u2014 rtrb-class ~8-15 ns round trip, batched reserve/commit; also the minimal two-thread handoff the safety model types natively."
+  },
+  {
+   "scenario": "MPMC bounded queue (many-to-many channel buffer layer)",
+   "verdict": "PAR",
+   "how": "Sealed Vyukov queue (per-slot sequence numbers, one RMW per op, slot-local publication) with cloneable endpoints and move-through ownership; futex-parked blocking recv; Mutex<VecDeque>-class collapse is unwritable because that composition isn't taught and the sealed form is the one spelling."
+  },
+  {
+   "scenario": "Priority queue (heap) and the timer specialization",
+   "verdict": "PAR",
+   "how": "Checked-library implicit 4-ary heap over vec (pure index math, elidable checks, upper levels L1-resident) with taught lazy-deletion for decrease-key; timer wheel = taught composition (bucket array + embedded links + masked index) exactly as the map prescribes \u2014 O(1) insert/cancel at any count."
+  },
+  {
+   "scenario": "Work-stealing deque (per-worker task queue with thief end)",
+   "verdict": "PAR",
+   "how": "Sealed Chase-Lev inside the parallel runtime, with owner push/pop + steal also exposed as wsdeque ops for runtime authors; the SeqCst-fence proof is done once in TCB under model checking \u2014 the map's own recommendation (proved-once facade, never rewritten by ordinary writers)."
+  },
+  {
+   "scenario": "Single/few-byte scanning (memchr class)",
+   "verdict": "PAR",
+   "how": "Checked-library kernels over the SIMD core: 32B compare + movemask + tzcnt, unrolled main loop, margin-covered tails, per-block bounds hoisted by requires facts; short-input path taught as a skeleton. Gated by experiment 2 (>=0.85x memchr crate)."
+  },
+  {
+   "scenario": "Block-parallel validation and structural indexing (simdjson/simdutf class)",
+   "verdict": "PAR",
+   "how": "Same checked substrate: pshufb-as-table shuffle, clmul named intrinsic for quote masks, u64-bitmask-per-64B accumulation, zero data-dependent branches; taught as the block-classifier kernel skeleton (an existing pattern-family fit: branchless classifier P7 generalized to lanes)."
+  },
+  {
+   "scenario": "Serialization/deserialization of structured messages",
+   "verdict": "PAR",
+   "how": "Three prescribed sub-shapes delivered: POD blit via layout views (memcpy-class); varint/TLV via checked cursor with one 8B unaligned load per field and per-message hoisted checks (upb/prost shape); offset-graph zero-copy via schema-instantiated validate-then-view; encode into vec<u8> with reserve (0-1 allocations/message)."
+  },
+  {
+   "scenario": "Checksums and non-cryptographic hashing",
+   "verdict": "PAR",
+   "how": "Checked kernels over wide loads + widening mul + clmul + hardware crc32step with 3-stream interleave; short-key branch-minimal paths; both demand profiles (latency-at-16B, bulk GB/s) are pure register math with no ownership surface \u2014 the easiest checked-source par in the map."
+  },
+  {
+   "scenario": "Compression codec inner loops (LZ + entropy)",
+   "verdict": "PARTIAL",
+   "how": "The two required sub-shapes are designed in: margin buffers legalize 32B wild copies without per-copy length loops, and copy_within with defined overlap semantics + multi-stream bit readers over padded input give the FSE/Huffman shape. But checked-source parity here is UNPROVEN and is the riskiest claim in the design \u2014 preregistered as experiment 3, with the fallback (sealed codec kernels) preregistered too. Until it passes, this row is not PAR."
+  },
+  {
+   "scenario": "Zero-copy typed views over binary layouts (packets, pages, records)",
+   "verdict": "PAR",
+   "how": "Schema-instantiated layout views: one upfront validation, then every field access is guaranteed single-load(+bswap) with an asm-diff parity gate vs C packed structs; variable-offset internals hand off to the checked cursor with once-proven facts \u2014 and unlike zerocopy/bytemuck, the validator is machine-generated, not trusted derive code."
+  },
+  {
+   "scenario": "General-purpose allocator fast path (mimalloc/jemalloc class)",
+   "verdict": "PAR",
+   "how": "n=1 sealed runtime allocator with mimalloc-class internals (TLS heaps, size-class freelists, batched remote frees, ~15-25 ns pair); all containers route through it invisibly. Honest residue stated: AUTHORING a new allocator in checked xlang is out of scope by design \u2014 its internals are the canonical type-changing-reuse shape and stay TCB."
+  },
+  {
+   "scenario": "Arena / bump allocation with scope-lifetime free",
+   "verdict": "PAR",
+   "how": "Same form as the F3 bump arena row: 2-4 instruction alloc, compiler-derived drops at region exit for drop-carrying T (mode a), reset-reuse via region staircase whose freshness proof is exactly the existing lexical-region discipline (mode b) \u2014 one catalog entry, two modes, as the map prescribes."
+  },
+  {
+   "scenario": "Slot pools / slabs: O(1) reuse without re-zeroing",
+   "verdict": "PAR",
+   "how": "Sealed pool recycles slots with no memset (TCB internals overwrite by construction; generations guard staleness): insert/remove ~2-5 ns, iteration at vec-class speed; the concurrent multi-producer variant is deliberately routed to sharded pools + channels (concurrency family), as the map suggests."
+  },
+  {
+   "scenario": "Uninitialized buffers: zero-init avoidance with tracked init extent",
+   "verdict": "PAR",
+   "how": "vec spare-capacity + the uninit-extent loan: sealed fillers (read/recv/decoder kernels) receive the uninitialized tail and len advances by the returned count; checked writers use cursor/push ops that maintain the extent by construction; the pass gate is codegen inspection showing zero memset in the read path (C parity). Field-wise struct init tracking is explicitly NOT included (smaller feature, deferred)."
+  },
+  {
+   "scenario": "Memory-mapped data: file-backed byte regions",
+   "verdict": "PARTIAL",
+   "how": "Read-only filemap + layout views covers LMDB-read/ripgrep/index workloads at par, with SIGBUS-on-truncation converted to a defined deterministic trap and an optional advisory-lock discipline. MISSING: shared-mutable MAP_SHARED (external-writer IPC) \u2014 it breaks single-process aliasing proofs and is deferred rather than faked; the map itself calls this split honest to bless separately or defer."
+  },
+  {
+   "scenario": "Portable SIMD vector types with runtime ISA dispatch",
+   "verdict": "PAR",
+   "how": "Language-primitive vector core + closed named-intrinsic escape + one-time dispatch attribute \u2014 the highway/std::simd recipe with the escape inside the same type system; the par bar (reproduce memchr/simdutf numbers when written in it) is exactly experiment 2."
+  },
+  {
+   "scenario": "Unaligned loads, endianness, and alignment control",
+   "verdict": "PAR",
+   "how": "load_le/be with guaranteed 1-mov(+bswap) lowering (asm parity gate), align(N) on types/allocations, padded<T> for false-sharing; the map's own n=1 verdict \u2014 one clean surface, no split."
+  },
+  {
+   "scenario": "Word-level bit operations: popcount/ctz/clz/pdep-pext and set-bit iteration",
+   "verdict": "PAR",
+   "how": "Fixed single-instruction method table + the taught x&=x-1 set-bit iteration idiom; pdep/pext carry a declared dispatch fallback for pre-Zen3 AMD; pure value ops, zero checker surface \u2014 the sealed map's probe loop and roaring-class structures bottom out here exactly."
+  },
+  {
+   "scenario": "Branchless selection and predication (cmov class)",
+   "verdict": "PAR",
+   "how": "select(c,a,b) with a perf tier (guaranteed cmov-class lowering, writer chooses per site) and a strict tier (verified never-branch for constant-time) \u2014 the two guarantee strengths the map asks for, one form; powers the checked sort/search kernels directly."
+  },
+  {
+   "scenario": "Software prefetch and non-temporal memory streams",
+   "verdict": "PAR",
+   "how": "prefetch(place) with vacuous semantics (never faults, exempt from validity obligations \u2014 checkable as a no-op) plus NT flags on bulk copy/fill; the compute-N-addresses-then-process batching idiom is expressible in ordinary loops since it is scheduling, not shape."
+  },
+  {
+   "scenario": "Thread lifecycle: spawn/join, worker pools, thread-local state",
+   "verdict": "PAR",
+   "how": "Region-scoped spawn (join-before-region-end reuses the lexical-region checker \u2014 the same proof shape as arena drop), sealed pools amortizing spawn, and per-worker env structs replacing writer-visible TLS (the profiler/allocator-grade static TLS lives inside TCB kernels where it is needed); borrowed-capture scoped spawn is exactly crossbeam::scope's contract, natively typed."
+  },
+  {
+   "scenario": "Atomic cells and the memory-ordering vocabulary",
+   "verdict": "PAR",
+   "how": "The closed trio (relaxed counter, acquire/release flag/once, publish via snapshot cell/channels/mutex) covers the ~95% stereotyped uses at hardware par; orderings are fixed per sealed form (so ARM pays no blanket SeqCst tax, x86 pays nothing); the C11 menu is absent BY DESIGN \u2014 implementer-grade needs are absorbed into project TCB, per the map's own analysis."
+  },
+  {
+   "scenario": "Mutual exclusion: mutex, rwlock, one-time init",
+   "verdict": "PAR",
+   "how": "Sealed word-sized futex adaptive mutex-protecting-data with affine guards (~10-20 ns uncontended), condvar, once; the read-mostly split is answered as the map prescribes: NO rwlock \u2014 the snapshot cell is the taught read-mostly form, so the reader-count plateau is unwritable."
+  },
+  {
+   "scenario": "Queues and channels: SPSC ring vs MPMC channel",
+   "verdict": "PAR",
+   "how": "Both shapes shipped sealed; the map's wished-for unification condition \u2014 'a language with linear endpoint types could prove endpoint uniqueness' \u2014 is literally this design: affine endpoints make SPSC's zero-RMW mechanism a typed fact, and MPMC keeps Vyukov internals with parking-integrated blocking."
+  },
+  {
+   "scenario": "Concurrent keyed state: sharded maps and read-mostly tables",
+   "verdict": "PARTIAL",
+   "how": "Sharded-lock map (checked composition) at dashmap-class for mixed loads; whole-table read-copy via snapshot cell at arc-swap-class (~2 ns reads); shard-by-thread composes from worker env structs + plain maps. MISSING: folly-CHM/papaya-class per-key-mutable wait-free-read tables (needs exposed reclamation) \u2014 same honest hole as the F2 concurrent-map row."
+  },
+  {
+   "scenario": "Safe memory reclamation (epoch/hazard/RCU class)",
+   "verdict": "PAR",
+   "how": "The map's 'strongest hide-it candidate' verdict is adopted wholesale: epoch reclamation lives invisibly inside the sealed snapshot cell and concurrent forms (pin ~2 ns class), consumers never see retire lists; the consequence \u2014 users cannot build NOVEL lock-free linked structures \u2014 is accepted and stated, with project-TCB extension as the\u8def... the escalation path being a new sealed form plus hostile review (a catalog finding, not a user problem)."
+  },
+  {
+   "scenario": "Data parallelism: parallel-for / fork-join with work stealing",
+   "verdict": "WIN",
+   "how": "Sealed rayon-shape runtime (Chase-Lev interior, geometric splitting, ~20-50 ns task overhead, bandwidth-bound ceiling) reaches rayon par; the WIN: parallel_reduce requires checked assoc/identity laws, so the optimizer may legally reassociate and vectorize reductions (including float and overflow-checked-int reductions) that C/C++/Rust compilers must refuse \u2014 the measured 3.3x checked-law reassociation result is exactly this mechanism, and disjoint-chunk mutation is proof-by-construction via consuming split_at."
+  },
+  {
+   "scenario": "Buffered sequential file I/O",
+   "verdict": "PAR",
+   "how": "Sealed buffered streams with region-tied fill_buf/consume (zero-copy in-place parsing, ripgrep-class), read_into vec spare capacity with zero memset (codegen-gated), explicit flush, plus the O_DIRECT aligned mode the database audience requires \u2014 both prescribed forms, one family."
+  },
+  {
+   "scenario": "Network sockets: TCP/UDP request paths",
+   "verdict": "PAR",
+   "how": "Sockets ride the completion ring (or classic nonblocking mode): vectored writes, multishot accept/recv, REUSEPORT sharding as a taught per-core pattern, steady-state allocation-free via moved-buffer recycling; UDP batching (recvmmsg/GSO) exposed as ring op variants; kernel-bypass (DPDK/XDP) excluded from the catalog as the map permits."
+  },
+  {
+   "scenario": "Readiness/completion multiplexing (epoll/kqueue/io_uring/IOCP class)",
+   "verdict": "PAR",
+   "how": "ONE completion-style sealed interface (submit ops, await completions, integrated timers/cancel) lowering to io_uring or epoll emulation \u2014 the tokio/libuv-proven portability layer; the safety crux the map names (buffer loaned to the kernel until completion) is a native affine move, nonforgeable by construction, which also unlocks registered fixed buffers by default."
+  },
+  {
+   "scenario": "mmap and shared memory",
+   "verdict": "PARTIAL",
+   "how": "Read-only private maps: PAR via filemap + layout views + madvise/hugepage flags (LMDB-read/mold-input class), SIGBUS defined as a deterministic trap. MISSING: writable MAP_SHARED IPC and mmap-written outputs (mold-style) \u2014 external writers break the aliasing proof; deferred with an explicit escalation path (a future volatile-bytes sealed form) rather than a fake row; anonymous hugepage arenas hide inside the allocator."
+  },
+  {
+   "scenario": "Durability ordering: fsync discipline and write-ahead logging",
+   "verdict": "PAR",
+   "how": "The map's prescription implemented exactly: low-level layer (per-fd fdatasync, directory sync, atomic rename, O_DSYNC flag) as file-form ops, plus checked-library WAL (group commit, checksummed frames via the crc kernel) and atomic-file-replace recipes; group-commit batching is sequencing logic \u2014 pure checked source."
+  },
+  {
+   "scenario": "FFI call boundary (calling and being called by C)",
+   "verdict": "PARTIAL",
+   "how": "Out-calls: PAR \u2014 bare ABI calls (~1-2 ns), repr(C) layouts, pointer+len from views, declarations confined to toolchain-gated human-approved trusted records with stated ownership contracts (the containment discipline the map demands). MISSING: C-calls-xlang entry points and long-lived callback registration \u2014 deferred; hot-loop out-call workloads (BLAS, codecs) are fully served, plugin-ABI hosting is not yet."
+  },
+  {
+   "scenario": "Process and OS services: spawn, time, entropy, signals",
+   "verdict": "PAR",
+   "how": "Sealed facade: posix_spawn-backed process spawn (~60 us regardless of parent RSS), vDSO clocks (~25 ns), buffered CSPRNG entropy (~2-5 ns), signals surfaced only as a shutdown flag/channel \u2014 all differentiating choices are implementation-internal, the map's clearest n=1 case."
+  }
+ ],
+ "tcb": "Exact added trusted surface, in a ledger with a hard cap (~15k LOC of kernel code total, enumerated per kernel, no additions without owner-visible review): (1) runtime allocator (mimalloc-class, ~4-5k LOC) \u2014 the largest single item; (2) sequence-family kernel (vec/deque storage, growth, inline spill, slot moves, ~300 LOC); (3) map kernel (SwissTable control/slot coupling, rehash, entry-token internals, ~2k LOC); (4) omap kernel (B-tree nodes, ~1.5k LOC); (5) pool kernel (freelist slot reuse + generations, ~200 LOC); (6) concurrency kernels (futex mutex/once/condvar, SPSC ring, Vyukov MPMC, snapshot cell + epoch reclamation, Chase-Lev deque + scoped-thread runtime, ~3k LOC); (7) I/O layer (buffered/direct file, completion ring with io_uring/epoll lowerings, filemap, OS facade, ~4k LOC); (8) compiler-side trusted lowerings (SIMD op tables + dispatch, layout-view codegen, select/endian-load lowering guarantees) \u2014 these extend the existing compiler TCB and are gated by the existing codegen-parity + corpus infrastructure; (9) per-declaration extern-C trusted records (human-approved, toolchain-gated \u2014 the only per-instance trust, and it is the class the constitution already legitimizes). Verification story, per kernel class: hostile adversarial review BEFORE shipping (standing rule \u2014 every sealed op contract is a fact channel); concurrency kernels additionally get exhaustive small-bound model checking (all interleavings for <=4 threads x <=6 ops, loom/GenMC-style) plus per-architecture litmus suites (x86-TSO and ARM weak); data-structure kernels get differential fuzzing against behavioral oracles (hashbrown, BTreeMap, slotmap, VecDeque, crossbeam, rtrb, liburing) and sanitizer-instrumented isolation builds; every kernel gets a frozen conformance suite pinning its op contract; the DRF-by-construction theorem (no unsynchronized shared mutation is typeable, therefore sealed-form publication contracts compose to SC-for-DRF) gets a paper-grade review as the single most safety-critical claim. Nothing in the TCB is writer-suppliable: ordinary source cannot declare externs, replace the allocator, or open a sealed type.",
+ "checker_story": "The checker gains six genuinely new decisions, all syntax-directed and deterministic, none requiring inference: (1) brand matching for id<'r,T> \u2014 syntactic equality of the region variable on the id's type against the arena's region, which the lexical-region machinery already tracks for slices; (2) compile-time constant arithmetic for margins and layouts \u2014 comparing declared constant offsets/widths against a constant M or layout size, the same constant-folding already required for array<T,N>; (3) layout-schema wellformedness \u2014 offsets/sizes/alignment are declared constants checked for overlap/bounds once per declaration, then field access is a table lookup; (4) the share/send judgment \u2014 a transitive structural bit per type computed exactly like a Copy bit (sendable: contains no borrow, which data already cannot; shareable-by-&: contains no sealed interior-mutable cell, a per-builtin flag), no flow analysis; (5) scoped spawn \u2014 reuses the existing lexical-region discipline verbatim: a spawned thread's obligations close at region end exactly as an arena's drop does, so no new escape analysis exists; (6) linear endpoints and I/O buffer loans \u2014 these are ordinary affine moves through the existing move rules; the checker does nothing new at all. Effect rows gain two labels (io, blocks) handled by the existing row machinery; requires-prologue elision extends unchanged to the new load ops (a bounds fact is a bounds fact). Sealed-form ops typecheck as ordinary function signatures \u2014 the checker enforces client obligations only and never looks inside a kernel. The reject-when-unsure posture is preserved everywhere: every new judgment is a structural yes/no over declared constants and type structure, so the checker remains frontend-simple with zero Rust-scale inference, and every rejection has a one-line reason naming the failed structural condition.",
+ "ai_writability": "A mid-tier model can use this catalog from the spec alone because every scenario has exactly one taught spelling and misuse is either a compile error with a structural reason or a deterministic trap \u2014 never UB, never a silent perf cliff into an untaught shape (the fail shapes of the demand map \u2014 chained maps, linked deques, mutex-wrapped queues \u2014 are simply not in the catalog and mostly not writable). Form selection is a taught 3-question decision tree (lifetime shape: scoped-mass-free -> arena / churn-with-identity -> pool / sequence -> vec; lookup: unordered -> map / ranged -> omap; crossing threads: handoff -> channel / shared-read -> snapshot / shared-mutate -> mutex or shard). The historically hard parts of systems code are removed from the writer's plate entirely: there are no memory orderings to choose (the vocabulary is three fixed-ordering cells plus sealed forms), no lifetime puzzles in data (handles and ids are Copy data, borrows still cannot be stored), no closure capture semantics (env structs), and the concurrency-splitting proofs (endpoint uniqueness, buffer loans, disjoint chunks) fall out of affine moves the writer already performs. Declarative surfaces (layout schemas, extern records, dispatch attributes) are fill-in-the-table forms, the easiest genre for weak writers. The worst teaching hazard: SIMD kernel authorship \u2014 lane-width arithmetic, mask/tail handling, and dispatch-variant equivalence are genuinely subtle, and a weak writer can produce a correct-but-3x-slow kernel or a subtly wrong mask that is safe but wrong; mitigation is that F5 ships finished checked kernels (memchr/utf8/json/hash) so ordinary writers CALL rather than WRITE them, the block-classifier skeleton is taught as a fill-in pattern for new kernels, and wrongness is always a value bug caught by tests, never a memory-safety event. Secondary hazard: arena-vs-pool misselection (choosing never-freed arena for churny registries leaks; choosing pool for build-then-drop wastes generations) \u2014 a perf/memory finding, not a soundness one, and the decision tree's first question targets it directly.",
+ "risks": [
+  "The DRF-by-construction theorem is the single point of catastrophic failure: one hole in the share judgment (e.g., a sealed form leaking an internal reference, or a Copy type smuggling a shareable cell) reinstates data races. Mitigation: paper-grade review + model checking, and the judgment's deliberate structural crudeness (reject-when-unsure).",
+  "Margin buffers are a new fact channel: 'writes past len are unobservable' must survive adversarial review, especially interaction with views, moves, and the optimizer's dead-store elimination; a leak of margin bytes into observable state would be an info-flow bug and a soundness embarrassment. Hostile review before shipping is mandatory (standing rule applies).",
+  "Codec parity (experiment 3) may fail, and with it the claim that F5 is fully checked-source; the preregistered fallback (sealed codec kernels) grows the TCB by the exact kind of large per-format trusted code the design tries to avoid.",
+  "Sealed-form op-contract creep: the entry-token API, cursor handoffs, and ring completion semantics are subtle contracts; each ambiguity discovered post-ship either breaks writers or grows the spec. The catalog appendix (op signatures + contracts) is itself ~4-6k tokens of taught material \u2014 the real D2 pressure is catalog size, not kernel rule count, and must be token-budgeted and measured.",
+  "TCB growth pressure is structural: every future par gap will tempt a new sealed kernel (the papaya-class map, shared-mutable mmap, inbound FFI are already queued); without the ledger cap and owner-visible review, the 'no unsafe escape' claim erodes into 'unsafe lives in an ever-growing blessed basement'.",
+  "Closing user-space lock-free authorship (no exposed reclamation, no raw atomics) bets that the sealed concurrent catalog is complete enough; a systems audience that needs one novel lock-free structure the project won't ship walks away \u2014 the escalation path (project-authored sealed form per request) has real latency.",
+  "Checked-source SIMD kernels must be re-proven at par per ISA (AVX-512, SVE, NEON quirks like missing movemask); dispatch-table and lowering-guarantee maintenance is permanent compiler-TCB work, and a regression there silently un-pars all of F5.",
+  "The one-probe entry API without closures (affine vacancy token) is novel; if the token's region discipline proves too restrictive in real writer code (e.g., needing map growth between entry() and insert_at()), the fallback is two probes \u2014 a measurable get-or-insert regression on counter/cache workloads.",
+  "Composition patterns (LRU, interner, timer wheel, sharded map) are claimed at par via composition tests that have not run; a miss (e.g., find_by env-comparator overhead breaking interning's 2x bar) converts a REJECT row into a needed capability late."
+ ],
+ "first_experiments": [
+  "EXP-1 (sealed associative par): implement the sealed map kernel (SwissTable internals, affine-token entry API) plus the checked foldhash-class default hasher; run the locked workload \u2014 1M uniform-random u64->u64, DRAM-resident, measuring lookup-hit ns/op, insert-with-growth amortized ns/op, and a get-or-insert counter loop via the entry token \u2014 against hashbrown 0.15+foldhash on the same host, same allocator class. PASS: all three within 1.10x of hashbrown. FAIL: any metric >1.25x, or the entry-token API cannot express one-probe get-or-insert (design fault, not tuning fault). Between bands: one rerun after fixing identified mechanical issues, then verdict. No tuning of the protocol from its result.",
+  "EXP-2 (checked-source SIMD par): write memchr (find-first, rare-needle) as CHECKED xlang source over the SIMD core: dispatch(avx2) kernel, 32B compares + movemask + tzcnt, margin-covered tail, requires-prologue hoisting the per-block bounds checks; verify by report that zero bounds checks remain in the main loop, then benchmark 16KB and 1MB random haystacks plus <=16B short inputs against memchr crate 2.7. PASS: >=0.85x memchr's GB/s on both long-haystack sizes AND <=2.0x its ns on short inputs AND the elision report confirms all main-loop checks discharged (not weakened \u2014 discharged). FAIL: <0.70x bulk throughput, or any main-loop check surviving undischarged while claiming the number.",
+  "EXP-3 (margin-buffer codec bet \u2014 the riskiest delta): implement an LZ4-block decompressor as checked source: output vec<u8> with margin 32, wild copies as margined 32B vector stores, overlapping matches via the defined copy_within, input as validated margin bytes with amortized cursor checks; benchmark single-core GB/s on the Silesia corpus against LZ4 1.9 reference decode, with malformed-input fuzzing (must error, never trap mid-buffer into corrupt state, never expose margin bytes). PASS: >=0.75x LZ4 1.9 GB/s with all fuzz properties holding. FAIL: <0.60x, or any fuzz property violation \u2014 preregistered consequence of FAIL: the margin delta is retained only if EXP-2 needed it for tails, and codecs move to sealed TCB kernels; the coverage row stays PARTIAL and says so."
+ ]
+}

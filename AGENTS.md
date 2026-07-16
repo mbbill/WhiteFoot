@@ -69,30 +69,28 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - `archive/` — superseded plans, the research-era record, shelved harnesses.
   Read-only context; nothing in it gates anything.
 
-## Current focus (2026-07-15)
+## Current focus (2026-07-16)
 
-- B-Strata is the sole active minimal systems-capability architecture under
-  `optimizer-language-research/implementation/minimal-systems-capability/
-  CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. The outcome must be `STRATA-YES` with a
-  normalized minimal core, safe closure of the same fourteen frozen Hashbrown,
-  mimalloc, SQLite, and Crossbeam performance demands, hostile safety and
-  erasure review, implementable checking/lowering, and bounded performance and
-  resource evidence; or `STRATA-NO` with an irreducible reason. Reference
-  source operations are fixed baselines and stress cases, not mandatory final
-  data structures. A safe substitute is admissible when it preserves the
-  frozen consumer contract and meets preregistered non-inferiority and resource
-  bands; exact source-route failure alone is not NO. Do not pivot to Candidate C
-  or develop B-Graphs as a competing design. Phase 1 treats the existing eight
-  strata as analytical jobs and produces a working upper-bound core. Phase 2
-  freezes a bounded reference/substitute frontier; after evidence, one passing
-  route per demand determines the final reduced core. A paper YES is required
-  before safety modeling, and a model YES before the smallest preregistered
-  prototypes, generated-code inspection, or measurement. Keep the four-project/
-  fourteen-demand corpus fixed, the 340 unresolved dense obligations across
-  150 contexts visible, and exact D-2/P-1 fail-closed. No production language,
-  specification, checker, compiler, verifier, runtime, standard-library,
-  container, xlc, migration, fact-channel, teaching, or shipping change is
-  authorized before the final verdict and separate landing review.
+- D15 systems-performance coverage research is the active capability track:
+  for most systems-programming scenarios, at least one blessed way of writing
+  must reach or exceed the best existing implementations; the form count n
+  stays small under spec compactness; line-by-line reproduction is not
+  required; compiler-known forms with disciplined trusted internals are
+  admissible. The D14 B-Strata-only lock is suspended; all prior candidate
+  artifacts (B-Strata core and plan included) remain historical evidence and
+  falsifiers. The first fresh pass is complete and durably recorded in
+  `optimizer-language-research/implementation/systems-performance-coverage/`
+  (51-scenario demand map, four independent designs, twelve hostile attacks,
+  cross-design judgment). Recommended: a three-tier architecture (narrow
+  language core + sealed parameterized taught forms + composition cards,
+  ~14 spec-object families, ~60-75 kernel rules + <=40k-token catalog
+  appendix), conditional on gate #1 — a decidable loan/freeze judgment plus
+  confined borrow-carrying values. Validation ladder M1-M10 is preregistered
+  with frozen pass/fail bands; M1 runs first and can kill the architecture.
+  Owner decision points are listed in the recommendation document; no
+  production language, specification, checker, compiler, verifier, runtime,
+  standard-library, container, xlc, migration, fact-channel, teaching, or
+  shipping change is authorized before those decisions.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

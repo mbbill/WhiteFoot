@@ -1,0 +1,444 @@
+{
+ "stance": "PARAMETERIZED FORM SCHEMAS: the compiler knows a small set of form GENERATORS (schemas), each fixing an invariant + state machine + verified lowering template + fixed op set; source instantiates schemas with types, compile-time integers, and policies drawn from CLOSED enumerations (data, never code). Writers get many concrete containers from few spec objects; the spec teaches n schemas, not n\u00d7k containers.",
+ "summary": "A schema \u03a3 is a spec object with five fixed parts: (1) a machine-checkable invariant I_\u03a3 over instance memory (e.g. table: ctrl[i]=FULL(h) \u27fa slot i initialized with key k where h=h2(hash(k)); len \u2264 7/8\u00b7cap; cap \u2208 2^k; 16B ctrl mirror tail); (2) a parameter signature \u2014 type params with capability bounds (Copy/Movable/Droppable), integer params with declared bounds, policy params from closed finite enums, and at most bounded checked plug-points (pure xlang functions with empty write/alloc effect rows) covered by a once-proved safety-independence lemma (a wrong hasher/comparator can produce wrong ANSWERS, provably never a violation of I_\u03a3 \u2014 exactly how SwissTable already survives bad Hash impls); (3) a fixed operation set with fixed ownership signatures and failure semantics (Option vs trap), one spelling each (R3); (4) a verified lowering template in kernel IR whose T1/T2 obligations are discharged ONCE, for all parameters, by a machine-checked proof shipped as a toolchain artifact \u2014 instantiation is substitution + monomorphization with only syntactic side-condition checks; (5) an optimizer fact sheet: invariant clauses exported at op boundaries into the existing requires-prologue engine (e.g. reserve(n) exports cap-slack(n), eliding growth/bounds checks in counted loops \u2014 the mechanism already measured at 27/27 discharged, 1.71x). The catalog is 11 schemas (seq, ring, table, btree, pool, region, bytescan, view, cursor, conc_queue, shard), 1 checked-library algorithm kit (sort/search/heap/format), 5 builtin-TCB facades (alloc, sync vocabulary, threads+par, io, rcu_table), and 2 language-primitive bundles (machine core: vectors/endian/bitops/select/prefetch; buffer core: margin_slice + wbuf). Concurrency is DRF-by-construction: all cross-thread state flows through the closed sync/queue vocabulary with affine endpoint tokens, so the spec needs publication happens-before rules, not a C11 ordering menu. Sequential schema templates are machine-verified, NOT trusted; the TCB is confined to five concurrency kernels, the allocator, io/syscall glue, intrinsic lowerings, and audited FFI records. Demonstration depth: table instantiates to hashbrown-0.15-shape (SIMD group probe, 7-bit h2 fragments, tombstone group elision, affine one-shot entry token = one hash one probe); seq instantiates to Vec/SmallVec/builder (ptr,len,cap; inline=N knob; growth \u2208 {x2,x1.5}; slice view carries facts). Checker work per instantiation is O(|template|), memoized, fully syntactic.",
+ "forms": [
+  {
+   "name": "seq \u2014 contiguous growable sequence (schema \u03a31)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (T: Movable; inline N \u2265 0 default 0; growth \u2208 {x2, x1p5}). Ops: new/with_cap; push(&uniq self, T) amortized O(1) (allocates effect; OOM traps at boundary); pop -> Option<T>; get(&self,i) -> &T checked (elidable by facts); set/get_uniq; reserve(n) exports fact cap_slack(n); truncate; view(&self) -> slice<'r,T>; view_uniq; move-out whole. Owns elements; drop is compiler-derived. Out-of-bounds = deterministic trap.",
+   "perf_mechanism": "(ptr,len,cap) triple, geometric growth, tail-line append = 1 predicted branch + 1 store; growth = bulk move at DRAM bandwidth; slice view gives stride-1 vectorizable iteration; inline=N puts N slots in the owner footprint (SmallVector-class malloc elimination); reserve fact + counted loop discharges the capacity check per push \u2014 Vec-class by construction, occasionally better via elision.",
+   "source_shape": "form Ops = seq<Op, inline=4, growth=x2>; let v = Ops.new(); Ops.reserve(&uniq v, n); loop { Ops.push(&uniq v, op); }; let s = Ops.view(&v);"
+  },
+  {
+   "name": "ring \u2014 single-threaded deque (schema \u03a32)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (T: Movable; growable | fixed(N)). Ops: push_back/push_front, pop_front/pop_back -> Option<T>, get(i) checked, as_slices -> (slice, slice), iteration front-to-back. Owns elements; grows by one bulk copy; no synchronization.",
+   "perf_mechanism": "Power-of-two buffer with masked head/tail (idx & (cap-1), 1 cycle, no branch/modulo); push/pop = one masked index update + one store/load, VecDeque-class; worklist loops stay L1-resident.",
+   "source_shape": "form Frontier = ring<u32, growable>; ring.push_back(&uniq q, n); match ring.pop_front(&uniq q) { some(n) => ..., none => break }"
+  },
+  {
+   "name": "table \u2014 open-addressing flat map/set (schema \u03a33)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (K: Movable, V: Movable (unit for set); hasher \u2208 {foldhash, siphash_keyed(seed), int_identity, crc32c}; inline N \u2208 {0,8,16}). Invariant I_table as in summary. Ops: insert(K,V) -> Option<V> (consumes both, returns displaced); get(&K) -> Option<&V>; get_uniq; remove(&K) -> Option<V>; entry(K) -> match occupied(&uniq V) | vacant(tok) where tok is an affine one-shot fill token; probe_view(key_view, view_eq plug) for borrowed-key lookup (interning) \u2014 no allocation on probe; iter; reserve(n) exports growth_slack(n). Plug-points (hasher instance, view_eq) are pure fns; safety-independence lemma: no plug output can index out of bounds.",
+   "perf_mechanism": "SwissTable template fixed: separate ctrl byte array with 7-bit h2 fragments + replicated 16B tail, 16-way SIMD group probe (movemask/NEON bridge) = filter 16 slots in ~3 instructions, triangular probe over groups, 87.5% load factor, tombstone group elision under churn; typically 2 cache lines per hit at any size; inline=N mode is a linear-scanned inline pair array until spill (SsoHashMap-class, no hash, no alloc).",
+   "source_shape": "form SymTab = table<span32, u32, hasher=foldhash>; match SymTab.entry(&uniq t, k) { occupied(v) => { ... }, vacant(tok) => SymTab.fill(tok, id) }"
+  },
+  {
+   "name": "btree \u2014 ordered map with ranges (schema \u03a34)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (K, V; key_kind \u2208 {int, lex_bytes, lex_tuple, extractor-plug to one of these}). Ops: insert/get/get_uniq/remove, range(lo,hi) in-order cursor, first/last, pred/succ, ordered iter. Extractor plug is pure; invariant (node occupancy bounds, sorted separators, leaf chaining) is template-maintained regardless of plug behavior.",
+   "perf_mechanism": "Fixed ~256B node budget, fanout 11-16, branchless/linear in-node scan; 1M entries = ~5 levels = 5-8 line touches (vs ~20 dependent misses for RB); leaves near-contiguous so range scans run near streaming bandwidth; ~16x fewer allocations than node-per-entry trees. Rust BTreeMap / absl::btree class.",
+   "source_shape": "form ByDeadline = btree<u64, TaskH, key_kind=int>; let c = ByDeadline.range(&t, lo, hi); loop { match btree.next(&uniq c) { some((k,v)) => ..., none => break } }"
+  },
+  {
+   "name": "pool \u2014 generational slot pool / slab (schema \u03a35)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (T; mode \u2208 {dense, sparse}). Handle = Copy 8-byte (idx32, gen32). Ops: insert(T) -> Handle; get(&self,h) -> match some(&T) | stale; get_uniq; remove(h) -> match some(T) | stale; iter over live slots. Slot recycling and generation bumping exist ONLY inside the verified template; gen exhaustion retires the slot (never wraps into forgeability). Stale access is a detected Option arm, never memory-unsafe.",
+   "perf_mechanism": "Dense slot array with in-place intrusive freelist (union of T and next-free), insert = pop head (1-2 line touches, ~2-5 ns, zero malloc); get = bounds + gen compare + indexed load (1 line, no chase); template proof that insert's constructor fully overwrites the slot \u21d2 recycled slots are never re-zeroed; live iteration near Vec speed. slotmap/slab class; also the substitution substrate for pointer graphs/trees/intrusive lists.",
+   "source_shape": "form Conns = pool<Conn, mode=dense>; let h = Conns.insert(&uniq p, c); match Conns.get_uniq(&uniq p, h) { some(c) => ..., stale => ... }"
+  },
+  {
+   "name": "region \u2014 bump arena with mass free (schema \u03a36, extends existing arena<'r,T>)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (drop_mode \u2208 {plain (no-drop types only), drop_at_close}; resettable flag). alloc<'r>(value) -> &'r-tied reference, heterogeneous types allowed; same-region cross-references are ordinary xlang region facts; no individual free; close frees all (running drops in drop_at_close); reset (if resettable) requires the checker's lexical proof that no 'r borrow survives, then reincarnates a fresh region id retaining chunks.",
+   "perf_mechanism": "Bump = add + compare + rarely-taken branch (~1-2 ns vs ~15-25 ns malloc), chunked geometric growth, zero per-object metadata, allocation-order spatial locality for tree/IR traversal; reset = pointer rewind. bumpalo/BumpPtrAllocator class; regions are already native so no lifetime gymnastics.",
+   "source_shape": "loop { region 'r reset(store) { let n = region.alloc<'r>(Node{...}); ... } } // store retains chunks across iterations, 'r is fresh each pass"
+  },
+  {
+   "name": "bytescan \u2014 block classifier / scan / fold kernel (schema \u03a37)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (pred \u2208 {eq1/eq2/eq3(bytes), range_set, nibble_table(2\u00d716B tables as DATA)}; carry \u2208 {none, clmul_quote_mask, utf8_range_state}; out \u2208 {first_index, last_index, all_indices, bitmask_stream, count, validate, fold(mixer \u2208 {crc32_hw_3way, clmul_fold, mul_fold_xxh3, aes_mixer}, short_path)}). Runs over borrowed slice/margin_slice; returns Option index, bitmask stream, ok/first-error, or digest; no allocation; wrong tables \u21d2 wrong classification only \u2014 all loads in-bounds-by-schema with masked head/tail.",
+   "perf_mechanism": "Fixed 64B-block pipeline: unaligned head, 4x-unrolled aligned vector loop, pshufb nibble lookups, compare-to-mask + movemask + tzcnt (NEON bridge on ARM), one-time cached ISA dispatch; zero data-dependent branches so unpredictable input costs no mispredicts; fold mode = wide loads through hw crc32/clmul/multiply mixers with a branch-minimal \u226416B path. Hosts memchr-class (20-40 GB/s), simdutf/simdjson-stage1-class, and xxh3/crc32c-class instances; the table schema's hasher enum points at fold instances.",
+   "source_shape": "form FindNl = bytescan<pred=eq1(0x0A), out=first_index>; match FindNl.run(hay) { some(i) => ..., none => ... } // catalog ships utf8_validate, json_stage1, base64, ws_skip, xxh3, crc32c as named instances"
+  },
+  {
+   "name": "view \u2014 validated typed overlay on borrowed bytes (schema \u03a38)",
+   "kind": "schema-instantiated",
+   "contract": "Param: a layout declaration L (fields with byte offset, width, endianness, alignment; fixed-size or length-prefixed sections). open<L>(bytes) -> Option<view<'r,L>> performs the one-time length/shape validation and records it as a fact; field reads/writes thereafter are proven residual-check-free; view lifetime tied to the buffer region; malformed input = none, never a fault.",
+   "perf_mechanism": "Post-validation field access = exactly 1 (possibly unaligned) load + optional bswap \u2014 zero bounds or validity branches, bit-identical to a C packed-struct dereference (zerocopy-class, verifiable by asm diff); packet header / page cell stays in 1-2 lines.",
+   "source_shape": "layout TcpHdr = { src: u16 be @0, dst: u16 be @2, seqno: u32 be @4, ..., size = 20 }; match view.open<TcpHdr>(pkt) { some(h) => { let p = view.get(h, src); }, none => ... }"
+  },
+  {
+   "name": "cursor \u2014 checked stream decoder over (margin) bytes (schema \u03a39)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (margin W \u2208 {0,8,16,32}; streams \u2208 {1,2,4} for interleaved bit-readers). Affine cursor threaded through ops: take_u8/u16/u32/u64(endian), varint_u64, take_slice(n), bits_refill/peek/consume per stream; over margin_slice<W> inputs, wide loads past the logical end are legal into the slop; ops return (cursor', value) or a truncation error arm. Includes lz_copy(dst: wbuf/margin out, offset, len): verified overlap-tolerant copy (offset < len legal) with wild vector stores into guaranteed writable slop. Malformed input = error arm, never corruption.",
+   "perf_mechanism": "Varint = one unaligned 8B load + shift/mask (no 1-10 iteration byte loop); bounds amortized: margin makes per-op over-read checks vanish, requires-facts amortize remaining checks to per-field/per-message; 2-4 interleaved bitstreams break serial refill dependency (3-4x ILP, zstd-class); lz_copy = 1-2 vector stores per match with no length loop or per-copy branch (LZ4-class 4-5 GB/s).",
+   "source_shape": "let c0 = cursor.open<margin=8>(buf); let (c1, tag) = cursor.varint_u64(c0)?; let (c2, body) = cursor.take_slice(c1, n)?;"
+  },
+  {
+   "name": "conc_queue \u2014 bounded concurrent FIFO family (schema \u03a310)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (T: Movable + Send-capability; endpoints \u2208 {spsc, mpmc, steal}; cap = 2^k). new() returns endpoint TOKENS: spsc -> (producer, consumer) both affine non-shareable (uniqueness compile-time nonforgeable); mpmc -> shareable handle; steal -> affine owner + shareable stealer. push(&uniq p, T) -> ok | full(T) (value returned \u2014 affine-safe backpressure); pop -> some(T) | empty; steal -> stolen(T) | empty | retry. Ownership transfers through the queue exactly once; kernels are trusted records behind this safe facade.",
+   "perf_mechanism": "spsc: Lamport-refined \u2014 padded per-line counters, single-writer-per-counter plain+release stores, cached opposing index \u21d2 zero RMW, ~0.1 atomic ops/item batched (rtrb/DPDK class). mpmc: Vyukov per-slot sequence numbers \u21d2 exactly one RMW/op, publication local to the slot line (crossbeam ArrayQueue class). steal: Chase-Lev \u2014 owner push/pop with no RMW (one SeqCst fence on pop, CAS only on last-element race), stealers CAS the top (crossbeam-deque class, the par runtime substrate).",
+   "source_shape": "form LogQ = conc_queue<Msg, endpoints=spsc, cap=1024>; let (p, c) = LogQ.new(); /* move p, c into threads */ match LogQ.push(&uniq p, m) { ok => ..., full(m) => backoff }"
+  },
+  {
+   "name": "shard \u2014 sharded concurrency wrapper (schema \u03a311)",
+   "kind": "schema-instantiated",
+   "contract": "Params: (F = another schema instance, typically table; k with 2^k shards; hasher tied to F's). Ops: enter(&self, key) -> affine guard token exposing &uniq F-instance for the shard (guard drop = unlock, lexical); ops on the inner instance go through the guard; weakly-consistent iteration by shard. One level of schema composition only (no shard<shard<...>>).",
+   "perf_mechanism": "Hash bits pick 1 of 2^k mutex-protected inner instances: contention confined to 1/2^k of traffic; uncontended shard lock = one uncontested CAS (~10-15 ns) + plain SwissTable probe. dashmap-class: ~1.5-2x single-thread cost per op, near-linear mixed scaling to 16 threads.",
+   "source_shape": "form Sessions = shard<table<u64, Sess, hasher=siphash_keyed>, k=6>; let g = Sessions.enter(&s, id); Sessions.inner_insert(&uniq g, id, sess);"
+  },
+  {
+   "name": "alg kit \u2014 sort / search / heap / number formatting",
+   "kind": "checked-library",
+   "contract": "sort(uniq slice; stable \u2208 {yes,no}; key_kind as btree) \u2014 O(n log n) worst case, near-O(n) on sorted runs; partition_point/binary_search over sorted slices; implicit 4-ary heap over a seq (push/pop_min/peek); itoa/ryu-class digit emission into the seq<u8> builder via the emit contract. All ordinary checked xlang source over schema forms \u2014 inside the safety proof, no TCB.",
+   "perf_mechanism": "Sort: ipnsort/driftsort-class comparison core whose branchless partition is built on the guaranteed select form (no compiler wobble), plus key_kind-driven auto-dispatch to LSB radix for u32/u64 at large n (voracious-class, ~2.5x the ipnsort bar); search: cmov-guaranteed probe (offset += (probe<key)*half); heap: 4-ary flat array halves height and packs 4 children per line; itoa: 2-digit LUT ~4 ns/u64 vs ~100 ns snprintf. Bounds inside all loops discharged by seq/slice facts.",
+   "source_shape": "alg.sort(&uniq v_view, stable=no, key_kind=int); let i = alg.partition_point(s, probe_env); heap.push(&uniq h, (key, val));"
+  },
+  {
+   "name": "sync vocabulary \u2014 mutex/once/counter/publish/condvar",
+   "kind": "builtin-TCB",
+   "contract": "mutex<T>: lock(&self) -> affine lexical guard exposing &uniq T (lock-protects-data); condvar wait/notify on a mutex; once<T>: racing init, one winner, all see initialized; counter: relaxed fetch_add/load u64; publish<T>/snapshot: release-store a frozen (immutable, Send) value, acquire-load a snapshot view \u2014 the read-mostly substitute for rwlock. This closed vocabulary is the ONLY cross-thread shared-state surface; spec gives publication happens-before, not a C11 ordering menu. DRF-by-construction preserves T1 (races unrepresentable).",
+   "perf_mechanism": "Word-sized futex adaptive mutex inline with data (~10-20 ns uncontended roundtrip, parking_lot-class, zero syscalls uncontended); once check = 1 acquire load + predicted branch (~1 ns); counter = one locked RMW (~2-7 ns uncontended); publish/snapshot read = ~2 ns acquire load writing NO shared lines (arc-swap-class linear read scaling); native acq/rel on ARM so no blanket SeqCst tax.",
+   "source_shape": "let g = mutex.lock(&state); table.insert(mutex.inner(&uniq g), k, v); /* guard drops at scope end */ let cfg = publish.load(&cfg_cell);"
+  },
+  {
+   "name": "alloc \u2014 global allocator facade",
+   "kind": "builtin-TCB",
+   "contract": "malloc/free/realloc semantics consumed implicitly by every allocating schema; cross-thread free supported; no writer-visible internals; n=1 for all consumers. Authoring a NEW allocator in-language is explicitly out of catalog (TCB-adjacent capability), a candid residue.",
+   "perf_mechanism": "mimalloc-class trusted kernel: per-thread heaps, size-class free lists embedded in pages, fast path ~10-20 instructions / 1-2 lines / zero atomics, remote frees batched onto one atomic-exchange list; ~15-25 ns pair, mimalloc-bench-class scaling.",
+   "source_shape": "invisible: box.new / seq / table growth route through it; no user-facing calls."
+  },
+  {
+   "name": "threads & par \u2014 scoped spawn, worker pool, parallel-for",
+   "kind": "builtin-TCB",
+   "contract": "spawn_scoped<'r>(env) \u2014 thread may borrow 'r data; checker proves join dominates 'r scope end (lexical); join returns value or propagates failure trap; persistent pool amortizes spawn; thread_local<T> lazy per-thread state (no atomics on access); par.for_chunks(uniq slice, chunk, worker-env-struct) and par.join(a_env, b_env) with the disjoint-split rule proving chunk disjointness; deterministic reduce via checked-law contracts (assoc/identity refuted at compile time if false).",
+   "perf_mechanism": "Chase-Lev substrate (\u03a310 steal) \u21d2 ~20-50 ns amortized task overhead, geometric splitting makes steals log-rare, parallel sum saturates socket DRAM bandwidth (rayon-class); TLS access = one segment-relative load + predicted init branch; spawn ~15 us amortized to ~0 by the pool.",
+   "source_shape": "par.for_chunks(&uniq data, 4096, SumEnv{ acc }); // env struct + contract impl, monomorphized (P5); no closures"
+  },
+  {
+   "name": "io facade \u2014 streams, sockets, completion ring, filemap, WAL, os services",
+   "kind": "builtin-TCB",
+   "contract": "io.stream: buffered read/write with fill_buf borrow-the-buffer (parse in place), explicit flush, O_DIRECT aligned mode; io.net: nonblocking sockets in an event loop, vectored writev, buffer reuse via wbuf, REUSEPORT sharding, recvmmsg/GSO sub-facade; io.ring: completion-style submit-batch/await \u2014 each in-flight op holds a LINEAR buffer-loan token (buffer inaccessible until completion returns it; nonforgeable); io.filemap: read-only frozen file map -> immutable bytes with owned SIGBUS discipline (lock-or-copy default, defined trap otherwise); io.wal: durable append log (group commit, checksummed frames) + atomic-file-replace + low-level escape (fdatasync/dirsync/order); io.os: posix_spawn processes, vDSO clocks, buffered CSPRNG entropy, shutdown signal hook. Errors are explicit result arms; traps only at declared boundaries.",
+   "perf_mechanism": "64-256KB buffering amortizes ~300-600 ns syscalls to ~0.01 ns/byte with zero-copy in-buffer parsing; io_uring lowering drops syscalls/op below 1 (epoll emulation elsewhere at mio-class); warm map access = pure loads, zero syscalls/copies; WAL group commit turns fsync-per-txn into fsync-per-batch (~100x commit throughput); posix_spawn ~60 us independent of parent RSS; vDSO clock ~25 ns.",
+   "source_shape": "let (buf_view, n) = io.fill_buf(&uniq f)?; ...; io.consume(&uniq f, n); let tok = io.ring.submit_read(&uniq ring, fd, wbuf_loan); match io.ring.await1(&uniq ring) { done(tok, wbuf_back, n) => ... }"
+  },
+  {
+   "name": "rcu_table \u2014 read-mostly concurrent map",
+   "kind": "builtin-TCB",
+   "contract": "get from any thread with zero shared-line writes; insert/remove serialized internally; per-key get-or-insert; weakly-consistent snapshot iteration. Shipped as a sealed builtin (a table instance under the internal epoch-reclamation kernel); NO user-facing epoch/hazard API exists \u2014 reclamation is hidden exactly as 99% of C++/Rust users already consume it.",
+   "perf_mechanism": "Epoch pin = thread-local store + compiler fence (~1-3 ns, no shared RMW) \u21d2 linear read scaling where RwLock<HashMap> plateaus at 2-3 threads; deferred batched frees amortize reclamation below 1 ns/read (papaya/folly-class).",
+   "source_shape": "form Routes = rcu_table<u64, Route>; match Routes.get(&r, k) { some(v) => ..., none => ... } // v is a pinned-scope view"
+  },
+  {
+   "name": "machine core \u2014 vectors, endian/align, bit ops, select, prefetch",
+   "kind": "language-primitive",
+   "contract": "Width-explicit vector value types (u8x16..u64x8) with a CLOSED op/intrinsic enumeration (lane ops, shuffles/pshufb-table, compare-to-mask, movemask bridge, clmul, aes-round) + one-time cached ISA dispatch declaration; endian-explicit loads/stores at arbitrary offsets (lower to 1 mov + optional bswap); align(N) and cachepad attributes on types/allocations; integer methods popcount/tzcnt/lzcnt/rotate/pdep/pext with guaranteed single-instruction lowering + a set-bit iteration loop form; select(cond, a, b) with two strictness levels \u2014 hint (compiler may branch when profitable) and strict (verified never-branch, constant-time); prefetch(addr) with no-op semantics (never faults, never observable, no effect row) and an nt flag on blessed copy/fill.",
+   "perf_mechanism": "These ARE the machine mechanisms F5/F9 par depends on: 16-64 lanes/instruction, movemask+tzcnt scalar bridge in 2 instructions, penalty-free unaligned access with split-line avoidance via alignment, 64B padding killing false sharing (5-20x on contended counters), cmov eliminating ~15-20-cycle mispredicts on 50/50 data, 8-16 in-flight prefetches unlocking full memory-level parallelism (2-4x DRAM-resident probe loops), NT stores skipping read-for-ownership on huge fills.",
+   "source_shape": "let m = u8x32.eq(chunk, splat(0x0A)); let idx = mask.tzcnt(u8x32.movemask(m)); let x = load_be_u32(bytes, off); let lo = select.strict(p, a, b); prefetch(table_addr(h2));"
+  },
+  {
+   "name": "buffer core \u2014 margin_slice and wbuf",
+   "kind": "language-primitive",
+   "contract": "margin_slice<'r, T, W>: a slice carrying a STATIC guarantee of W extra readable (and, for outputs, writable) slop elements past its logical end; produced only by allocation-side forms (seq.reserve_margin, buffer_with_margin, copy-in) \u2014 never forgeable by narrowing an ordinary slice; consumed by cursor/bytescan for over-reads and by lz_copy for wild writes. wbuf<'r>: write-cursor buffer with type-tracked initialized extent \u2014 kernel/decoder writes advance a monotonic committed prefix; freeze exposes exactly the written prefix as initialized bytes; reading past the commit point is unrepresentable; zero memset in the path by construction.",
+   "perf_mechanism": "margin_slice deletes per-op tail checks and length loops (varint 8B loads, vector tails without masks, LZ wild copies = the 2-4x class of codec wins); wbuf deletes the double-store pass (64KB memset ~2 us + cache eviction, 20-50% of small-read syscall paths) matching C read()-into-uninitialized and Rust BorrowedBuf.",
+   "source_shape": "let mb: margin_slice<'r, u8, 8> = seq.view_margin<8>(&buf); let w = wbuf.new(64*1024); let (w2, n) = io.read_into(&uniq f, w)?; let bytes = wbuf.freeze(w2, n);"
+  },
+  {
+   "name": "ffi boundary records",
+   "kind": "builtin-TCB",
+   "contract": "extern-C declarations as toolchain-gated, human-approved trusted records: C-ABI function signatures over repr(C)-declared types, pointer+len crossings with stated ownership/lifetime/aliasing contracts in the record, callback exposure; the record class is the constitution's ONLY trusted class; ordinary source can neither declare nor widen one. Calls compile to a bare ABI call.",
+   "perf_mechanism": "Machine code identical to a C-to-C call (~1-2 ns: arguments in ABI registers, no marshaling, no pinning, no thread-state bookkeeping); buffers cross as pointer+len because layout is bit-compatible \u2014 the Rust extern-C bar, explicitly not the cgo ~40-60 ns anti-target.",
+   "source_shape": "trusted_record ffi Blas { fn dgemm(ptr f64, len, ...) contract { reads(a[0..n]), writes(c[0..m]), no-retain }; } // record file signed + audited, referenced from source by name"
+  }
+ ],
+ "language_deltas": [
+  "Schema objects + instantiation judgment: a new spec object class \u03a3 = (invariant, parameter signature, op table, verified lowering template, fact sheet); judgment \u22a2 inst(\u03a3, args) OK checks closed-enum membership, integer bounds, and type capability bounds syntactically, then monomorphizes the template \u2014 no per-instance re-verification.",
+  "Plug-point admission judgment: a schema parameter may be a user function only if its effect row is pure (no writes/allocates/traps beyond declared) AND the schema carries a once-proved safety-independence lemma stating I_\u03a3 holds for arbitrary plug outputs; wrong plugs yield wrong answers, never unsafety.",
+  "Fact-sheet export rule: schema ops may emit invariant clauses (cap_slack(n), growth_slack(n), validated(L), sorted(view)) into the existing requires-prologue fact engine; every exported fact class is a fact channel requiring hostile review before shipping.",
+  "margin_slice<'r,T,W> type: slice with static W-element readable/writable slop past logical end; introduction only at allocation-side forms (reserve_margin, buffer_with_margin), elimination only by margin-consuming ops (over-read loads, wild stores) whose obligations are discharged by W; no narrowing/forging rule.",
+  "wbuf<'r> init-extent type: affine write-cursor whose committed prefix grows monotonically within a function (linear cursor threading, no flow analysis); freeze(w, n \u2264 committed) is the single point exposing initialized bytes; reads of uncommitted bytes are untypeable.",
+  "Endpoint tokens + Send/share capabilities: conc_queue/io.ring endpoints are affine non-Copy tokens (existing affine machinery) with a new shareable-handle capability marker for mpmc/stealer handles; a Send capability bound restricts which T may cross threads.",
+  "Minimal memory model (publication semantics): all cross-thread shared state flows through the closed sync/queue vocabulary; spec adds happens-before edges only at those ops (release-publish/acquire-read, channel transfer, mutex acquire/release, join); programs are data-race-free by construction, so sequential reasoning remains valid everywhere else \u2014 no user-facing ordering menu.",
+  "syncs effect-row entry: ops that establish happens-before carry a syncs effect so the optimizer knows fence points and never migrates memory ops across them.",
+  "Scoped thread spawn rule: spawn_scoped<'r> may capture 'r borrows iff its join lexically dominates the end of 'r; checked with existing lexical-region machinery.",
+  "Disjoint uniq-slice split rule: a structural judgment splitting one uniq slice view into k non-overlapping uniq chunk views (by index arithmetic on constants/lengths), founding par.for_chunks with zero aliasing inference.",
+  "Region reincarnation rule: reset on a resettable region requires no live 'r borrows (lexical), then issues a fresh region identifier while retaining backing chunks \u2014 arena reuse across loop iterations with all dangling references untypeable.",
+  "Vector value types + closed intrinsic enumeration + ISA dispatch declaration: fixed-width SIMD values as ordinary Copy scalars-of-lanes; ops drawn from a closed spec list; one dispatch declaration per program resolves ISA level once at startup.",
+  "Endian-explicit load/store forms and align(N)/cachepad attributes: load_le/load_be/store_* at arbitrary byte offsets on byte views, guaranteed 1 load/store + at most 1 bswap; alignment attributes on types and allocations.",
+  "Single-instruction bit-op methods + set-bit iteration loop form: popcount/tzcnt/lzcnt/rotate/pdep/pext with guaranteed lowering; a blessed loop form iterating set bits (tzcnt + x&=x-1) so the idiom has one spelling.",
+  "select form with lowering-guarantee judgment: select.hint (optimizer may branch when profitable) and select.strict (verified branch-free lowering, constant-time; verification is a codegen-side check, not writer trust).",
+  "prefetch hint + nt store flag: prefetch(addr) is semantically a no-op (never faults, no observable effect, empty effect row); blessed copy/fill primitives take an nt policy flag.",
+  "Layout declaration sublanguage + validation fact: 'layout' declarations (field offset/width/endianness/alignment, length-prefixed sections) compiled by the view schema; validated(L, bytes) is a fact making subsequent field accesses residual-check-free.",
+  "FFI boundary record judgment: trusted_record ffi declarations form the toolchain-gated trusted class \u2014 signed, human-approved, carrying ownership/aliasing/lifetime contracts; ordinary source may reference but never define or widen them."
+ ],
+ "est_new_spec_rules": 48,
+ "coverage": [
+  {
+   "scenario": "Growable contiguous vector (append-heavy owned buffer)",
+   "verdict": "PAR",
+   "how": "\u03a31 seq is (ptr,len,cap) with x2/x1.5 growth: tail-line push, bulk-move growth, stride-1 slice view; reserve exports cap_slack(n) so counted push loops carry zero residual capacity checks (existing requires engine, measured mechanism). Vec-class by construction."
+  },
+  {
+   "scenario": "Small/inline vector (allocation-count-dominated short sequences)",
+   "verdict": "PAR",
+   "how": "Same \u03a31 with inline=N knob (absl InlinedVector shape): N slots in the owner footprint, transparent heap spill; eliminates the malloc/free pair and keeps 2-8-element lists on the owner's lines \u2014 SmallVector-class on the millions-of-tiny-lists workload."
+  },
+  {
+   "scenario": "String/byte builder (append-only formatting and serialization buffer)",
+   "verdict": "PAR",
+   "how": "\u03a31 seq<u8> plus the emit contract; alg-kit itoa/ryu-class LUT digit kernels (~4 ns/u64, checked source) and bulk append lowering to memcpy after a reserve fact. snprintf-class is structurally impossible since there is no format-string path."
+  },
+  {
+   "scenario": "Sorting owned runs (comparison and key-based)",
+   "verdict": "WIN",
+   "how": "alg-kit sort: ipnsort/driftsort-class core whose branchless partition is built on the GUARANTEED select form (no LLVM cmov wobble), run detection for near-O(n) sorted input, stable flag; key_kind lets the single blessed entry point auto-dispatch to LSB radix on u32/u64 at large n \u2014 voracious-class ~2.5x the preregistered ipnsort bar on integer keys, matching it elsewhere."
+  },
+  {
+   "scenario": "Binary search / lookup over sorted contiguous runs",
+   "verdict": "PAR",
+   "how": "alg-kit partition_point with select.strict guaranteeing the cmov probe (offset += (probe<key)*half); operates on the seq slice view so layout is caller-controlled; Eytzinger is a taught layout transform over the same op for giant frozen tables."
+  },
+  {
+   "scenario": "General hash map/set (unordered point lookup, medium-to-large n)",
+   "verdict": "PAR",
+   "how": "\u03a33 table is the SwissTable template verbatim: ctrl-byte array with 7-bit h2 + 16B mirror, 16-way SIMD group probe, triangular probing, 87.5% load, tombstone group elision; entry is an affine one-shot vacant token (one hash, one probe); hashers from the closed fold-kernel enum. hashbrown-class ~2 lines/hit; chained-map shape is unrepresentable in the catalog."
+  },
+  {
+   "scenario": "Tiny map/set (n <= ~8-16, allocation- and hash-cost dominated)",
+   "verdict": "PAR",
+   "how": "\u03a33 inline=N mode: inline (K,V) pair array linear-scanned until spill (SsoHashMap/SmallDenseMap hybrid) \u2014 no hashing, no allocation, 1-2 lines at n\u22648; a knob on the map, not a second shape."
+  },
+  {
+   "scenario": "Ordered map with range queries (B-tree class)",
+   "verdict": "PAR",
+   "how": "\u03a34 btree: ~256B nodes, fanout 11-16, branchless in-node scan, chained leaves; range/pred/succ in the fixed op set; key kinds closed (int, lex bytes, lex tuples, extractor plug). Rust BTreeMap/absl class; RB-tree shape not offered."
+  },
+  {
+   "scenario": "Bounded cache with eviction (LRU class)",
+   "verdict": "PAR",
+   "how": "Taught composition, no new primitive: \u03a33 table (key -> handle) + \u03a35 pool slab holding entries with embedded u32 prev/next recency fields; promote = 2-4 stores on already-fetched lines; CLOCK/S3-FIFO variants are link-discipline changes in the same pattern. Passes the map's own composition test."
+  },
+  {
+   "scenario": "Interning / deduplication (value -> stable small id)",
+   "verdict": "PAR",
+   "how": "\u03a36 region byte store (bump append) + \u03a33 probe_view op \u2014 borrowed key-view probe against arena-owned spans with zero allocation (the map capability the demand map names as the real requirement) + \u03a31 span/id vector. rustc-interner shape exactly; resolve = one indexed load."
+  },
+  {
+   "scenario": "Concurrent hash map (shared read-mostly or sharded-write lookup)",
+   "verdict": "PAR",
+   "how": "Mixed workloads: \u03a311 shard over \u03a33 (dashmap-class: uncontended shard CAS + Swiss probe, near-linear to 16 threads). Read-mostly: rcu_table builtin-TCB with epoch readers writing zero shared lines (papaya-class linear read scaling). The reclamation mechanism is sealed inside the builtin."
+  },
+  {
+   "scenario": "Bump arena (mass-free allocation for build-then-drop object graphs)",
+   "verdict": "PAR",
+   "how": "\u03a36 region: add+compare bump (~1-2 ns), chunked growth, mass free at close; same-arena cross-references are native lexical-region facts (the hard checker part already exists in xlang's region system); reset mode reincarnates the region id retaining chunks."
+  },
+  {
+   "scenario": "Slab/pool with generational handles (stable identity + individual free)",
+   "verdict": "PAR",
+   "how": "\u03a35 pool: in-place freelist, 8-byte Copy (idx32,gen32) handles, get -> some/stale. Recycling lives ONLY inside the verified template (answers the prior well-typed-UAF objection to writer-rolled freelists); generation exhaustion retires the slot so stale handles are never forgeable into live ones. slotmap-class insert ~3-5 ns, get ~1-2 ns."
+  },
+  {
+   "scenario": "Graphs (CFGs, dependency graphs, meshes) via index adjacency",
+   "verdict": "PAR",
+   "how": "Taught two-phase pattern over existing forms: build = \u03a31 adjacency seqs over u32 ids; freeze to CSR = two \u03a31 seqs (offsets + packed edges); payloads in SoA parallel arrays (already the project's P2 idiom). Same bytes moved as petgraph CSR \u2014 bandwidth math identical."
+  },
+  {
+   "scenario": "Trees with parent pointers / cross-links (navigable node soups)",
+   "verdict": "PAR",
+   "how": "\u03a35 pool + u32 parent/child/sibling link fields as plain data (16B header): detach/reattach = 3-5 index stores, zero allocator traffic. Multi-node mutation under no-reborrow uses copy-out the Copy links, then one get_uniq at a time (or a command buffer) \u2014 extra source discipline, identical machine code to indextree/ego-tree/rowan."
+  },
+  {
+   "scenario": "Intrusive lists / membership links (O(1) unlink from within the element)",
+   "verdict": "PAR",
+   "how": "Embedded u32 prev/next fields inside pool elements; unlink = 2-4 stores to lines the caller already fetched; multi-list membership = multiple link-field pairs; splice moves state without rehash. The irreducible residue \u2014 links threaded through FREE memory, mimalloc-style \u2014 lives only inside the allocator TCB, matching the demand map's own verdict."
+  },
+  {
+   "scenario": "Deque / FIFO work buffer (single-threaded)",
+   "verdict": "PAR",
+   "how": "\u03a32 ring: power-of-two masked head/tail over a growable buffer \u2014 one masked index update + one store/load per op, growth by single bulk copy, as_slices exposed. VecDeque-class; chunked-deque and linked shapes are not in the catalog."
+  },
+  {
+   "scenario": "SPSC ring buffer (two-thread streaming handoff)",
+   "verdict": "PAR",
+   "how": "\u03a310<spsc>: Lamport-refined kernel \u2014 cache-line-padded monotonic counters, single writer per counter (zero RMW), cached opposing index (~0.1 atomics/item batched), wait-free both sides. Producer/consumer are affine tokens, so endpoint uniqueness is compile-time nonforgeable \u2014 same machine code as rtrb with stronger cheat-proofing."
+  },
+  {
+   "scenario": "MPMC bounded queue (many-to-many channel buffer layer)",
+   "verdict": "PAR",
+   "how": "\u03a310<mpmc>: Vyukov per-slot sequence-number kernel (trusted record behind the safe facade) \u2014 exactly one RMW per op, slot-local publication; push -> ok | full(T) returns the value on backpressure, which fits affine ownership cleanly. crossbeam ArrayQueue class."
+  },
+  {
+   "scenario": "Priority queue (heap) and the timer specialization",
+   "verdict": "PAR",
+   "how": "Heap: alg-kit implicit 4-ary heap over \u03a31 (pure checked source; bounds elided via facts; 4 children per line halves lines touched per sift). Timers: taught wheel pattern \u2014 array of \u03a35-pool buckets with embedded links + masked index, O(1) insert/cancel. Decrease-key served by lazy deletion, per the map."
+  },
+  {
+   "scenario": "Work-stealing deque (per-worker task queue with thief end)",
+   "verdict": "PAR",
+   "how": "\u03a310<steal>: Chase-Lev trusted kernel (paper-grade proof + exhaustive small-bound model checking) behind affine owner token + shareable stealer handles; owner push/pop with no RMW and the one SeqCst fence; also the substrate the par runtime is built on. Exactly the once-proved-by-experts disposition the demand map prescribes."
+  },
+  {
+   "scenario": "Single/few-byte scanning (memchr class)",
+   "verdict": "PAR",
+   "how": "\u03a37 bytescan<eq1..eq3|range, out=first/last/all>: fixed 64B-block pipeline \u2014 unaligned head, 4x-unrolled vector loop, compare+movemask+tzcnt, masked tail, one-time ISA dispatch. The memchr-crate shape is the template; short-input path included; reverse variant is a direction flag."
+  },
+  {
+   "scenario": "Block-parallel validation and structural indexing (simdjson/simdutf class)",
+   "verdict": "PAR",
+   "how": "\u03a37 with nibble_table predicates (tables are DATA) + closed carry policies (clmul quote mask, Keiser-Lemire utf8 range state) + bitmask_stream output; catalog ships utf8_validate, json_stage1, base64, ws_skip as named instances. Novel kernels beyond the closed vocabulary fall to the F9 vector core (still checked source) \u2014 the schema covers the named SOTA uses."
+  },
+  {
+   "scenario": "Serialization/deserialization of structured messages",
+   "verdict": "PAR",
+   "how": "(a) POD blit: \u03a38 view + Copy = memcpy-class; (b) varint/TLV: \u03a39 cursor over margin_slice \u2014 one unaligned 8B load per varint, bounds amortized by margin + facts, encode into reserved seq<u8> tail; (c) offset-graph zero-copy: view+cursor composition with once-validated offset facts \u2014 protobuf/prost-class solid, full capnp-generality is the thinnest part of the claim."
+  },
+  {
+   "scenario": "Checksums and non-cryptographic hashing",
+   "verdict": "PAR",
+   "how": "\u03a37 fold output mode: closed mixer set {crc32-hw 3-stream, clmul_fold, mul_fold (xxh3-class), aes_mixer} + branch-minimal \u226416B short path; both demand profiles (short-key latency, bulk throughput) are instances; \u03a33's hasher enum consumes these same instances so the map's probe cost inherits them."
+  },
+  {
+   "scenario": "Compression codec inner loops (LZ + entropy)",
+   "verdict": "PAR",
+   "how": "Exactly the two blessed sub-shapes the demand map says suffice, both designed here: margin_slice output + \u03a39 lz_copy (verified overlap-tolerant wild copy \u2014 1-2 vector stores into guaranteed slop, no per-copy length branch, offset<len legal) and the \u03a39 multi-stream bit reader (2-4 interleaved streams over margin input). Encoder match-finder is a \u03a33 instance. Par is contingent on these two ops hitting their templates \u2014 flagged in risks."
+  },
+  {
+   "scenario": "Zero-copy typed views over binary layouts (packets, pages, records)",
+   "verdict": "PAR",
+   "how": "\u03a38 view: layout declarations with per-field offset/width/endianness/alignment; open() validates once and records the fact; every subsequent field access is proven residual-check-free = 1 load (+bswap), C-parity verifiable by asm diff. Data-dependent internal offsets compose with \u03a39 cursor + once-proven bounds facts, as the map prescribes."
+  },
+  {
+   "scenario": "General-purpose allocator fast path (mimalloc/jemalloc class)",
+   "verdict": "PAR",
+   "how": "Builtin-TCB mimalloc-class kernel behind the n=1 facade; all schemas route through it; fast path ~10-20 instructions, zero atomics, remote-free batching. Honest residue: AUTHORING a new allocator in-language is out of catalog (needs links through freed memory and type-changing reuse) \u2014 consumption is par, authorship stays TCB-adjacent, matching the map's own split."
+  },
+  {
+   "scenario": "Arena / bump allocation with scope-lifetime free",
+   "verdict": "PAR",
+   "how": "\u03a36 region with the two modes the map names: plain-data (no-drop types) vs drop_at_close; reset-and-reuse via the region-reincarnation rule (checker proves no surviving borrows lexically, chunks retained). bumpalo-class ~1-3 ns/alloc with construction-order locality."
+  },
+  {
+   "scenario": "Slot pools / slabs: O(1) reuse without re-zeroing",
+   "verdict": "PAR",
+   "how": "\u03a35 pool: freelist pop/push at 1-2 line touches; NO re-zeroing because the verified template proves insert's constructor fully overwrites the slot before any read is typeable \u2014 the safety proof, not a memset, guarantees no stale-byte reads; dense storage iterates at streaming bandwidth."
+  },
+  {
+   "scenario": "Uninitialized buffers: zero-init avoidance with tracked init extent",
+   "verdict": "PAR",
+   "how": "wbuf language primitive: monotonic committed prefix tracked in the type, kernel/decoder writes advance it, freeze exposes only written bytes; reads of uncommitted memory are untypeable, so the memset disappears by proof \u2014 BorrowedBuf-class, C codegen parity (zero zeroing instructions in the I/O path)."
+  },
+  {
+   "scenario": "Memory-mapped data: file-backed byte regions",
+   "verdict": "PARTIAL",
+   "how": "Read-only frozen maps: io.filemap -> immutable bytes + \u03a38 views, SIGBUS owned by the facade (lock-or-copy default, defined-trap option) \u2014 LMDB-read-path par. MISSING: shared MUTABLE maps (external writer mutating pages) \u2014 breaks the single-process aliasing proof and needs a volatile-external-bytes contract with per-access/per-snapshot discipline that this design defers rather than fakes."
+  },
+  {
+   "scenario": "Portable SIMD vector types with runtime ISA dispatch",
+   "verdict": "PAR",
+   "how": "Language-primitive vector types with a CLOSED op/intrinsic enumeration including the named non-portable essentials (pshufb-table, clmul, aes-round, movemask bridge) + one-time cached dispatch \u2014 one form plus the named-intrinsic escape inside the same type system, exactly the map's resolution; \u03a37 is implemented in it, so par is demonstrated wherever \u03a37 hits its bars."
+  },
+  {
+   "scenario": "Unaligned loads, endianness, and alignment control",
+   "verdict": "PAR",
+   "how": "Endian-explicit load/store forms guaranteed to lower to 1 mov (+1 bswap for BE) on byte views; align(N) on types/allocations for vector-width and page alignment; cachepad attribute giving contended atomics their own 64B line (the 5-20x false-sharing fix). The map's n=1 scenario, delivered as n=1."
+  },
+  {
+   "scenario": "Word-level bit operations: popcount/ctz/clz/pdep-pext and set-bit iteration",
+   "verdict": "PAR",
+   "how": "Integer method set with guaranteed single-instruction lowering plus the blessed set-bit iteration loop form (tzcnt + x&=x-1, one spelling); pdep/pext carry the pre-Zen3 dispatch fallback as an implementation detail. \u03a33's probe loop consumes exactly these, so hashbrown-class lookup inherits them."
+  },
+  {
+   "scenario": "Branchless selection and predication (cmov class)",
+   "verdict": "WIN",
+   "how": "select.hint / select.strict with a verified lowering guarantee: strict mode is machine-checked never-to-branch (constant-time capable). C/C++/Rust have no supported way to FORCE cmov short of inline asm, and LLVM's cmov decisions wobble across versions \u2014 a guaranteed select removes an entire class of silent performance regressions in sort/search/crypto kernels. Concrete Rust-test advantage in cheat-proofness of the lowering."
+  },
+  {
+   "scenario": "Software prefetch and non-temporal memory streams",
+   "verdict": "PAR",
+   "how": "prefetch(addr) as a semantically-no-op hint (never faults, empty effect row \u2014 safe by hardware construction) usable in ordinary loops, so group-prefetch batching is just a scheduling idiom; nt flag on the blessed copy/fill primitives for huge write-once regions. No new shape, per the map."
+  },
+  {
+   "scenario": "Thread lifecycle: spawn/join, worker pools, thread-local state",
+   "verdict": "PAR",
+   "how": "spawn_scoped<'r> with the lexical join-dominates-region rule (borrowed spawns, crossbeam::scope-class); builtin persistent pool amortizes ~15 us spawns to ~0; thread_local lazy form (1 predicted init branch) for writers, with raw initial-exec TLS reserved to runtime/allocator internals \u2014 exactly the split the map says is par for all consumers."
+  },
+  {
+   "scenario": "Atomic cells and the memory-ordering vocabulary",
+   "verdict": "PAR",
+   "how": "Closed idiom vocabulary \u2014 counter (relaxed fetch_add), publish/snapshot (release/acquire publication of frozen values), cas_retry form \u2014 covering the ~95% stereotyped uses; DRF-by-construction means no user-facing six-ordering menu; lowering uses native acq/rel so ARM pays no blanket SeqCst tax. Lock/queue implementer residue is absorbed into shipped kernels, per the map."
+  },
+  {
+   "scenario": "Mutual exclusion: mutex, rwlock, one-time init",
+   "verdict": "PAR",
+   "how": "Builtin mutex<T> word-sized futex adaptive (parking_lot-class ~10-20 ns uncontended), guard is a lexical affine token so lock-protects-data is structural; once<T> ~1 ns post-init; condvar integrated. Read-mostly hot data is deliberately routed to publish/snapshot instead of an rwlock \u2014 adopting the map's finding that rwlock is not par there."
+  },
+  {
+   "scenario": "Queues and channels: SPSC ring vs MPMC channel",
+   "verdict": "PAR",
+   "how": "\u03a310 spsc/mpmc as above plus a blocking channel facade with futex parking; the map's own unification hypothesis \u2014 'plausible in a language with linear endpoint types' \u2014 is exactly what the affine endpoint tokens deliver: one schema, endpoint policy chosen by type, SPSC's zero-RMW path preserved because uniqueness is proven, not assumed."
+  },
+  {
+   "scenario": "Concurrent keyed state: sharded maps and read-mostly tables",
+   "verdict": "PAR",
+   "how": "\u03a311 shard over \u03a33 for mixed workloads (dashmap-class); rcu_table builtin for reader-writes-nothing linear scaling (folly/papaya-class); shard-by-thread idiom composes from thread_local + \u03a33 with no new form. The two blessed shapes the map says suffice."
+  },
+  {
+   "scenario": "Safe memory reclamation (epoch/hazard/RCU class)",
+   "verdict": "PAR",
+   "how": "The hide-it disposition, taken deliberately: the epoch kernel is an internal trusted record consumed by rcu_table and any future shipped lock-free forms; NO user-facing reclamation API. Consumers get crossbeam-epoch-class read costs invisibly. Users cannot author novel lock-free linked structures \u2014 an explicit catalog boundary handled by the findings process, not a silent gap."
+  },
+  {
+   "scenario": "Data parallelism: parallel-for / fork-join with work stealing",
+   "verdict": "PAR",
+   "how": "par builtin: fork-join + for_chunks over the disjoint uniq-slice split rule (aliasing disproved structurally, no inference), Chase-Lev substrate, env-struct workers (P5, no closures), deterministic reduce via the checked-law contracts (assoc/identity machine-refuted if false). rayon-class ~25-50 ns task overhead and bandwidth-saturating scans."
+  },
+  {
+   "scenario": "Buffered sequential file I/O",
+   "verdict": "PAR",
+   "how": "io.stream: 64-256KB buffering, fill_buf borrow-the-buffer parse-in-place (zero second copy), explicit flush, precise error arms; O_DIRECT + alignment mode for engine authors as the map's second form. BufReader/stdio-class amortization by construction."
+  },
+  {
+   "scenario": "Network sockets: TCP/UDP request paths",
+   "verdict": "PAR",
+   "how": "io.net: nonblocking sockets in the event loop, vectored writev merging header+body, TCP_NODELAY/cork discipline, REUSEPORT per-core sharding, steady-state zero allocation via wbuf reuse; recvmmsg/GSO as the UDP sub-facade. Kernel-bypass (DPDK/XDP) excluded from the small catalog, per the map."
+  },
+  {
+   "scenario": "Readiness/completion multiplexing (epoll/kqueue/io_uring/IOCP class)",
+   "verdict": "PAR",
+   "how": "io.ring: completion-style submit-batch/await facade lowering to io_uring where available, epoll+nonblocking emulation elsewhere (the libuv/tokio-proven portability layer); the in-flight buffer is a LINEAR loan token \u2014 inaccessible until completion returns it \u2014 making the map's 'buffer loaned to the kernel' ownership fact nonforgeable at the type level."
+  },
+  {
+   "scenario": "mmap and shared memory",
+   "verdict": "PARTIAL",
+   "how": "Read-only private maps blessed (frozen bytes + views + owned SIGBUS discipline); anonymous hugepage-aligned reservations hidden inside the allocator TCB. MISSING: writable MAP_SHARED IPC \u2014 an external writer defeats single-process aliasing proofs; needs an atomic/volatile access discipline over shared pages that this design defers explicitly rather than claiming."
+  },
+  {
+   "scenario": "Durability ordering: fsync discipline and write-ahead logging",
+   "verdict": "PAR",
+   "how": "io.wal durable-append-log form (append frames, group commit, checksummed frames, one fdatasync per batch) + atomic-file-replace form (temp, fsync, rename, dirsync) + the small low-level escape (per-fd fdatasync, directory sync, ordering control) for custom engines \u2014 the map's two-forms-plus-escape verdict implemented as such."
+  },
+  {
+   "scenario": "FFI call boundary (calling and being called by C)",
+   "verdict": "PAR",
+   "how": "extern-C boundary records: bare ABI call (~1-2 ns, cgo-class overhead structurally impossible), repr(C) layout on declared crossing types, pointer+len buffers. Trust is contained exactly as the constitution prescribes: records are the toolchain-gated, human-approved trusted class, auditable in one place, never definable by ordinary source."
+  },
+  {
+   "scenario": "Process and OS services: spawn, time, entropy, signals",
+   "verdict": "PAR",
+   "how": "io.os facade: posix_spawn-backed process launch (~60 us independent of parent RSS), vDSO clocks (~25 ns), getrandom-seeded userspace CSPRNG buffer (~ns per draw), shutdown-signal hook. All differentiating choices live inside the facade \u2014 the map's clearest n=1 scenario, kept at n=1."
+  }
+ ],
+ "tcb": "Added trusted surface, exactly: (1) five concurrency kernels \u2014 SPSC counter protocol, Vyukov MPMC, Chase-Lev deque, epoch reclamation (internal to rcu_table and future shipped lock-free forms), and the futex mutex/parking + thread/TLS bootstrap \u2014 shipped as toolchain-gated trusted records with paper-grade human-approved proofs PLUS exhaustive small-bound model checking (loom/GenMC-style) as CI gates, sealed behind facades whose affine/shareable token types make misuse unrepresentable; (2) the global allocator internals (mimalloc-class: links through freed memory, type-changing block reuse \u2014 modeled as out-of-language); (3) io facade glue: syscall wrappers, io_uring ring ABI, mmap + SIGBUS discipline, signal/entropy/clock paths; (4) ISA intrinsic lowerings and the one-time dispatch machinery; (5) per-program extern-C boundary records (audited, signed, the constitution's only trusted class); (6) as today, the compiler backend and the proof-artifact checker. Critically NOT in the TCB: all eleven sequential schema templates (seq, ring, table, btree, pool, region, bytescan, view, cursor, the shard wrapper logic, and every alg-kit routine) \u2014 each template's T1/T2 obligations are discharged once, for all parameter values, by a machine-checked proof against its invariant I_\u03a3; the proof artifact ships with the toolchain and is re-verified by a small checker at toolchain build. Each schema's optimizer fact sheet is a fact channel and receives hostile adversarial review before shipping, per standing rule. Net TCB delta is dominated by the five concurrency kernels + allocator + io glue \u2014 a bounded, enumerable list with named verification stories, versus zero user-extensible trust.",
+ "checker_story": "The checker's new decisions are all local and syntax-directed. Per instantiation it decides: (a) legality \u2014 policy args are members of closed enums, integer args within declared bounds, type args satisfy declared capability bounds (Copy/Movable/Send) \u2014 pure syntactic checks; (b) plug-point admission \u2014 the supplied hasher/extractor/eq function has the required pure effect row, using the existing effect-row machinery; (c) nothing else: the template's safety proof is a pre-verified toolchain artifact, so instantiation is substitution + monomorphization at O(|template|) cost, memoized per parameter tuple. Schema ops are then ordinary function calls with fixed ownership signatures \u2014 the existing affine machinery handles entry tokens, guards, endpoints, and cursors without extension, since they are just affine non-Copy values. Fact-sheet consumption reuses the shipped requires-prologue engine verbatim (facts are the same class of boundary facts it already discharges). Only three genuinely new judgments enter the kernel: margin arithmetic (W is a compile-time constant; over-read/over-write obligations are discharged by constant comparison), wbuf's monotonic commit (an affine cursor threaded in ANF \u2014 a per-function linear scan, no dataflow analysis), and disjoint uniq-slice split (structural index arithmetic on constants and lengths). Regions, scoped spawn, and reset reuse the existing lexical-region system. There are no fixpoints, no inference, no inter-procedural analysis; every rejection is deterministic with a named rule, preserving the settled frontend-simple feasibility ruling.",
+ "ai_writability": "A mid-tier writer's workflow is: find the scenario row in the taught decision table (keyed by this demand map: 'owned sequence -> seq; keyed lookup -> table; ordered ranges -> btree; stable identity + churn -> pool; build-then-drop graph -> region; two-thread stream -> conc_queue<spsc>; ...'), write ONE instantiation line with concrete types and enum policies, then use the fixed op set \u2014 each op has exactly one spelling, fixed ownership arrows, and match-shaped failure arms the exhaustiveness checker forces them to handle. Nothing invariant-bearing is writable: a writer cannot mis-size a control group, forget a generation bump, or misorder a fence, because those live in verified templates or trusted kernels; the worst a wrong plug-point can do is a wrong answer. Misparameterization is a compile error that enumerates the closed choices, which is the friendliest possible repair signal for a model. The worst teaching hazard is the no-reborrow discipline around stateful forms: multi-step interactions (entry tokens, shard guards, cursor threading, mutating one pool node while navigating from another) require the affine-token idioms, and a modest model that fights the borrow-consumption rule will drift into copy-out/clone-shaped code that compiles, stays safe, and silently loses the performance the catalog exists to deliver \u2014 par decays without any error appearing. Mitigations: the spec teaches each idiom as the ONLY spelled shape with a worked example per schema, and checker diagnostics on borrow-consumption errors name the blessed idiom to use ('use entry(k) instead of get then insert'). The second hazard, wrong-form selection (ring vs seq vs pool), is mechanical given the decision table and is exactly what the catalog-finding process monitors.",
+ "risks": [
+  "Template verification is the load-bearing bet: mechanically proving SwissTable/B-tree-grade templates safe against I_\u03a3 for all parameters is serious verification work; if it stalls, templates must be reclassified as trusted records, silently multiplying the TCB by ~10 spec objects \u2014 preregister E1's proof-closure deadline as the tripwire.",
+  "Spec growth: +~48 rules on a 90-rule kernel strains D2; the design survives only if schema op tables and policy enums genuinely live in catalog text rather than kernel rules \u2014 if each schema leaks 5+ rules into the kernel, the compactness constraint is breached.",
+  "Closed policy enums may be too closed: the first real workload needing an out-of-enum policy (robin-hood probing, a custom hasher, a new carry state for bytescan) forces catalog churn through the findings process; if such findings arrive weekly rather than quarterly, the closed-vocabulary premise is wrong.",
+  "Minimal memory model sufficiency: publication-only happens-before must be proven adequate for every shipped kernel's facade contract; any kernel whose safe interface leaks an ordering subtlety to users reopens the C11 menu the design explicitly excludes.",
+  "bytescan generality vs par: simdjson-stage1-class kernels may not decompose into the closed predicate/carry vocabulary at par on all ISAs (NEON lacks movemask; the bridge costs differ) \u2014 the schema may deliver 0.7x rather than 1.0x on ARM, demoting F5-2 to PARTIAL.",
+  "Codec forms (lz_copy, multi-stream bit reader) are designed but unproven: overlapping self-referential copies with offset<len are the single hardest verified-template obligation in the catalog; failure here concedes the map's predicted 2-4x loss on compression.",
+  "Monomorphization blowup: many (K,V,policy) tuples multiply template stampings \u2014 compile time and code size need the memoization plus an instantiation-count budget in CI.",
+  "Pool generational recycling re-decides the prior anti-recycling ruling (P2's never-recycled indices); it is safe only because recycling lives inside a verified template, but this needs owner ratification and hostile review of generation-exhaustion semantics before shipping.",
+  "Fact sheets are fact channels: an unsound exported fact under an exotic parameter combination is an optimizer-visible soundness hole; every schema's fact sheet needs per-parameter-space hostile review, not just template review.",
+  "No-reborrow ergonomics: if mid-tier models systematically fall off the affine-token idioms into copy-out patterns, measured par decays in the field with no compile-time signal; needs a lint that flags copy-out-then-insert shapes adjacent to blessed idioms."
+ ],
+ "first_experiments": [
+  "E1 (table schema, the keystone): implement the \u03a33 template in kernel IR, machine-verify its memory-safety obligations against I_table (all loads/stores in-bounds, no read of non-FULL slots, for ALL K,V,hasher,N parameters), then instantiate table<u64,u64,foldhash> and benchmark against hashbrown 0.15 + foldhash on the same machine: 1M uniform-random u64 keys, DRAM-resident, 95%-hit lookup and insert-with-growth. PASS: proof closes within 4 person-weeks and the artifact re-checks in < 60 s at toolchain build, AND lookup ns/op ratio vs hashbrown \u2208 [0.90, 1.15], insert-with-growth \u2208 [0.90, 1.25], AND frontend instantiation cost \u2264 50 ms. FAIL: any band missed, or proof not closable \u2014 which reclassifies templates as TCB and demands a redesign decision before proceeding.",
+  "E2 (seq schema + fact channel): instantiate seq<u64> and seq<u64, inline=4>; benchmark (a) 1M-push-then-sum vs Rust 1.80 Vec, (b) the compiler workload: 10M cycles of build-a-4-element-list-then-drop, inline=4 vs inline=0. PASS: (a) total runtime \u2208 [0.95, 1.10]x Vec, asm inspection shows the post-reserve counted push loop contains ZERO residual capacity/bounds branches (fact-elision working) and the sum loop is vectorized packed adds; (b) inline=4 \u2265 3.0x faster than inline=0 (allocation elimination dominating, SmallVector-class). FAIL: outside either band, or any residual per-push check survives the reserve fact.",
+  "E3 (bytescan schema breadth): instantiate memchr (pred=eq1, out=first_index) and utf8_validate (nibble_table + utf8_range_state carry) from the SAME \u03a37 template on an AVX2 machine; benchmark vs memchr crate 2.7 and simdutf. PASS: memchr instance \u2265 0.80x memchr-crate GB/s on 16KB rare-match haystacks AND \u2264 2.0x its latency on 8-byte inputs; utf8_validate \u2265 0.70x simdutf GB/s on both ASCII-heavy and mixed-multibyte corpora; both instances share one verified template with only data/policy differences (diff of stamped IR confirms no per-instance hand code). FAIL: any band missed, or the two instances require divergent hand-written templates \u2014 which falsifies the schema-generality premise for F5."
+ ]
+}

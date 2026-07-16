@@ -1,0 +1,439 @@
+{
+ "stance": "MINIMAL SEMANTIC CORE \u2014 extend the kernel with the smallest set of new checked semantics (slot-state cells, sealed representation invariants with tag erasure, confined view structs, a machine-op/SIMD layer, scoped threads + a closed atomic vocabulary with custody invariants, and trusted boundary records) so that every blessed form is an ordinary, project-authored, hostilely-reviewed checked library with zero trusted container internals.",
+ "summary": "The design adds one load-bearing idea and four supporting layers. The idea: memory whose per-slot initialization state is a first-class checked fact \u2014 a `cells<T>`/`slots<T,N>` storage class whose slots are Vacant or Live \u2014 plus `sealed` types whose declared representation invariant (a closed, decidable predicate language: linear arithmetic over fields, contiguous and cyclic pow2 index ranges of live slots, and metadata<->liveness biconditionals like `ctrl[i]<0x80 <-> live(slots,i)`) is verified per-method by local symbolic execution, after which the per-slot presence tags are ERASED because the invariant totally determines them. That one mechanism lets Vec, SmallVec, VecDeque, SwissTable, B-tree, slotmap, the init-extent I/O buffer, and the codec margin writer all be written as checked source whose hot loops compile to the same machine events as their C/Rust references. Supporting layers: (1) confined region-parameterized view structs (borrows-in-data restricted to stack lifetime) for cursors, typed views, and fill_buf; (2) a machine-op and portable-SIMD extension of the existing OP tables (select/cmov with a verified-branchless strict mode, pdep/pext/clmul/crc32-step, endian unaligned load/store with 1-load codegen contracts, prefetch/NT flags, alignment attributes, u8x16..f32x8 lane/shuffle/movemask ops with once-at-startup ISA dispatch and a named-intrinsic escape); (3) scoped spawn/join, `atomic<uN>` fields with a closed ordering vocabulary usable only inside sealed types, single-writer atomics bound to linear writer tokens, and custody invariant clauses that map atomic metadata values to role-token slot ownership \u2014 enough to derive the Lamport SPSC ring, the Vyukov MPMC queue, and a futex mutex as checked source; (4) trusted boundary records (a thin syscall layer and extern-C declarations, human-approved per the existing gated-record class) as the only new TCB. The taught catalog is n=20 forms plus ~8 zero-spec composition patterns (LRU, interner, CSR graphs, slab trees, intrusive index links, timer wheel, sharded map, group-prefetch probes). Honest residue: safe memory reclamation (epoch/RCU) is a GAP \u2014 its quiescence argument is global-temporal and outside the decidable core \u2014 and exact Chase-Lev, wild-read LZ4 copies, writable shared mmap, and read-mostly concurrent maps are PARTIAL. Estimated spec growth ~50 rules on the 90-rule kernel, of which the severable custody block (~13) is the first thing to convert to built-ins if it overruns.",
+ "forms": [
+  {
+   "name": "vec<T, INLINE=0>",
+   "kind": "checked-library",
+   "contract": "Owned growable contiguous sequence: push/pop/reserve/truncate, indexed read/write (checked, requires-elidable), slice view in/out, move-out whole; INLINE=N keeps first N elements in-struct with transparent heap spill. Growth allocates (deterministic trap on OOM or fallible reserve); out-of-bounds traps.",
+   "perf_mechanism": "Sealed prefix invariant `live(data,i) <-> i < len` erases all per-slot tags: layout is exactly (ptr,len,cap); push is one predicted compare + store; growth is move_range at memcpy bandwidth; iteration via slice view is stride-1 and auto-vectorizes; INLINE eliminates the malloc/free pair for short sequences.",
+   "source_shape": "sealed struct vec<T> { data: cells<T>, len: u64 } invariant { forall i in [0,len): live(data,i); forall i in [len,cap(data)): vacant(data,i) } \u2014 methods are plain ANF with requires/ensures clauses; ordinary writers just call push/get/as_slice."
+  },
+  {
+   "name": "ring<T> (deque)",
+   "kind": "checked-library",
+   "contract": "Double-ended FIFO over a growable pow2 ring: push_back/pop_front/push_front/pop_back O(1), indexed access, as_slices contiguous views, in-order iteration; single-threaded.",
+   "perf_mechanism": "Cyclic-interval invariant `live iff i in [head, head+len) mod cap` (cap pow2) erases tags; push/pop lower to one masked index add + store, identical to Rust VecDeque; growth is one bulk move_range.",
+   "source_shape": "sealed struct ring<T> { data: cells<T>, head: u64, len: u64 } invariant { cyclic_live(data, head, len) } \u2014 mask ops discharged by the pow2 fact in the requires vocabulary."
+  },
+  {
+   "name": "map<K,V, INLINE=0> / set<K>",
+   "kind": "checked-library",
+   "contract": "SwissTable: insert/lookup/remove owned K,V; get -> Option<&V>/&uniq V; entry-style get-or-insert (one hash, one probe); borrowed-key probe (e.g. by &[u8] via env-struct comparator); caller-supplied hasher; arbitrary-order iteration; group tombstone elision; INLINE=N linear-scan pairs before spill.",
+   "perf_mechanism": "The control-byte buffer IS the sealed invariant authority: `ctrl[i] < 0x80 <-> live(slots,i)`, so slot tags erase to nothing; probe is u8x16 compare + movemask + tzcnt (~4 instructions/candidate); `h & (cap-1)` bounds discharged by pow2 mask facts; ~2 cache lines per hit, zero per-entry allocation \u2014 hashbrown-identical machine events.",
+   "source_shape": "sealed struct map<K,V> { ctrl: buffer<u8>, slots: cells<pair<K,V>>, len: u64, growth_left: u64 } invariant { forall i: lt(ctrl[i],0x80) <-> live(slots,i); ... } \u2014 probe loop is plain ANF over SIMD ops; writers see insert/get/entry/remove."
+  },
+  {
+   "name": "ordmap<K,V> (B-tree)",
+   "kind": "checked-library",
+   "contract": "Ordered map: insert/lookup/remove, range scan [lo,hi), first/last, predecessor/successor, ordered iteration; B~11 entries/node.",
+   "perf_mechanism": "Per-node sealed prefix invariant (`live keys/vals iff i < node.len`) erases node tags; node search is a linear/branchless scan of 1-4 sequential lines; leaves walk near-contiguously for range scans; ~16x fewer allocations than node-per-entry trees \u2014 Rust BTreeMap-class, not RB-tree-class.",
+   "source_shape": "sealed struct node<K,V> { keys: slots<K,11>, vals: slots<V,11>, edges: slots<box<node<K,V>>,12>, len: u16 } with split/merge methods carrying ensures clauses; the most intricate sequential derivation in the catalog (preregistered as a checker stress case)."
+  },
+  {
+   "name": "slab<T> (generational slot pool)",
+   "kind": "checked-library",
+   "contract": "insert(T) -> handle{idx:u32, gen:u32} (Copy, 8B); get(handle) -> Option<&T>/&uniq T with stale handles detected by generation compare (always-on dynamic check, proof-elidable); remove O(1) recycles the slot WITHOUT re-zeroing; live-entry iteration near vec speed. This supersedes the never-recycle restriction of P2: recycling becomes checked, not forbidden.",
+   "perf_mechanism": "Vacant slots store the freelist link in the slot's scratch word (the union-of-T-and-next-free shape, typed): insert = pop freelist head (load+store, no malloc); get = bounds + gen compare + indexed load, 1 line; handles are 8B Copy values that thread through APIs without borrow entanglement \u2014 slotmap-identical events.",
+   "source_shape": "sealed struct slab<T> { data: cells<T>, gens: buffer<u32>, free_head: u64, len: u64 } invariant { vacant slots form a scratch-linked list rooted at free_head; gens parity selects liveness } \u2014 also the substrate for the graph/tree/intrusive-link taught patterns."
+  },
+  {
+   "name": "arena<'r> (bump region, extended)",
+   "kind": "checked-library",
+   "contract": "Existing kernel arena<'r,T> plus: reset-and-reuse (legal only where the region system proves no borrows survive \u2014 lexical, trivially decidable), drop-mode (run element drops at reset) vs plain-data mode, per-type arenas for heterogeneous graphs (rustc-style); same-region cross-references remain the point.",
+   "perf_mechanism": "Alloc is add + predicted compare (~1-2 ns), no free path, no per-object metadata; construction-order adjacency gives traversal locality; reset is a pointer rewind keeping chunks \u2014 bumpalo/BumpPtrAllocator-class.",
+   "source_shape": "region 'r { let a: arena<'r, Node> = arena_new(); ... } \u2014 reset spelled as a method whose legality is the existing lexical-region judgment; no new proof machinery."
+  },
+  {
+   "name": "bytebuf + fmt kernels",
+   "kind": "checked-library",
+   "contract": "Append-only byte builder (vec<u8> specialization): append bytes/ASCII/formatted integers and floats into reserved tail; write-through contract (ByteSink) so any formatter targets it; single move-out as immutable bytes; itoa/ryu-class numeric kernels shipped as library functions.",
+   "perf_mechanism": "Appends lower to memcpy into the erased-tag tail; u64->decimal via const digit-pair tables (CONST-1/2 already in v0.6) at ~4-6 ns, not snprintf-class; one reserve replaces N reallocations.",
+   "source_shape": "let b: bytebuf = bytebuf_with(cap); append_bytes(&uniq b, s); append_u64(&uniq b, x); let out: buffer<u8> = freeze(move b); \u2014 formatting kernels are ordinary table-driven ANF with requires-elided bounds."
+  },
+  {
+   "name": "slice sort + search",
+   "kind": "checked-library",
+   "contract": "sort(slice, cmp-env, stable: yes/no) \u2014 ipnsort/driftsort-class adaptive sort, O(n log n) worst case, near-O(n) on sorted input, radix specialization for primitive keys; partition_point/binary_search over sorted slices, branchless.",
+   "perf_mechanism": "Branchless partition uses the strict select op + cells<u8> offset scratch (no zeroing); small-n insertion sort stays L1-resident; run detection is plain code; branchless probe lowers to cmov chains so cost collapses to log2(n) line touches; Eytzinger is a taught layout transform over the same probe.",
+   "source_shape": "sort<T,E>(s: &uniq slice<'r,T>, env: &E, ...) where E conform Cmp \u2014 pure library functions; no new semantics beyond select and cells scratch."
+  },
+  {
+   "name": "simd byte kernels (scan / classify / fold)",
+   "kind": "checked-library",
+   "contract": "memchr/memchr2/memrchr-class scan over borrowed byte slices returning Option<index>; memmem shell (rare-byte + Two-Way fallback); 64B block classifier (pshufb-table lookups, range checks, clmul quote masks) emitting u64 bitmasks; hash/CRC folds (xxh3/wyhash/CRC32C 3-stream, SipHash) with short-key paths.",
+   "perf_mechanism": "u8x32 compare + movemask + tzcnt examines 32-64B per op with ~1 branch per 128B; per-chunk bounds discharged once by a requires fact; zero data-dependent branches in the classifier so adversarial input causes no mispredicts; crc32 step and widening-mul ops run from registers.",
+   "source_shape": "Unrolled ANF loops over vector ops with a leading requires block (`check ule(add(i,128), len)`), scalar tails, and a once-dispatched ISA-marked kernel per width; const tables for pshufb nibble classes."
+  },
+  {
+   "name": "cursor / view kit",
+   "kind": "checked-library",
+   "contract": "(a) checked cursor over borrowed bytes: take_u8/take_varint/take_bytes(n) with truncation errors, per-message requires fact amortizing bounds; (b) validated typed view: declare an endian/alignment-explicit field layout, validate length/shape once, then every field access is a plain load; (c) margin writer for codecs: writes allowed into [filled, filled+k+M) with advance k, reads confined to [0,filled); (d) multi-stream bit reader with one-time slack fact for interleaved FSE/Huffman streams.",
+   "perf_mechanism": "Validate-once-then-raw: after the requires fact, field access lowers to 1 (unaligned) load + optional bswap \u2014 zerocopy-parity by asm diff; varint = one u64 load + mask, no byte loop; margin writes make length<=32 copies 1-2 vector stores with no per-copy branch.",
+   "source_shape": "struct PageView<'r> { bytes: slice<'r,u8> } (confined view struct) with accessor fns whose requires cites the validation fact; margin writer is a sealed cells<u8> prefix form with the bulk write-window rule."
+  },
+  {
+   "name": "iobuf (init-extent read buffer)",
+   "kind": "checked-library",
+   "contract": "Writable buffer with tracked initialized prefix: allocate without memset; loan the vacant suffix to a TCB read/recv record whose postcondition marks exactly [filled, filled+n) live; expose only the initialized prefix as bytes. Reading uninitialized memory stays unrepresentable.",
+   "perf_mechanism": "Eliminates the full zeroing store pass (20-50% of small-read syscall-path cost) and the double-dirtying of cache lines; the trust point is exactly one audited syscall postcondition, not writer code.",
+   "source_shape": "sealed struct iobuf { data: cells<u8>, filled: u64 } invariant { live iff i < filled } \u2014 read(fd, &uniq b) is a checked wrapper over the trusted record; also the mechanism behind vec spare capacity."
+  },
+  {
+   "name": "spsc<T> ring",
+   "kind": "checked-library",
+   "contract": "Exactly-one-producer/one-consumer bounded ring: endpoints are affine role values (producer/consumer tokens) so uniqueness is nonforgeable; push/pop move owned T; full/empty as Results (backpressure); batched reserve/commit; wait-free both sides.",
+   "perf_mechanism": "head/tail are single-writer atomics bound to the role tokens, so stores lower to plain mov + release; cached opposing index is an ordinary local, making steady-state ops touch zero cross-core lines; cacheline padding attribute kills false sharing \u2014 rtrb-class, zero RMW atomics on either hot path.",
+   "source_shape": "sealed concurrent struct spsc<T> { data: cells<T>, head: atomic<u64> writer(ConsumerTok), tail: atomic<u64> writer(ProducerTok), ... } custody { ProducerTok owns cyclic [tail, head+cap); ConsumerTok owns cyclic [head, tail) } \u2014 the flagship custody derivation (experiment 3)."
+  },
+  {
+   "name": "mpmc<T> queue (Vyukov)",
+   "kind": "checked-library",
+   "contract": "Bounded any-thread push/pop of owned values; full/empty Results; per-element FIFO-ish order; lock-free; blocking variant integrates futex park/wake (TCB records).",
+   "perf_mechanism": "Per-slot atomic sequence numbers make publication local to the slot's line; custody clause `seq==pos grants producer, seq==pos+1 grants consumer` is checkable per-method; exactly one fetch_add/CAS per op \u2014 crossbeam-ArrayQueue-class, not Mutex<VecDeque>-class.",
+   "source_shape": "sealed concurrent struct mpmc<T> { slots: cells<T>, seqs: buffer of atomic<u64>, head: atomic<u64>, tail: atomic<u64> } custody { grant(slot i, Producer) iff seqs[i]==pos; ... } \u2014 CAS-retry loop is a taught idiom in the closed atomic vocabulary."
+  },
+  {
+   "name": "mutex<T> / once<T> (+rwlock)",
+   "kind": "checked-library",
+   "contract": "Lock-protects-data: lock() -> scoped guard granting &uniq T; adaptive spin-then-futex-park; condvar wait; once/lazy-init safe to race; rwlock shipped with the caveat that read-mostly hot paths belong on sharded/snapshot patterns.",
+   "perf_mechanism": "Word-sized lock inline with the data (one line total); uncontended lock/unlock = two uncontested RMWs ~10-20 ns; contended path parks via the futex TCB record \u2014 parking_lot-class.",
+   "source_shape": "sealed concurrent struct mutex<T> { word: atomic<u32>, value: T } custody { grant(value, holder) iff word lock bit claimed by this token } \u2014 guard is a confined view struct carrying the unlock obligation affinely."
+  },
+  {
+   "name": "threads + parallel_for pool",
+   "kind": "checked-library",
+   "contract": "Scoped spawn/join (owned capture, or borrowed capture proven by the region system not to outlive the scope); persistent worker pool; parallel iterate/map/reduce over splittable slices with disjoint &uniq chunks via split_uniq; deterministic tree reduction on request; per-worker state as owned env structs (no user TLS).",
+   "perf_mechanism": "Geometric splitting makes steals logarithmically rare; per-worker local ring uses owner-side ops with one uncontended CAS on pop (Go-runqueue-style) + MPMC injector overflow \u2014 amortized fine at >=1 microsecond task granularity; bandwidth-bound reductions saturate DRAM like rayon.",
+   "source_shape": "scope('s, |s| { spawn(s, env1, worker); ... }) and par_for(slice, grain, env, body) \u2014 split_uniq yields provably disjoint unique subslices; the exact Chase-Lev owner-fence variant is NOT claimed (see coverage)."
+  },
+  {
+   "name": "file io (buffered + direct)",
+   "kind": "checked-library",
+   "contract": "Open/read/write/flush with precise errors; bufreader/bufwriter with borrow-the-internal-buffer (fill_buf) via confined view; O_DIRECT variant with alignment attributes for database engines; uses iobuf so no memset in the read path.",
+   "perf_mechanism": "64-256KB buffering amortizes ~300-600ns syscalls to ~0.01ns/byte; fill_buf parsing eliminates the second copy; alignment attr satisfies O_DIRECT \u2014 BufReader/stdio parity at equal buffer size.",
+   "source_shape": "Checked wrappers over ~10 audited syscall records (open/pread/pwrite/fdatasync/close); ordinary ANF elsewhere."
+  },
+  {
+   "name": "socket + completion event loop",
+   "kind": "checked-library",
+   "contract": "Nonblocking TCP/UDP with vectored writev, timeouts, graceful shutdown, buffer reuse from a slab of owned buffers; completion-style multiplexer: submit ops with buffers MOVED in, completions move them back (kernel loan = affine ownership, nonforgeable); io_uring backend (multishot recv/send, registered buffers) with epoll+retry emulation elsewhere; recvmmsg/GSO batching for UDP.",
+   "perf_mechanism": "Syscalls-per-op approach 0 via batched submit + shared-memory completion reaping; REUSEPORT sharding pattern removes cross-core accept traffic; zero per-request allocation in steady state \u2014 tokio/liburing-class ceilings.",
+   "source_shape": "submit(&uniq loop, Op::Recv{fd, buf: move b, user: handle}); match next_completion(&uniq loop) { Done{user, buf, n} => ... } \u2014 the buffer registry is a slab keyed by handle; ring setup/mmap are audited TCB records."
+  },
+  {
+   "name": "mmap_ro",
+   "kind": "checked-library",
+   "contract": "Read-only private map of an agreed-immutable file exposed as a frozen byte slice for the map's lifetime; layered typed views; madvise hints; SIGBUS on external truncation is a DEFINED deterministic trap (plus advisory-lock/copy fallbacks as policy); writable MAP_SHARED is explicitly out of catalog v1.",
+   "perf_mechanism": "Warm access is a direct page-cache load \u2014 zero syscalls, zero copies; 100GB indexes addressable without materialization \u2014 LMDB-read-path-class.",
+   "source_shape": "region 'm { let m: mmap_ro<'m> = map_file(path)?; let bytes: slice<'m,u8> = as_bytes(&m); ... } over 3 audited records (mmap/madvise/munmap)."
+  },
+  {
+   "name": "durable log (WAL) + atomic replace",
+   "kind": "checked-library",
+   "contract": "Append checksummed frames, group-commit with one fdatasync per batch, torn-tail detection on recovery; atomic file replacement (write temp, fsync file, rename, fsync dir); low-level escape: per-fd fdatasync and directory-sync records for custom engines.",
+   "perf_mechanism": "Wins by fsync COUNT, not write speed: group commit turns per-txn fsync (~100-250 commits/s) into per-batch (tens of thousands/s on NVMe); CRC32C frames ride the F5 fold kernels.",
+   "source_shape": "wal_append(&uniq log, frames) -> LSN; wal_commit(&uniq log) \u2014 a composition of bytebuf + crc kernel + 4 syscall records, taught as one form."
+  },
+  {
+   "name": "os facade + extern boundary",
+   "kind": "builtin-TCB",
+   "contract": "(a) Process/clock/entropy/signals facade: posix_spawn-backed spawn with fd/env control, vDSO monotonic/wall clocks, getrandom-seeded userspace ChaCha, shutdown-flag signal handler. (b) extern-C boundary declaration: human-approved trusted record carrying the C ABI signature plus a typed ownership/lifetime/aliasing contract for every pointer; bare call-instruction cost; exported concrete fns as callbacks. Failure semantics per stated contract; the C side is unverifiable by definition.",
+   "perf_mechanism": "posix_spawn is RSS-independent (~60us vs millisecond fork from big parents); vDSO clock ~25ns with no kernel entry; buffered CSPRNG ~2-5ns/call; FFI is a plain ABI call (~1-2ns), no marshaling/pinning \u2014 the Go-cgo 40ns shape is structurally avoided.",
+   "source_shape": "trusted extern \"C\" fn sqlite3_step(stmt: cptr) -> i32 contract { stmt: borrowed, no-retain, no-alias-with(...) } \u2014 records live in the toolchain-gated ledger (spec section 14 class), never in ordinary source."
+  }
+ ],
+ "language_deltas": [
+  "cells<T> (heap) and slots<T,N> (in-struct) storage class: every slot is Vacant or Live(T); ops write (Vacant->Live), take (Live->Vacant, returns T), read/borrow (Live), replace, move_range (bulk state-transferring move at memcpy bandwidth, the growth path), and scratch_read/scratch_write of one u64 in a Vacant slot (typed freelist links). Default semantics carry a hidden presence bitmap consulted by every op and by compiler-derived drop; the class is legal only inside sealed implementations, so ordinary writers never see it.",
+  "sealed types with representation invariants in a CLOSED predicate language: clauses are linear (in)equalities over integer fields/locals, contiguous range liveness `forall i in [e1,e2): live(A,i)`, cyclic pow2 range liveness, and metadata-link biconditionals `cmp(M[i], const) <-> live(A,i)`. The checker verifies per-method preservation by symbolic execution over ANF with a range-keyed slot-state map; outside the sealed impl the type is fully abstract.",
+  "State-tag erasure judgment: if the sealed invariant TOTALLY determines every slot's state from fields/metadata in every reachable state (a syntactic coverage check over invariant clauses), the presence bitmap and its maintenance are erased at codegen and drop is synthesized from the invariant. This is the zero-extra-machine-events guarantee; erasure legality is checked, never assumed.",
+  "ensures/slot-predicate extension of the existing FN-8 requires prologue: sealed methods may state requires/ensures clauses in the same closed language (including live/vacant predicates and field arithmetic), making invariant checking compositional and local \u2014 no global fixpoint, no inference across methods.",
+  "Confined view structs: a struct may carry slice<'r,T>/borrow fields iff it is region-parameterized, affine, stack-confined to 'r, and never stored in heap data; a call consumes it like any unique borrow (no reborrowing introduced). Unlocks cursors, typed views, iterators, lock guards, and fill_buf without touching the no-borrows-in-data rule for heap types.",
+  "copy struct declaration: records opt into Copy explicitly (`copy struct P { ... }`, all fields Copy) \u2014 resolves the open records question declaratively, keeps one spelling per meaning, and gives serde blit and SoA forms their POD element rule.",
+  "OP-table machine additions (table rows + one edge-semantics rule each, cheap under META-3): pdep/pext (with pre-Zen3 fallback lowering), clmul, crc32 step, widening 64x64->128 multiply (mulhi exists), select with two strengths (hint: may lower to branch; strict: verified-branchless, codegen-checked, for crypto/partition), prefetch hint (semantically a no-op, never faults, absent from effect rows), NT-store flag on bulk copy/fill, and alignment/cacheline-padding attributes on types and allocations.",
+  "Endian-explicit unaligned load/store ops on byte views: load_le_u64(s, off) etc., one bounds check (requires-elidable) with a codegen CONTRACT of exactly one load/store plus at most one bswap \u2014 the zerocopy-parity primitive for F5.",
+  "Portable SIMD value types (u8x16/u8x32/u16x8/.../f32x8) with lane ops, shuffle/permute, compare-to-mask, movemask; kernels marked for once-at-startup ISA dispatch (SSE2/AVX2/NEON variants of the same checked source); named-intrinsic escape (pshufb-as-table, vpermb, clmul, AES step) typed inside the same vector types \u2014 an op-table extension, not a trust extension.",
+  "Scoped thread spawn/join: spawn moves an owned env into the thread or borrows stack data under a region proof that the scope outlives the thread; join returns the thread's value; trap propagation at join is defined. Lexical, checker-simple (crossbeam::scope shape).",
+  "atomic<uN> field type with a CLOSED ordering vocabulary \u2014 load(rlx|acq), store(rlx|rel), fetch_add(rlx|acq_rel), cas(acq_rel), seq_cst fence \u2014 legal only as fields of sealed concurrent types; ordinary code cannot name an atomic. Not SeqCst-only, so ARM hot paths keep plain-mov acquire/release lowering.",
+  "Single-writer atomic refinement: an atomic field may be bound to a linear writer token type; only the token holder may store, making single-writer nonforgeable. Grants plain-store lowering and monotonicity facts (counter never decreases) usable inside custody invariants \u2014 the Lamport-ring enabling fact.",
+  "Concurrent custody invariants: sealed concurrent types declare linear role tokens (Producer/Consumer/Holder...) and custody clauses granting slot ranges or whole fields as a function of atomic metadata values; per-method checking admits a slot access only if an observed metadata fact grants that range to the held role; a syntactic publication rule requires slot writes to precede (in ANF order) the release store that publishes them and grants to follow acquire loads; join/drop requires token quiescence (all tokens returned) before the structure is destroyed.",
+  "Trusted boundary declarations: extern C-ABI out-calls and a thin syscall record set, each a human-approved, toolchain-gated record (the existing section-14 trust class) carrying a typed ownership/aliasing/postcondition contract (e.g. read: returns n <= len and initializes exactly [0,n) of the loaned vacant window). Buffers cross the boundary as affine moves in and out; writers cannot author records.",
+  "split_uniq on unique slices: partition one &uniq slice into provably disjoint &uniq subslices (at an index, or by fixed grain) \u2014 the disjoint-chunk mutation primitive for parallel_for; counted defensively in case it is not already derivable from OWN rules."
+ ],
+ "est_new_spec_rules": 50,
+ "coverage": [
+  {
+   "scenario": "Growable contiguous vector (append-heavy owned buffer)",
+   "verdict": "PAR",
+   "how": "vec form: sealed prefix invariant erases slot tags to a bare (ptr,len,cap); push = predicted compare + store; growth = move_range memcpy; slice view feeds all algorithms; requires prologue elides bounds on scans (already measured 27/27 on base64). Vec-parity is experiment 1."
+  },
+  {
+   "scenario": "Small/inline vector (allocation-count-dominated short sequences)",
+   "verdict": "PAR",
+   "how": "INLINE=N knob on the same vec using in-struct slots<T,N>; no heap alloc while len<=N; spill is one move_range; absl::InlinedVector shape as one parameterized form, not a second shape."
+  },
+  {
+   "scenario": "String/byte builder (append-only formatting and serialization buffer)",
+   "verdict": "PAR",
+   "how": "bytebuf = vec<u8> + ByteSink contract; itoa/ryu-class kernels over CONST tables (already in v0.6); appends lower to memcpy into the erased-tag tail; snprintf-class is structurally avoided."
+  },
+  {
+   "scenario": "Sorting owned runs (comparison and key-based)",
+   "verdict": "PAR",
+   "how": "Checked ipnsort/driftsort-class sort: strict select gives branchless partition, cells<u8> offset scratch avoids zeroing, run detection and small-n insertion are plain code; radix path for primitive keys; stable/unstable is a flag, one form."
+  },
+  {
+   "scenario": "Binary search / lookup over sorted contiguous runs",
+   "verdict": "PAR",
+   "how": "Branchless partition_point via select-lowered probe over the slice view; Eytzinger taught as a layout transform over the same probe with prefetch hints for giant frozen tables."
+  },
+  {
+   "scenario": "General hash map/set (unordered point lookup, medium-to-large n)",
+   "verdict": "PAR",
+   "how": "SwissTable derivation: ctrl bytes are the invariant authority (ctrl[i]<0x80 <-> live), u8x16 probe + movemask + tzcnt, pow2-mask bounds facts, entry API, tombstone group logic as plain code; hashbrown-identical machine events is experiment 1's second half."
+  },
+  {
+   "scenario": "Tiny map/set (n <= ~8-16, allocation- and hash-cost dominated)",
+   "verdict": "PAR",
+   "how": "INLINE knob on map: in-struct pair scan skipping hashing until spill \u2014 the SsoHashMap/SmallDenseMap hybrid as a knob, not a shape."
+  },
+  {
+   "scenario": "Ordered map with range queries (B-tree class)",
+   "verdict": "PAR",
+   "how": "ordmap B-tree with per-node prefix invariants; split/merge methods carry ensures clauses; leaf walks give range scans near streaming bandwidth. Flagged: the most intricate sequential derivation \u2014 a named checker stress case (experiment 2)."
+  },
+  {
+   "scenario": "Bounded cache with eviction (LRU class)",
+   "verdict": "PAR",
+   "how": "Taught composition, zero new spec: map + slab + embedded u32 recency links (indices are plain data, so intrusive links are expressible); CLOCK/S3-FIFO variants are link-discipline changes in the same pattern."
+  },
+  {
+   "scenario": "Interning / deduplication (value -> stable small id)",
+   "verdict": "PAR",
+   "how": "Composition: byte arena + span-keyed map using the borrowed-key probe (env-struct comparator over &[u8]) + id vector; resolve is one indexed load; the required map capability is in the map form's contract."
+  },
+  {
+   "scenario": "Concurrent hash map (shared read-mostly or sharded-write lookup)",
+   "verdict": "PARTIAL",
+   "how": "Sharded pattern (2^k mutex<map> + hash shard pick) reaches dashmap-class for mixed workloads \u2014 covered. Read-mostly linear-scaling maps (evmap/papaya/RCU class) need deferred reclamation, which is the declared GAP; per-thread-map + merge is the taught workaround."
+  },
+  {
+   "scenario": "Bump arena (mass-free allocation for build-then-drop object graphs)",
+   "verdict": "PAR",
+   "how": "Existing arena<'r,T> region core + reset rule (lexical proof that no borrows survive) + drop-mode; per-type arenas for heterogeneous graphs; alloc is add+compare, bump-class by construction."
+  },
+  {
+   "scenario": "Slab/pool with generational handles (stable identity + individual free)",
+   "verdict": "PAR",
+   "how": "slab form: cells + vacant-scratch freelist + generation compare on get (always-on, proof-elidable); supersedes the never-recycle P2 restriction with CHECKED recycling; 8B Copy handles thread through APIs freely."
+  },
+  {
+   "scenario": "Graphs (CFGs, dependency graphs, meshes) via index adjacency",
+   "verdict": "PAR",
+   "how": "Taught two-phase pattern over catalog shapes: vec-of-vecs build with u32 ids, freeze to CSR (offsets vec + packed edge vec); SoA payload arrays; prefetch hints for frontier expansion. No new primitive."
+  },
+  {
+   "scenario": "Trees with parent pointers / cross-links (navigable node soups)",
+   "verdict": "PAR",
+   "how": "Taught pattern: nodes in slab, parent/child/sibling as u32 handles (links are data, so the aliasing that ownership trees reject becomes integer fields); detach/reattach = 3-5 index stores; rowan-grade parity precedent."
+  },
+  {
+   "scenario": "Intrusive lists / membership links (O(1) unlink from within the element)",
+   "verdict": "PAR",
+   "how": "Taught pattern: u32 prev/next fields embedded in slab elements, multiple link pairs for multi-list membership; unlink = 2-4 stores + slab base add. Residue (links threaded through FREE blocks of unowned memory) is allocator-internal and stays inside the pre-existing runtime TCB (see allocator row)."
+  },
+  {
+   "scenario": "Deque / FIFO work buffer (single-threaded)",
+   "verdict": "PAR",
+   "how": "ring form: cyclic pow2 interval invariant; push/pop = one masked index add + store, VecDeque-identical; worklist loops stay L1-resident."
+  },
+  {
+   "scenario": "SPSC ring buffer (two-thread streaming handoff)",
+   "verdict": "PAR",
+   "how": "spsc form: single-writer atomics (plain-store lowering) + custody clauses over cyclic ranges + padding attribute + cached opposing index as a plain local; batched reserve/commit typed as range grants; zero RMW on both hot paths. rtrb-parity is experiment 3."
+  },
+  {
+   "scenario": "MPMC bounded queue (many-to-many channel buffer layer)",
+   "verdict": "PAR",
+   "how": "mpmc Vyukov form: per-slot atomic seq grants custody (seq==pos producer / pos+1 consumer); exactly one fetch_add/CAS per op; owned values move through granted slots; blocking variant adds futex TCB records."
+  },
+  {
+   "scenario": "Priority queue (heap) and the timer specialization",
+   "verdict": "PAR",
+   "how": "Implicit 4-ary heap over vec (pure library, zero pointers); lazy deletion covers decrease-key; timer wheel is a taught composition (bucket array + slab-embedded links + masked index), O(1) insert/cancel."
+  },
+  {
+   "scenario": "Work-stealing deque (per-worker task queue with thief end)",
+   "verdict": "PARTIAL",
+   "how": "Shipped: Go-runqueue-style variant where owner pop pays one uncontended CAS (~20 cycles) \u2014 at par for task granularity >= ~1us, which is parallel_for's regime. NOT claimed: exact Chase-Lev whose last-element SeqCst-fence race argument exceeds the decidable custody language; if experiment bands show the tax matters, this is the first named built-in-TCB candidate."
+  },
+  {
+   "scenario": "Single/few-byte scanning (memchr class)",
+   "verdict": "PAR",
+   "how": "simd scan kernel: u8x32 compare + movemask + tzcnt, 128B unrolled loop with one requires-discharged bound per chunk, scalar short paths, once-at-startup ISA dispatch; memmem as a second catalog entry (rare-byte + Two-Way) over the same primitive."
+  },
+  {
+   "scenario": "Block-parallel validation and structural indexing (simdjson/simdutf class)",
+   "verdict": "PAR",
+   "how": "Block classifier form: shuffle-as-table (pshufb via named intrinsic), Keiser-Lemire range checks as lane ops, clmul quote mask, u64 bitmask outputs, const nibble tables; zero data-dependent branches by construction."
+  },
+  {
+   "scenario": "Serialization/deserialization of structured messages",
+   "verdict": "PAR",
+   "how": "Three sub-shapes all covered: POD blit via copy structs + endian loads; checked cursor with per-message requires fact and one-u64-load varints; validated offset-graph via typed views + cursor facts. Zero decode allocations because views borrow; encode targets bytebuf."
+  },
+  {
+   "scenario": "Checksums and non-cryptographic hashing",
+   "verdict": "PAR",
+   "how": "Byte-fold kernels over machine ops: crc32 step x3 interleaved streams, widening-mul xxh3/wyhash folds, clmul folding, SipHash for DoS resistance; short-key dispatch is 2-3 predictable branches; all register-resident."
+  },
+  {
+   "scenario": "Compression codec inner loops (LZ + entropy)",
+   "verdict": "PARTIAL",
+   "how": "Covered: margin writer permits over-length wild WRITES (1-2 vector stores per match, no length branch) and offset<16 shuffle replication; multi-stream bit readers via one-time slack facts. Not covered: wild READS that cross the initialized frontier (reading garbage slop) \u2014 T1 forbids them, costing an estimated 10-20% vs C LZ4 on decode (lz4_flex-safe-shape evidence); zstd/FSE paths are closer to par since bitstream ILP dominates."
+  },
+  {
+   "scenario": "Zero-copy typed views over binary layouts (packets, pages, records)",
+   "verdict": "PAR",
+   "how": "Confined view structs + validate-once requires fact + endian unaligned loads with a 1-load codegen contract (asm-diff gate); data-dependent offsets (cell pointer arrays) use the checked cursor with once-proven facts."
+  },
+  {
+   "scenario": "General-purpose allocator fast path (mimalloc/jemalloc class)",
+   "verdict": "PAR",
+   "how": "For the stated consumer contract: n=1 global allocator interface backed by the PRE-EXISTING runtime TCB kernel (mimalloc-class per-thread heaps); box/cells/arena route through it. Honest residue: allocator AUTHORSHIP in checked source is out of scope (free-block link threading, type-changing reuse) \u2014 no new trust added, but no checked-source allocator either."
+  },
+  {
+   "scenario": "Arena / bump allocation with scope-lifetime free",
+   "verdict": "PAR",
+   "how": "arena form with drop-mode and reset-and-reuse under the lexical region proof; one catalog entry, two modes, exactly as the demand map suggests."
+  },
+  {
+   "scenario": "Slot pools / slabs: O(1) reuse without re-zeroing",
+   "verdict": "PAR",
+   "how": "cells recycling writes into Vacant slots without any zeroing (construction stores are the only stores); generation counters give ABA/stale detection; dense slot array iterates at streaming bandwidth."
+  },
+  {
+   "scenario": "Uninitialized buffers: zero-init avoidance with tracked init extent",
+   "verdict": "PAR",
+   "how": "iobuf prefix form: vacant suffix loaned to the read/recv TCB record whose audited postcondition marks exactly [filled,filled+n) live; zero memset in the path is a codegen-inspectable claim; same mechanism is vec spare capacity."
+  },
+  {
+   "scenario": "Memory-mapped data: file-backed byte regions",
+   "verdict": "PARTIAL",
+   "how": "mmap_ro covers the common case (frozen byte slice + typed views + defined SIGBUS trap policy + advisory lock). Writable/shared maps with external mutators break the borrow model and are explicitly deferred \u2014 no volatile-bytes discipline in the v1 core."
+  },
+  {
+   "scenario": "Portable SIMD vector types with runtime ISA dispatch",
+   "verdict": "PAR",
+   "how": "Vector value types + lane/shuffle/movemask ops + once-dispatched ISA-marked kernels + named-intrinsic escape typed in the same system; pure value semantics, no ownership surface, so the safety proof is untouched."
+  },
+  {
+   "scenario": "Unaligned loads, endianness, and alignment control",
+   "verdict": "PAR",
+   "how": "Endian load/store ops with a 1-mov(+bswap) codegen contract; align and cacheline-padding attributes on types/allocations; asm-diff parity and the false-sharing microbench are the acceptance gates."
+  },
+  {
+   "scenario": "Word-level bit operations: popcount/ctz/clz/pdep-pext and set-bit iteration",
+   "verdict": "PAR",
+   "how": "bit-count/rotate/shift rows already exist in OP-1 (v0.6); add pdep/pext (with AMD fallback lowering), tzcnt-driven x&=x-1 taught idiom, single-instruction lowering contract; pure integer ops, zero safety surface."
+  },
+  {
+   "scenario": "Branchless selection and predication (cmov class)",
+   "verdict": "PAR",
+   "how": "select op with hint strength (compiler may branch when profitable) and strict strength (verified-branchless codegen for crypto/partition) \u2014 one form, two promises, exactly the split the map calls for."
+  },
+  {
+   "scenario": "Software prefetch and non-temporal memory streams",
+   "verdict": "PAR",
+   "how": "prefetch hint op is semantically a no-op (never faults, no effect-row entry) so it composes into any checked loop; NT flag on bulk copy/fill; group-prefetch probe loops are plain compute-ahead code taught as a pattern."
+  },
+  {
+   "scenario": "Thread lifecycle: spawn/join, worker pools, thread-local state",
+   "verdict": "PAR",
+   "how": "Scoped spawn/join with owned or region-proven borrowed capture; pool form amortizes spawn; per-thread mutable state is an owned env struct threaded through the worker loop (no user-facing TLS; allocator-grade TLS lives in the runtime TCB where it already is)."
+  },
+  {
+   "scenario": "Atomic cells and the memory-ordering vocabulary",
+   "verdict": "PAR",
+   "how": "Closed vocabulary (rlx counter, rel/acq publish pair, CAS-retry, fetch_add, seqcst fence) \u2014 the ~95% idiom set; NOT SeqCst-only, so ARM lowering stays fence-free on hot paths; atomics exist only inside sealed types, keeping ordinary code atomic-free."
+  },
+  {
+   "scenario": "Mutual exclusion: mutex, rwlock, one-time init",
+   "verdict": "PAR",
+   "how": "Word-sized futex mutex as checked source (lock-bit custody grants the protected value; futex_wait/wake are TCB records); once/lazy-init same pattern (~1ns post-init check); rwlock shipped with read-mostly traffic directed to sharded/snapshot patterns (RCU residue accounted under reclamation)."
+  },
+  {
+   "scenario": "Queues and channels: SPSC ring vs MPMC channel",
+   "verdict": "PAR",
+   "how": "Both blessed forms exist (spsc, mpmc+futex-park blocking variant), so no one-queue compromise; endpoint uniqueness for SPSC is a linear token \u2014 precisely the unification-by-linearity the map predicts. Residue: multi-channel select is a taught poll pattern, not a primitive."
+  },
+  {
+   "scenario": "Concurrent keyed state: sharded maps and read-mostly tables",
+   "verdict": "PARTIAL",
+   "how": "Sharded map pattern (mutex<map> array + shard-by-hash) and shard-by-thread merge idiom cover mixed workloads at dashmap-class. Reader-writes-nothing tables need reclamation (GAP) or full snapshot-rebuild (taught, but only at par for small/rarely-updated tables like config \u2014 not for large hot tables)."
+  },
+  {
+   "scenario": "Safe memory reclamation (epoch/hazard/RCU class)",
+   "verdict": "GAP",
+   "how": "Epoch/hazard quiescence is a global temporal argument (all threads passed a barrier) outside the decidable per-method custody language, and the zero-trusted-internals stance cannot hide it in a TCB either. Routed around via sharding and snapshot-rebuild; named as the strongest future built-in-TCB candidate (crossbeam-epoch-shaped guard) if read-mostly linear scaling becomes a hard requirement \u2014 that admission would be evidence FOR a built-in, per this stance's own rule."
+  },
+  {
+   "scenario": "Data parallelism: parallel-for / fork-join with work stealing",
+   "verdict": "PAR",
+   "how": "parallel_for over split_uniq disjoint chunks + per-worker local rings (owner-CAS pop) + MPMC injector; geometric splitting makes steals rare so the owner-CAS tax (~20cy/task) vanishes at >=1us grains; bandwidth-bound reductions saturate DRAM. Sub-microsecond task regimes inherit the work-stealing-deque PARTIAL."
+  },
+  {
+   "scenario": "Buffered sequential file I/O",
+   "verdict": "PAR",
+   "how": "bufreader/bufwriter over pread/pwrite TCB records; fill_buf borrow via confined view; iobuf kills the memset; O_DIRECT + alignment attr variant for database engines \u2014 both demanded sub-shapes shipped."
+  },
+  {
+   "scenario": "Network sockets: TCP/UDP request paths",
+   "verdict": "PAR",
+   "how": "Nonblocking sockets + writev + buffer-reuse slab + REUSEPORT sharding pattern; UDP batching via recvmmsg/GSO records; steady-state allocation-free by construction (owned buffers cycle through the slab)."
+  },
+  {
+   "scenario": "Readiness/completion multiplexing (epoll/kqueue/io_uring/IOCP class)",
+   "verdict": "PAR",
+   "how": "One completion-style form (submit ops, await completions); the kernel loan is an affine MOVE of the buffer in and out \u2014 nonforgeable by ownership, no new lifetime machinery; io_uring backend with epoll+nonblocking emulation; ring setup is a small audited TCB unit."
+  },
+  {
+   "scenario": "mmap and shared memory",
+   "verdict": "PARTIAL",
+   "how": "Read-only private maps: PAR via mmap_ro + typed views + defined SIGBUS policy; anonymous hugepage arena reservation hides inside the allocator TCB. Writable MAP_SHARED IPC (external writer breaks single-process aliasing proofs) is deferred \u2014 needs a volatile-external-bytes discipline the v1 core does not include."
+  },
+  {
+   "scenario": "Durability ordering: fsync discipline and write-ahead logging",
+   "verdict": "PAR",
+   "how": "WAL form (checksummed frames, group-commit fdatasync) + atomic-replace form + the small low-level escape (per-fd fdatasync, directory sync records) \u2014 the two high-level forms plus non-optional low layer the map prescribes."
+  },
+  {
+   "scenario": "FFI call boundary (calling and being called by C)",
+   "verdict": "PAR",
+   "how": "extern boundary declarations compile to bare ABI calls (~1-2ns); repr-C layout via copy structs + explicit layout attrs; callbacks are exported concrete fns. The trust axis is contained exactly as the map says: every declaration is a human-approved, toolchain-gated TCB record with a stated ownership contract \u2014 auditable, never writer-suppliable."
+  },
+  {
+   "scenario": "Process and OS services: spawn, time, entropy, signals",
+   "verdict": "PAR",
+   "how": "One facade form: posix_spawn-backed process control, vDSO clocks (~25ns), buffered userspace CSPRNG (~2-5ns), shutdown-flag signals \u2014 all performance-differentiating choices live inside the facade over audited records."
+  }
+ ],
+ "tcb": "Added trusted surface, exactly: (1) a thin OS boundary layer of ~30 human-approved, toolchain-gated syscall records (open/pread/pwrite/fdatasync/dir-sync/close, socket/bind/accept/writev/recvmmsg, epoll and io_uring setup+enter+ring mmap, mmap/madvise/munmap, futex wait/wake, clone/join, posix_spawn/wait, clock_gettime, getrandom), each carrying a <=5-line typed pre/postcondition contract \u2014 the single semantically load-bearing one being read/recv's 'initializes exactly [0,n) of the loaned vacant window'; (2) per-program extern-C declarations as audited records of the same class (unavoidable by definition; writers cannot author them); (3) compiler-backend lowering tables for the new machine/SIMD ops and the two codegen CONTRACTS (1-load endian access; strict-select branchlessness) \u2014 these live inside the already-declared compiler TCB and are CI-gated by asm-diff against C references; (4) the pre-existing runtime allocator kernel, unchanged. Explicitly ZERO trusted container/queue/map/sort/codec/synchronization internals: vec, map, btree, slab, spsc, mpmc, mutex, WAL, and all codec kernels are checked source inside the safety proof. Verification story: every record gets hostile adversarial review before shipping (standing fact-channel rule), differential testing against reference semantics (strace-level and property tests), and postconditions kept minimal and monotone; the io_uring ring-protocol records are reviewed as one unit since they encode a shared-memory ABI. Deliberately absent from the TCB: Chase-Lev and epoch reclamation \u2014 named as the first candidates to ADD as built-ins if their coverage gaps prove binding, which under this stance is the honest signal that those two forms want the builtin-TCB answer.",
+ "checker_story": "The checker gains exactly two new judgments; both are local, annotation-driven, and deterministic \u2014 no proof search, no fixpoints, no inter-procedural inference. (1) Sealed-invariant preservation: for each method of a sealed type, symbolically execute the ANF body carrying a slot-state map keyed by symbolic index ranges (endpoints are linear expressions over fields/locals, plus cyclic pow2 intervals); each cells op transitions a range or point; at exit, check that the declared invariant plus the method's ensures follow. Every entailment lies in quantifier-free linear integer arithmetic extended with pow2-mask axioms (x & (c-1) < c) and range-inclusion \u2014 a decidable fragment with formulas bounded by method size; because sealed methods carry their own requires/ensures (extending the shipped FN-8 prologue), checking is per-method compositional. (2) Custody, for sealed concurrent types: the same machinery plus linear role tokens; an atomic load contributes a metadata fact; a slot access is admitted only if a custody clause grants that range to the held token under current facts; publication is a purely syntactic ANF-order rule (slot writes before the granting release store; acquire load before granted reads); join/drop demands token quiescence. Erasure legality is a syntactic coverage check that the invariant determines every slot's state \u2014 not a proof. Reject-when-unsure is preserved: any obligation outside the fragment rejects citing the rule with a restructuring hint, exactly the OWN-8 posture. Crucially, ordinary (non-sealed) code triggers zero new checking \u2014 the entire apparatus runs only over the ~dozen project-authored form implementations, so the frontend-simple ruling for writer-facing code stands untouched.",
+ "ai_writability": "A mid-tier model never touches the new core: cells, sealed, atomics, and custody are legal only inside sealed implementations, which are project-authored and hostilely reviewed. The writer-facing world is the existing 90-rule kernel plus ~20 form cards with uniform, one-spelling contracts: constructors, Option/Result-returning ops consumed by exhaustive match, slice views for algorithms, affine moves for handoff \u2014 all shapes the D9a experiments already showed modest models handle first-green. The ~8 composition patterns (LRU, interner, CSR, slab-tree, intrusive links, timer wheel, sharded map, group-prefetch) are taught as short recipes over forms, each a page of ordinary ANF. Worst teaching hazard: FORM SELECTION at the concurrency boundary \u2014 a writer who picks mpmc where spsc's linear endpoints apply (3-5x tax), or a sharded map for a read-mostly hot table (the reclamation GAP means there is no right answer to teach there, only the per-thread-merge workaround) \u2014 wrong picks are correct-but-slow, invisible to the checker, so the catalog must ship a one-page decision table and the pool/channel diagnostics should name the faster sibling when endpoint linearity is provable. Second hazard: a writer needing an out-of-catalog structure and attempting sealed authorship \u2014 the invariant annotations are expert-level; doctrine (D6) handles this correctly by making a catalog gap a project finding, and the checker's rejection diagnostics must say exactly that rather than coaching invariant-writing.",
+ "risks": [
+  "Invariant-language scope creep: B-tree split/merge, SwissTable tombstone rebalancing, and the codec margin writer will each pressure the closed predicate language toward new atom forms; each addition risks sliding from decidable checking toward proof search. Mitigation: the language is frozen per experiment 2; any derivation needing a new atom is escalated as evidence for making THAT form a built-in instead.",
+  "Erasure soundness is miscompile-grade: a bug in the totality check (invariant fails to determine a slot's state but tags are erased anyway) yields well-typed UAF/uninit reads \u2014 exactly the T1 classes. Mitigation: erasure is a fact channel and gets hostile review plus a seeded-mutation suite (experiment 2's 1k adversarial mutants must all be rejected).",
+  "Custody may not stretch to real lock-free subtlety: Vyukov wrap-around (pos vs pos+cap epochs) and any fence-race argument (exact Chase-Lev) may exceed syntactic publication + per-method facts; the concurrency block (~13 rules) could then be spec cost spent for only spsc+mutex. Mitigation: preregistered model-checking harness; explicit fallback that mpmc/deque become built-ins and the custody rules shrink.",
+  "Spec growth strains D2: ~50 rules on a 90-rule kernel (~55%) even with writer-facing rules being a small fraction; if formalization overruns the estimate by >30%, the stance's premise (library forms cheaper than built-ins in spec weight) is falsified for the concurrent third and should be partially abandoned.",
+  "Generic instantiation cost: sealed invariants must check once at the generic level (with facts like sizeof(T)>=8 for the scratch word as explicit bounds), or monomorphization multiplies checking time and error surfaces per instantiation.",
+  "The reclamation GAP is a real competitive ceiling: read-mostly concurrent tables at linear core scaling are table stakes in modern server code (papaya/evmap/RCU); routing around via sharding concedes that workload class to Rust/C++ until a built-in epoch guard is admitted.",
+  "Compression PARTIAL may generalize: the wild-READ restriction (no loads across the initialized frontier) is the first of a family of 'reads of garbage that C exploits' idioms (also e.g. SwissTable full-group loads past len on tiny tables); if more show up, per-form freeze/zero-fill workarounds erode multiple par claims by 5-20%.",
+  "Owner-approval bottleneck on the TCB records: ~30 syscall records each needing hostile review and human approval is a real serialization point before any F8 form lands; underestimating this pushes I/O coverage far behind the container coverage."
+ ],
+ "first_experiments": [
+  "Erasure parity (vec + SwissTable): implement vec<u64> and map<u64,u64> as sealed checked source under a prototype invariant checker; benchmark 1M-element push-then-scan and 1M-key uniform-random hit lookups against Rust 1.81 Vec and hashbrown 0.15+foldhash on the same host, plus asm inspection of push and probe loops. PASS: both workloads within [0.95x, 1.10x] of the Rust reference AND zero residual presence-tag loads/branches in the hot loops (instruction-count delta <= +1 per loop body). FAIL: >1.10x time on either, or any per-slot tag traffic survives erasure.",
+  "Checker decidability and adversarial soundness: run the prototype checker on the three hardest sequential derivations (vec grow/spill path, SwissTable insert-with-tombstone-elision, ring wraparound) plus a 1,000-case seeded-mutation suite (each mutant breaks a metadata/slot pairing, off-by-ones on range endpoints, wrong-order publication). PASS: all three genuine derivations verify with per-method check time < 100ms and zero solver timeouts/heuristics, AND 1000/1000 mutants rejected. FAIL: any mutant accepted (soundness escape), any method needing search/timeout, or any derivation requiring an invariant atom outside the frozen language.",
+  "SPSC custody derivation: write the Lamport+cached-index ring as sealed concurrent checked source; verify with an exhaustive bounded-interleaving model checker (loom-style) over capacity-2/3 rings, then benchmark single-item push+pop round trips cross-core against rtrb 0.3 on the same host, with asm inspection. PASS: model check finds zero custody violations, hot paths contain zero atomic RMW instructions (asm-verified), and round-trip time within [1.0x, 1.3x] of rtrb. FAIL: any RMW on a hot path, >1.3x rtrb, or any interleaving reaching a slot access without a custody grant."
+ ]
+}

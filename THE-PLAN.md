@@ -81,24 +81,48 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Performance-first minimal systems-capability research** — B-STRATA
-   DECISIVE TRACK ACTIVE (2026-07-15). The
-   objective is to remove performance barriers caused by missing language
-   expressiveness while retaining the standing safety and regularity
-   constraints. The research starts from a finite ledger of blocked native
-   representations and code shapes, not from a privilege gate, registry,
-   intrinsic form, keyword, or prior candidate basis.
+1. **Systems-performance coverage research** — D15 FRESH-DERIVATION TRACK
+   ACTIVE (2026-07-16). The owner redirected the capability research: for
+   most systems-programming scenarios, at least one blessed way of writing
+   must reach or exceed the performance of the best existing
+   implementations; the provided form count n stays small under the binding
+   spec-compactness requirement; line-by-line reproduction of existing
+   software is explicitly not required; compiler-known forms with
+   disciplined trusted internals are readmitted to the answer space. The
+   D14 B-Strata-only lock no longer constrains the active derivation; all
+   prior candidate artifacts remain historical evidence and falsifiers.
 
-   After the completed `B-REVISE` gate, the owner selected `B-STRATA` as the
-   sole capability architecture to pursue. The outcome is forced:
+   The first fresh pass is complete: a 9-family/51-scenario demand map,
+   four independent complete designs (builtin-maximalist, minimal semantic
+   core, evidence-split hybrid, parameterized schemas), twelve hostile
+   attack reports, and one cross-design judgment, all durably recorded in
+   `optimizer-language-research/implementation/systems-performance-coverage/`.
+   Recommendation: a three-tier architecture (narrow language core + sealed
+   parameterized taught forms + composition cards, ~14 spec-object families,
+   honest budget ~60-75 kernel rules plus a <=40k-token catalog appendix),
+   explicitly conditional on gate #1 — a decidable loan/freeze judgment
+   plus confined borrow-carrying values (the one kernel gap all four
+   designs failed on: entry tokens, cursors, guards, and iterators are
+   untypeable under the frozen no-reborrow/no-borrows-in-data rules).
+   Preregistered validation ladder M1-M10 with frozen pass/fail bands;
+   M1 (paper falsification of the loan judgment, ~1 week) kills or
+   confirms the architecture first. Owner decision points: authorize M1;
+   pool recycling vs P2 never-recycle re-decision; trap = process abort;
+   v1 non-goals; `copy struct`; the D2 budget split. No production change
+   is authorized before those decisions.
+
+   Historical context of the superseded lock (evidence, not active
+   authority): after the completed `B-REVISE` gate, the owner had selected
+   `B-STRATA` as the sole capability architecture. That outcome was forced:
    `STRATA-YES` with a normalized minimal core, safe closure of fourteen frozen
    systems-performance demands, hostile safety and erasure review,
    implementable deterministic checking/lowering, and bounded performance and
    resource evidence; or `STRATA-NO` with the irreducible safety, performance,
-   interaction-growth, or implementation reason it cannot work. Candidate C is
-   not a fallback, and B-Graphs receives no competing design track. The
-   controlling plan is `optimizer-language-research/implementation/
-   minimal-systems-capability/CANDIDATE-B-STRATA-DECISIVE-PLAN.md`.
+   interaction-growth, or implementation reason it cannot work. Candidate C was
+   not a fallback, and B-Graphs received no competing design track. Its plan
+   was `optimizer-language-research/implementation/
+   minimal-systems-capability/CANDIDATE-B-STRATA-DECISIVE-PLAN.md`; under D15
+   it is historical evidence, not active authority.
 
    The fourteen audited source operations now serve as fixed demand cases,
    workload baselines, and structural stress tests, not mandatory final
@@ -177,8 +201,8 @@ Measured non-wins (equally load-bearing):
    credit, paper routes receive no measured-performance credit, and structural
    analysis is not a formal safety proof.
 
-   The controlling active contract is `optimizer-language-research/
-   implementation/minimal-systems-capability/
+   Its contract (suspended under D15, retained as evidence) is
+   `optimizer-language-research/implementation/minimal-systems-capability/
    CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. Phase 1 first normalizes the eight
    analytical strata into a finite working upper-bound core and front-loads
    liveness authority, policy-neutral quiescence, erased one-shot disposition,
