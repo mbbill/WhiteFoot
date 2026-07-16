@@ -91,13 +91,24 @@ Measured non-wins (equally load-bearing):
 
    After the completed `B-REVISE` gate, the owner selected `B-STRATA` as the
    sole capability architecture to pursue. The outcome is forced:
-   `STRATA-YES` with a normalized closed core, hostile safety and erasure
-   review, implementable deterministic checking/lowering, and bounded
-   structural/performance evidence; or `STRATA-NO` with the irreducible safety,
-   performance, interaction-growth, or implementation reason it cannot work.
-   Candidate C is not a fallback, and B-Graphs receives no competing design
-   track. The controlling plan is `optimizer-language-research/implementation/
+   `STRATA-YES` with a normalized minimal core, safe closure of fourteen frozen
+   systems-performance demands, hostile safety and erasure review,
+   implementable deterministic checking/lowering, and bounded performance and
+   resource evidence; or `STRATA-NO` with the irreducible safety, performance,
+   interaction-growth, or implementation reason it cannot work. Candidate C is
+   not a fallback, and B-Graphs receives no competing design track. The
+   controlling plan is `optimizer-language-research/implementation/
    minimal-systems-capability/CANDIDATE-B-STRATA-DECISIVE-PLAN.md`.
+
+   The fourteen audited source operations now serve as fixed demand cases,
+   workload baselines, and structural stress tests, not mandatory final
+   implementations. A route may preserve the reference topology or substitute
+   another data structure, reclamation strategy, or algorithm when it preserves
+   the frozen consumer contract and safety/progress requirements and meets the
+   preregistered non-inferiority and resource bands. Exact source-route failure
+   alone is not `STRATA-NO`. The final minimum is the union of rules needed by
+   one passing route per demand, so a reference-only rule must be removed when a
+   qualified substitute makes it unnecessary.
 
    The completed packet freezes 15 conjunctive performance-demand families,
    three materially different capability hypotheses, 17 uniform comparison
@@ -169,15 +180,18 @@ Measured non-wins (equally load-bearing):
    The controlling active contract is `optimizer-language-research/
    implementation/minimal-systems-capability/
    CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. Phase 1 first normalizes the eight
-   analytical strata into the smallest exact semantic core and front-loads
+   analytical strata into a finite working upper-bound core and front-loads
    liveness authority, policy-neutral quiescence, erased one-shot disposition,
-   and exact external-repair boundaries. Exact full-route closure for the same
-   fourteen operations precedes hostile safety and
-   erasure modeling; only a paper YES and model YES authorize the smallest
-   preregistered cross-project prototypes, generated-code inspection, and
-   measurement needed for the final verdict. No additional candidate, project,
-   or operation is authorized. Production language, specification, checker,
-   compiler, verifier, runtime, standard-library, container, xlc, migration,
+   and exact external-repair boundaries as reference-pressure tests. Phase 2
+   freezes the same fourteen demand contracts and a bounded reference/substitute
+   route frontier, then exposes which rules can be deleted. Demand-level paper
+   closure precedes hostile safety and erasure modeling; only a paper YES and
+   model YES authorize the smallest preregistered cross-project prototypes,
+   generated-code inspection, and measurement needed for the final verdict.
+   After evidence, one passing route per demand determines the final reduced
+   core and all earlier gates rerun. No additional candidate, project, or demand
+   is authorized. Production language, specification, checker, compiler,
+   verifier, runtime, standard-library, container, xlc, migration,
    fact-channel, selection, teaching, or shipping changes remain separately
    gated after a final `STRATA-YES`. Exact D-2/P-1 remain fail-closed, and the
    separate xlc self-hosting build track must not be mixed into this research.

@@ -10,11 +10,23 @@ CANDIDATE-B-STRATA-DECISIVE-PLAN.md`.
 The owner selected B-Strata as the sole capability architecture to pursue after
 the completed `B-REVISE` comparison. Do not pivot to Candidate C and do not
 develop B-Graphs as a competing design. The work must end in `STRATA-YES`, with
-one normalized core, complete derivations for all fourteen frozen operations,
-hostile safety and erasure review, implementable deterministic checking and
-lowering, and bounded cross-project structural/performance evidence; or
-`STRATA-NO`, with the irreducible reason B-Strata cannot meet the constraints.
-Another open-ended revision recommendation is not an allowed final result.
+one normalized minimal core, safe closure of all fourteen frozen performance
+demands through selected reference or substitute routes, hostile safety and
+erasure review, implementable deterministic checking and lowering, and bounded
+cross-project performance/resource evidence; or `STRATA-NO`, with the
+irreducible reason B-Strata cannot meet the constraints. Another open-ended
+revision recommendation is not an allowed final result.
+
+The fourteen audited source operations are reference baselines and stress
+cases, not mandatory final data structures. A different container, reclamation
+strategy, or algorithm is admissible when it preserves the frozen consumer
+contract and safety/progress requirements and meets the preregistered
+non-inferiority and resource bands. Exact source-route failure is therefore not
+a NO result by itself. NO requires either an independent core blocker that
+applies to every route or evidence that a frozen demand has no safe
+B-Strata-expressible reference or substitute route within its bands. The final
+minimum is the union of rules used by one passing route per demand; rules needed
+only to mimic an unselected source topology must be deleted.
 
 The existing eight strata are analytical jobs rather than eight selected
 language primitives. Phase 1 must normalize them and front-load the two most
@@ -22,15 +34,109 @@ dangerous authority boundaries: liveness that metadata cannot forge and a
 policy-neutral quiescence producer that covers the audited mimalloc and
 Crossbeam event paths without per-load or per-object tax. Erased one-shot
 disposition and exact external-repair leaves are the other two front-loaded
-boundaries. The exact four projects and fourteen operations remain fixed.
+boundaries. The exact four projects and fourteen demand cases remain fixed;
+their implementations do not. Phase 1's current exact-route derivations define
+a working upper-bound core. Phase 2 freezes demand contracts and a bounded
+reference/substitute frontier, then challenges every reference-only rule.
 Paper closure precedes a hostile safety/erasure model; model closure precedes
 the smallest preregistered cross-project prototypes, generated-code inspection,
-and measurement.
+and measurement. After evidence, select one passing route per demand, delete
+unused rules, and rerun the earlier gates on the reduced core.
 
 The new ruling authorizes this decisive research sequence and conditional
 validation. It does not authorize production language, specification, checker,
 compiler, runtime, library, xlc, migration, teaching, or shipping changes. A
 final `STRATA-YES` returns an exact landing proposal for separate owner review.
+
+## Current execution snapshot
+
+Phase 0 is complete in commit `2486dd4`: the B-Strata decisive plan and forced
+YES/NO track were locked without authorizing production changes. The owner then
+clarified the demand-substitution rule above. The controlling plan, active
+status, owner directives, and MCTS-Mem record have been amended to make that
+clarification durable.
+
+Phase 1 has a complete candidate artifact set, but it has **not** passed its
+gate:
+
+- the working core has three judgment families: `K1 ROOTED-PLACE`,
+  `K2 SEALED-STATE`, and `K3 LINEAR-STEP`;
+- the rule ledger contains 23 primitives and eight derived strata;
+- 28 authority-origin rows, 23 primitive lineage rows, a complete interaction
+  matrix, eight BS-1 through BS-8 normalization rows, and eight boundary stress
+  witnesses are recorded; and
+- the Phase 1 verifier passes its inventory, schema, normalization, interaction,
+  boundary, and current negative checks, then deliberately stops at the open
+  lineage-conservation gate.
+
+The blocking flaw is concrete: the verifier compares lineage output names but
+does not yet validate that each source comes from the rule's consumed inputs or
+an allowed true origin, and it does not check branch-local affine multiplicity.
+Mutating `K2-CLASSIFY` to `A-ROLEVIEW<=A-FACT` or changing `A-LIVE`'s
+`origin_rule` to `K2-FACT` survives the implemented checks if the old final
+status assertion is bypassed. The verifier now fails closed on this gap.
+Independent hostile review of the rest of the Phase 1 core was not completed
+before this wrap-up. The exact-source boundary witnesses currently establish
+reference-pressure expressibility only. They do not prove that observer
+closure, one-shot disposition, external repair, or any other reference-driven
+rule belongs in the final minimum. No Phase 2 demand/route ledger, operational
+safety model, prototype, generated-code evidence, or measurement has been
+completed.
+
+## Active artifact map
+
+| Purpose | Artifact |
+|---|---|
+| Controlling scope, gates, and stopping rules | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-DECISIVE-PLAN.md` |
+| Working semantic core | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-CORE.md` |
+| Primitive and derived-rule admission ledger | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-RULES.tsv` |
+| Sole producers and invalidators | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-AUTHORITY-ORIGINS.tsv` |
+| Old-stratum normalization | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-NORMALIZATION.tsv` |
+| Primitive lineage and failure equations | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-LINEAGE.tsv` |
+| Rule-pair authority interactions | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-INTERACTIONS.tsv` |
+| Exact-source stress witnesses | `optimizer-language-research/implementation/minimal-systems-capability/CANDIDATE-B-STRATA-BOUNDARY-PROOFS.tsv` |
+| Phase 1 deterministic gate | `tools/verify_candidate_b_strata_core.py` |
+| Active-status consistency gate | `tools/verify_performance_research_status.py` |
+
+## Exact continuation sequence
+
+1. Finish independent hostile review of the Phase 1 working core. Review its
+   conservation, authority origins, quiescence assumptions, erased callable,
+   external-repair boundary, deterministic checking bound, and interaction
+   totality. Judge exact routes as stress tests, not as mandatory topologies.
+2. Apply every soundness or totality correction across the core, rule,
+   authority, lineage, normalization, interaction, and boundary ledgers. There
+   is no arbitrary numerical quota on semantic corrections; a semantic change
+   reopens the earliest affected gate and invalidates downstream evidence.
+3. Set `STRATA-CORE-PASS` only after hostile review and both repository gates
+   are green. This certifies a finite sound working core, not final minimality.
+4. In Phase 2, create exactly fourteen demand rows and a finite route frontier.
+   Each substitute must name the core rule it is intended to delete or merge,
+   or the blocked demand it is intended to close. Freeze consumer contracts,
+   workloads, progress requirements, non-inferiority margins, and hard resource
+   ceilings before evidence.
+5. Paper-close every demand with at least one reference or substitute route.
+   Then run the general safety/model gate and only afterward the smallest
+   preregistered prototypes and measurements.
+6. Select one passing route per demand, minimize the union of required rules,
+   delete every unused reference-only rule, and rerun the core, paper, and model
+   gates before returning `STRATA-YES`. Return `STRATA-NO` only for a generic
+   blocker or a demand with no safe route inside its frozen bands.
+
+## Do not misread the current state
+
+- B-Strata is the only active architecture; do not pivot to Candidate C or
+  revive B-Graphs as a competing design.
+- The corpus is fourteen fixed demands and reference baselines, not fourteen
+  mandatory implementations.
+- Phase 1 is a candidate upper bound, not a passed gate and not the final
+  minimum.
+- No language, specification, compiler, checker, runtime, library, container,
+  xlc, migration, teaching, or shipping change is authorized.
+- Do not use a mind-expansion workflow or broaden the project/demand corpus.
+- Preserve the pre-existing owner edits in the worktree: the English-only
+  wording in byte-identical `AGENTS.md`/`CLAUDE.md` and the `D10-R1` decision-log
+  entry. Do not discard or overwrite them while staging later research work.
 
 ## 0. Historical performance-first correction — superseded
 

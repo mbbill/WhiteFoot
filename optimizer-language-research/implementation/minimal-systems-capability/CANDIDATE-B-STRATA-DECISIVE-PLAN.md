@@ -15,24 +15,28 @@ falsifiers only.
 
 The objective is no longer another comparative paper result. It is:
 
-> Determine whether one normalized, project-independent B-Strata core can make
-> the fourteen frozen native operations safe and performance-preserving, then
-> test the decisive claims far enough to return a forced YES or NO verdict.
+> Determine whether one normalized, project-independent B-Strata core can
+> close the fourteen frozen systems-performance demands safely and within
+> their performance bands, using either the reference representation or a
+> safe substitute, then test the decisive claims far enough to return a forced
+> YES or NO verdict.
 
 The final result must be exactly one of:
 
-- `STRATA-YES`: one coherent core closes all fourteen operations, survives
-  hostile safety and erasure review, has an implementable deterministic
-  checker and lowering, and preserves every protected native structural budget
-  in the bounded evidence; or
+- `STRATA-YES`: one coherent core closes all fourteen demands through selected
+  reference or substitute routes, survives hostile safety and erasure review,
+  has an implementable deterministic checker and lowering, and meets every
+  frozen performance and resource band in the bounded evidence; or
 - `STRATA-NO`: a named irreducible conflict, unavoidable runtime or structural
   tax, unsafe authority cycle, unbounded rule interaction, or infeasible
   checker/lowering prevents B-Strata from meeting the project constraints.
 
 `REVISE`, `OPEN`, and `UNKNOWN` may describe intermediate work. They are not
-permitted as the final disposition. A NO verdict must explain why another
-local B-Strata repair cannot remove the blocker without violating a binding
-constraint. Lack of elapsed research time alone is not a NO argument.
+permitted as the final disposition. A NO verdict must explain why neither
+another local B-Strata repair nor an admissible substitute route can remove the
+blocker without violating a binding constraint. Failure to reproduce one
+source project's exact data structure is not a NO argument. Lack of elapsed
+research time alone is not a NO argument.
 
 ## 2. What remains fixed
 
@@ -46,10 +50,12 @@ scans, or an unavailable native representation. Isolation is not the goal.
 Every source-level check remains present unless a machine-verified proof
 discharges it. No route may weaken safety to preserve source performance.
 
-### 2.2 Frozen operation corpus
+### 2.2 Frozen demand corpus and reference baselines
 
-The decisive corpus remains exactly the previously audited fourteen complete
-operations:
+The decisive corpus remains exactly the previously audited fourteen demand
+cases. Their source operations define reference baselines and stress cases;
+they do not require the final route to preserve the same internal data
+structure or algorithm:
 
 1. Hashbrown lookup;
 2. Hashbrown vacant insertion;
@@ -67,11 +73,52 @@ operations:
 14. Crossbeam collection.
 
 The pinned source identities and exact source anchors in
-`CANDIDATE-B-MULTIPROJECT-AUDIT.md` remain controlling. Definition chasing is
-allowed only inside those complete routes. No fifth project or fifteenth
-operation may be added merely to postpone the verdict.
+`CANDIDATE-B-MULTIPROJECT-AUDIT.md` remain controlling for the reference
+behavior, workload, cost, and source-route claims. Definition chasing is
+allowed only inside those complete reference routes. No fifth project or
+fifteenth demand may be added merely to postpone the verdict.
 
-### 2.3 Historical evidence
+### 2.3 Demand closure and substitution
+
+The object of coverage is the useful systems demand, not the historical
+implementation. For each demand, the cross-family lock must freeze before
+evidence is observed:
+
+- the externally observable behavior relevant to the consumer, including
+  failure and rare outcomes;
+- the safety, ordering, and progress requirements that the consumer depends on;
+- the workload, corpus, target, and reference baseline;
+- one primary performance endpoint and its non-inferiority margin; and
+- hard resource ceilings for the dimensions that can invalidate an apparent
+  speed win, including memory, tail latency, code size, scalability,
+  synchronization, startup, and asymptotic work where relevant.
+
+A demand may be closed by either route kind:
+
+- `REFERENCE`: preserve the reference algorithm and representation closely
+  enough to claim native structural parity; or
+- `SUBSTITUTE`: use a different data structure, reclamation strategy, or
+  algorithm while preserving the frozen demand contract and passing its
+  quantitative performance and resource bands.
+
+The final minimum is the union of semantic rules required by one passing route
+for every demand, not the union needed to reproduce every reference topology.
+A rule needed only by a reference implementation must be removed when selected
+substitute routes make it unnecessary. Conversely, a substitute is not useful
+merely because it is different: it enters the bounded route frontier only when
+it names the core rule it is expected to delete or merge, or when it closes a
+demand whose reference route is blocked without adding project-specific
+authority.
+
+Reference-route failure remains diagnostic evidence. It becomes
+`STRATA-NO` only when the frozen demand has no safe B-Strata-expressible route
+within its performance and resource bands, or when an independent core
+soundness or implementability blocker applies to every route. Substitute
+routes, workloads, margins, and ceilings must be frozen before measurement;
+results may not redefine the demand. This is a bounded minimization exercise,
+not an invitation to enumerate arbitrary containers or algorithms.
+
+### 2.4 Historical evidence
 
 The completed `B-REVISE` comparison is evidence, not an active alternative
 contest. In particular:
@@ -229,7 +276,7 @@ Every primitive or derived rule must have one ledger row with:
 5. executable disposition of every outstanding owner;
 6. a deterministic local checking procedure;
 7. a static-erasure argument;
-8. the native operations that need it;
+8. the demand routes that need it;
 9. a deletion witness;
 10. hostile negative examples;
 11. interaction points with every other primitive; and
@@ -252,14 +299,15 @@ A rule is rejected if any of the following holds:
 
 ## 6. Work phases and mandatory gates
 
-The entire track has one semantic-repair budget after Phase 0. Any change to a
+There is no arbitrary numerical quota on semantic corrections. Any change to a
 primitive, authority producer, rule semantics, leaf contract, route semantics,
-or state model consumes it, reopens the earliest affected gate, and invalidates
-every downstream proof, prototype, and measurement. A second missing-authority
-failure must end in `STRATA-NO` with a minimal witness that exhausts the frozen
-grammar and shows that no admitted local composition can produce the required
-authority. Mechanical verifier, model, checker, or lowerer defects may be fixed
-without consuming this budget only when the frozen semantics and route remain
+or state model reopens the earliest affected gate and invalidates every
+downstream proof, prototype, and measurement. A correction is admissible only
+when it remains project-independent, passes Section 5, and preserves a finite
+closed core with bounded interactions. Repeated core growth is evidence against
+minimality and elegance, but is not by itself a `STRATA-NO` proof. A NO verdict
+requires the irreducible witness defined in Section 1. Mechanical verifier,
+model, checker, or lowerer defects may be fixed when semantics and routes remain
 unchanged; affected evidence must still be regenerated.
 
 ### Phase 0: durability and baseline
@@ -299,15 +347,19 @@ document:
    or arbitrary foreign contracts; Phase 2 performs the complete leaf
    enumeration and route closure.
 
-If any boundary requires a project/policy identity, an arbitrary writer
-invariant, a hidden trusted assertion, or an extra protected-path event, record
-`STRATA-NO` before spending time completing lower-risk exposition.
+If a reference boundary requires a project/policy identity, an arbitrary writer
+invariant, a hidden trusted assertion, or an extra protected-path event, reject
+that reference route before spending time completing lower-risk exposition.
+This is an immediate `STRATA-NO` only when the underlying frozen demand has no
+admissible substitute route or the same blocker follows from the generic core
+and therefore applies to every route.
 
-Each of the four boundaries must already provide, for every relevant frozen
-project, one machine-checkable positive derivation, one single-fault authority-
-forgery rejection, and the exact native event manifest. These are early
-falsifiers, not substitutes for the general proof and complete route work in
-later phases.
+Each of the four boundaries must already provide, for every relevant reference
+stress case, one machine-checkable positive derivation, one single-fault
+authority-forgery rejection, and the exact native event manifest. These are
+early reference-pressure falsifiers, not proof that the same topology belongs
+in the final minimum and not substitutes for the general proof and complete
+demand work in later phases.
 
 Produce:
 
@@ -319,92 +371,134 @@ Produce:
   statement to exactly one primitive or one acyclic derivation;
 - `CANDIDATE-B-STRATA-AUTHORITY-ORIGINS.tsv`, recording every authority kind,
   sole producer class, consumers, transfers, and invalidators;
+- `CANDIDATE-B-STRATA-LINEAGE.tsv`, giving every primitive output a consumed
+  input lineage or one enumerated true origin, with exact failure equations;
 - an interaction matrix showing which rule pairs can exchange authority and
   why no unchecked cross-product exists; and
+- `CANDIDATE-B-STRATA-BOUNDARY-PROOFS.tsv`, containing the eight required
+  positive derivations, single-fault rejections, and native event manifests;
 - a deterministic verifier for inventory, required fields, authority-source
   uniqueness, deletion witnesses, and interaction coverage.
 
 The core document must use one representation-independent state model for
 vacant/live layouts, owner obligations, progress, repair, facts, and concurrent
 custody. It must not add source syntax or choose a production encoding yet.
+At this gate the normalized core is a finite working upper bound derived under
+reference-route pressure. It does not earn the word *minimal* until the
+substitution frontier has challenged reference-only rules and the selected
+passing routes have allowed those rules to be deleted.
 
 Gate: `STRATA-CORE-PASS` or `STRATA-NO`.
 
-`STRATA-CORE-PASS` requires a finite deterministic core with no circular
-authority, no hidden runtime state, and a syntax-directed checking algorithm
-for every rule. The plan must state a termination measure and worst-case bound
+`STRATA-CORE-PASS` requires a finite deterministic working core with no
+circular authority, no hidden runtime state, and a syntax-directed checking
+algorithm for every rule. The plan must state a termination measure and worst-case bound
 in program size, monomorphized instance count, and state arity; acceptance may
 not depend on solver timeout, heuristic success, backtracking, or unbounded
 search. The verifier must reject a cycle in the complete authority-origin graph,
 not merely uncovered pairwise interactions, and every K2 constructor must fix
 its affine, shared, or scoped multiplicity.
 
-One targeted correction may repair an omitted definition by consuming the
-global semantic-repair budget. After that correction, every required authority
-must have either a complete derivation or a minimal missing-authority witness
-over the exhaustively enumerated frozen grammar; it may not remain an open
-expository task.
+Hostile review may repair omitted or inconsistent definitions before the gate,
+but every correction must update the full rule, lineage, authority-origin, and
+interaction ledgers. At the gate, every required authority must have either a
+complete derivation or a minimal missing-authority witness over the
+exhaustively enumerated frozen grammar; it may not remain an open expository
+task.
 
 After `STRATA-CORE-PASS`, no primitive or stratum may be silently added. A
 proposed addition reopens the core gate, must pass the full admission ledger
-and interaction matrix, and consumes the global semantic-repair budget.
+and interaction matrix, invalidates downstream evidence, and counts explicitly
+against the design's minimality and interaction-growth claims. Deleting or
+merging a rule after a substitute succeeds also reopens the core gate, but it
+is the intended path from this working upper bound to the final minimum.
 
-### Phase 2: close all fourteen complete routes
+### Phase 2: freeze demands and close the bounded route frontier
 
-Freeze `CANDIDATE-B-STRATA-CROSS-FAMILY-LOCK.md` before constructing a
-candidate model or prototype. It binds every operation's reference algorithm,
-outcome partition, owner/drop account, roots, synchronization and external
-events, hostile mutations, and forbidden structural deltas. It also freezes the
-complete endpoint registry: reference source/function/corpus hashes,
-correctness digest, target triple, compiler and flags, allocator, endpoint and
-aggregation, ratio direction, sample or sequential-stop rule, balanced run
-order, exclusions, confidence method and level, non-inferiority margin,
-multiplicity treatment, and the preselected structural/event-count substitute
-for a cold or rare route. Results may not rewrite this lock.
+Produce `CANDIDATE-B-STRATA-CROSS-FAMILY-LOCK.md` before constructing a
+candidate model or prototype. Its demand table has exactly fourteen rows. Each
+row freezes the consumer-visible contract, outcome partition, required safety,
+ordering and progress properties, reference source/function/corpus hashes,
+correctness digest, workload, target triple, compiler and flags, allocator,
+endpoint and aggregation, ratio direction, sample or sequential-stop rule,
+balanced run order, exclusions, confidence method and level, non-inferiority
+margin, multiplicity treatment, hard resource ceilings, and any preselected
+structural/event-count endpoint for a cold or rare path. Results may not rewrite
+this lock.
 
-Derive every frozen operation from the normalized core and exact leaves. Each
-route records:
+The reference algorithm, owner/drop account, roots, synchronization and
+external events remain frozen as the comparison baseline and as one diagnostic
+route. They are not a mandatory implementation contract. For every admitted
+`REFERENCE` or `SUBSTITUTE` route, record:
 
-- complete normal, recoverable, abort, abandonment, and rare-path behavior;
+- the demand IDs and complete normal, recoverable, abort, abandonment, and
+  rare-path contract behavior it covers;
+- the chosen data structure, algorithm, progress strategy, and exact mapping
+  to the frozen consumer contract;
 - every owner and obligation before and after each logical commit;
 - every root, range, borrow, fact, invalidator, and re-root prohibition;
 - exact cleanup or repair progression;
 - exact atomic or external events;
+- every required core rule and exact leaf;
 - static state expected to erase;
-- every forbidden structural delta; and
-- one executable or mechanically checkable falsifier.
+- its preregistered structural, performance, and resource falsifiers; and
+- one executable or mechanically checkable semantic falsifier.
 
-The route matrix has exactly fourteen rows because B-Strata is now the sole
-candidate. Each operation also has stable `outcome_id` rows for every frozen
-normal, precommit failure, retry, partial-progress, abandonment, abort, and
-rare outcome. Operation closure is the conjunction of all its outcomes. A
-verifier must prove that every frozen source anchor, event, owner outcome, and
-failure class appears exactly once.
+Maintain two separate ledgers:
 
-A failing row may trigger the one global normalization repair only when the
-same irreducible semantic-core relation is required by at least two independent
-projects and still passes Section 5. Multiple operations in one project may
-support a derived composition or a genuine exact machine/external/callable
-leaf, but cannot justify a new core authority. A project-specific patch is
-prohibited.
+- `CANDIDATE-B-STRATA-DEMANDS.tsv` has exactly the fourteen frozen demand rows
+  and stable `outcome_id` rows for every required normal, precommit failure,
+  retry, partial-progress, abandonment, abort, and rare outcome; and
+- `CANDIDATE-B-STRATA-ROUTES.tsv` has a finite set of route rows, with
+  `route_kind=REFERENCE|SUBSTITUTE`, a declared core-rule set, a paper status,
+  and the specific capability-deletion or blocked-demand hypothesis that
+  justified admitting the route.
+
+A demand is paper-closed when at least one route closes all of its frozen
+outcomes. An open reference route does not block a closed substitute route. A
+verifier must prove that every demand and outcome has at least one complete
+route, every reference source anchor appears in its baseline exactly once, and
+every route maps to frozen demands without silently weakening their contracts.
+
+Keep the route frontier bounded. A substitute may enter only to delete or merge
+a named core rule, or to solve a demand whose reference route is blocked. It
+must use the same project-independent core and must not hide a project operation
+inside an exact leaf. Stop adding routes once every demand has a paper-closed
+route and every retained core rule has either a route-level necessity witness
+or a concrete deletion challenger. Freeze all surviving routes before Phase 3;
+adding a post-result route invalidates downstream evidence and reopens this
+gate.
+
+A blocked route may reopen normalization only when the missing relation remains
+necessary after considering substitutes, is required by at least two
+independent projects, and still passes Section 5. Multiple demands in one
+project may support a derived composition or a genuine exact machine,
+external, or callable leaf, but cannot justify a new core authority. A
+project-specific patch is prohibited. A blocked reference route alone never
+yields `STRATA-NO`.
 
 Produce a separate `CANDIDATE-B-STRATA-LEAVES.tsv` for every allocation,
 release, atomic, external, target, and callable leaf. No route may receive
-closure credit merely because a missing operation was moved into that ledger.
+closure credit merely because a missing high-level operation was moved into
+that ledger.
 
-Map the normalized core back to all fifteen existing performance-demand
-families as a non-regression check. This reuses the existing ledger and opens
-no new source-audit scope.
+Map the working core back to all fifteen existing performance-demand families
+as a non-regression check. This reuses the existing ledger and opens no new
+source-audit scope. Compute the core union for every surviving combination of
+one route per demand and expose which rules become removable under each
+combination; final route selection waits for measured evidence.
 
 Gate: `STRATA-PAPER-YES` or `STRATA-NO`.
 
-`STRATA-PAPER-YES` requires fourteen complete paper-closed operations, every
-frozen outcome closed, and all fifteen existing demand families mapped to an
-exact K1/K2/K3 derivation or legitimate exact leaf with no new semantic gap or
+`STRATA-PAPER-YES` requires fourteen frozen demand contracts, at least one
+complete paper-closed route for every demand and outcome, a frozen finite route
+frontier, and all fifteen existing demand families mapped to an exact K1/K2/K3
+derivation or legitimate exact leaf with no new semantic gap or unaccounted
 runtime tax. This mapping earns routing/non-regression credit only; it does not
-close the 340 exact dense obligations or exact D-2/P-1. Any remaining `OPEN`,
-`UNKNOWN`, structural tax, arbitrary-authority dependency, or hidden high-level
-exact leaf blocks the gate.
+close the 340 exact dense obligations or exact D-2/P-1. An `OPEN` reference
+route is permitted when a substitute closes the demand. An uncovered demand,
+arbitrary-authority dependency, hidden high-level exact leaf, or unbounded
+route/core interaction blocks the gate.
 
 ### Phase 3: hostile safety, erasure, and implementability model
 
@@ -441,19 +535,21 @@ single-fault mutation; concurrent leaves need fixed interleaving/litmus cases.
 Accepted oracle violations must be zero, every preregistered negative must be
 rejected, and facts-on/off program semantics must match.
 
-A Phase 3 correction that changes any frozen semantics consumes the global
-semantic-repair budget and reopens the earliest affected gate. A proof,
-checker, oracle, or generator defect that leaves semantics unchanged may be
-fixed, but all affected evidence must be regenerated. Once the semantic-repair
-budget is exhausted, a second accepted counterexample at the same authority
-boundary yields `STRATA-NO` with its minimized witness.
+A Phase 3 correction that changes any frozen semantics reopens the earliest
+affected gate and invalidates all dependent evidence. A proof, checker, oracle,
+or generator defect that leaves semantics unchanged may be fixed, but all
+affected evidence must be regenerated. An accepted counterexample yields
+`STRATA-NO` only when no finite project-independent correction can pass Section
+5 and the reopened gates; otherwise the corrected design must repeat them.
 
 Gate: `STRATA-MODEL-YES` or `STRATA-NO`.
 
 ### Phase 4: decisive cross-project vertical evidence
 
 Only after `STRATA-MODEL-YES`, preregister and build the smallest prototypes
-that collectively exercise every authority class:
+that collectively exercise every authority class used by the surviving route
+frontier. The four source projects remain workload and comparison suites, but
+their fixture internals may use either reference or substitute routes:
 
 1. a Hashbrown-shaped rehash route for classified liveness, direct owner
    traffic, progress, invalidation, and disposition;
@@ -464,31 +560,36 @@ that collectively exercise every authority class:
 4. a Crossbeam-shaped load/retire/collect route for zero-extra-event protected
    loads, unique retirement, erased one-shot disposition, and quiescence.
 
-These are four project fixtures, not four credited subpaths. Together they
-must execute every one of the fourteen frozen operation contracts; the named
-routes above are the highest-pressure lanes used for detailed hostile and
-code-shape inspection.
+These are four demand fixtures, not four credited subpaths. Together they must
+exercise every one of the fourteen frozen demand contracts. The named
+reference-shaped routes above remain high-pressure lanes for detailed hostile
+and code-shape inspection only when they survive the route frontier; a
+contract-equivalent substitute may replace one of them.
 
-The operation-to-entrypoint map is exact:
+The demand-to-evidence-scenario map is exact:
 
-| Fixture | Required independent entrypoints |
+| Fixture | Required independently credited demand scenarios |
 |---|---|
 | Hashbrown | `H-LOOKUP`, `H-INSERT`, `H-REPLACE`, `H-REMOVE`, `H-REHASH` |
 | mimalloc | `M-ALLOC`, `M-LOCAL-FREE`, `M-REMOTE-FREE` |
 | SQLite | `S-INSERT-SPLIT`, `S-DELETE-BALANCE`, `S-ROLLBACK` |
 | Crossbeam | `X-PROTECTED-LOAD`, `X-RETIRE`, `X-COLLECT` |
 
-The verifier requires every operation ID exactly once. Each entrypoint must be
-trace/contract-equivalent to its frozen complete operation and must carry its
-own normal/failure/rare semantic differential, adversarial rejection set,
-structural manifest, and measurement or preregistered structural-substitution
-disposition. A combined workload may time several operations, but it cannot
-replace any operation's independent code-shape audit.
+The verifier requires every demand ID to receive independent evidence. Code
+may be shared and one substitute implementation may serve several scenarios.
+A reference route must be trace- and contract-equivalent to its frozen source
+operation. A substitute route must be contract-equivalent at the frozen
+consumer boundary; it need not reproduce the source's internal trace. Every
+scenario carries its own normal, failure, and rare semantic differential,
+adversarial rejection set, structural manifest, resource report, and
+measurement disposition. A combined workload may time several demands, but it
+cannot replace any demand's independent acceptance result.
 
 Each prototype must pass semantic differentials and adversarial rejection
-tests before code-shape inspection. Freeze the source, reference route,
-compiler revision, target, allocator, event counts, instruction-body
-comparison, and measurement protocol before observing performance.
+tests before code-shape inspection. Freeze the source baseline, every candidate
+route, compiler revision, target, allocator, event counts, instruction-body
+comparison where applicable, resource ceilings, and measurement protocol
+before observing performance.
 
 Use one shared non-production checker, oracle, normalizer, and lowerer. Project
 or operation identities may label fixtures and reports but may not enter the
@@ -500,10 +601,10 @@ Static erasure must hold in the canonical checked artifact and generic pre-
 optimization lowering; fixture-specific backend dead-code elimination receives
 no erasure credit. Lowering is local and syntax-directed by verified primitive,
 never by recognizing a whole operation graph or fixture-shaped pattern. Freeze
-per-entrypoint code-size, instruction-body, call/event, and rare-path limits
-before inspecting generated artifacts.
+per-scenario code-size, instruction-body, call/event, resource, and rare-path
+limits before inspecting generated artifacts.
 
-For each protected route, fail on any required extra:
+For a `REFERENCE` route, fail on any language-required extra:
 
 - initialization or zeroing;
 - payload copy, clone, relocation, or owner movement;
@@ -514,37 +615,55 @@ For each protected route, fail on any required extra:
 - success-path cleanup traversal absent from the reference; or
 - mandatory code-size expansion caused by unused strata.
 
+For a `SUBSTITUTE` route, these differences are recorded rather than rejected
+merely for differing from the source topology. The route passes only when its
+end-to-end demand endpoint meets the frozen non-inferiority margin and every
+resource ceiling. Bookkeeping required only by B-Strata, rather than by the
+chosen substitute algorithm, remains a language cost and cannot be hidden by
+the substitution.
+
 Benchmark tuning may diagnose a failure but may not change a frozen semantic
 route after results are seen.
 
 An endpoint earns performance credit in exactly one preregistered way:
 
-- optimized instruction body plus transitive call/event manifest is identical
-  to the reference, with timing reported as confirmation; or
+- for a `REFERENCE` route, the optimized instruction body plus transitive
+  call/event manifest is identical to the reference, with timing reported as
+  confirmation; or
 - its own quantitative non-inferiority test passes under the frozen sampling,
-  confidence, margin, and multiplicity protocol.
+  confidence, margin, multiplicity, and resource-ceiling protocol. Every
+  `SUBSTITUTE` route must use this quantitative path against the frozen demand
+  baseline.
 
-Results may not be pooled to hide a failing operation. Rare failure and release
-paths may use exact event-count and structural limits only when that substitute
-was frozen in the cross-family lock. `INCONCLUSIVE` grants no performance
+Results may not be pooled to hide a failing demand. Rare failure and release
+paths may use exact event-count and structural limits only when that endpoint
+was frozen in the cross-family lock. `INCONCLUSIVE` grants no route performance
 credit and is not a third final state. A preregistered sample extension may run
 once. If the maximum campaign remains inconclusive and structural identity is
 absent, mandatory root-cause analysis must reduce the endpoint to its finite
-instruction, call, event, and workload differences. The one nonsemantic
-implementation-correction round may then run without changing the lock,
-semantics, or route. After regeneration, the endpoint must either earn
-performance credit or expose a semantically required structural cost or a
-deterministic-lowering infeasibility that supports `STRATA-NO`. The goal may not
-stop at unexplained evidence insufficiency.
+instruction, call, event, resource, and workload differences. The one
+nonsemantic implementation-correction round may then run without changing the
+lock, semantics, or route. After regeneration, that route must either earn
+performance credit or fail. A demand yields `STRATA-NO` only when every frozen
+safe route fails or an independent deterministic-lowering blocker applies to
+all routes. The goal may not stop at unexplained evidence insufficiency.
 
 Classify every regression before a verdict. A semantic requirement that forces
-an extra field, event, instruction class, or unit of work is an immediate NO
-witness. A nonsemantic checker/lowerer defect permits one implementation-
-correction round without changing the lock, semantics, or route, followed by a
-fully regenerated campaign. An unexplained slow measurement alone cannot be
-presented as an irreducible semantic NO. Post-result semantic, route, leaf,
-algorithm, threshold, or workload changes invalidate the campaign and reopen
-the earliest affected gate under the global repair rule.
+an extra field, event, instruction class, or unit of work rejects the affected
+route; it becomes a NO witness only if it is generic or every substitute also
+fails the frozen demand band. A nonsemantic checker/lowerer defect permits one
+implementation-correction round without changing the lock, semantics, or
+route, followed by a fully regenerated campaign. An unexplained slow
+measurement alone cannot be presented as an irreducible semantic NO.
+Post-result semantic, route, leaf, algorithm, threshold, workload, margin, or
+resource-ceiling changes invalidate the campaign and reopen the earliest
+affected gate under the global repair rule.
+
+After evidence, select one passing route per demand so that the union of core
+rules is minimal among the frozen passing combinations. Delete every rule not
+used by that selected bundle, regenerate all ledgers, and rerun the core, paper,
+and model gates on the reduced core. This final pruning may remove a complex
+reference-only capability; it may not add a new post-result route.
 
 Gate: `STRATA-EVIDENCE-YES` or `STRATA-NO`.
 
@@ -552,19 +671,23 @@ Gate: `STRATA-EVIDENCE-YES` or `STRATA-NO`.
 
 `STRATA-YES` requires all previous YES gates. The final report must name the
 exact minimal core, derived strata, exact-leaf boundary, checker/lowering
-shape, fourteen derivations, hostile-review result, structural evidence, known
-limitations, and remaining non-gating ecosystem work.
+shape, fourteen demand contracts, selected reference or substitute routes,
+rejected reference-only capabilities, hostile-review result, structural and
+performance evidence, known limitations, and remaining non-gating ecosystem
+work.
 
-The YES scope is the frozen fourteen operations and the admitted semantic
-rules actually proved and exercised. It is not general-purpose systems
-completeness, exact dense D-2, P-1, or closure of the 340 unresolved dense
-obligations. The fifteen-family map receives routing/non-regression credit
-only.
+The YES scope is the frozen fourteen demands and the admitted semantic rules
+actually proved and exercised. It does not claim that B-Strata can reproduce
+every data structure in the four source projects, much less every systems data
+structure. It is not general-purpose systems completeness, exact dense D-2,
+P-1, or closure of the 340 unresolved dense obligations. The fifteen-family map
+receives routing/non-regression credit only.
 
 `STRATA-NO` must name the first irreducible failed constraint, the complete
-repair attempts, the evidence that the failure is not a local omission, and
-the native performance or safety consequence. It must not recommend Candidate
-C as part of this goal.
+repair and substitution attempts, the evidence that the failure is not a local
+omission or a reference-topology artifact, and the demand-level performance or
+safety consequence. Exact source-route failure alone cannot support NO. The
+report must not recommend Candidate C as part of this goal.
 
 A final YES selects B-Strata for owner review and must include
 `CANDIDATE-B-STRATA-PRODUCTION-LANDING-PROPOSAL.md`. That proposal freezes the
@@ -581,11 +704,12 @@ changes remain separate reviewed landing slices.
 The complete track must leave durable English artifacts for:
 
 1. this controlling plan;
-2. the cross-family lock;
+2. the cross-family demand and evidence lock;
 3. the normalized core and rule ledger;
 4. the normalization and authority-origin ledgers;
 5. the exact-leaf ledger;
-6. the exact fourteen-route derivation report and matrix;
+6. the fourteen-demand ledger, bounded reference/substitute route frontier,
+   and capability-deletion matrix;
 7. deterministic verifiers for rules, interactions, routes, and status;
 8. the hostile safety and erasure model plus negative corpus;
 9. the lowering and structural-budget contract;
@@ -603,6 +727,10 @@ gate passes or fails.
 - Do not use a broad brainstorming or mind-expansion workflow.
 - Do not reopen Candidate C or develop another full candidate.
 - Do not add a capability because its name makes an open route look closed.
+- Do not require source-topology fidelity when a safe substitute closes the
+  frozen demand within its performance and resource bands.
+- Do not add substitute routes that name no capability deletion or blocked
+  demand they are intended to resolve.
 - Do not confuse a token type with a safe producer of that token.
 - Do not confuse memory safety with abstract container correctness, database
   crash consistency, eventual reclamation, or application progress.

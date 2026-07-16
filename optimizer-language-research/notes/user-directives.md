@@ -519,3 +519,24 @@ checker, compiler, runtime, standard-library, container, xlc, migration,
 default-teaching, or shipping changes. A final `STRATA-YES` returns an exact
 production landing proposal for owner review; it does not silently ship the
 design.
+
+### D14 B-Strata demand-substitution amendment (2026-07-15)
+
+The owner clarified that the minimum capability set does not need to reproduce
+every data structure used by every audited project. The real target is the
+systems-performance demand. A different data structure, reclamation strategy,
+or algorithm is acceptable when it preserves the relevant consumer contract
+and safety requirements and provides comparable or better efficiency. For
+example, a Crossbeam demand may be met by container B even when the reference
+uses container A, provided B serves the same demand without a material
+performance loss.
+
+The four projects and fourteen audited operations therefore remain fixed as
+demand cases, reference baselines, and stress evidence, not as mandatory final
+implementations. Exact-route failure alone is not a B-Strata failure. The
+research must use substitutes to shrink the capability set when possible and
+must judge the final minimum by the rules required across selected successful
+demand routes, not by the rules required to mimic every source topology. This
+amends the earlier phrase "exact full-route derivations"; it does not reopen
+Candidate C, add a project or demand, weaken safety, or authorize production
+changes.

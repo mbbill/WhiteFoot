@@ -28,7 +28,8 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Standing rules (owner-ratified; do not relitigate)
 
-- English-only repository: every new or modified repository artifact must be
+- English-only project: all project code and documentation must be written in
+  English. More generally, every new or modified repository artifact must be
   written in English. This includes source identifiers that use natural-language
   words, comments, diagnostics, string literals intended for readers, test names,
   fixtures, documentation, reports, plans, prompts, project-authored datasets,
@@ -73,19 +74,22 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - B-Strata is the sole active minimal systems-capability architecture under
   `optimizer-language-research/implementation/minimal-systems-capability/
   CANDIDATE-B-STRATA-DECISIVE-PLAN.md`. The outcome must be `STRATA-YES` with a
-  normalized closed core, complete derivations for the same fourteen frozen
-  Hashbrown, mimalloc, SQLite, and Crossbeam operations, hostile safety and
-  erasure review, implementable checking/lowering, and bounded structural and
-  performance evidence; or `STRATA-NO` with an irreducible reason. Do not pivot
-  to Candidate C or develop B-Graphs as a competing design.
-  Phase 1 treats the existing eight strata as analytical jobs rather than
-  preselected language primitives and front-loads nonforgeable liveness,
-  policy-neutral quiescence, erased one-shot disposition, and exact external-
-  repair boundaries. A paper YES is required before safety modeling, and a
-  model YES before the smallest preregistered prototypes,
-  generated-code inspection, or measurement. Keep the four-project/fourteen-
-  operation corpus fixed, the 340 unresolved dense obligations across 150
-  contexts visible, and exact D-2/P-1 fail-closed. No production language,
+  normalized minimal core, safe closure of the same fourteen frozen Hashbrown,
+  mimalloc, SQLite, and Crossbeam performance demands, hostile safety and
+  erasure review, implementable checking/lowering, and bounded performance and
+  resource evidence; or `STRATA-NO` with an irreducible reason. Reference
+  source operations are fixed baselines and stress cases, not mandatory final
+  data structures. A safe substitute is admissible when it preserves the
+  frozen consumer contract and meets preregistered non-inferiority and resource
+  bands; exact source-route failure alone is not NO. Do not pivot to Candidate C
+  or develop B-Graphs as a competing design. Phase 1 treats the existing eight
+  strata as analytical jobs and produces a working upper-bound core. Phase 2
+  freezes a bounded reference/substitute frontier; after evidence, one passing
+  route per demand determines the final reduced core. A paper YES is required
+  before safety modeling, and a model YES before the smallest preregistered
+  prototypes, generated-code inspection, or measurement. Keep the four-project/
+  fourteen-demand corpus fixed, the 340 unresolved dense obligations across
+  150 contexts visible, and exact D-2/P-1 fail-closed. No production language,
   specification, checker, compiler, verifier, runtime, standard-library,
   container, xlc, migration, fact-channel, teaching, or shipping change is
   authorized before the final verdict and separate landing review.
