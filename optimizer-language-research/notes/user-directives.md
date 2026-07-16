@@ -444,3 +444,19 @@ machine-event, benchmark, AI, language, specification, checker, compiler,
 runtime, standard-library, and production step requires separate owner
 authorization. Time-bounded uncertainty remains `UNKNOWN`; it does not permit
 scope expansion or a pass claim.
+
+### D14 Candidate C sparse-repair ruling (2026-07-15)
+
+After Gate 1 returned `C-REVISE`, the owner selected route 1: design and compare
+paper repairs for the six already identified sparse-definition gaps before any
+allocator audit. The controlling contract is
+`optimizer-language-research/implementation/minimal-systems-capability/
+CANDIDATE-C-SPARSE-REPAIR-PLAN.md`.
+
+The authorization covers exactly three frozen repair alternatives, the two
+shared exact C0 row proposals, a fifteen-row comparison over the five existing
+Hashbrown operations, hostile paper review, and a mandatory stop at the Sparse
+Repair Gate. It does not authorize applying a repair, changing Candidate C v0,
+admitting a family, widening source inspection, entering Stage 2, auditing
+another project, formal safety work, implementation, execution, generated-code
+inspection, benchmarking, measurement, AI trials, or production changes.

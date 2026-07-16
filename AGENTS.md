@@ -70,18 +70,21 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Candidate C bounded validation has stopped at Gate 1 under
+- Candidate C sparse paper repair is active under
   `optimizer-language-research/implementation/minimal-systems-capability/
-  CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`. The owner selected C as the first
+  CANDIDATE-C-SPARSE-REPAIR-PLAN.md`. The owner selected C as the first
   bounded validation hypothesis, B as the later compression challenge, and A
   as the generality fallback; this is not a production ranking. Stage 0 and
   Stage 1 are complete. The five-operation Hashbrown paper calibration reached
   `C-REVISE`: C-4 is the right reusable sparse family, but exact control-to-
   payload, transition/cleanup, provenance, fact, group-operation, and growth-
   allocation rules remain absent. No new family was admitted, and no safety,
-  code-shape, or performance closure was claimed. Keep the 340
+  code-shape, or performance closure was claimed. The current authorization
+  compares exactly three paper repairs over the existing five operations and
+  fifteen rows, then stops at the Sparse Repair Gate. It does not apply a
+  repair or reopen source inspection. Keep the 340
   unresolved dense obligations across 150 contexts and exact D-2/P-1 fail-
-  closed. The authorization is exhausted; no Stage 2, allocator, SQLite,
+  closed. No Stage 2, allocator, SQLite,
   Crossbeam, Tokio, Wasmtime, safety
   model, prototype, machine-event work, performance or AI trial, language/
   specification/compiler/verifier/runtime implementation, capability entry,

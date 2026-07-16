@@ -52,6 +52,15 @@ safety model, prototype, candidate execution, experiment, machine-event work,
 performance or AI trial, language/specification/compiler/runtime change,
 standard library, or production work is authorized.
 
+The owner subsequently authorized only route 1: a bounded paper repair of the
+six known sparse-definition gaps. The controlling contract is
+`optimizer-language-research/implementation/minimal-systems-capability/
+CANDIDATE-C-SPARSE-REPAIR-PLAN.md`. It freezes exactly three alternatives,
+fifteen candidate-operation rows, two shared exact C0 leaf proposals, and a
+mandatory Sparse Repair Gate stop. It does not authorize applying a repair,
+modifying Candidate C v0, entering Stage 2, inspecting another project,
+implementation, execution, proof, or measurement.
+
 ## 0.1 Earlier scope correction retained as historical context
 
 The immediate research question is **not** how to authenticate independently

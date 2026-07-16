@@ -28,22 +28,23 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "Candidate C bounded validation has stopped at Gate 1",
-        "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+        "Candidate C sparse paper repair is active",
+        "CANDIDATE-C-SPARSE-REPAIR-PLAN.md",
         "Stage 1 are complete",
         "`C-REVISE`",
-        "The authorization is exhausted; no Stage 2",
+        "stops at the Sparse Repair Gate",
+        "No Stage 2",
         "exact D-2/P-1 fail-",
     )
     require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "CANDIDATE C\n   GATE 1 STOPPED: C-REVISE",
+            "CANDIDATE C\n   SPARSE PAPER REPAIR ACTIVE",
             "There is no evidence-\n   backed winner.",
             "C as the first bounded validation",
             "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-            "mandatory Gate 1 stop with `C-REVISE`",
+            "mandatory Sparse Repair Gate stop",
             "No Stage 2",
         ),
     )
@@ -54,7 +55,8 @@ def main() -> int:
             "There is no evidence-backed production winner.",
             "C as the first bounded validation hypothesis",
             "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-            "stopped at Gate 1 with `C-REVISE`",
+            "route 1: a bounded paper repair",
+            "mandatory Sparse Repair Gate stop",
         ),
     )
     plan_text = (ROOT / "THE-PLAN.md").read_text(encoding="utf-8")
@@ -84,13 +86,27 @@ def main() -> int:
         / "optimizer-language-research"
         / "implementation"
         / "minimal-systems-capability"
+        / "CANDIDATE-C-SPARSE-REPAIR-PLAN.md",
+        (
+            "controlling paper-repair contract",
+            "Derive exactly three alternatives",
+            "Exactly three alternatives and fifteen candidate-operation rows.",
+            "Sparse Repair Gate",
+            "The gate authorizes no implementation or further audit.",
+        ),
+    )
+    require(
+        ROOT
+        / "optimizer-language-research"
+        / "implementation"
+        / "minimal-systems-capability"
         / "CANDIDATE-C-HASHBROWN-AUDIT.md",
         (
             "Gate 1 disposition: `C-REVISE`.",
             "Stage 2 is not authorized.",
         ),
     )
-    print("performance research status: Candidate C Gate 1 stopped, C-REVISE")
+    print("performance research status: Candidate C sparse paper repair active")
     return 0
 
 
