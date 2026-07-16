@@ -1,0 +1,1110 @@
+{
+ "audits": [
+  {
+   "unit": "threads-par",
+   "members": [
+    {
+     "name": "scoped spawn/join (region-typed)",
+     "verdict": "KEEP",
+     "scenario_consumer": "server request handling (worker threads over conc_queue); also compilers' parallel pipeline stages",
+     "contract_sketch": "scope(|s| s.spawn(closure borrowing region-scoped &/&uniq data)) \u2014 spawn fails with err(EAGAIN) before the child ever runs; child trap = process abort; teardown: scope exit blocks until every child is joined, so no borrow outlives its region",
+     "platform_risk": "default thread stack size differs (macOS ~512KiB vs Linux 8MiB) \u2014 spec one explicit default rather than inheriting the platform's; otherwise clone vs pthread_create is hidden behind the seal",
+     "trigger_if_deferred": "n/a \u2014 kept; this is the root capability, unreachable from primitives (thread creation is a syscall)"
+    },
+    {
+     "name": "unscoped/detached spawn",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE",
+     "contract_sketch": "would be: detached thread with 'static-only env, never joined, leaked at exit \u2014 exactly the teardown ambiguity scoped spawn exists to forbid",
+     "platform_risk": "exit-time races with still-running detached threads behave differently under macOS vs glibc atexit/TLS teardown ordering",
+     "trigger_if_deferred": "reinstate only if a v1 scenario exhibits a thread lifetime that provably cannot be nested in any enclosing scope (dynamic re-spawn after every candidate owner has returned); program-lifetime scope + conc_queue covers all 51 scenarios at par today"
+    },
+    {
+     "name": "worker-pool knob: thread count + stack size",
+     "verdict": "KEEP",
+     "scenario_consumer": "server request handling (pool sizing) and codec parallel validation (size = physical cores)",
+     "contract_sketch": "pool(n, stack_bytes) -> pool | err; n=0 means default = available_parallelism (trusted sysconf/sysctl read, unreachable from primitives); teardown: pool drop drains queue then joins all workers",
+     "platform_risk": "available_parallelism source differs (sysctl hw.* vs sched_getaffinity) and Apple Silicon P/E asymmetry makes 'core count' ambiguous \u2014 spec which count is returned on each platform",
+     "trigger_if_deferred": "n/a \u2014 kept"
+    },
+    {
+     "name": "worker-pool knobs: pinning/affinity/priorities",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE in v1 (engines are the plausible future consumer)",
+     "contract_sketch": "would be: pin worker i to cpu set / set sched class at pool construction; failure channel: err on EPERM/unsupported; no runtime re-pinning",
+     "platform_risk": "HIGH and definitional: macOS has no hard affinity (thread_affinity_policy is a hint, ignored on Apple Silicon) so the API is untestable on the dev machine; SCHED_FIFO needs CAP_SYS_NICE on Linux \u2014 semantics materially diverge across the two platforms",
+     "trigger_if_deferred": "a named engine or server scenario measures >=5% throughput or p99-latency improvement from pinning on the Linux x86-64 deployment target, with the benchmark preregistered before the API is designed"
+    },
+    {
+     "name": "par.for_chunks",
+     "verdict": "KEEP",
+     "scenario_consumer": "codecs: parallel validation and the partition pass of parallel sort",
+     "contract_sketch": "split &uniq [T] into disjoint chunks with checker-proved disjointness carried across the thread boundary (the nonforgeable part users cannot build from primitives); body runs per chunk on the pool; returns only after all chunks complete; any trap aborts the process; no early-exit channel in v1",
+     "platform_risk": "none material; chunk-size heuristics may want cache-line awareness but that is tuning, not semantics",
+     "trigger_if_deferred": "n/a \u2014 kept; the borrow-carrying disjointness proof across threads is exactly the fact channel users must not be able to forge"
+    },
+    {
+     "name": "par fork-join (recursive task spawn)",
+     "verdict": "KEEP",
+     "scenario_consumer": "build-system-style fork-join (compilers) and recursive parallel sort (codecs)",
+     "contract_sketch": "inside a par scope: h = s.fork(task); v = h.join() \u2014 join returns the task's value; work-stealing is internal; trap in any task aborts the process; teardown: par scope exit implies every forked task has completed",
+     "platform_risk": "correctness rests on the internal deque's memory orderings \u2014 arm64's weak model (dev machine) is the honest stress bed; x86-64 TSO can mask fence bugs, so passing-on-deployment-target is not sufficient evidence",
+     "trigger_if_deferred": "n/a \u2014 kept"
+    },
+    {
+     "name": "par.reduce (wrapping-int monoids only)",
+     "verdict": "MERGE",
+     "scenario_consumer": "codec checksums (adler/CRC-style sums) \u2014 served by the merged form",
+     "contract_sketch": "ship as a checked-library helper over par.for_chunks: each chunk writes its partial into a preallocated &uniq slot, then a serial O(chunks) fold; wrapping-int monoids make the combine order-insensitive, so this is at par with a fused builtin; zero new trusted LOC",
+     "platform_risk": "none \u2014 inherits for_chunks",
+     "trigger_if_deferred": "promote to sealed builtin only if a preregistered codec checksum benchmark shows the library form losing >=3% to a fused reduce"
+    },
+    {
+     "name": "thread-local storage",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE user-visible (allocator TLS is runtime-internal, not a member)",
+     "contract_sketch": "replacement: worker-index-addressed arrays (see thread id/worker index row) \u2014 one indexed load vs a TLS-register load, at par; avoids the TLS destructor-ordering soundness surface entirely",
+     "platform_risk": "the cut avoids real divergence: TLS destructor ordering and dlopen interaction differ between macOS dyld and glibc \u2014 a large verification cost for a sealed TLS row",
+     "trigger_if_deferred": "reinstate if a v1 scenario measures >=5% overhead from worker-indexed state vs native TLS, or if detached spawn is ever reinstated (fixed-pool indexing breaks without a fixed pool)"
+    },
+    {
+     "name": "sleep",
+     "verdict": "KEEP",
+     "scenario_consumer": "server request handling: retry/backoff and timed polling loops",
+     "contract_sketch": "sleep(ns) blocks the calling thread for at least ns; EINTR retried internally; no error channel; no teardown interaction. Note: if the ratified condvar surface includes timed wait, demote this row to library sugar over it (MERGE) \u2014 sleep is never performance-sensitive",
+     "platform_risk": "macOS timer coalescing can overshoot substantially \u2014 spec a minimum-bound-only contract, never an accuracy bound",
+     "trigger_if_deferred": "n/a \u2014 kept (a raw nanosleep syscall is unreachable from primitives unless condvar timed-wait already ships)"
+    },
+    {
+     "name": "yield",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE \u2014 spin backoff lives inside the sealed mutex and internal deque, not in user code",
+     "contract_sketch": "would be sched_yield, whose semantics are notoriously unspecified; exposing it invites user spin loops that compete with the kept sync members",
+     "platform_risk": "sched_yield behavior differs across kernels/schedulers \u2014 precisely why it should stay internal",
+     "trigger_if_deferred": "reinstate only if a scenario demonstrates a user-level wait loop beating the kept sync primitives by >=5% and needing yield for fairness \u2014 expected never"
+    },
+    {
+     "name": "thread id / pool worker index",
+     "verdict": "KEEP",
+     "scenario_consumer": "servers and engines: per-worker state via worker-indexed arrays (this row is what makes the TLS cut viable)",
+     "contract_sketch": "worker_index() -> usize < pool size, stable for the worker's lifetime; thread id = opaque u64 unique for process lifetime (synthesized, not gettid); no failure channel; ~trivial trusted LOC",
+     "platform_risk": "none \u2014 ids are synthesized in the runtime, not read from the OS",
+     "trigger_if_deferred": "n/a \u2014 kept"
+    },
+    {
+     "name": "thread naming",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE (debuggability nicety, no performance claim)",
+     "contract_sketch": "would be: set_name at spawn, best-effort, truncated, no error channel",
+     "platform_risk": "pthread_setname_np diverges: macOS is self-only 1-arg, Linux is 2-arg with a 15-byte cap \u2014 a genuinely different contract per platform for zero scenario value",
+     "trigger_if_deferred": "first debugging session against the Linux deployment target where anonymous threads materially slow diagnosis; reinstatement cost then is ~20 trusted LOC"
+    },
+    {
+     "name": "panic-across-thread semantics",
+     "verdict": "KEEP",
+     "scenario_consumer": "every concurrent scenario (semantic rule, not a member; zero new trusted LOC)",
+     "contract_sketch": "ratified: trap on any thread = immediate whole-process abort; no cross-thread unwinding, no lock poisoning, no observation channel \u2014 join never reports 'child trapped' because the process is already gone",
+     "platform_risk": "none \u2014 abort delivery is identical on both platforms",
+     "trigger_if_deferred": "n/a \u2014 already ruled (trap = abort, provisional)"
+    },
+    {
+     "name": "scheduler internals (Chase-Lev deque)",
+     "verdict": "KEEP",
+     "scenario_consumer": "internal-only: implements par fork-join and for_chunks scheduling; never user-visible, so no D16 sealed-member row is spent on it",
+     "contract_sketch": "per-worker deque with owner push/pop and thief steal; no public API; teardown: pool shutdown drains queues before joining workers; must carry its own memory-ordering proof through the acceptance battery since it is trusted LOC",
+     "platform_risk": "the classic Chase-Lev fence bugs are invisible on x86-64 TSO and manifest on arm64 \u2014 run the adversarial concurrency tests on the arm64 dev machine as the primary bed, not just the deployment target",
+     "trigger_if_deferred": "n/a \u2014 kept internal; exposing it publicly would require its own D16 case, which nothing demands"
+    },
+    {
+     "name": "blocking-call integration (escape hatch for IO in par bodies)",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE in v1 \u2014 card rule stands: no blocking calls in par bodies; blocking IO belongs on scoped threads feeding the pool via conc_queue",
+     "contract_sketch": "would be: block_in_place-style hatch that retires the current worker and spawns a replacement so the pool keeps its width; failure channel: err on spawn failure; teardown: replacement joins at pool drop",
+     "platform_risk": "none material; the hatch itself is platform-neutral",
+     "trigger_if_deferred": "the build-system fork-join scenario (compilers, per-task file IO) shows >=10% end-to-end throughput loss or structural impossibility restructuring IO onto dedicated scoped IO threads vs an in-body hatch, measured on the deployment target"
+    },
+    {
+     "name": "barrier/latch primitives",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE as sealed members \u2014 engine frame sync is served by a checked-library barrier over the kept counter+mutex+condvar at par (barrier waits in the named scenarios are microsecond-to-millisecond scale, not futex-shaving territory)",
+     "contract_sketch": "library form: latch = counter with a condvar wake at zero; barrier = two-phase latch; all built from already-ratified sync members, zero new trusted LOC",
+     "platform_risk": "none \u2014 inherits the sync members' already-adjudicated futex/ulock divergence",
+     "trigger_if_deferred": "reinstate as sealed if a preregistered engine scenario measures >=5% frame-time regression of the library barrier vs a native futex barrier on the deployment target"
+    },
+    {
+     "name": "scope cancellation",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE \u2014 server request-timeout is served by cooperative flag polling via publish-snapshot-cell in loop bodies, at par and with zero trusted LOC",
+     "contract_sketch": "cooperative form (library): shared cancel flag checked at chunk/task boundaries; forced cancellation of a blocked thread is not expressible without IO-interruption machinery, which is the deferred evring's territory",
+     "platform_risk": "forced cancellation would hit pthread_cancel/signal divergence (macOS vs Linux cancellation points) \u2014 the cut avoids an entire cross-platform semantics swamp",
+     "trigger_if_deferred": "rides the evring reinstatement trigger: if a server scenario requires cancelling threads blocked in IO within a scope, adjudicate cancellation together with evring, not before"
+    }
+   ]
+  },
+  {
+   "unit": "net",
+   "members": [
+    {
+     "name": "tcp_connect",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (client leg: DB clients, servers dialing upstreams)",
+     "contract_sketch": "socket()+connect() merged: blocking connect to (ip,port) -> linear tcp_stream or errno-class error (ECONNREFUSED/ETIMEDOUT/ENETUNREACH); OS-default SYN timeout (caller deadline deferred with readiness); macOS SO_NOSIGPIPE set at creation; teardown = close via handle drop.",
+     "platform_risk": "Low. SO_NOSIGPIPE exists only on Darwin (Linux path suppresses SIGPIPE per-send instead); SOCK_CLOEXEC atomic on Linux, fcntl race-window on macOS (dev-only exposure).",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "tcp_listen",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (server accept side; the 51-map server scenarios)",
+     "contract_sketch": "socket()+bind()+listen() merged: (ip,port,backlog,reuseaddr:bool) -> linear tcp_listener or errno error (EADDRINUSE/EACCES); teardown = close, which unblocks no one (accepting threads get EBADF-free ECONNABORTED contract via shutdown-then-close ordering).",
+     "platform_risk": "Low. Backlog clamping differs (somaxconn defaults); SO_REUSEADDR semantics on macOS are slightly laxer than Linux \u2014 contract states Linux (deploy-target) semantics as normative.",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "tcp_accept",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths \u2014 thread-per-connection server loop is the v1 server architecture with evring deferred",
+     "contract_sketch": "blocking accept on shared<tcp_listener> -> (linear tcp_stream, peer_addr) or errno error; ECONNABORTED retried internally, EMFILE/ENFILE surfaced; per-stream teardown independent of listener.",
+     "platform_risk": "Low. accept4(SOCK_CLOEXEC|inherit-nonblock=off) on Linux vs accept+fcntl on macOS; Darwin-inherited O_NONBLOCK from listener quirk hidden inside the row.",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "socket_raw / bind_raw / listen_raw (standalone rows)",
+     "verdict": "MERGE",
+     "scenario_consumer": "NONE standalone \u2014 every named consumer wants the composed handle, never a bare unbound socket",
+     "contract_sketch": "Folded into tcp_connect, tcp_listen, udp_bind; a bare fd with no role has no checked contract and no consumer, so it never exists as a value.",
+     "platform_risk": "None (removed surface).",
+     "trigger_if_deferred": "Reinstate a raw socket row only if a kept scenario needs a socket type outside {TCP, UDP} (e.g. unix-domain sockets get admitted); then it enters as its own composed row, not raw socket().",
+     "outcome": "no_change_needed"
+    },
+    {
+     "name": "net_recv (stream read)",
+     "verdict": "MERGE",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (request parsing in thread-per-conn servers)",
+     "contract_sketch": "Merge into the kept io-file read row: blocking read on fd-backed byte stream -> 0..n bytes, 0 = EOF/peer-FIN, EINTR per the io row's stated policy, ECONNRESET as errno error; teardown via stream close. One read row, one contract, two handle kinds.",
+     "platform_risk": "Low \u2014 read(2) semantics are the portable part of sockets; only the errno set widens (ECONNRESET/ETIMEDOUT when SO_RCVTIMEO fires -> EAGAIN mapped to a timeout error value).",
+     "trigger_if_deferred": "Split back into a dedicated net row only if the io read row's verified contract (EINTR/short-read policy) proves incompatible with the SO_RCVTIMEO timeout-error channel during the acceptance battery."
+    },
+    {
+     "name": "net_send (stream write)",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (response emission)",
+     "contract_sketch": "Distinct from io write, NOT merged: send with MSG_NOSIGNAL (Linux) / write on SO_NOSIGPIPE socket (macOS); returns n<=len partial-write count; peer-gone is an EPIPE/ECONNRESET error value, never a signal (trap=abort world cannot tolerate SIGPIPE process death); teardown = shutdown(WR)+close.",
+     "platform_risk": "MATERIAL \u2014 this is why it is not merged with file write: SIGPIPE suppression is MSG_NOSIGNAL per-call on Linux but socket-option-at-creation on Darwin; the row hides the divergence, a merged write row could not.",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "net_sendv (writev/sendmsg gather)",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths \u2014 header+body response assembly; par is unreachable without it (user choice is an extra copy or two syscalls interacting with Nagle)",
+     "contract_sketch": "gather-send of iovec list with same SIGPIPE-suppression and partial-write contract as net_send (returns total bytes consumed across iovecs); errno error channel identical; teardown shared with stream.",
+     "platform_risk": "Low. IOV_MAX differs (1024 both in practice); Linux uses sendmsg+MSG_NOSIGNAL, Darwin plain writev on NOSIGPIPE socket.",
+     "trigger_if_deferred": "N/A \u2014 kept. (readv counterpart stays out: no consumer demonstrated a par gap on scattered receive; trigger = a codec/server scenario showing a measured copy on receive path >5% of request cost.)"
+    },
+    {
+     "name": "net_shutdown",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths \u2014 half-close for protocol EOF, and the blocking-world cancellation primitive: shutdown(RD) from a sibling thread is the only way to release a thread parked in blocking read once evring is deferred",
+     "contract_sketch": "shutdown(how in {RD,WR,RDWR}) on shared<tcp_stream>; releases blocked readers/writers with EOF/EPIPE; ENOTCONN after peer-close is defined as success; does not free the fd \u2014 teardown remains close.",
+     "platform_risk": "Moderate flag: waking a thread blocked in read via shutdown is reliable on both kernels, but macOS wakes with 0/EOF where Linux may also surface ENOTCONN on the racing call \u2014 contract normalizes both to EOF.",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "net_close",
+     "verdict": "MERGE",
+     "scenario_consumer": "all socket consumers",
+     "contract_sketch": "Merge into the kept io close/handle-drop row: linear-handle consumption, close(2) once, EINTR-on-close policy inherited from the io row (fd is dead either way); no socket-specific behavior (lingering close semantics deliberately not exposed \u2014 SO_LINGER excluded).",
+     "platform_risk": "Low; EINTR-on-close divergence already owned by the io close row's verified contract.",
+     "trigger_if_deferred": "Split out only if a scenario demands graceful-close-with-drain (SO_LINGER-class) semantics; trigger = a kept protocol scenario whose correctness (not just politeness) requires drained close."
+    },
+    {
+     "name": "sockopt_set (closed enum: TCP_NODELAY, SO_REUSEADDR, SO_RCVBUF, SO_SNDBUF, SO_RCVTIMEO, SO_SNDTIMEO)",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths \u2014 NODELAY for request/response latency par (Nagle costs ~40ms), REUSEADDR for server restart, buf sizes for throughput par, RCV/SND timeouts are load-bearing: blocking thread-per-conn without read deadlines lets one dead peer pin a thread forever",
+     "contract_sketch": "typed setter per enum member on the socket handle (no generic setsockopt, no getsockopt in v1); failure = errno error; values clamped by kernel are accepted silently per option contract; no teardown. Excluded by name: SO_REUSEPORT, SO_KEEPALIVE, SO_LINGER, TCP_CORK/NOPUSH.",
+     "platform_risk": "MATERIAL on buffers: Linux doubles the requested SO_RCVBUF/SNDBUF and clamps to rmem_max/wmem_max, Darwin does not \u2014 contract must say 'hint, kernel-clamped', never 'exact'. Timeouts and NODELAY portable.",
+     "trigger_if_deferred": "For each excluded option: SO_REUSEPORT when a single accept thread is measured saturated (<par accept rate) in a kept server scenario; SO_KEEPALIVE when a kept scenario has long-lived idle connections dying undetected past the SO_RCVTIMEO envelope; SO_LINGER per net_close trigger."
+    },
+    {
+     "name": "readiness_wait (kqueue/epoll: wait-readable/writable on a set)",
+     "verdict": "DEFER",
+     "scenario_consumer": "readiness/completion multiplexing (the demand-map scenario) \u2014 but that scenario is already the consumer of the deferred evring row; v1 server scenarios are served by thread-per-connection",
+     "contract_sketch": "If reinstated: register fd set, blocking wait -> ready subset with level-triggered semantics only; failure = errno; teardown = deregister-on-close, defined against the close row. Not built now: thread-per-conn + blocking IO + SO_RCVTIMEO + shutdown-as-cancel is par for v1 servers up to ~c10k on the Linux deploy target (~8KB kernel + ~32KB touched user stack \u2248 0.5 GB RSS at 10k, O(1) scheduler); the par line breaks in the c10k\u2013c50k band on RSS and wakeup latency, and no v1 scenario names >10k concurrent connections per process.",
+     "platform_risk": "HIGH and a reason to defer: kqueue vs epoll differ in registration model, edge/level defaults, error reporting on closed fds, and EVFILT granularity \u2014 a portable sealed contract is real design work that would be paid twice if evring later subsumes it.",
+     "trigger_if_deferred": "Fires when (a) a named demand-map scenario requires >10,000 concurrent mostly-idle connections per process, or (b) thread-per-conn measured at a kept scenario's concurrency is >1.3x worse p99 latency or >2x RSS than an epoll reference on Linux x86-64. On firing, first re-evaluate un-deferring evring (completion model, one surface) \u2014 add this readiness row only if the evring trigger has independently not fired."
+    },
+    {
+     "name": "dns_resolve (getaddrinfo)",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE at v1 \u2014 request-path scenarios connect to config-provided endpoints; no kept scenario requires runtime hostname resolution",
+     "contract_sketch": "Deferred with a 'resolve via OS card': v1 programs take numeric ip:port (address parsing is pure checked code, not a sealed row); the card documents resolving at deploy/config time (getent hosts / dscacheutil). Rationale: getaddrinfo drags NSS/dlopen/mDNSResponder into the trusted surface, blocks unboundedly with no deadline, and its five-part battery cost is the worst in the unit.",
+     "platform_risk": "HIGH and part of why it defers: macOS resolves through mDNSResponder (.local, ordering quirks), Linux through nsswitch/resolv.conf \u2014 same call, materially different resolution behavior between dev and deploy machines.",
+     "trigger_if_deferred": "Fires when a kept scenario must resolve names at runtime \u2014 concretely, an outbound HTTP/RPC client scenario is admitted to the demand map, or a kept DB-client scenario's endpoints demonstrably cannot be fixed as numeric addresses in config. Reinstate as a sealed blocking getaddrinfo row with an explicit no-deadline caveat, or as a checked-library stub resolver over the kept UDP rows if par allows."
+    },
+    {
+     "name": "tls",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE \u2014 no v1 demand-map scenario names TLS, and it fails D16 on the other prong too",
+     "contract_sketch": "Out of the net unit, stated explicitly: TLS is pure computation layered over the kept stream rows, so ordinary users CAN implement it from primitives + checked libraries \u2014 it is a future checked library, never a sealed row; keeping it would be the single largest trusted-code liability in the stdlib for zero named consumers.",
+     "platform_risk": "N/A (no row). Note: 'checked-library TLS at par' is a CPU-intrinsics question (AES/SHA instructions), which files against a future intrinsics unit, not net.",
+     "trigger_if_deferred": "N/A \u2014 cut, not deferred. Reopen only as a checked library when a scenario names it; a sealed row would additionally require evidence that checked-library crypto cannot reach par even with the intrinsics unit resolved."
+    },
+    {
+     "name": "udp_bind",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (UDP leg: engines' realtime channels, telemetry, DNS-shaped services in the demand map)",
+     "contract_sketch": "socket(DGRAM)+bind merged: (ip,port; port 0 = ephemeral) -> linear udp_socket or errno error; optional connect(peer) variant for fixed-peer filtering + ECONNREFUSED delivery; teardown = close via handle drop.",
+     "platform_risk": "Low; ICMP-error surfacing (ECONNREFUSED on connected UDP) is reliable on Linux, best-effort on Darwin \u2014 contract marks it advisory.",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "udp_sendto",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (UDP leg, as above)",
+     "contract_sketch": "blocking sendto(buf, addr): whole datagram sent or errno error (EMSGSIZE for oversize, EAGAIN when SO_SNDTIMEO fires) \u2014 never partial, by datagram semantics; no SIGPIPE channel; teardown shared with udp_socket.",
+     "platform_risk": "Low; max datagram size and default sndbuf differ across the two kernels (contract exposes EMSGSIZE rather than a constant).",
+     "trigger_if_deferred": "N/A \u2014 kept."
+    },
+    {
+     "name": "udp_recvfrom",
+     "verdict": "KEEP",
+     "scenario_consumer": "network sockets: TCP/UDP request paths (UDP leg, as above)",
+     "contract_sketch": "blocking recvfrom(buf) -> (n, peer_addr, truncated: bool) or errno error (EAGAIN on SO_RCVTIMEO); a datagram longer than buf is delivered truncated with the flag set and the remainder discarded \u2014 the flag is the portable contract; teardown shared with udp_socket.",
+     "platform_risk": "MATERIAL, hence the bool-only contract: Linux MSG_TRUNC can report the true original datagram length, Darwin only flags truncation \u2014 the row exposes the intersection (flag, not length) so behavior is identical on dev and deploy.",
+     "trigger_if_deferred": "N/A \u2014 kept. (Exposing true-length-on-truncation reinstates only if a kept codec/protocol scenario needs it, accepting a Linux-only contract note.)"
+    }
+   ]
+  },
+  {
+   "members": [
+    {
+     "name": "filemap.map_file_ro",
+     "verdict": "KEEP",
+     "scenario_consumer": "read-a-big-index (database reading a large immutable index/SSTable; compiler reading large object/archive inputs)",
+     "contract_sketch": "map(io_file_handle, offset, len) -> RoMap owning a fixed-length read-only byte view; ONLY the length is a trusted fact (fixed at map time); mapped bytes are never margined and every content-derived check on them is non-elidable (external file mutation can change bytes but never violates the length bound, so no fact forgery); fails with an error result at map time (bad handle/offset/ENOMEM); touching a page truncated away externally is SIGBUS -> process abort (consistent with trap=abort, documented); teardown = munmap on drop of RoMap, infallible.",
+     "platform_risk": "Page size 16KB on macOS arm64 vs 4KB on Linux x86-64 \u2014 offset/len rounding must be page-size-parametric, never hardcoded 4K; SIGBUS-on-truncation aborts on both but is easier to hit under macOS APFS clone semantics differences; interaction with O_DIRECT-opened handles differs (Linux allows mmap of O_DIRECT fd, semantics murky) \u2014 restrict map to non-O_DIRECT handles.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "filemap.unmap",
+     "verdict": "MERGE",
+     "scenario_consumer": "same as map_file_ro",
+     "contract_sketch": "Not a separate row: unmap IS the teardown of RoMap (drop = munmap, infallible, no error channel); no user-visible early-unmap-while-borrowed possible because the byte view borrows the RoMap.",
+     "platform_risk": "None beyond map row.",
+     "trigger_if_deferred": "N/A (merged into map_file_ro)"
+    },
+    {
+     "name": "filemap.madvise_subset",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE (pure perf hint; read-a-big-index is functionally complete without it)",
+     "contract_sketch": "Would be: advise(RoMap, range, {sequential|willneed|dontneed-cold}) hint-only, no semantic effect, infallible (errors swallowed), no teardown \u2014 deferring is safe precisely because it cannot change observable behavior.",
+     "platform_risk": "High divergence: macOS lacks/reinterprets several Linux advices (MADV_FREE vs MADV_DONTNEED behavior differs materially); a hint tuned on Apple Silicon dev boxes may be a no-op or pessimization on the Linux x86-64 deployment target \u2014 another reason to defer until measured there.",
+     "trigger_if_deferred": "Pinned read-a-big-index benchmark on Linux x86-64 shows >=10% wall-time or >=20% major-fault improvement from MADV_SEQUENTIAL/WILLNEED over default readahead; reinstate only the advice values that cleared the bar."
+    },
+    {
+     "name": "filemap.map_file_private_rw",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE named in v1 (nearest candidate: linker patch-in-place, but pread-into-owned-buffer is the par baseline)",
+     "contract_sketch": "Would be: COW private writable mapping; hazard: not-yet-written pages still track the file, so it inherits the whole non-elidable-content discipline plus a mixed clean/dirty-page model \u2014 highest-complexity mmap row for zero named demand; error at map time, SIGBUS->abort, munmap on drop.",
+     "platform_risk": "COW fault cost and overcommit behavior differ (Linux overcommit heuristics vs macOS compressor); 16K vs 4K pages change dirty-amplification by 4x.",
+     "trigger_if_deferred": "A named scenario (e.g. linker relocating a mapped input) where the pread-copy baseline is >=1.3x slower end-to-end or >=2x peak RSS on a pinned workload on Linux x86-64."
+    },
+    {
+     "name": "filemap.map_file_shared_rw",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE",
+     "contract_sketch": "Already a ratified v1 non-goal (restated, not relitigated): shared writable mappings make every store a cross-process visible effect with no failure channel and unfixable fact-forgery/ordering semantics; WAL durability path uses pwrite+fdatasync rows instead.",
+     "platform_risk": "Would be severe (msync semantics, unified buffer cache differences); moot when cut.",
+     "trigger_if_deferred": "N/A (cut; prior decision stands)"
+    },
+    {
+     "name": "os.proc_spawn",
+     "verdict": "KEEP",
+     "scenario_consumer": "compiler driver (spawning assembler/linker/sub-tools); build-tool scenarios in the 51-map",
+     "contract_sketch": "spawn(program_path, argv, env = inherit|explicit_list, stdio each of {inherit|null|pipe|io_file_handle}) -> Child handle via posix_spawn-class primitive; NO pre-exec hook, no fork exposure; fails with error result (ENOENT/EACCES/EAGAIN); teardown = Child must be consumed by proc_wait (dropping an un-waited Child is a checker error, no silent zombie).",
+     "platform_risk": "posix_spawn is a real syscall on macOS but libc fork/exec emulation on glibc \u2014 spawn latency differs ~10x under large RSS; supported file-actions/attr flags differ (setsid, chdir file-action is nonstandard on macOS) \u2014 keep the wired surface to argv/env/stdio only, which is portable.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.proc_wait",
+     "verdict": "KEEP",
+     "scenario_consumer": "compiler driver (needs child exit codes to gate pipeline steps)",
+     "contract_sketch": "wait(Child) -> {exit_code(u8)} | {terminated_by_signal(n)} blocking, EINTR retried internally; consumes the Child handle (linear \u2014 exactly one wait, no double-reap); failure channel only for kernel-level ECHILD anomalies -> abort (unreachable if handle is linear); teardown: wait IS the teardown.",
+     "platform_risk": "Low; wait-status encoding identical in practice, signal numbering differs for a few signals but row reports the raw number plus a portable enum for TERM/KILL/SEGV.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.time",
+     "verdict": "KEEP",
+     "scenario_consumer": "servers (timeouts/deadlines), databases (WAL timestamps), engines (frame pacing) \u2014 broadest consumer set in the map",
+     "contract_sketch": "monotonic_ns() -> u64 never-decreasing since arbitrary epoch, and wall_ns() -> unix epoch ns; both infallible, vDSO/commpage cost (no syscall on hot path), no handle/teardown; monotonic PINNED to exclude-suspend semantics on both OSes.",
+     "platform_risk": "MATERIAL: Linux CLOCK_MONOTONIC excludes suspend, macOS CLOCK_MONOTONIC includes it \u2014 implement via CLOCK_UPTIME_RAW on macOS to honor the pinned exclude-suspend contract, or the same timeout code behaves differently across dev and deploy; flag in the acceptance battery.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.sleep",
+     "verdict": "KEEP",
+     "scenario_consumer": "servers (retry/backoff), benchmark harnesses; condvar timed-wait does not cover the no-lock case",
+     "contract_sketch": "sleep(duration) blocks at-least the requested monotonic duration (may oversleep, never wakes early); EINTR retried internally so it is infallible; no teardown.",
+     "platform_risk": "macOS timer coalescing/App Nap can oversleep more aggressively than Linux; at-least contract absorbs it \u2014 note it in perf docs, not semantics.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.env_get",
+     "verdict": "KEEP",
+     "scenario_consumer": "servers/databases reading deployment config (PORT, data dir) \u2014 standard container-deployment input channel",
+     "contract_sketch": "env_get(name) -> Option<owned bytes> (not guaranteed UTF-8); read-only and race-free BY CONSTRUCTION because no setenv row exists anywhere in the language (no unsafe escape, so environ is immutable post-start); infallible aside from the None case; no teardown.",
+     "platform_risk": "None material.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.env_set",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE (child env is set explicitly through proc_spawn's env list, which covers the only legitimate use)",
+     "contract_sketch": "Cut precisely to keep env_get race-free; setenv is process-global mutable state with documented UB-adjacent races in every libc.",
+     "platform_risk": "Moot.",
+     "trigger_if_deferred": "N/A (cut)"
+    },
+    {
+     "name": "os.args",
+     "verdict": "KEEP",
+     "scenario_consumer": "compilers and every CLI-shaped scenario in the map",
+     "contract_sketch": "args() -> immutable snapshot slice of argv as byte strings (argv[0] included, no UTF-8 guarantee); infallible, captured at process start, no teardown.",
+     "platform_risk": "None.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.random_csprng",
+     "verdict": "KEEP",
+     "scenario_consumer": "hash-map seed (hashbrown-class DoS resistance \u2014 direct dependency of the kept container work), servers (tokens), databases (WAL/journal salts)",
+     "contract_sketch": "fill_random(&uniq buf) fills the whole buffer with getentropy-class CSPRNG bytes, looping internally over the 256-byte-per-call cap; unrecoverable entropy failure -> abort (fail-closed, no weak-random fallback channel); no teardown; NOT a fact channel \u2014 output carries no optimizer-visible facts.",
+     "platform_risk": "getentropy exists on both (macOS >=10.12, glibc >=2.25); 256-byte cap identical; low.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.exit",
+     "verdict": "KEEP",
+     "scenario_consumer": "compilers (exit codes are the driver protocol); every CLI scenario",
+     "contract_sketch": "exit(code: u8) -> ! flushes the sealed stdio sinks then terminates without unwinding or user-level cleanup (drop glue does NOT run \u2014 documented); infallible; process end is the teardown.",
+     "platform_risk": "None.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.abort",
+     "verdict": "MERGE",
+     "scenario_consumer": "already consumed by trap semantics (trap = process abort, ratified)",
+     "contract_sketch": "Not a new row: user-callable abort is the already-decided trap mechanism spelled once; -> !, no failure channel, no cleanup.",
+     "platform_risk": "None.",
+     "trigger_if_deferred": "N/A (merged into trap)"
+    },
+    {
+     "name": "os.signal_term_flag",
+     "verdict": "KEEP",
+     "scenario_consumer": "server graceful shutdown (drain connections, fdatasync WAL, exit) \u2014 required by the server scenarios; not implementable from primitives since sigaction is unreachable without an escape hatch",
+     "contract_sketch": "termination_requested() -> bool polling a sticky flag set by a runtime-installed SIGTERM/SIGINT handler that only stores to that flag (zero user code in signal context, so the entire async-signal-safety swamp stays sealed); install-once at startup, infallible, no teardown; startup also sets SIGPIPE to ignore so io-file write reports EPIPE as an ordinary error result.",
+     "platform_risk": "sigaction semantics equivalent for this shape on both OSes; low. SIGPIPE-ignore is needed identically on both for server sockets/pipes.",
+     "trigger_if_deferred": "N/A (kept)"
+    },
+    {
+     "name": "os.signals_general",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE (no v1 scenario needs a disposition beyond TERM/INT-as-flag and PIPE-as-ignore)",
+     "contract_sketch": "Would be user-visible handlers or a signal-subscription queue; deferred because arbitrary handlers reintroduce reentrancy and async-signal-safety obligations that contradict the sealed-trust budget; if ever built, only the flag/queue shape (no user code in handler context) is admissible.",
+     "platform_risk": "Signal numbering/realtime-signal availability differ (Linux SIGRTMIN.. absent on macOS); another reason to defer.",
+     "trigger_if_deferred": "First named scenario requiring a signal outside {TERM, INT, PIPE} \u2014 e.g. SIGHUP config reload for a server \u2014 where a polled flag or an external control channel (socket/file) is shown inadequate; reinstate as additional sticky flags only, never user handlers."
+    },
+    {
+     "name": "os.cwd_get",
+     "verdict": "DEFER",
+     "scenario_consumer": "NONE (io-file open passes paths to the kernel, which resolves relative paths against cwd for free; no v1 scenario must materialize the cwd string)",
+     "contract_sketch": "Would be: cwd() -> owned path bytes, error on unlinked-cwd edge cases; deferred, and if reinstated it is read-only (see chdir cut) so it is race-free.",
+     "platform_risk": "Low (PATH_MAX handling differs slightly).",
+     "trigger_if_deferred": "First scenario that must emit absolute paths into artifacts (compiler dep-files/diagnostics) where requiring absolute-path inputs at the CLI boundary is demonstrated to break an existing consumer's invocation protocol."
+    },
+    {
+     "name": "os.chdir",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE",
+     "contract_sketch": "Cut: process-global mutable state that silently changes the meaning of every concurrent relative open \u2014 reintroduces exactly the cross-thread interference class the language exists to exclude; pass absolute or deliberately-relative paths to io-file instead.",
+     "platform_risk": "Moot.",
+     "trigger_if_deferred": "N/A (cut; a future openat/dir-handle row is the admissible replacement if per-directory scoping is ever demanded)"
+    },
+    {
+     "name": "os.path_manipulation",
+     "verdict": "CUT",
+     "scenario_consumer": "NONE as a sealed row (compilers consume it, but from a checked library)",
+     "contract_sketch": "join/basename/extension are pure byte-string computation \u2014 ordinary users implement them at par performance from primitives, so D16 excludes them from the sealed set outright; belongs in a checked library with zero trust budget.",
+     "platform_risk": "None (both targets are POSIX; no drive letters).",
+     "trigger_if_deferred": "N/A (cut by D16 first clause \u2014 implementable at par)"
+    },
+    {
+     "name": "os.stdio_handles",
+     "verdict": "MERGE",
+     "scenario_consumer": "compilers (diagnostics to stderr), every CLI/server scenario (logs)",
+     "contract_sketch": "Not its own I/O row: stdout/stderr/stdin are the three pre-opened io-file handles (fd 0/1/2) exposed by accessors, reusing io-file's existing write/read rows verbatim (same error channel: short-write/EPIPE-as-error, EINTR retried); unbuffered at the sealed layer \u2014 line/block buffering is a checked library; process end is the teardown, exit flushes the sealed sinks.",
+     "platform_risk": "None material; pipe vs tty vs file behavior identical across targets at this layer.",
+     "trigger_if_deferred": "N/A (merged into io-file)"
+    }
+   ],
+   "unit": "filemap-os"
+  }
+ ],
+ "attack": {
+  "findings": [
+   {
+    "unit": "filemap-os",
+    "severity": "FATAL",
+    "detail": "No unit owns filesystem metadata/namespace: stat/fstat (size, mtime, file-type), readdir, and mkdir appear nowhere in the three audits or in the pre-decided io-file list \u2014 not KEEP, not CUT, not DEFER-with-trigger. This breaks two of the five canonical programs outright: a build tool cannot do mtime-based staleness (full content re-hash of every input each run is not at par with make/ninja) and cannot create output directories; recursive parallel grep cannot walk a directory tree. It also punctures a kept row's own contract: map_file_ro(handle, offset, len) has no source for len \u2014 the one trusted fact of the row \u2014 so the read-a-big-index consumer cannot learn its index file's length without an O(size) read probe. Under this framework, absence of a syscall-rooted capability must be a priced verdict with a trigger; silence is not DEFER. A filesystem-namespace unit audit is required before ratification."
+   },
+   {
+    "unit": "filemap-os",
+    "severity": "MAJOR",
+    "detail": "unlink and ftruncate are likewise unenumerated, hiding behind the pre-decided phrase 'plus what wal needs'. KV-store compaction cannot reclaim dead SSTable/WAL-segment space with only rename (rename-over frees at most one inode into another live name; no truncate row is stated for recycling), so disk usage grows monotonically \u2014 a correctness failure of the workload, not a perf shortfall. Either pin unlink/ftruncate into the io-file list explicitly before wal ratification or give each a DEFER trigger."
+   },
+   {
+    "unit": "net",
+    "severity": "MAJOR",
+    "detail": "The accept-loop teardown contract is Linux-only lore and internally untyped. tcp_listen's 'shutdown-then-close ordering' for waking blocked acceptors requires shutdown() on a listening socket \u2014 an operation the kept net_shutdown row types only on tcp_stream, and which on macOS fails ENOTCONN without waking accept (on Linux it succeeds and wakes accept with an EINVAL-class return). close() is correctly documented as unblocking no one. Net effect: there is no portable, specified way for the graceful-shutdown path (signal_term_flag drain) to release a thread parked in accept; the sockopt row also never states whether SO_RCVTIMEO applies to accept on the listener (socket(7) says yes on Linux; macOS must be pinned), which is the only realistic portable poll mechanism. As specified, server drain is untestable on the dev machine and unspecified on the deploy target."
+   },
+   {
+    "unit": "filemap-os",
+    "severity": "MAJOR",
+    "detail": "signal_term_flag's startup sets SIGPIPE to SIG_IGN process-wide, and ignored dispositions survive execve \u2014 so every proc_spawn child (assemblers, linkers, shell tools in the compiler-driver scenario) inherits SIGPIPE=IGN. Standard Unix tools in head-terminated pipelines rely on SIGPIPE death; inherited-IGN children instead see EPIPE and can error-spew or loop (a well-documented real-world bug class). proc_spawn's contract must reset SIGPIPE to SIG_DFL in the child (POSIX_SPAWN_SETSIGDEF) \u2014 currently unstated."
+   },
+   {
+    "unit": "filemap-os",
+    "severity": "MAJOR",
+    "detail": "Child teardown is understated: proc_wait is the only consumer of the linear Child and blocks indefinitely; there is no kill/terminate row and no timed wait anywhere. A hung child pins a build worker forever, and on SIGTERM/Ctrl-C the parent's only exit is os.exit(), orphaning running children \u2014 not at par with make's interrupt behavior. Child termination/deadline needs an explicit verdict (KEEP or DEFER with a quantified trigger), not omission."
+   },
+   {
+    "unit": "threads-par",
+    "severity": "MAJOR",
+    "detail": "worker_index() is defined only for pool workers ('usize < pool size'), but the row's own named consumer \u2014 'servers: per-worker state via worker-indexed arrays' \u2014 runs on the net unit's mandated v1 architecture: thread-per-connection scoped spawns, unbounded in count and off-pool, where worker_index has no defined value. The row is 'what makes the TLS cut viable', yet its replacement story does not cover its headline consumer. Define off-pool behavior (error? scope-scoped indices?) or re-scope the TLS-cut reinstatement trigger to include the thread-per-conn case."
+   },
+   {
+    "unit": "net",
+    "severity": "MAJOR",
+    "detail": "net_send's KEEP-vs-merge rationale is voided by another kept row: os.signal_term_flag's startup ignores SIGPIPE process-wide, after which plain write(2) on a socket returns EPIPE on both platforms \u2014 exactly the io write row's stated EPIPE-as-error contract. The stated reason net_send cannot merge ('a merged write row could not hide the SIGPIPE divergence') is therefore false in context; recv merged but send did not, spending a full sealed-row battery on a redundant mechanism. Either merge net_send into the io write row (keeping net_sendv as the sole socket-specific emit row) or re-justify with a reason that survives global SIGPIPE-ignore (e.g., refusing to depend on runtime-startup ordering \u2014 then say exactly that)."
+   },
+   {
+    "unit": "filemap-os",
+    "severity": "MAJOR",
+    "detail": "os.exit 'flushes the sealed stdio sinks' contradicts stdio_handles' 'unbuffered at the sealed layer' \u2014 an unbuffered sink has nothing to flush. Meanwhile real buffering lives in a checked library whose drop glue exit() explicitly skips, so any program using buffered stdout (compilers, the named stdio consumer) that ends via exit() silently truncates diagnostics/output. Resolve the textual contradiction and define the exit/buffered-library composition (mandatory explicit flush before exit, or a registered sealed-sink flush)."
+   },
+   {
+    "unit": "cross-unit",
+    "severity": "MINOR",
+    "detail": "sleep is kept twice \u2014 threads-par 'sleep' and filemap-os 'os.sleep' \u2014 two rows, two batteries, one capability, violating the one-spelling rule. Their rationales also contradict: threads-par says demote to condvar-timed-wait sugar if that ships; os.sleep asserts timed wait does not cover the no-lock case. Merge to a single row and settle whether the ratified condvar surface includes timed wait."
+   },
+   {
+    "unit": "filemap-os",
+    "severity": "MINOR",
+    "detail": "proc_spawn's platform note is factually stale in a decision-relevant direction: modern glibc posix_spawn is not 'fork/exec emulation' \u2014 since glibc 2.24 it uses clone(CLONE_VM|CLONE_VFORK) and copies no page tables, so the claimed ~10x large-RSS spawn-latency penalty on Linux is wrong. Correct it before it distorts any design or benchmarking decision."
+   },
+   {
+    "unit": "net",
+    "severity": "MINOR",
+    "detail": "sendfile-class zero-copy transmit was never enumerated \u2014 not even as DEFER with a trigger. The static-file-server workload pays one extra copy (map_file_ro + net_send) versus a sendfile baseline. Likely acceptable at v1 scale, but under this framework absence must be a priced verdict: add a DEFER row with a measured-copy/throughput trigger on the Linux deploy target."
+   },
+   {
+    "unit": "net",
+    "severity": "MINOR",
+    "detail": "tcp_connect has no caller deadline and OS SYN timeouts are minutes-long (~75s macOS, ~2min Linux); the row's named DB-client consumer hanging minutes per dead endpoint is not at par with production clients, and SO_SNDTIMEO does not bound connect. The gap implicitly rides the readiness deferral \u2014 make connect-deadline an explicit named clause of that trigger."
+   },
+   {
+    "unit": "threads-par",
+    "severity": "MINOR",
+    "detail": "par.reduce's MERGE plan requires each chunk body to address a preallocated per-chunk &uniq output slot, but the for_chunks contract sketch passes only the input chunk \u2014 no chunk index and no zipped second disjoint output split. The merge verdict depends on an unstated for_chunks capability; state it in the for_chunks contract or the library form cannot be written as sketched."
+   },
+   {
+    "unit": "threads-par",
+    "severity": "MINOR",
+    "detail": "scoped spawn specs one explicit default stack size but exposes no per-spawn stack knob (pool has one). Deep-recursion consumers \u2014 compiler frontends on scoped threads \u2014 need either a documented-generous default enforced at creation or a knob; the macOS 512KiB platform default makes this a real dev-machine trap if the spec'd default is not actually applied on every spawn path."
+   },
+   {
+    "unit": "filemap-os",
+    "severity": "MINOR",
+    "detail": "map_file_ro's SIGBUS-to-abort on external truncation is honest for process-owned DB index files, but if the static-file-server pattern maps request-addressable files, an external truncation becomes a remotely-triggerable whole-process abort. Add a consumer-scope note: server-facing file serving should use read-copy unless the served files are process-owned and immutable."
+   },
+   {
+    "unit": "net",
+    "severity": "MINOR",
+    "detail": "The UDP rows' consumers ('engines' realtime channels, telemetry, DNS-shaped services') are the loosest in the unit \u2014 none pinned to a numbered 51-map scenario the way D16's second prong demands. The keep is probably right (the deferred stub-resolver path also consumes them), but tighten the scenario naming before ratification."
+   },
+   {
+    "unit": "cross-unit",
+    "severity": "MINOR",
+    "detail": "Durability visibility gap: nothing in the audited units restates that Darwin fsync/fdatasync do not flush the drive cache (F_FULLFSYNC is the durable spelling), while the Chase-Lev row explicitly directs primary adversarial testing to the macOS dev machine. WAL-durability tests run on the dev box validate nothing unless the pre-ratified io rows pin the F_FULLFSYNC mapping \u2014 add the cross-reference so the acceptance battery cannot produce a false green on the platform where the semantics differ most."
+   }
+  ],
+  "five_programs_walk": [
+   "Static-file web server: tcp_listen(reuseaddr) -> tcp_accept on shared<tcp_listener> -> scoped spawn per connection inside a long-lived scope (spawn EAGAIN gives a 503/close path) -> sockopt {TCP_NODELAY, SO_RCVTIMEO, SO_SNDTIMEO} -> request bytes via the merged io read row -> path join/sanitize as a pure checked library -> io-file open -> response via net_sendv (headers+body) with partial-write resume, or map_file_ro + net_send -> net_shutdown(WR) half-close -> drop-close -> signal_term_flag + per-stream RCVTIMEO for handler drain -> os.exit. BREAKS: (a) no fstat, so Content-Length and map_file_ro's len have no source except reading the whole file first \u2014 kills the mmap fast path (chunked encoding is a protocol downgrade, not par); (b) graceful drain cannot portably wake the thread blocked in accept (shutdown-on-listener is ENOTCONN on macOS, net_shutdown is not typed on listeners) \u2014 as specified, the accept thread parks forever and only a cleanup-skipping exit() escapes; (c) minor: one extra copy vs sendfile, and SIGBUS-abort exposure if serving from maps that others can truncate. Writable, but not at par on the metadata path, and shutdown is broken-as-specified on the dev platform.",
+   "Build tool: args + env_get -> manifest via io read -> dependency graph in checked containers -> N scoped worker threads + conc_queue (mpmc) of ready jobs \u2014 correctly avoiding par fork-join since jobs block, so the no-blocking card and the deferred blocking-hatch are mutually consistent here -> proc_spawn(argv, explicit env, stdio=pipe) -> pipe drain on scoped threads -> proc_wait exit codes gate dependents -> outputs published via write + fsync + rename + dir-fsync -> diagnostics on merged stderr -> os.exit code. BREAKS FATAL: no stat/mtime means incremental builds are impossible at par (full content re-hash of the tree every run); no mkdir means output directories cannot be created at all; no unlink means no clean step; no child kill means Ctrl-C orphans running compilers; spawned tools inherit SIGPIPE=IGN and can misbehave in pipelines. The scheduling/execution core is fully served by kept rows; the unowned filesystem-metadata seam is what breaks the program.",
+   "LZ4 CLI: args -> input via io-file open + read loop (or the stdin fd0 accessor) into an owned growable buffer -> pool(n=0 default cores) -> par.for_chunks over frame-sized blocks for parallel compression (checker-proved disjoint &uniq chunks are exactly the needed shape; compression itself is pure checked code) -> checksums via the merged par.reduce library form (wrapping-int monoid, order-insensitive) -> output via io write with short-write loop -> exit(0/1). PASSES at par with only the kept rows. Residuals: no fstat means no input-size preallocation (streaming append is fine and par holds), and the reduce library needs a chunk-index/output-slot facility that the for_chunks sketch does not yet state.",
+   "KV store with WAL: serving via tcp_listen/tcp_accept, thread-per-conn scoped spawns with SO_RCVTIMEO deadlines, net_send/net_sendv responses, net_shutdown(RD) as the cross-thread cancel; state via shared<T> + mutex + publish-snapshot-cell memtable and conc_queue to background flush/compaction threads; random_csprng for hash seeds; durability via pwrite + fdatasync WAL, checkpoint = write-new + fsync + rename + dir-fsync (all pre-decided io rows); recovery reads the WAL to EOF via a pread loop (read 0 = EOF), so the missing stat is survivable there; SSTable reads via map_file_ro; shutdown via signal_term_flag -> drain -> final fdatasync -> exit. BREAKS: compaction cannot reclaim space \u2014 no unlink/ftruncate anywhere, so disk usage grows without bound (a workload failure, not a perf shortfall); map_file_ro len again needs fstat or an O(file) startup probe; the blocked-accept wakeup hole is shared with the web server; and dev-machine durability testing is void without an F_FULLFSYNC pin in the io rows. Everything else runs at par on kept rows.",
+   "Parallel grep: args (pattern + explicit file list) -> io-file open per file -> read loop into a buffer (the mmap path is blocked by the fstat-len gap, but read-based scanning is GNU grep's own approach, so par holds) -> pool + conc_queue (mpmc) of files, par.for_chunks within large files with chunk-boundary straddle handling in the pure matcher -> matches serialized to stdout under mutex via the merged stdio write row -> exit code from a shared counter. BREAKS FATAL in its normal form: recursive grep over a directory tree is unwritable \u2014 no readdir and no stat to classify entries. Fed an external file list (find | xargs style) it passes at par; early-exit modes (-q/-l) over-scan only within one chunk, since cooperative cancellation via publish-snapshot-cell between chunks is available \u2014 acceptable."
+  ],
+  "overall": "The row-level verdicts inside the three audited units are mostly sound: none of the CUT/DEFER calls (detached spawn, TLS-the-protocol, TLS-storage, yield, barrier, cancellation, readiness, DNS, madvise, private-rw maps) breaks any of the five canonical programs, and several rows are exemplary \u2014 udp_recvfrom's intersection contract, os.time's exclude-suspend pin, the TLS cut by D16's first prong, the net_recv merge. What fails is the seam no unit owns: filesystem metadata and namespace (stat/fstat, readdir, mkdir, unlink, ftruncate) was never enumerated anywhere \u2014 neither kept nor cut nor deferred with a trigger \u2014 and that single omission breaks the build tool and recursive grep outright, starves the KV store's compaction, and leaves map_file_ro's own len parameter unsatisfiable: one FATAL. Second-order, the units were audited in isolation and contradict each other where they compose: SIGPIPE is solved twice and the duplication voids net_send's non-merge rationale; sleep is kept twice with contradictory demotion logic; exit-flushes-sinks contradicts unbuffered-sealed-stdio; worker_index's server consumer runs off-pool where the row is undefined; and tcp_listen's teardown cites a shutdown operation that net_shutdown does not type and macOS does not honor. Process teardown is the third weak axis: no child kill or timed wait, SIGPIPE=IGN inheritance across exec, and no portable accept wakeup for graceful drain. Recommended before ratification: (1) a filesystem-namespace unit audit with explicit verdicts and quantified triggers; (2) a cross-unit composition pass that walks exactly these five programs against contract text rather than intent; (3) pinned teardown contracts for child processes and blocked acceptors with dev-vs-deploy divergence stated, plus the F_FULLFSYNC cross-reference so dev-machine durability tests cannot go falsely green. No audited KEEP needs to flip to CUT; two KEEPs (net_send, one of the two sleep rows) should become MERGEs, and the omitted rows must be adjudicated before any wal or server-scenario ratification proceeds."
+ },
+ "final": {
+  "final_members": [
+   {
+    "pocket": "threads-par",
+    "name": "scoped spawn/join (region-typed)",
+    "verdict": "KEEP",
+    "scenario_consumer": "server request handling (thread-per-connection workers over conc_queue); compilers' parallel pipeline stages",
+    "contract_sketch": "scope(|s| s.spawn(closure borrowing region-scoped &/&uniq data)); spawn fails err(EAGAIN) before the child ever runs; AMENDED (resolves stack-knob minor): spawn takes optional stack_bytes, and the spec'd explicit default (8 MiB, stated in the spec, never platform-inherited) is applied on every spawn path; child trap = process abort; scope exit blocks until every child is joined, so no borrow outlives its region.",
+    "platform_note": "Explicit default stack applied on both OSes so macOS's ~512KiB pthread default can never leak in as a dev-machine deep-recursion trap; clone vs pthread_create stays behind the seal."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "unscoped/detached spawn",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE",
+    "contract_sketch": "Would be a 'static-env, never-joined, leaked-at-exit thread \u2014 exactly the teardown ambiguity scoped spawn forbids. Reinstate only if a v1 scenario exhibits a thread lifetime provably un-nestable in any enclosing scope; program-lifetime scope + conc_queue covers all 51 scenarios at par.",
+    "platform_note": "Cut avoids exit-time race divergence (macOS dyld vs glibc atexit/TLS teardown ordering)."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "worker-pool knob: thread count + stack size",
+    "verdict": "KEEP",
+    "scenario_consumer": "server request handling (pool sizing); codec parallel validation (size = physical cores)",
+    "contract_sketch": "pool(n, stack_bytes) -> pool | err; n=0 means available_parallelism (trusted sysconf/sysctl read, unreachable from primitives); teardown: pool drop drains queue then joins all workers.",
+    "platform_note": "available_parallelism source differs (sysctl hw.* vs sched_getaffinity); Apple Silicon P/E asymmetry makes 'core count' ambiguous \u2014 spec which count each platform returns."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "worker-pool knobs: pinning/affinity/priorities",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE in v1 (engines plausible future consumer)",
+    "contract_sketch": "Would be: pin worker i to cpu set / sched class at pool construction; err on EPERM/unsupported; no runtime re-pinning.",
+    "platform_note": "HIGH divergence: macOS thread_affinity_policy is a hint ignored on Apple Silicon (untestable on dev machine); SCHED_FIFO needs CAP_SYS_NICE on Linux."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "par.for_chunks",
+    "verdict": "KEEP",
+    "scenario_consumer": "codecs: parallel validation, partition pass of parallel sort; also carrier for the par.reduce library form",
+    "contract_sketch": "AMENDED (resolves reduce-dependency minor): body receives (chunk_index: usize, in_chunk: &uniq [T], and optionally a zipped out-slot &uniq U drawn from a checker-split disjoint output array with the same partition); checker-proved disjointness carried across the thread boundary is the nonforgeable fact users cannot build; returns only after all chunks complete; any trap aborts the process; no early-exit channel in v1.",
+    "platform_note": "None material; chunk-size heuristics are tuning, not semantics. The new indexed/zipped out-slot shape is added checker surface and needs its own hostile fact-channel review (see open flags)."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "par fork-join (recursive task spawn)",
+    "verdict": "KEEP",
+    "scenario_consumer": "build-system-style fork-join (compilers); recursive parallel sort (codecs)",
+    "contract_sketch": "Inside a par scope: h = s.fork(task); v = h.join() returns the task's value; work-stealing internal; trap in any task aborts the process; par scope exit implies every forked task completed.",
+    "platform_note": "Correctness rests on internal deque memory orderings \u2014 arm64 (dev machine) is the honest stress bed; x86-64 TSO can mask fence bugs, so deploy-target green is insufficient evidence."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "par.reduce (wrapping-int monoids only)",
+    "verdict": "MERGE",
+    "scenario_consumer": "codec checksums (adler/CRC-style) \u2014 served by the merged form",
+    "contract_sketch": "Checked-library helper over the AMENDED for_chunks: chunk i writes its partial into out-slot i of a preallocated disjoint output array (now expressible \u2014 for_chunks passes chunk_index and a zipped &uniq out-slot), then a serial O(chunks) fold; wrapping-int monoids make combine order-insensitive, so at par with a fused builtin; zero new trusted LOC. Promote to sealed only if a preregistered codec checksum bench shows the library form losing >=3% to a fused reduce.",
+    "platform_note": "None \u2014 inherits for_chunks."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "thread-local storage",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE user-visible (allocator TLS is runtime-internal)",
+    "contract_sketch": "Replacement AMENDED to cover the off-pool consumer (resolves worker_index major): pool code uses worker_index()-addressed arrays; thread-per-connection servers pass a slot index into the closure at spawn, recycled via a checked-library free list \u2014 both at par (one indexed load). Reinstatement trigger RE-SCOPED: >=5% measured overhead vs native TLS in EITHER the pool-indexed OR the thread-per-conn slot-indexed case, or detached spawn ever reinstated.",
+    "platform_note": "Cut avoids TLS destructor-ordering and dlopen divergence between macOS dyld and glibc \u2014 a large verification cost avoided."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "sleep (threads-par spelling)",
+    "verdict": "MERGE",
+    "scenario_consumer": "same consumers, served by the single os.sleep row",
+    "contract_sketch": "Row deleted; os.sleep is the one spelling (resolves the duplicate-row minor). Ruling settled here: os.sleep stays sealed even if the condvar surface ships timed wait \u2014 timed wait does not cover the no-lock case, so the threads-par audit's demote-to-sugar note is overruled.",
+    "platform_note": "n/a \u2014 see os.sleep."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "yield",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE \u2014 spin backoff lives inside the sealed mutex and internal deque",
+    "contract_sketch": "sched_yield semantics are unspecified and invite user spin loops competing with kept sync members. Reinstate only if a user-level wait loop beats kept sync primitives by >=5% and needs yield for fairness \u2014 expected never.",
+    "platform_note": "sched_yield behavior differs across kernels/schedulers \u2014 precisely why it stays internal."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "thread id / pool worker index",
+    "verdict": "KEEP",
+    "scenario_consumer": "engines/codecs: per-worker state on the pool via worker-indexed arrays; servers get per-thread state via spawn-time indices (pure user code, no row needed)",
+    "contract_sketch": "AMENDED (resolves off-pool major): worker_index() -> usize < pool_size is typed as available ONLY inside pool task bodies (for_chunks/fork-join) \u2014 off-pool use is a checker-rejected context, not a runtime error; scoped thread-per-conn code passes an explicit index into the closure at spawn instead. thread id = opaque u64 unique for process lifetime (synthesized, not gettid); no failure channel; ~trivial trusted LOC.",
+    "platform_note": "None \u2014 ids synthesized in the runtime, not read from the OS."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "thread naming",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE (debuggability nicety, no performance claim)",
+    "contract_sketch": "Would be: set_name at spawn, best-effort, truncated, no error channel.",
+    "platform_note": "pthread_setname_np diverges: macOS self-only 1-arg, Linux 2-arg with 15-byte cap \u2014 a different contract per platform for zero scenario value."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "panic-across-thread semantics",
+    "verdict": "KEEP",
+    "scenario_consumer": "every concurrent scenario (semantic rule, zero new trusted LOC)",
+    "contract_sketch": "Trap on any thread = immediate whole-process abort; no cross-thread unwinding, no lock poisoning, no observation channel \u2014 join never reports 'child trapped' because the process is already gone.",
+    "platform_note": "None \u2014 abort delivery identical on both platforms."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "scheduler internals (Chase-Lev deque)",
+    "verdict": "KEEP",
+    "scenario_consumer": "internal-only: implements fork-join and for_chunks scheduling; no D16 sealed-member row spent",
+    "contract_sketch": "Per-worker deque, owner push/pop, thief steal; no public API; pool shutdown drains queues before joining workers; carries its own memory-ordering proof through the acceptance battery (it is trusted LOC).",
+    "platform_note": "Classic Chase-Lev fence bugs are invisible on x86-64 TSO and manifest on arm64 \u2014 run adversarial concurrency tests on the arm64 dev machine as the primary bed."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "blocking-call integration (escape hatch for IO in par bodies)",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE in v1 \u2014 card rule stands: no blocking calls in par bodies; blocking IO lives on scoped threads feeding the pool via conc_queue",
+    "contract_sketch": "Would be: block_in_place-style hatch retiring the current worker and spawning a replacement; err on spawn failure; replacement joins at pool drop.",
+    "platform_note": "None material; the hatch itself is platform-neutral."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "barrier/latch primitives",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE as sealed members \u2014 engine frame sync served by a checked-library barrier over kept counter+mutex+condvar at par (waits are microsecond-to-millisecond scale)",
+    "contract_sketch": "Library form: latch = counter with condvar wake at zero; barrier = two-phase latch; zero new trusted LOC. Reinstate as sealed if a preregistered engine scenario measures >=5% frame-time regression vs a native futex barrier on the deploy target.",
+    "platform_note": "None \u2014 inherits the sync members' already-adjudicated futex/ulock divergence."
+   },
+   {
+    "pocket": "threads-par",
+    "name": "scope cancellation",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE \u2014 server request-timeout served by cooperative flag polling via publish-snapshot-cell, at par, zero trusted LOC; blocked-in-IO release served by net_shutdown(RD) and timed accept",
+    "contract_sketch": "Cooperative library form: shared cancel flag checked at chunk/task boundaries; forced cancellation of a blocked thread rides the evring reinstatement trigger \u2014 adjudicate together with evring, never before.",
+    "platform_note": "Cut avoids the pthread_cancel/signal cancellation-point swamp (macOS vs Linux)."
+   },
+   {
+    "pocket": "net",
+    "name": "tcp_connect",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets, TCP client leg: DB clients, servers dialing upstreams (51-map request-path scenarios)",
+    "contract_sketch": "socket()+connect() merged: blocking connect to (ip,port) -> linear tcp_stream or errno-class error (ECONNREFUSED/ETIMEDOUT/ENETUNREACH); OS-default SYN timeout; AMENDED: the missing caller deadline is now an explicit named clause of the readiness_wait defer trigger (minutes-long SYN timeout is documented as not-at-par for production clients until that trigger fires); teardown = close via handle drop.",
+    "platform_note": "Low. SIGPIPE handled by the runtime's unconditional startup SIGPIPE=IGN invariant (Darwin SO_NOSIGPIPE may still be set defensively); SOCK_CLOEXEC atomic on Linux, fcntl window on macOS (dev-only exposure)."
+   },
+   {
+    "pocket": "net",
+    "name": "tcp_listen",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets: server accept side (51-map server scenarios)",
+    "contract_sketch": "socket()+bind()+listen() merged: (ip,port,backlog,reuseaddr) -> linear tcp_listener or errno error (EADDRINUSE/EACCES). AMENDED teardown (resolves accept-drain major): the unportable 'shutdown-then-close' clause is DELETED (shutdown on a listener is ENOTCONN on macOS); close frees the fd and wakes no blocked acceptor; the specified graceful-drain mechanism is timed accept \u2014 SO_RCVTIMEO typed on the listener via sockopt_set \u2014 polled against termination_requested().",
+    "platform_note": "Backlog clamping differs (somaxconn); SO_REUSEADDR laxer on macOS \u2014 Linux (deploy) semantics normative. Darwin accept-honors-SO_RCVTIMEO must be verified in the battery (see open flags); fallback is the loopback self-connect wake pattern in the card, zero new rows."
+   },
+   {
+    "pocket": "net",
+    "name": "tcp_accept",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets: thread-per-connection server loop (the v1 server architecture with evring deferred)",
+    "contract_sketch": "Blocking accept on shared<tcp_listener> -> (linear tcp_stream, peer_addr) or errno error; ECONNABORTED retried internally, EMFILE/ENFILE surfaced; AMENDED: when the listener's SO_RCVTIMEO fires, accept returns a timeout error value \u2014 this is the specified portable drain/poll mechanism; per-stream teardown independent of listener.",
+    "platform_note": "accept4(SOCK_CLOEXEC) on Linux vs accept+fcntl on macOS; Darwin inherited-O_NONBLOCK quirk hidden inside the row; Linux accept-honors-SO_RCVTIMEO is documented, Darwin pinned by battery test."
+   },
+   {
+    "pocket": "net",
+    "name": "socket_raw / bind_raw / listen_raw",
+    "verdict": "MERGE",
+    "scenario_consumer": "NONE standalone \u2014 every consumer wants the composed handle",
+    "contract_sketch": "Folded into tcp_connect, tcp_listen, udp_bind; a bare fd with no role has no checked contract, so it never exists as a value. Reinstate only if a socket type outside {TCP, UDP} is admitted (e.g. unix-domain), and then as its own composed row.",
+    "platform_note": "None (removed surface)."
+   },
+   {
+    "pocket": "net",
+    "name": "net_recv (stream read)",
+    "verdict": "MERGE",
+    "scenario_consumer": "network sockets: request parsing in thread-per-conn servers",
+    "contract_sketch": "Merged into the kept io-file read row: blocking read on fd-backed byte stream -> 0..n bytes, 0 = EOF/peer-FIN, EINTR per the io row's policy, ECONNRESET as errno error, SO_RCVTIMEO expiry mapped to a timeout error value; one read row, one contract, two handle kinds. Split back only if the io read row's verified contract proves incompatible with the timeout channel during the battery.",
+    "platform_note": "Low \u2014 read(2) is the portable part of sockets; only the errno set widens."
+   },
+   {
+    "pocket": "net",
+    "name": "net_send (stream write)",
+    "verdict": "MERGE",
+    "scenario_consumer": "network sockets: response emission \u2014 served by the io-file write row on socket handles",
+    "contract_sketch": "FLIPPED KEEP->MERGE (resolves voided-rationale major): with the runtime's unconditional startup SIGPIPE=IGN invariant (see os.signal_term_flag), plain write(2) on a socket returns EPIPE-as-error on both platforms \u2014 exactly the io write row's contract, so the audited non-merge reason ('a merged row could not hide the SIGPIPE divergence') is false in context. Socket handles widen the io write row's errno set (EPIPE/ECONNRESET; SO_SNDTIMEO expiry -> timeout error); partial-write count contract identical; teardown = shutdown(WR)+close.",
+    "platform_note": "The merge depends on SIGPIPE=IGN being a sealed, unconditional runtime-startup invariant, not opt-in \u2014 pinned in the runtime-startup spec; the io write row's battery must exercise socket handles (see open flags)."
+   },
+   {
+    "pocket": "net",
+    "name": "net_sendv (writev gather)",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets: header+body response assembly; par unreachable without it (extra copy or two syscalls interacting with Nagle)",
+    "contract_sketch": "Sole socket-specific emit row after the net_send merge. AMENDED: plain writev on both platforms under the startup SIGPIPE=IGN invariant (MSG_NOSIGNAL branch deleted); gather-send with partial-write contract (total bytes consumed across iovecs); errno channel identical to the merged write row. readv counterpart stays out; trigger = a codec/server scenario showing a measured receive-path copy >5% of request cost.",
+    "platform_note": "Low. IOV_MAX 1024 on both in practice."
+   },
+   {
+    "pocket": "net",
+    "name": "net_shutdown",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets: half-close for protocol EOF; the blocking-world stream-cancel primitive \u2014 shutdown(RD) from a sibling releases a thread parked in blocking read",
+    "contract_sketch": "AMENDED typing made explicit: shutdown(how in {RD,WR,RDWR}) on shared<tcp_stream> ONLY \u2014 not typed on listeners (listener drain is the timed-accept contract instead); releases blocked readers/writers with EOF/EPIPE; ENOTCONN after peer-close defined as success; does not free the fd \u2014 teardown remains close.",
+    "platform_note": "macOS wakes racing readers with 0/EOF where Linux may surface ENOTCONN \u2014 contract normalizes both to EOF."
+   },
+   {
+    "pocket": "net",
+    "name": "net_close",
+    "verdict": "MERGE",
+    "scenario_consumer": "all socket consumers",
+    "contract_sketch": "Merged into the kept io close/handle-drop row: linear-handle consumption, close(2) once, EINTR-on-close policy inherited (fd dead either way); SO_LINGER deliberately unexposed. Split out only if a kept protocol scenario's correctness requires drained close.",
+    "platform_note": "Low; EINTR-on-close divergence already owned by the io close row."
+   },
+   {
+    "pocket": "net",
+    "name": "sockopt_set (closed enum: TCP_NODELAY, SO_REUSEADDR, SO_RCVBUF, SO_SNDBUF, SO_RCVTIMEO, SO_SNDTIMEO)",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets: NODELAY for latency par; REUSEADDR for restart; buffer sizes for throughput par; RCV/SND timeouts load-bearing for thread-per-conn deadlines; AMENDED: listener SO_RCVTIMEO is the graceful-drain mechanism",
+    "contract_sketch": "Typed setter per enum member (no generic setsockopt, no getsockopt in v1); AMENDED typing: SO_RCVTIMEO is additionally typed on tcp_listener, where it bounds accept (timeout error value) \u2014 the drain path for signal_term_flag shutdown; kernel-clamped values accepted silently per option contract; excluded by name: SO_REUSEPORT, SO_KEEPALIVE, SO_LINGER, TCP_CORK/NOPUSH (each with its audited trigger).",
+    "platform_note": "MATERIAL on buffers: Linux doubles and clamps SO_RCVBUF/SNDBUF to rmem_max/wmem_max, Darwin does not \u2014 contract says 'hint, kernel-clamped', never 'exact'. Darwin accept+SO_RCVTIMEO is a mandatory battery item (open flag)."
+   },
+   {
+    "pocket": "net",
+    "name": "readiness_wait (kqueue/epoll)",
+    "verdict": "DEFER",
+    "scenario_consumer": "readiness/completion multiplexing \u2014 already the deferred evring row's scenario; v1 servers are thread-per-connection",
+    "contract_sketch": "If reinstated: register fd set, blocking wait -> ready subset, level-triggered only; deregister-on-close defined against the close row. Trigger AMENDED with a third clause covering connect deadlines (see deferred_with_triggers).",
+    "platform_note": "HIGH divergence (kqueue vs epoll registration, edge/level defaults, closed-fd error reporting) \u2014 a portable sealed contract is real design work paid twice if evring later subsumes it; on firing, re-evaluate un-deferring evring first."
+   },
+   {
+    "pocket": "net",
+    "name": "dns_resolve (getaddrinfo)",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE at v1 \u2014 request-path scenarios connect to config-provided numeric endpoints",
+    "contract_sketch": "Deferred with a 'resolve via OS' card: v1 takes numeric ip:port (address parsing is pure checked code); getaddrinfo drags NSS/dlopen/mDNSResponder into trusted surface and blocks unboundedly \u2014 worst battery cost in the unit.",
+    "platform_note": "HIGH: macOS resolves via mDNSResponder, Linux via nsswitch/resolv.conf \u2014 same call, materially different behavior between dev and deploy."
+   },
+   {
+    "pocket": "net",
+    "name": "tls",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE \u2014 no v1 demand-map scenario names TLS; fails D16's first prong too",
+    "contract_sketch": "TLS is pure computation over the kept stream rows \u2014 ordinary users CAN implement it from primitives + checked libraries, so it is a future checked library, never a sealed row. Reopen only as a checked library when a scenario names it; 'library crypto at par' is a CPU-intrinsics question filed against a future intrinsics unit.",
+    "platform_note": "n/a (no row)."
+   },
+   {
+    "pocket": "net",
+    "name": "udp_bind",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets, UDP leg: engines' realtime channels, telemetry, DNS-shaped services \u2014 to be pinned to numbered 51-map scenarios before ratification (open flag); also consumed by the deferred stub-resolver path",
+    "contract_sketch": "socket(DGRAM)+bind merged: (ip,port; 0 = ephemeral) -> linear udp_socket or errno error; optional connect(peer) variant for fixed-peer filtering + ECONNREFUSED delivery; teardown = close via handle drop.",
+    "platform_note": "Low; ICMP-error surfacing on connected UDP reliable on Linux, best-effort on Darwin \u2014 contract marks it advisory."
+   },
+   {
+    "pocket": "net",
+    "name": "udp_sendto",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets, UDP leg (as udp_bind; scenario pinning pending)",
+    "contract_sketch": "Blocking sendto(buf, addr): whole datagram sent or errno error (EMSGSIZE oversize, EAGAIN on SO_SNDTIMEO) \u2014 never partial, by datagram semantics; no SIGPIPE channel; teardown shared with udp_socket.",
+    "platform_note": "Low; max datagram size and default sndbuf differ \u2014 contract exposes EMSGSIZE rather than a constant."
+   },
+   {
+    "pocket": "net",
+    "name": "udp_recvfrom",
+    "verdict": "KEEP",
+    "scenario_consumer": "network sockets, UDP leg (as udp_bind; scenario pinning pending)",
+    "contract_sketch": "Blocking recvfrom(buf) -> (n, peer_addr, truncated: bool) or errno error (EAGAIN on SO_RCVTIMEO); oversize datagram delivered truncated with flag set, remainder discarded \u2014 the flag is the portable contract; true-length-on-truncation reinstates only for a named consumer accepting a Linux-only note.",
+    "platform_note": "MATERIAL, hence bool-only: Linux MSG_TRUNC reports true length, Darwin only flags \u2014 row exposes the intersection so dev and deploy behave identically."
+   },
+   {
+    "pocket": "net",
+    "name": "sendfile-class zero-copy transmit",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE named yet \u2014 static-file server is the plausible consumer; v1 pays one extra copy via map_file_ro/read + write",
+    "contract_sketch": "NEW ROW (resolves unpriced-absence minor): would be transmit(io_file_handle range -> socket) with partial-progress contract; not built now \u2014 the extra copy is priced as acceptable at v1 scale.",
+    "platform_note": "Darwin sendfile differs from Linux in signature and semantics \u2014 Linux-normative if reinstated; another reason to defer."
+   },
+   {
+    "pocket": "filemap",
+    "name": "filemap.map_file_ro",
+    "verdict": "KEEP",
+    "scenario_consumer": "read-a-big-index (database immutable index/SSTable; compiler large object/archive inputs)",
+    "contract_sketch": "map(io_file_handle, offset, len) -> RoMap owning a fixed-length read-only byte view; ONLY the length is a trusted fact (fixed at map time); AMENDED: len now has a source \u2014 the new os.fstat row (fstat-then-map is the stated idiom), closing the audit's unsatisfiable-parameter hole; mapped bytes never margined, every content-derived check non-elidable; error result at map time; touching an externally truncated page = SIGBUS -> process abort; restricted to non-O_DIRECT handles; teardown = munmap on drop, infallible. AMENDED consumer-scope note: request-addressable served files must use read-copy \u2014 external truncation is a remotely-triggerable whole-process abort; maps are for process-owned immutable files only.",
+    "platform_note": "16KB pages on macOS arm64 vs 4KB on Linux x86-64 \u2014 rounding page-size-parametric, never hardcoded; SIGBUS-on-truncation aborts on both."
+   },
+   {
+    "pocket": "filemap",
+    "name": "filemap.unmap",
+    "verdict": "MERGE",
+    "scenario_consumer": "same as map_file_ro",
+    "contract_sketch": "Not a separate row: unmap IS RoMap teardown (drop = munmap, infallible); no early-unmap-while-borrowed possible because the byte view borrows the RoMap.",
+    "platform_note": "None beyond the map row."
+   },
+   {
+    "pocket": "filemap",
+    "name": "filemap.madvise_subset",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE (pure perf hint; read-a-big-index functionally complete without it)",
+    "contract_sketch": "Would be: advise(RoMap, range, {sequential|willneed|dontneed-cold}), hint-only, infallible, no teardown \u2014 safe to defer because it cannot change observable behavior.",
+    "platform_note": "High divergence: macOS lacks/reinterprets several Linux advices (MADV_FREE vs MADV_DONTNEED); hints tuned on Apple Silicon may be no-ops or pessimizations on Linux x86-64."
+   },
+   {
+    "pocket": "filemap",
+    "name": "filemap.map_file_private_rw",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE named in v1 (nearest: linker patch-in-place; pread-into-owned-buffer is the par baseline)",
+    "contract_sketch": "Would be: COW private writable mapping; inherits the full non-elidable-content discipline plus a mixed clean/dirty-page model \u2014 highest-complexity mmap row for zero named demand.",
+    "platform_note": "COW fault cost and overcommit behavior differ (Linux heuristics vs macOS compressor); 16K vs 4K pages change dirty amplification 4x."
+   },
+   {
+    "pocket": "filemap",
+    "name": "filemap.map_file_shared_rw",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE",
+    "contract_sketch": "Ratified v1 non-goal restated: shared writable mappings make every store a cross-process visible effect with no failure channel and unfixable fact-forgery/ordering semantics; WAL durability uses pwrite+fdatasync rows.",
+    "platform_note": "Would be severe (msync, unified buffer cache differences); moot when cut."
+   },
+   {
+    "pocket": "os",
+    "name": "os.proc_spawn",
+    "verdict": "KEEP",
+    "scenario_consumer": "compiler driver (assembler/linker/sub-tools); build-tool scenarios in the 51-map",
+    "contract_sketch": "spawn(program_path, argv, env = inherit|explicit_list, stdio each of {inherit|null|pipe|io_file_handle}) -> Child via posix_spawn-class primitive; NO pre-exec hook, no fork exposure; AMENDED (resolves SIGPIPE-inheritance major): the child's signal state is reset \u2014 POSIX_SPAWN_SETSIGDEF restores default dispositions for all catchable signals (including the runtime's SIGPIPE=IGN) and POSIX_SPAWN_SETSIGMASK empties the mask, so spawned pipeline tools die on SIGPIPE as Unix expects; errors ENOENT/EACCES/EAGAIN as error result; teardown: Child must be consumed by proc_wait (dropping un-waited Child is a checker error).",
+    "platform_note": "CORRECTED (stale-claim minor): glibc >=2.24 posix_spawn uses clone(CLONE_VM|CLONE_VFORK) with no page-table copy \u2014 spawn latency is comparable on both platforms; the old ~10x large-RSS claim is wrong and must not inform benchmarks. Wired surface stays argv/env/stdio+sigdefault, which is portable."
+   },
+   {
+    "pocket": "os",
+    "name": "os.proc_wait",
+    "verdict": "KEEP",
+    "scenario_consumer": "compiler driver (exit codes gate pipeline steps); build-tool interrupt path (grace polling)",
+    "contract_sketch": "wait(Child) -> {exit_code(u8)} | {terminated_by_signal(n)}, blocking, EINTR retried; consumes the linear Child (exactly one reap). AMENDED (resolves child-teardown major, same row/battery): adds try_wait(Child) -> Either<Child, status> via WNOHANG \u2014 returns the handle back if still running, consumes it if exited, preserving linearity; kill(TERM) + try_wait/sleep grace loop + kill(KILL) is the specified deadline pattern.",
+    "platform_note": "Low; wait-status encoding identical in practice; row reports raw signal number plus a portable enum for TERM/KILL/SEGV."
+   },
+   {
+    "pocket": "os",
+    "name": "os.proc_kill",
+    "verdict": "KEEP",
+    "scenario_consumer": "build tool Ctrl-C propagation and hung-child recovery (NEW ROW resolving the no-kill major): on termination_requested(), parent kills children with TERM, graces via try_wait, escalates to KILL, then waits \u2014 matching make's interrupt behavior",
+    "contract_sketch": "kill(&Child, sig in {TERM, KILL}) -> ok | err(EPERM); borrows, does not consume or reap \u2014 the Child is still owed its wait, so no zombie and no double-reap; ESRCH unreachable while the linear handle is live (child may be a zombie but the pid is not recycled before reap).",
+    "platform_note": "kill(2) identical on both platforms; ~30 trusted LOC."
+   },
+   {
+    "pocket": "os",
+    "name": "os.time",
+    "verdict": "KEEP",
+    "scenario_consumer": "servers (timeouts/deadlines), databases (WAL timestamps), engines (frame pacing) \u2014 broadest consumer set in the map",
+    "contract_sketch": "monotonic_ns() -> u64 never-decreasing since arbitrary epoch, and wall_ns() -> unix epoch ns; both infallible, vDSO/commpage cost; monotonic PINNED to exclude-suspend semantics on both OSes.",
+    "platform_note": "MATERIAL: Linux CLOCK_MONOTONIC excludes suspend, macOS includes it \u2014 implement via CLOCK_UPTIME_RAW on macOS to honor the pin; flagged in the acceptance battery."
+   },
+   {
+    "pocket": "os",
+    "name": "os.sleep",
+    "verdict": "KEEP",
+    "scenario_consumer": "servers (retry/backoff), benchmark harnesses, proc_wait grace loops; the single sleep spelling after the threads-par duplicate merged here",
+    "contract_sketch": "sleep(duration) blocks at-least the requested monotonic duration (may oversleep, never wakes early); EINTR retried internally so infallible; no teardown. RULING (resolves cross-unit minor): stays sealed even if the condvar surface ships timed wait \u2014 timed wait does not cover the no-lock case; one row, one battery.",
+    "platform_note": "macOS timer coalescing/App Nap oversleeps more aggressively than Linux; the at-least contract absorbs it \u2014 perf-doc note, not semantics."
+   },
+   {
+    "pocket": "os",
+    "name": "os.env_get",
+    "verdict": "KEEP",
+    "scenario_consumer": "servers/databases reading deployment config (PORT, data dir) \u2014 standard container input channel",
+    "contract_sketch": "env_get(name) -> Option<owned bytes> (not guaranteed UTF-8); race-free BY CONSTRUCTION because no setenv row exists anywhere (environ immutable post-start); no teardown.",
+    "platform_note": "None material."
+   },
+   {
+    "pocket": "os",
+    "name": "os.env_set",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE (child env set explicitly through proc_spawn's env list)",
+    "contract_sketch": "Cut precisely to keep env_get race-free; setenv is process-global mutable state with documented races in every libc.",
+    "platform_note": "Moot."
+   },
+   {
+    "pocket": "os",
+    "name": "os.args",
+    "verdict": "KEEP",
+    "scenario_consumer": "compilers and every CLI-shaped scenario in the map",
+    "contract_sketch": "args() -> immutable snapshot slice of argv as byte strings (argv[0] included, no UTF-8 guarantee); infallible, captured at process start.",
+    "platform_note": "None."
+   },
+   {
+    "pocket": "os",
+    "name": "os.random_csprng",
+    "verdict": "KEEP",
+    "scenario_consumer": "hash-map seed (hashbrown-class DoS resistance), servers (tokens), databases (WAL/journal salts)",
+    "contract_sketch": "fill_random(&uniq buf) fills the whole buffer with getentropy-class CSPRNG bytes, looping over the 256-byte cap; unrecoverable entropy failure -> abort (fail-closed, no weak fallback); NOT a fact channel.",
+    "platform_note": "getentropy on both (macOS >=10.12, glibc >=2.25); 256-byte cap identical; low."
+   },
+   {
+    "pocket": "os",
+    "name": "os.exit",
+    "verdict": "KEEP",
+    "scenario_consumer": "compilers (exit codes are the driver protocol); every CLI scenario",
+    "contract_sketch": "exit(code: u8) -> ! terminates without unwinding, drop glue, or ANY user-space flushing \u2014 AMENDED (resolves flush-contradiction major): the 'flushes sealed stdio sinks' clause is DELETED because the sealed stdio layer is unbuffered (nothing to flush); checked-library buffered writers MUST be explicitly flushed before exit, and the library provides an exit-with-flush wrapper as the documented pattern for compilers using buffered stdout.",
+    "platform_note": "None."
+   },
+   {
+    "pocket": "os",
+    "name": "os.abort",
+    "verdict": "MERGE",
+    "scenario_consumer": "already consumed by trap semantics (trap = process abort, ratified)",
+    "contract_sketch": "Not a new row: user-callable abort is the already-decided trap mechanism spelled once; -> !, no failure channel, no cleanup.",
+    "platform_note": "None."
+   },
+   {
+    "pocket": "os",
+    "name": "os.signal_term_flag",
+    "verdict": "KEEP",
+    "scenario_consumer": "server graceful shutdown (drain via timed accept + per-stream RCVTIMEO, fdatasync WAL, exit); sigaction unreachable from primitives",
+    "contract_sketch": "termination_requested() -> bool polling a sticky flag set by a runtime-installed SIGTERM/SIGINT handler that only stores to that flag (zero user code in signal context); AMENDED (pins the net-merge dependency): SIGPIPE=IGN and the sticky-flag handler are installed UNCONDITIONALLY at runtime startup as a sealed invariant \u2014 independent of whether this API is ever called \u2014 because the merged io write row's socket EPIPE contract depends on it; proc_spawn resets dispositions in children so the invariant never leaks across exec.",
+    "platform_note": "sigaction semantics equivalent for this shape on both OSes; low."
+   },
+   {
+    "pocket": "os",
+    "name": "os.signals_general",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE (no v1 scenario needs dispositions beyond TERM/INT-as-flag and PIPE-as-ignore)",
+    "contract_sketch": "Would be additional sticky flags only, never user handlers (arbitrary handlers reintroduce async-signal-safety obligations contradicting the sealed-trust budget).",
+    "platform_note": "Signal numbering/realtime-signal availability differ (SIGRTMIN absent on macOS) \u2014 another reason to defer."
+   },
+   {
+    "pocket": "os",
+    "name": "os.cwd_get",
+    "verdict": "DEFER",
+    "scenario_consumer": "NONE (kernel resolves relative paths against cwd for free; no v1 scenario materializes the cwd string)",
+    "contract_sketch": "Would be: cwd() -> owned path bytes, error on unlinked-cwd edges; read-only if reinstated (chdir stays cut), so race-free.",
+    "platform_note": "Low (PATH_MAX handling differs slightly)."
+   },
+   {
+    "pocket": "os",
+    "name": "os.chdir",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE",
+    "contract_sketch": "Process-global mutable state silently changing every concurrent relative open \u2014 the interference class the language excludes; pass absolute or deliberately-relative paths instead; a future openat/dir-handle row is the admissible replacement if per-directory scoping is demanded.",
+    "platform_note": "Moot."
+   },
+   {
+    "pocket": "os",
+    "name": "os.path_manipulation",
+    "verdict": "CUT",
+    "scenario_consumer": "NONE as a sealed row (compilers consume it from a checked library)",
+    "contract_sketch": "join/basename/extension are pure byte-string computation \u2014 implementable at par from primitives, so D16's first prong excludes them; checked library, zero trust budget.",
+    "platform_note": "None (both targets POSIX; no drive letters)."
+   },
+   {
+    "pocket": "os",
+    "name": "os.stdio_handles",
+    "verdict": "MERGE",
+    "scenario_consumer": "compilers (diagnostics to stderr), every CLI/server scenario (logs)",
+    "contract_sketch": "stdout/stderr/stdin are the three pre-opened io-file handles (fd 0/1/2) exposed by accessors, reusing io-file read/write rows verbatim (short-write/EPIPE-as-error, EINTR retried); UNBUFFERED at the sealed layer \u2014 AMENDED for consistency with os.exit: nothing flushes at process end; line/block buffering is a checked library whose flush is explicit (exit-with-flush wrapper is the documented pattern).",
+    "platform_note": "None material; pipe vs tty vs file identical across targets at this layer."
+   },
+   {
+    "pocket": "os",
+    "name": "fs.fstat (handle-based stat)",
+    "verdict": "KEEP",
+    "scenario_consumer": "NEW ROW (resolves the FATAL): read-a-big-index \u2014 the source of map_file_ro's len; static-file server Content-Length; build tool post-open verification; TOCTOU-free spelling",
+    "contract_sketch": "fstat(&io_file_handle) -> {kind: {file|dir|other}, size: u64, mtime_ns: u64} | err(EIO); EBADF unreachable by handle linearity; no teardown; size/mtime are ordinary values, not optimizer facts (the file can change; only map_file_ro's map-time len is ever trusted).",
+    "platform_note": "st_mtim vs st_mtimespec naming sealed; mtime granularity is filesystem-dependent (APFS/ext4 ns, older fs coarser) \u2014 contract exposes ns field with a granularity caveat, no equality-across-filesystems claim."
+   },
+   {
+    "pocket": "os",
+    "name": "fs.stat_path",
+    "verdict": "KEEP",
+    "scenario_consumer": "NEW ROW (resolves the FATAL): build tool mtime-based staleness at par with make/ninja (one syscall per path \u2014 open+fstat+close would triple the metadata-scan syscall count); recursive grep entry classification and symlink-loop avoidance",
+    "contract_sketch": "stat(path, follow: bool) -> {kind: {file|dir|symlink|other}, size, mtime_ns} | err(ENOENT/EACCES/ELOOP); follow=false is lstat (symlink itself); inherently TOCTOU-racy by nature \u2014 contract states results are advisory snapshots, and correctness-critical reads must open-then-fstat.",
+    "platform_note": "Same struct divergences as fstat, sealed; ELOOP limits differ slightly \u2014 contract exposes the error, not the limit."
+   },
+   {
+    "pocket": "os",
+    "name": "fs.readdir",
+    "verdict": "KEEP",
+    "scenario_consumer": "NEW ROW (resolves the FATAL): recursive parallel grep tree walk; build tool source globbing",
+    "contract_sketch": "opendir(path) -> DirStream | err; next(&uniq DirStream) -> Option<{name: owned bytes, kind_hint: {file|dir|symlink|unknown}}>; '.' and '..' excluded; NO ordering guarantee; entries under concurrent modification may be missed or duplicated (POSIX reality, stated); kind_hint is advisory (d_type may be unknown) \u2014 confirm via stat_path; teardown = closedir on drop, infallible.",
+    "platform_note": "getdents64 vs getdirentries64 sealed; d_type population differs by filesystem on both OSes \u2014 hence the unknown fallback in the contract."
+   },
+   {
+    "pocket": "os",
+    "name": "fs.mkdir",
+    "verdict": "KEEP",
+    "scenario_consumer": "NEW ROW (resolves the FATAL): build tool output-directory creation",
+    "contract_sketch": "mkdir(path) -> ok | err(EEXIST/ENOENT/EACCES); mode 0o777 & ~umask; single level only \u2014 mkdir-p is a checked-library loop over this row (EEXIST surfaced so the loop is race-tolerant); no teardown.",
+    "platform_note": "None material; identical on both targets."
+   },
+   {
+    "pocket": "os",
+    "name": "fs.remove (unlink + rmdir-empty, typed kind)",
+    "verdict": "KEEP",
+    "scenario_consumer": "NEW ROW (resolves the unlink MAJOR): KV-store compaction reclaiming dead SSTable/WAL-segment files \u2014 a correctness requirement (disk usage otherwise grows without bound); build tool clean step",
+    "contract_sketch": "remove(path, kind: {file, empty_dir}) -> ok | err(ENOENT/EACCES/ENOTEMPTY/kind-mismatch), mapping to unlink/rmdir under one contract and one battery; POSIX unlink-while-open keeps data reachable until last close on both platforms (compaction can unlink files still mapped/read by in-flight queries); recursive tree removal is a checked-library walk over readdir+remove.",
+    "platform_note": "Low; unlink-while-open semantics POSIX-conformant on both; errno for kind-mismatch differs (EISDIR/EPERM) \u2014 normalized by the row."
+   },
+   {
+    "pocket": "os",
+    "name": "io.ftruncate",
+    "verdict": "KEEP",
+    "scenario_consumer": "NEW ROW (resolves the ftruncate MAJOR): WAL segment recycling and KV compaction space reclaim; formally extends the pre-decided io-file list ('plus what wal needs') and must be verified before wal ratification",
+    "contract_sketch": "ftruncate(&write-opened io_file_handle, len) -> ok | err(EINVAL/EIO/EFBIG); shrink discards beyond len, extend reads back as logical zeros; no physical-allocation claim (sparseness fs-dependent); durability of the size change still requires the kept fdatasync row; no teardown.",
+    "platform_note": "Both support shrink and extend; APFS vs ext4 sparse/preallocation behavior differs \u2014 contract is logical-content-only, so no divergence surfaces."
+   }
+  ],
+  "row_counts_per_pocket": {
+   "threads-par": {
+    "KEEP": 7,
+    "MERGE": 2,
+    "CUT": 5,
+    "DEFER": 3,
+    "total": 17
+   },
+   "net": {
+    "KEEP": 9,
+    "MERGE": 4,
+    "CUT": 1,
+    "DEFER": 3,
+    "total": 17
+   },
+   "filemap": {
+    "KEEP": 1,
+    "MERGE": 1,
+    "CUT": 1,
+    "DEFER": 2,
+    "total": 5
+   },
+   "os": {
+    "KEEP": 16,
+    "MERGE": 2,
+    "CUT": 3,
+    "DEFER": 2,
+    "total": 23
+   },
+   "all": {
+    "KEEP": 33,
+    "MERGE": 9,
+    "CUT": 10,
+    "DEFER": 10,
+    "total": 62
+   }
+  },
+  "trusted_loc_delta": "Approximately +300 trusted LOC versus the re-cut estimate (range +250 to +420). Additions: eight previously unpriced syscall-rooted capabilities dominate \u2014 fs.fstat ~40, fs.stat_path ~50, fs.readdir ~120, fs.mkdir ~20, fs.remove ~35, io.ftruncate ~25, os.proc_kill ~30, proc_try_wait extension ~20 (~+340). Removals: net_send merged into the io write row (~-60, MSG_NOSIGNAL branch deleted), net_sendv simplified to plain writev (~-15), duplicate threads-par sleep row deleted (~-15) (~-90). Contract amendments add ~+50: proc_spawn POSIX_SPAWN_SETSIGDEF/SETSIGMASK ~10, listener-typed SO_RCVTIMEO timed accept ~15, for_chunks indexed/zipped out-slot checker surface ~25. The delta is dominated by the fs-namespace seam the FATAL showed was never priced; every added row is a distinct syscall unreachable from primitives with a named 51-map consumer, so each passes D16's first prong by construction.",
+  "deferred_with_triggers": [
+   "threads-par / worker-pool pinning-affinity-priorities: fires when a named engine or server scenario measures >=5% throughput or p99-latency improvement from pinning on the Linux x86-64 deployment target, with the benchmark preregistered before the API is designed.",
+   "threads-par / thread naming: fires at the first debugging session against the Linux deployment target where anonymous threads materially slow diagnosis; reinstatement cost ~20 trusted LOC.",
+   "threads-par / blocking-call integration (par-body IO hatch): fires when the build-system fork-join scenario shows >=10% end-to-end throughput loss or structural impossibility restructuring IO onto dedicated scoped IO threads vs an in-body hatch, measured on the deployment target.",
+   "net / readiness_wait (kqueue-epoll), trigger AMENDED with a third clause: fires when (a) a named demand-map scenario requires >10,000 concurrent mostly-idle connections per process, or (b) thread-per-conn at a kept scenario's concurrency measures >1.3x worse p99 latency or >2x RSS than an epoll reference on Linux x86-64, or (c) NEW: a kept client scenario requires a connect deadline materially shorter than the OS SYN timeout (~75s macOS / ~2min Linux) \u2014 the tcp_connect deadline gap explicitly rides this clause. On firing, first re-evaluate un-deferring evring (completion model, one surface); add readiness only if the evring trigger has independently not fired.",
+   "net / dns_resolve: fires when a kept scenario must resolve names at runtime \u2014 an outbound HTTP/RPC client scenario is admitted to the demand map, or a kept DB-client scenario's endpoints demonstrably cannot be fixed as numeric addresses in config; reinstate as sealed blocking getaddrinfo with an explicit no-deadline caveat, or as a checked-library stub resolver over the kept UDP rows if par allows.",
+   "net / sendfile-class zero-copy transmit (NEW row): fires when a preregistered static-file-server benchmark on Linux x86-64 shows >=10% throughput loss or >=15% CPU cost from the map_file_ro/read+write extra copy vs a sendfile reference at the scenario's file-size mix.",
+   "filemap / madvise_subset: fires when the pinned read-a-big-index benchmark on Linux x86-64 shows >=10% wall-time or >=20% major-fault improvement from MADV_SEQUENTIAL/WILLNEED over default readahead; reinstate only the advice values that cleared the bar.",
+   "filemap / map_file_private_rw: fires when a named scenario (e.g. linker relocating a mapped input) shows the pread-copy baseline >=1.3x slower end-to-end or >=2x peak RSS on a pinned Linux x86-64 workload.",
+   "os / signals_general: fires at the first named scenario requiring a signal outside {TERM, INT, PIPE} (e.g. SIGHUP config reload) where a polled flag or an external control channel is shown inadequate; reinstate as additional sticky flags only, never user handlers.",
+   "os / cwd_get: fires at the first scenario that must emit absolute paths into artifacts (compiler dep-files/diagnostics) where requiring absolute-path CLI inputs is demonstrated to break an existing consumer's invocation protocol."
+  ],
+  "open_flags": [
+   "Darwin accept+SO_RCVTIMEO is now load-bearing (it is the specified graceful-drain mechanism): the acceptance battery MUST verify on the macOS dev machine that accept returns the timeout error when the listener's SO_RCVTIMEO fires; documented fallback if it fails is the loopback self-connect wake pattern in the server card (zero new rows) \u2014 until verified, server drain remains unproven on the dev platform.",
+   "F_FULLFSYNC cross-reference (outside these four pockets): the pre-decided io-file fsync/fdatasync rows must pin the Darwin F_FULLFSYNC mapping as the durable spelling BEFORE any WAL-durability test on the dev machine counts as evidence \u2014 otherwise the battery can go falsely green on exactly the platform where semantics differ most.",
+   "The net_send->io-write merge makes the io write row's contract depend on the runtime's unconditional startup SIGPIPE=IGN invariant: that invariant must be stated in the runtime-startup spec (not only in the signal_term_flag row), and the io write row's battery must exercise socket handles (EPIPE, ECONNRESET, SO_SNDTIMEO timeout).",
+   "for_chunks' new indexed/zipped disjoint out-slot shape is new checker surface that carries borrow facts across threads \u2014 it needs its own hostile fact-channel review before the par.reduce library form lands (per the standing rule: fact channels get adversarial review before shipping).",
+   "fs.fstat and io.ftruncate formally extend the pre-decided io-file list ('plus what wal needs'): log the explicit enumeration in decision-gates before wal ratification so that phrase is no longer load-bearing; the whole fs-namespace unit (fstat, stat_path, readdir, mkdir, remove, ftruncate) needs its own five-part acceptance battery pass and a decision-gates line as a new unit audit.",
+   "UDP rows (udp_bind/sendto/recvfrom) keep is conditionally sound but their consumers must be pinned to numbered 51-map scenarios before ratification \u2014 currently the loosest D16 second-prong naming in the net unit.",
+   "Owner ratification needed on the sleep ruling: os.sleep remains sealed even if the condvar surface ships timed wait (the no-lock case) \u2014 this overrules the threads-par audit's demote-to-sugar note and settles the one-spelling tension; confirm whether the ratified condvar surface includes timed wait at all.",
+   "Re-run the five-programs composition walk against the AMENDED contract text before ratification (build tool and recursive grep should now pass outright; KV compaction reclaims space via fs.remove+io.ftruncate; the web server metadata path is closed by fs.fstat) \u2014 the attack demonstrated that unit-isolated audits miss composition seams, so the walk is the ratification gate, not the row list alone.",
+   "Recursive tree deletion and race-robust directory-scoped IO remain checked-library loops over readdir+remove; if a scenario ever needs TOCTOU-robust tree operations, the admissible future shape is an openat/dir-handle unit (also the designated chdir replacement) \u2014 no trigger fires today."
+  ]
+ }
+}
