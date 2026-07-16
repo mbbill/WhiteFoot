@@ -97,6 +97,38 @@ fn bench_hb(n: usize, runs: usize) {
     );
 }
 
+// Owning-value clone: HashMap<u64, V> where V deep-clones (1 alloc + payload
+// memcpy per entry). `mk` builds each stored value; the clone under test
+// deep-clones all of them.
+fn bench_owning<V: Clone>(label: &str, n: usize, runs: usize, mk: impl Fn() -> V) {
+    let mut m: HashMap<u64, V> = HashMap::with_capacity(n);
+    let mut r = SplitMix64(0x1234_5678_9ABC_DEF0);
+    while m.len() < n {
+        let k = r.next();
+        m.insert(k, mk());
+    }
+    for _ in 0..3 {
+        let c = m.clone();
+        black_box(c.len());
+        drop(black_box(c));
+    }
+    let mut t_ns = Vec::with_capacity(runs);
+    for _ in 0..runs {
+        let start = Instant::now();
+        let c = black_box(m.clone());
+        let el = start.elapsed(); // time ONLY the deep clone
+        black_box(c.len());
+        drop(c); // free the N allocations AFTER timing
+        t_ns.push(el.as_nanos() as f64);
+    }
+    let med = median(t_ns.clone());
+    let min = t_ns.iter().cloned().fold(f64::INFINITY, f64::min);
+    println!(
+        "{:<26} n={:>9}  median = {:>13.0} ns  =>  {:>7.1} ns/entry   (min {:>7.1} ns/entry)  [{} runs]",
+        label, n, med, med / n as f64, min / n as f64, runs
+    );
+}
+
 fn main() {
     println!("== sealed-table clone constant ==");
     println!("platform: Apple M4, macOS aarch64 (indicative; deploy target Linux x86-64)");
@@ -109,4 +141,20 @@ fn main() {
     bench_hb(100_000, 15);
     bench_hb(1_000_000, 12);
     bench_hb(10_000_000, 10);
+
+    println!("\n== owning-value tables (deep clone: 1 alloc + payload memcpy per entry) ==");
+    let s24: String = "a".repeat(24);
+    let s200: String = "a".repeat(200);
+    let v4k: Vec<u8> = vec![0u8; 4096];
+    println!("-- HashMap<u64, String> 24-byte values --");
+    bench_owning("String/24B", 100_000, 12, || s24.clone());
+    bench_owning("String/24B", 1_000_000, 10, || s24.clone());
+    bench_owning("String/24B", 10_000_000, 10, || s24.clone());
+    println!("-- HashMap<u64, String> 200-byte values --");
+    bench_owning("String/200B", 100_000, 12, || s200.clone());
+    bench_owning("String/200B", 1_000_000, 10, || s200.clone());
+    bench_owning("String/200B", 10_000_000, 10, || s200.clone());
+    println!("-- HashMap<u64, Vec<u8>> 4096-byte values (10M omitted: ~40GB) --");
+    bench_owning("Vec<u8>/4KB", 100_000, 12, || v4k.clone());
+    bench_owning("Vec<u8>/4KB", 1_000_000, 10, || v4k.clone());
 }

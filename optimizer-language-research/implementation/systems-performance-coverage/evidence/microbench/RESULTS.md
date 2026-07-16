@@ -23,3 +23,22 @@ works (read returns EAGAIN at 1.001s) — per-connection deadlines are fine.
 Consequence: the self-connect-wakeup / kqueue-drain fallback is the required
 Darwin path and what the acceptance battery must exercise; Linux behavior
 (claimed to honor it) must be verified on the deployment target separately.
+
+## A2. Owning-value table clone constants (same platform/method)
+
+ns/entry median: String 24B — 9.3 (100k), 25.6 (1M), 31.9 (10M);
+String 200B — 36.2 (100k), 50.9 (1M), 248.7 (10M);
+Vec<u8> 4KB — 363.5 (100k), 3062.9 (1M). Decomposition: POD bulk copy
+(~1-2 ns) + exactly one malloc per entry + payload memcpy + page faults at
+scale. The old ~50-100 ns/entry assumption is right only for ~200B values
+near 1M entries; it is 25-100x too high for POD and 3-30x too low for
+KB-scale values.
+
+Interpretation for the COW-republish card (correcting the measuring agent's
+final framing): the clone cost IS the publish cost. POD/handle tables:
+publish ~1-2 ms per 1M entries — COW viable at modest update rates.
+KB-value tables: publish ~3 s per 1M entries — COW republish is non-viable
+except at very low update rates; that regime belongs to the sharded-mutex
+card or the deferred in-place concurrent table. The card's falsifier must
+select its constant by the target scenario's value type; no single threshold
+is honest.
