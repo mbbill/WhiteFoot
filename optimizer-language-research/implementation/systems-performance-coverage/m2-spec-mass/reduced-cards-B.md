@@ -1,4 +1,4 @@
-v0 surface statements are exactly: `fn`, `let`, `match`, `region`, `set`, `check`, `doc`, `return`, `move`. `loop`/`break`, type aliases, line comments, block-expression `match`, and backslash continuations are not v0; a program using them is rejected. [M5-FIX-6]
+v0 surface statements are exactly: `fn`, `let`, `match`, `region`, `set`, `check`, `doc`, `return`, `move` (plus `give` in a `let`-initializer `match` and `try` for `Result` propagation). Iteration is spelled per C3 (a protocol op with a conformer, or self-recursion). `loop`/`break` exist in the kernel grammar (GRAM-4) but are held out of the blessed catalog surface (R3-provisional); type aliases, line comments, block-expression `match`, and backslash continuations are not v0 at all, and a program using those is rejected. [M5-FIX-6] [M5R2-FIX-2]
 
 ## C1. Bounded cache with eviction (LRU/CLOCK) — sealed `pool<T>` + `table<K, hdl<T>>` + intrusive handle links
 
@@ -103,6 +103,19 @@ names; (b) v0 has no reborrowing and no uniq-to-shared coercion — a row spelle
 `_uniq` variant, not the shared row; (c) only rows with a dedicated
 result-region parameter issue loans — a single-region row such as
 `tbl_get_uniq` returns its loan at the receiver's region, never a fresh one.
+
+Borrow-minting, worked [M5R2-FIX-3]. A row spelled `&'r` or `&uniq 'r` never
+accepts a bare owned binding (the OWN-1 hard error writers keep hitting): mint
+the `borrow_expr` atom `&'r p` / `&uniq 'r p` at the call site, binding the
+region with an enclosing `region 'r { }` when the value is a local. Borrows are
+atoms (GRAM-9): no `let`, no `move`. `&uniq 'x buf` is the uniq-mode mint,
+`&'x buf` the shared variant; a bound borrow (`let l: &uniq 'x ... = &uniq 'x
+buf;`) is affine and needs `move l`.
+
+```
+fn demo_mint(v: own u32) -> own unit allocates(heap), traps
+  -> teaching corpus: borrow-mint
+```
 
 Failure handling under the single failure principle: absence is a value
 (`Option`), never a failure. Environmental failure here is allocation growth
@@ -256,3 +269,40 @@ allocation, pointer-chase), and the catalog's own former two-spellings FIFO
 state — the
 two-stack card survives only as the fallback subsection above, documented
 amortized-only.
+
+## C3. Iteration — the blessed spellings [M5R2-FIX-2]
+
+Blessed v0 code spells iteration exactly two ways: (1) a protocol op
+(`seq_for_each`/`seq_drain`/`tbl_for_each`/`tbl_retain`/`tbl_drain`) driving a
+conformer, or (2) self-recursion (FN-6). No third blessed spelling. (`loop`/
+`break` exist in kernel GRAM-4 but are held out of the blessed surface pending
+R3 loop-form validation; see M5-FIX-6.) The conformer half — a `conform` binds a
+visitor `fn` to the contract member; the op drives it; cross-element state lives
+in the env (set through a `deref` place). Signatures below; bodies in the corpus:
+
+```
+struct CountEnv { count: u64; }
+fn count_visit['v](env: &uniq 'v CountEnv, item: &'v u32) -> own Bool reads('v), writes('v)
+  -> teaching corpus: iter-count-visit
+conform CountEnv : SeqVisit<u32> { visit = count_visit; }
+fn count_all['r](s: &'r seq<u32, 0>) -> own u64 reads('r)
+  -> teaching corpus: iter-count-all
+```
+
+The conformer's row `reads('v), writes('v)` equals `SeqVisit`'s member row and is
+exactly what the body exhibits ([CAT-5a]/[EFF-2]); `count_all`'s row is just
+`reads('r)` (the `'v` effects are confined to its internal `region 'v { }`). A
+`tbl_retain` predicate is the same shape with a read-only member row:
+
+```
+struct KeepBig { min: u64; }
+fn keep_big['v](env: &uniq 'v KeepBig, key: u64, value: &'v u64) -> own Bool reads('v)
+  -> teaching corpus: iter-keep-big
+conform KeepBig : TblRetain<u64, u64> { keep = keep_big; }
+```
+
+Accumulators and `set`. A `set` target is any place [GRAM-5]: `deref(p).field`,
+`index<T>(...)`, or a bare local IDENT — so `set acc = iadd.wrap<u64>(acc, x);`
+on a copy-typed local is legal. A bare local cannot carry state across
+iterations (no blessed loop); that role is the env field or a recursion
+parameter.
