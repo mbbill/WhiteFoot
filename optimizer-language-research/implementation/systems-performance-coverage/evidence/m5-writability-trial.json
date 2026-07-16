@@ -1,0 +1,340 @@
+{
+ "summary": {
+  "verdict": "FAIL \u2014 first-green 9/20 (45%) is below the preregistered 50% floor, so the FAIL band triggers on green rate alone. The second FAIL condition (systematic wrong choices) is decisively NOT met: par-choice is 9/9 among green and 18/20 across all solutions, so the knob/form design is validated while document-compilability is what failed. The defect profile is dominated by spec-text gaps (missing entry-value accessor, unstated region-binding and effect-row rules, meta-notation leaking into call sites) rather than writer inability, which argues for spec fixes plus a rerun rather than a design pivot \u2014 but per the bands as preregistered, this trial is a FAIL and must be recorded as such, not regraded into the middle band.",
+  "green_rate": "9/20 (45%) first-green; per area: entry 0/4, sweep 1/4, pipeline 1/4, seq 3/4, lru 4/4",
+  "par_rate": "9/9 (100%) par form/knob among green solutions; 18/20 (90%) across all solutions including red (misses: wc-4, sweep-3) \u2014 well above the 80% PASS bar, so par choice is not the failing dimension",
+  "defect_patterns": [
+   "1. Invented ops and extra-catalog constructs (10+ tasks): key_from_slice, cursor_new, iadd<V>, ilt<u64>, ref_uniq, loop/break, '--'/'//' comments, type aliases, block-expression match, '?' placeholder regions. Cause: optables.md S.1/S.2 visibly lacks a scalar arithmetic/comparison set (only ieq, ige, ipopcount, iand, iadd.wrap/isub.wrap appear, and the .wrap pair only inside the C2 card), and cards.md defines the statement grammar only by example, never as a closed list \u2014 writers filled the perceived gaps by invention, exactly what CAT-7 forbids.",
+   "2. Entry-token occupied-path dead end (all 4 entry tasks red, the single largest green-rate hit): S.2 gives entry_occupied -> Bool, entry_fill, entry_remove, and entry_replace (consume-and-swap, new value bound before old readable) but no one-probe way to read or increment the present value; BORROW-OPTION blocks Option-of-borrow and C1 confines loans to the stack. Cause: optables.md S.2 entry rows + OPEN-FLAG BORROW-OPTION \u2014 a genuine catalog gap with no documented sanctioned fallback spelling, so every writer either trapped, no-opped, or invented (three honestly flagged it as a FINDING).",
+   "3. Region/borrow discipline errors (8+ tasks): unbound region names at call sites ('a/'b/'c, 'ops, free 'e), brand 'q used as a lexical region against CQ-2, &uniq operands passed to &'r rows with no coercion, reborrow-through-a-live-loan, fresh result regions minted for rows with a single shared region param (tbl_get_uniq), borrow-typed struct fields. Cause: cards.md C1 states the loan model only through worked examples \u2014 no normative sentence saying where region names may be bound, that v0 has no uniq-to-shared coercion, or that loan-issuing rows are exactly those with a dedicated result-region parameter; CQ-2's brand-vs-region distinction is one terse line.",
+   "4. Effect-row misspelling (6 tasks, fatal in sweep-3 and pipe-1): omitted allocates(heap)/traps/reads('q) from joined callee rows, non-canonical clause order, invented 'consumes' clauses, undeclared regions named in rows, and unresolvable conformer rows. Cause: EFF-1 gives the row grammar but states neither the canonical clause order nor the callee-row-coverage convention as rules (both exist only as card precedent), and OPEN-FLAG EFFECT-JOIN leaves contract-conformer effect rows formally unanswerable under FN-3 exact-match.",
+   "5. Op-table meta-notation leaking into program text (7+ tasks): explicit targ lists respelling receiver-fixed K/V/h/N against the row's actual generic binders (with one K/V order swap), const params (N, IN, M) used as free identifiers, mixed bracket/angle call spellings, and no way to write contract conformance at all (SELF-SPELLING) so seq_drain/tbl_retain sinks never actually conform. Cause: [CAT-1]/OP-1 explicitly disclaims that signature columns are meta-notation but never supplies the normative call-site grammar, and CAT-5 requires conformances the documents give no syntax for."
+  ],
+  "area_ranking": [
+   "entry (0/4 green \u2014 hardest; blocked by the S.2 occupied-path catalog gap; even the best attempt, wc-4, also missed the par knob)",
+   "sweep (1/4 green \u2014 visitor/conformance plumbing: effect-row joins, mode-correct for_each variant, borrow-of-local for CAT-5 sinks; contains the other par miss, sweep-3's seq_new-instead-of-seq_with_cap)",
+   "pipeline (1/4 green \u2014 brand/region confusion and effect-row inventions dominate; all four chose the par endpoint/blocking knobs correctly, so failures are purely spelling)",
+   "seq (3/4 green \u2014 near-passing; the one red, seq-1, is a mode/region-binding failure plus bypassing the CAT-5 visitor protocol)",
+   "lru (4/4 green \u2014 easiest; C1 card's worked choreography evidently transfers, residual defects cosmetic)"
+  ],
+  "spec_fixes": [
+   "optables.md S.2, entry rows: add a normative note beside entry_occupied/entry_replace stating that v0 has no one-probe occupied-value accessor (pending BORROW-OPTION) and prescribing the sanctioned fallback spelling verbatim \u2014 two-probe tbl_contains + tbl_get_uniq (or entry_remove/modify/entry_fill) \u2014 so writers land on a documented working shape instead of trapping, no-opping, or inventing. This one wording fix addresses the entire 0/4 entry area.",
+   "optables.md S.0/CAT-7: state the closed scalar-op set explicitly in one line ('the only scalar rows are ieq, ige, iand, ipopcount, iadd.wrap<u64>, isub.wrap<u64>; there is no ilt/iadd/isub \u2014 spell strict-less-than as the negation/argument-swap of ige') so the visible incompleteness stops inviting invention; if checked add/compare rows already exist in the kernel, list them in the S.1 table instead.",
+   "cards.md C1 (and echoed in EFF-1): add three normative sentences currently only inferable from examples: (a) every region name must be bound by a fn gparam bracket or an enclosing region 'x { } block \u2014 no free or placeholder regions; (b) v0 has no reborrowing and no uniq-to-shared coercion \u2014 a row spelled &'r requires a shared binding, use the _uniq row variant for &uniq receivers; (c) only rows with a dedicated result-region parameter issue loans \u2014 a single-region row like tbl_get_uniq returns its loan at the receiver's region, never a fresh one.",
+   "EFF-1: promote two card conventions to stated rules: the canonical clause order is reads, writes, allocates, traps; and a fn's declared row must cover the union of the rows of every op it calls (including trap strings' presence as 'traps'). Add one interim sentence for conformers: until EFFECT-JOIN resolves, a contract-conforming fn copies the contract member's row verbatim, adding nothing.",
+   "CAT-1/OP-1: add a short normative call-site grammar note with one worked example per family: type args in angle brackets, region args in brackets only at loan-minting sites, op-level generic binders only (receiver-fixed K, V, h, N are never respelled at the call), const capacities come from the receiver type and are never free identifiers. Fix the sweep-2-style K/V swap risk by stating argument order = row declaration order.",
+   "cards.md: add a one-paragraph closed statement list ('v0 surface statements are exactly: fn, let, match, region, set, check, doc, return, move; loop/break, type aliases, line comments, block-expression match, and backslash continuations are not v0') so grammar-by-example stops reading as grammar-by-permission.",
+   "CQ-2 (S.3): append one sentence \u2014 'a brand is not a lexical region and may never instantiate a region parameter; rows generic over a region reject a brand argument' \u2014 and restate the CQ-5 close-direction table (last-rx drop => closed-for-send; last-tx drop + drain => closed-for-recv) as a two-row table, since prose order caused the pipe-1 misread."
+  ],
+  "caveats": [
+   "Grader-not-compiler: every green/red is a document-based adversarial reading, not a checker run; several fatal calls (always-trapping check as a value-path terminator in lru-1, the region-unification rejects in wc-4, the fresh-region tbl_get_uniq reject) hinge on rules the draft never states, and an implemented checker could flip individual gradings in either direction.",
+   "Loan/region rules are still draft: C1's no-reborrow, freeze, and binding discipline exist as example choreography, so pattern 3 partly measures spec incompleteness rather than writer failure; the 45% green rate is a joint property of writer and documents, and the trial cannot separate them without the rerun.",
+   "Small n: 20 tasks, 4 per area \u2014 per-area rates (0/4 vs 4/4) are directionally strong but carry wide intervals; the overall 45% vs the 50% floor is a one-task margin (10/20 would have landed in the middle band).",
+   "The entry area's 0/4 is dominated by one genuine catalog gap (no occupied-path value access) that three of four writers correctly diagnosed as a FINDING; counting honestly-flagged gap workarounds as red is the preregistered bar, but it means the FAIL conflates a fixable table hole with a writability failure.",
+   "Par-choice 9/9 is conditioned on only 9 green solutions; the 18/20 unconditional rate is the more informative number and both exceed the 80% bar, so no conclusion about knob/form design should be drawn from the FAIL verdict.",
+   "Single writer configuration and single grading pass; no inter-grader agreement measured, and some 'cosmetic' vs 'API_MISUSE' severity boundaries (explicit-targ mismatches, effect-row order) were judgment calls applied consistently but not independently validated.",
+   "Per the project's no-tuning rule, the spec fixes above must be treated as pre-registered inputs to a fresh trial with new tasks, not applied and regraded against these same 20 solutions."
+  ]
+ },
+ "per_task": [
+  {
+   "task": "wc-1",
+   "area": "entry",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "key_from_slice is an invented op: no row in S.1/S.2 of optables.md or cards.md copies a borrowed slice<'b,u8> into the own buffer<u8> that tbl_entry's KOWN requires per [TBL-1]; every op IDENT is catalog-reserved [CAT-7]. The writer flagged it, and the underlying catalog gap is genuine, but the call still cannot compile against the documented tables.",
+    "cursor_new and the own Cursor type are outside the granted surface: the task supplied only next_word(cursor) -> option<slice>; neither document defines a cursor constructor or type, so this is a second undocumented op used as a real call.",
+    "Occupied-entry path traps instead of incrementing: the function aborts on the first repeated word, so it cannot compute word frequencies on ordinary input. A repeated word is an expected outcome, and cards.md C2 states the single-failure principle: an expected runtime outcome is never a contract trap. The writer's diagnosis is correct that S.2 defines no one-probe increment (entry_replace is a consume-and-swap taking the new value before the old is readable; entry_occupied returns only Bool; no &uniq V accessor analogous to cards.md C1 pool_entry_uniq exists, and [BORROW-OPTION] blocks an Option-of-borrow row), but shipping a trap yields a functionally wrong program rather than a working fallback (e.g. the documented two-probe tbl_contains + tbl_get_uniq / entry path with the deviation noted).",
+    "Effect row names an undeclared region: the signature declares only ['b] but states writes('t); counts is a local owned value, so 't binds to nothing (cosmetic, cites [EFF-1]/[CAT-1] row conventions).",
+    "entry<'e, buffer<u8>, u64> ascriptions and the explicit targ lists on entry_occupied/entry_fill use an unbound 'e and do not match the S.2 row signatures, where 'e is the loan region minted by tbl_entry's &uniq receiver (cosmetic)."
+   ]
+  },
+  {
+   "task": "wc-2",
+   "area": "entry",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Occupied-key path is a no-op: the True() arm consumes nothing and increments nothing, so present keys are never counted -- the function does not implement 'add 1 for each key'. The writer's diagnosis is verified correct (S.2 has only entry_occupied/entry_fill/entry_replace/entry_remove; entry_replace requires v bound before the call, and tbl_get_uniq is CG-PROBE, a second physical probe), so the root cause is a genuine catalog gap (a C1-style FINDING, not invented-around), but the delivered code cannot run correctly for the task.",
+    "entry_occupied<K, u64>(&'t e): the row signature is ['x](e: &'x entry<'e, K, V>) with a fresh borrow region; the writer instantiates 'x with 't, the caller-lived table-loan region, to borrow a loop-local token that dies each iteration -- a region/outlives error contradicting both the documented signature and the writer's own prose ('borrow &'x e'), and the C1 card's scoped-region discipline (fresh region blocks for local borrows).",
+    "loop { ... break; } control construct and '--' line comments are not evidenced in either grading document (cards.md shows only fn/let/match/region/set/check/doc/return); unverifiable syntax the writer had no documented basis for.",
+    "Const capacity parameter N is declared inside the region-parameter bracket ['t, N]; both documents show only region params in brackets and only type params in angle brackets -- no documented spelling supports this.",
+    "Unconstrained generic K: TBL-1 closes key kinds to copy (primitive/tag-only enum) or bytes (buffer<u8>) with compile reject otherwise; a fully generic K parameter with no key-kind constraint has no documented spelling, and the code also assumes the copy-KOWN calling convention (bare k) which is wrong for a bytes K.",
+    "region 'k wrapping the whole loop is inert: seq_pop is loan NONE (operand used for the call only, per C1's loan-NONE description), so no region-scoped loan exists to manage -- cosmetic misstatement of the loan model in code and prose."
+   ]
+  },
+  {
+   "task": "wc-3",
+   "area": "entry",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Borrow-typed struct field: MergeSink.dst holds &uniq 'a table, but cards.md C1 states loans are confined, stack-only -- 'structs store values, not borrows' (rejected statically); the entire sink architecture is unspellable from the documents (writer's ASSUMPTION-1 guessed against the doc; the field also names 'a with no region gparam on the struct)",
+    "Invented op iadd<V>: no integer-add row exists in optables.md, and cards.md defines only iadd.wrap<u64>/isub.wrap<u64> inside the C2 ring card; writer flagged it, but an invented op fails the compile-from-documents bar",
+    "Invented expression ref_uniq(sink): neither document provides any way to mint a &uniq loan on a local own binding (writer's ASSUMPTION-2)",
+    "Use-after-move of value: S.2 entry_replace own column says 'consumes v' unconditionally (v: own V, TBL-1 'V is any owned type'); no copy-reuse exemption for V exists in either document, so iadd<V>(old, value) after entry_replace(e, value) violates the documented own column; the V: Copy assumption is invented",
+    "key reused across two tbl_entry mints despite the tbl_entry own column stating 'captures k (consumed into the token)'; only TBL-1's 'bare copy' KOWN spelling arguably permits this for copy K -- undocumented reuse rule, unflagged as such for the second mint",
+    "merge_take's signature adds region param 'a and writes('a), which cannot conform to TblSink::take under FN-3 exact-match conformance; the '+ join(F)' escape is OPEN-FLAG (EFFECT-JOIN), which per S.0 does not ratify before discharge -- the writer never noted this conformance gap (mitigating: any writing sink for this task hits it)"
+   ]
+  },
+  {
+   "task": "wc-4",
+   "area": "entry",
+   "green": false,
+   "par": false,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Wrong signature instantiation of tbl_get_uniq (optables.md row 128, [CAT-1] signature column): the row is ['e](t: &uniq 'e table<K,V,h>, k: KIN) -> &uniq 'e V with ONE region parameter shared by receiver and result. With t: &uniq 'e, the only legal instantiation is ['e] returning &uniq 'e V; the writer's tbl_get_uniq['v](t, k) binding vr: &uniq 'v V at a fresh inner region has no documented mechanism (cards.md C1 states v0 has no reborrowing; rows that issue scoped loans, e.g. pool_entry, carry a dedicated result-region parameter, which this row lacks). Does not typecheck as written.",
+    "The call f.apply['v](f, vr) cannot conform to the writer's own contract UpdateFn<V> { fn apply['v](env: &uniq 'v Self, value: &uniq 'v V) }: env arrives as &uniq 'g F and value as &uniq 'e V (writer's 'v) \u2014 two distinct helper region parameters cannot unify to the contract's single region under exact-match conformance ([CAT-5]/FN-3 note). The catalog's same-shaped single-region visitor contracts (SeqVisitUniq, TblVisitUniq) are only ever invoked from inside sealed rows that arrange both operands at one region; at user level the contract needed separate region parameters for env and value.",
+    "Overstated proof-elision claim (writer's justification 3): on the occupied path no HAS(t,k)=True fact is live before the tbl_get_uniq probe \u2014 entry_occupied mints only OCC(e)=r (row 130), and dropping the token kills all its facts ([CAT-2]: facts attach to a live binding); entry rows mint HAS only via entry_fill/entry_remove. So the 'table key absent' check is retained on the occupied path (fail-closed, dynamically safe since the key is present), and the claim that HAS(t,k)=True holds on both paths before the second probe is false. The exit-fact claim is only rescued by row 128's own pass-path fact.",
+    "Performance (par): the vacant path pays an avoidable second probe. f can be applied to the owned dflt via a scoped unique borrow of the local BEFORE entry_fill, making the miss path single-probe \u2014 the entry token's documented advantage over the two-probe contains-then-get partition (OPEN-FLAG BORROW-OPTION, optables.md line 141). As written (entry + unconditional tbl_get_uniq), the helper is two probes on every path, no better than the tbl_contains/tbl_get_uniq-or-tbl_insert spelling, so the mandated entry token buys nothing.",
+    "Cosmetic: the binding occ: own Bool is computed and never used (dead value; the match could be a statement).",
+    "Cosmetic/grammar risk: block-expression and match-as-expression forms (let occ = { ... match ... => { True() } ... }) appear nowhere in either document; all demonstrated card code uses statement-form match with return or empty arms.",
+    "Cosmetic: K, V, and h are referenced in the helper signature but never bound as generic parameters (only ['e, 'g, F: UpdateFn<V>] are declared); card-level fn examples fully concretize types. The writer did correctly write h explicitly per [TBL-2] (no default hasher) and correctly flagged that the bytes key_kind makes the 3-argument signature unwritable per [TBL-1]/[TBL-6]."
+   ]
+  },
+  {
+   "task": "lru-1",
+   "area": "lru",
+   "green": true,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Rendering 2, get_ref: the None() arm ends with `check False() else trap` and no return in a function returning &'v Entry. C1 documents that construct only as a unit-typed arm with control continuing afterward (lru_insert's victim-absent arm); neither document states a divergence rule that makes an always-trapping check terminate a value-returning path, so get_ref plausibly fails the checker even though the writer claims both renderings are legal.",
+    "Rendering 2, get_ref: conflates the pool's region with the entry-loan region (np: &uniq 'v pool, returning &'v Entry) and escapes the pool entry loan across the function boundary. The C1 pool_entry row distinguishes 'c (pool operand) from 'v (loan), and the card's choreography paragraph documents only the in-function `region 'v` scoped freeze window ('the loan dies at region 'v exit'); returning the loan is an extrapolation presented as documented.",
+    "Rendering 2 hit path costs two table probes (table_find in contains_and_promote, table_find again in get_ref), doubling the card's stated hit contract of 'one probe, one splice, one scoped read loan'. A strictly documented one-probe alternative exists: return own Option<hdl<Entry>> (hdl is a copy value, so this Option is spellable \u2014 table_find itself returns it) from the promote function and let the caller issue pool_entry directly.",
+    "Cosmetic: the BORROW-OPTION quote is attributed to 'cards.md \u00a7S.2' but the OPEN-FLAG text lives in optables.md S.2; cards.md never states it. The inheritance argument (C1 composes a table, so Option-of-borrow is unspellable there too) is sound, but the citation is wrong."
+   ]
+  },
+  {
+   "task": "lru-2",
+   "area": "lru",
+   "green": true,
+   "par": true,
+   "worst": "NONE",
+   "defects": []
+  },
+  {
+   "task": "lru-3",
+   "area": "lru",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "Dialect straddle (forced by the task premise): tbl_entry (optables.md S.2) is defined on table<K, V, h> with an always-written hasher (TBL-2/META-2), but the snippet applies it to the card's hasher-less table<u64, hdl<Entry>> alongside the card-only row table_find; loan/freeze reasoning is unaffected.",
+    "Bindings h and sent are used in the pool_move_front call but never declared in the snippet, so the demonstration code is not self-contained.",
+    "Justification cites [CAT-4]/[CAT-2] for the freeze judgment; [CAT-2] defines fact families, not the loan judgment \u2014 only [CAT-4] is the correct citation.",
+    "The enclosing region 'e is inert: the token's loan region is 'i (from the idx binding), so the extra region adds nothing."
+   ]
+  },
+  {
+   "task": "lru-4",
+   "area": "lru",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "Unused region parameter 'v declared in lru_peek's binder list but never used in the signature or body (leftover from the caller-side region sketch); dead binder, cosmetic.",
+    "lru_peek takes np: &uniq 'c pool<Entry, links(prev, next)> and never uses it, so the pool is placed under an avoidable unique loan for the duration of the lookup call; the card's rows only force &uniq 'c at the pool_entry call site itself, so the lookup helper should take idx alone. Op choices and choreography remain correct, so this is signature dead weight rather than a loan-column violation.",
+    "doc string uses a backslash line continuation not demonstrated in either grading document (C1 and the op tables show only single-line doc strings); cosmetic/uncertain legality.",
+    "Caller illustration uses // comments, a syntax never shown in the cards (which use doc); cosmetic, and confined to the non-normative caller sketch."
+   ]
+  },
+  {
+   "task": "sweep-1",
+   "area": "sweep",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Invented op: ilt<u64> appears in neither optables.md nor cards.md (the documents demonstrate only ieq, ige, ipopcount, iadd.wrap, isub.wrap, iand as scalar ops); the predicate was expressible entirely in documented vocabulary as ige<u64>(ls, cut) returned directly as the keep Bool. Violates the no-invented-op rule; the writer's 'not invented' justification silently omits ilt.",
+    "Needless inversion: computing expired via ilt then match-inverting True()/False() instead of returning ige<u64>(ls, cut) directly; adds an undocumented op plus a redundant branch where a one-line documented spelling exists (COSMETIC beyond the invented-op issue).",
+    "Explicit targ list tbl_retain<u64, Session, identity> does not match the S.2 row's declared generics \u2014 the row's only generic binder is <F: TblRetain<K, V>>; K, V, h are fixed by the receiver type. Meta-notation ambiguity, graded COSMETIC.",
+    "Non-defect observations recorded for the reducer: the &uniq 'v borrow-of-a-local spelling is a documentation gap (no row spells it, yet every CAT-5 visitor op requires it; writer flagged it honestly); key: own u64 matches the cards' fn_decl spelling of copy owned params even though the S.2 KIN meta-notation writes bare k: K; no conformance-declaration syntax exists in the docs to grade (OPEN-FLAG SELF-SPELLING)."
+   ]
+  },
+  {
+   "task": "sweep-2",
+   "area": "sweep",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Mode mismatch: tbl_for_each's signature spells t: &'r table (S.2 row, [CAT-1] explicit modes) but is passed sessions: &uniq 'e; v0 has no reborrowing (C1, T-A) and no uniq-to-shared coercion is documented, so this call is unspellable \u2014 the mode-correct op for a &uniq receiver is tbl_for_each_uniq (its &uniq 'v V visitor loan permits the read).",
+    "Reborrow through a live loan: seq_push['v](&uniq 'v deref(env).expired, key) mints a unique loan on a place reached through the borrowed env \u2014 reborrowing through a borrowed wrapper struct, which C1 states v0 lacks (T-A); documented field borrows apply only to fields of an owned struct.",
+    "Type arguments to tbl_for_each swap K and V: <Session, u64, identity, ExpiredCollector> against table<u64, Session, identity> (K=u64, V=Session per [TBL-1]).",
+    "Invented region spelling: seq_pop['?](&uniq '? keys) uses '?' as a region; regions are declared params or explicit region 'x { } blocks (C1 choreography) \u2014 no placeholder region exists in either document.",
+    "Missing deref through a borrow: value.expiry with value: &'v Session; the documented spelling reads through a loan as deref(value).expiry (C1: deref(e).val).",
+    "Cosmetic: unused declared region param 'v on sweep_expired_sessions; comment mislabels tbl_for_each's call-scoped read use of sessions as 'collector's read loan on sessions'; constructor field initialized with a nested op call (expired: seq_new<u64,0>()) departs from the cards' let-bound construction style; loop/break control construct appears in neither grading document."
+   ]
+  },
+  {
+   "task": "sweep-3",
+   "area": "sweep",
+   "green": false,
+   "par": false,
+   "worst": "API_MISUSE",
+   "defects": [
+    "API_MISUSE: KeepEnv::take declares effects 'writes(\\'v)' but its body calls seq_push, whose S.1 row is 'writes(\\'e), allocates(heap), traps' (growth-path trap \"seq capacity overflow\") \u2014 the declared row omits allocates(heap) and traps, violating the EFF-1 row-coverage convention every card fn follows (e.g. lru_insert, ring_push).",
+    "API_MISUSE: remove_cancelled declares 'writes(\\'e), traps' but calls seq_extend_move ('writes(\\'e), allocates(heap), traps' per its S.1 row) and seq_drain joined per [CAT-5] with an allocating sink \u2014 allocates(heap) is missing from the function's effect row.",
+    "API_MISUSE (secondary, OPEN-FLAG-adjacent): adding an effect row ('writes(\\'v)') to take diverges from the SeqSink<T> contract signature 'fn take[\\'v](env: &uniq \\'v Self, item: own T) -> own unit'; under FN-3 exact-match conformance (row-join checking is explicitly not provided per OPEN-FLAG EFFECT-JOIN) the conformance is unratified either way.",
+    "WRONG_CHOICE: kept is built with seq_new (cap N) even though n = seq_len(orders) is computed in the same function; seq_with_cap(n) (documented S.1 row, mints SLACK(r)>=n, no Result handling) would avoid all growth reallocations and enable CG-PUSH slack-fact branch elision on every push \u2014 the 'reserve-then-extend' knob class the spec's guidance indicates.",
+    "COSMETIC: op operand spelled '&uniq deref(env).kept' where the cards pass bare places through a deref (C2 passes deref(q).buf to len/index/set); with C1's 'v0 has no reborrowing (T-A)' note, the explicit reborrow spelling is at best ambiguous.",
+    "COSMETIC: seq_drain called with three targs <KeepEnv, Order, N> where the S.1 row declares one op-level generic <F: SeqSink<T>> with T and N fixed by the receiver's type."
+   ]
+  },
+  {
+   "task": "sweep-4",
+   "area": "sweep",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "COSMETIC: `keep` declares an effect row `reads('v)` not present in the TblRetain contract signature (optables.md S.2); CAT-5 states FN-3 conformance is exact-match with row-join checking an OPEN-FLAG (EFFECT-JOIN) kernel delta, so the docs leave conformer effect rows unresolved rather than endorsing this spelling.",
+    "COSMETIC: the predicted diagnostic 'receiver frozen by outstanding loan 'r/'e' extrapolates the cards.md C1 pool_entry ISSUE-loan freeze to tbl_for_each, whose loan column is NONE; the documented rejections (visitor scope per the TblVisit contract, and 'loans are confined, stack-only \u2014 structs store values, not borrows') are the actual mechanisms, which the writer also quoted correctly.",
+    "COSMETIC: attributes the TblVisit contract to 'cards/optables'; it appears only in optables.md S.2."
+   ]
+  },
+  {
+   "task": "pipe-1",
+   "area": "pipeline",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Invented effect-row syntax: 'consumes tx/lines/rx' placed in the effects row of produce/consume signatures; EFF-1's row grammar is closed (CQ-7) and cards.md fns use only reads/writes/allocates/traps \u2014 ownership transfer is expressed by the own parameter mode, and 'consumes' is CAT-1 own-column meta-notation, not source syntax. Compile-breaking.",
+    "Unbound region names at borrow sites: &uniq 'a src, &uniq 'b tx_l, &uniq 'c rx_l \u2014 'a/'b/'c never introduced by any gparam or region block (the only binders the documents demonstrate, cards C1 'region 'v'); free 'q in run_pipeline's cq_ends<'q, Record> annotation is only partially excused by OPEN-FLAG (BRAND-MINT).",
+    "CQ-5 close-direction misread in the shutdown justification: writer claims last-cq_tx drop marks the queue closed-for-send; CQ-5 says last-rx drop gives closed-for-send and last-tx drop plus drain gives closed-for-recv. Operational behavior relied on (drain, then RecvClosed) is still correct, so cosmetic.",
+    "Unlicensed wrap arithmetic: iadd.wrap<u64> for an open-ended aggregate sum; cards C2 licenses .wrap only under a structural bound making wrap exact modular arithmetic \u2014 an unbounded sum wraps silently on overflow.",
+    "Struct field mode deviation: 'id: own u64' / 'value: own u64' \u2014 normative struct spellings in cards.md (Entry, Ring) use bare field types with no mode.",
+    "Minor: producer drains lines with seq_pop (LIFO), sending records in reverse order; benign only because the sum aggregate is order-insensitive \u2014 seq_drain is the documented ascending own-out row for order-preserving bulk transfer."
+   ]
+  },
+  {
+   "task": "pipe-2",
+   "area": "pipeline",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "Effect rows on producer/consumer omit reads('q): cq_send and cq_recv rows (S.3) are 'reads('q), writes('q)' but the functions declare only 'writes('q), traps' (softened by OPEN-FLAG BRAND-EFFECTS, still a row-spelling mismatch).",
+    "build_pipe effect row 'allocates(heap), writes('q)' violates CAT-1 canonical effect order (reads, writes, allocates, traps per S.0 and the cards.md fn precedents), and surfaces writes('q) for a brand minted and dropped entirely inside the function with 'q unbound in the signature \u2014 beyond the OPEN-FLAG (BRAND-MINT) assumption.",
+    "consumer calls process_item, which is neither a catalog op nor defined anywhere in the solution; the code needs that stub to compile (placeholder application logic, not a fabricated spec op).",
+    "Producer (extra, not task-required) drains its owned seq via seq_pop + per-item cq_send: items go out in reverse of the seq's order, and cq_send_batch \u2014 the CG-QBATCH designated-hot batched contract shape that consumes own seq<T, IN> directly \u2014 was available; noted as a performance/style nit, not counted against the graded knobs (endpoint kind, blocking recv), which are correct."
+   ]
+  },
+  {
+   "task": "pipe-3",
+   "area": "pipeline",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Undefined identifier: MAX_batch is passed as cq_recv_batch's max: u64 operand but never declared; nothing in optables.md S.3 supplies it, so the consumer loop does not compile.",
+    "Brand-as-region misuse violating CQ-2: build_batch['q]() and seq_len['q](&r) instantiate lexical region parameters with the queue brand 'q; CQ-2 states a brand is an identity tag, not a lexical region, and unifies only with itself, so both calls are checker rejects (seq_len's ['r] requires a region).",
+    "contract SeqSink<u64> re-declares the normative S.1 contract SeqSink<T> at a concrete type \u2014 a name collision with catalog-normative bytes instead of a conformance of Sink to the existing contract.",
+    "Sink never conforms to SeqSink<u64>: the contract member is named take, the writer supplied a free fn sink_take with no conformance wiring, and FN-3 conformance is exact-match \u2014 so f: &uniq 'v Sink cannot satisfy F: SeqSink<u64> at the seq_drain call site.",
+    "Const parameters IN and M appear in the writer's own signatures (seq<u64, IN>, seq<u64, M>) but are never declared as generic parameters \u2014 op-table meta-notation leaked into program text.",
+    "seq_drain called as seq_drain['d, 'v](...) without its <F> type argument, contrary to the catalog's explicit-targ call style (e.g. pool_entry<'v, Entry>, ieq<u64>). Minor/cosmetic.",
+    "Producer BatchClosed arm: comment claims the unsent suffix in rest is returned 'for the caller to handle' but the code silently drops it \u2014 legal owned drop, but stated intent not implemented. Cosmetic."
+   ]
+  },
+  {
+   "task": "pipe-4",
+   "area": "pipeline",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "mpmc example: `tx2` is declared inside `region 'x { ... }` but used after the region closes (`cq_send<'e>(&uniq tx2, 2_u64)`); per the region/scope discipline the docs demonstrate (cards.md C1: loans and bindings end at region exit), tx2 is out of scope and dropped at the block boundary, so the 'correct' code is itself a compile reject \u2014 and the implicit endpoint drop at region exit has CQ-5 close-accounting semantics the example ignores.",
+    "mpmc example: `cq_send<'e>(...)` names region 'e that is never declared in the snippet (no `region 'e` block), violating the explicit-region style every documented example uses; the writer's own failing example (b) declares its regions, so this is an inconsistency, not notation.",
+    "mpmc example: `r1`/`r2` Results from `cq_send` are never matched; affine drop makes this compile, but on the `QueueClosed(value)` arm the returned item is silently dropped, against the CQ-5 'no owned value is ever lost to a failure' design the writer cites."
+   ]
+  },
+  {
+   "task": "seq-1",
+   "area": "seq",
+   "green": false,
+   "par": true,
+   "worst": "API_MISUSE",
+   "defects": [
+    "Mode mismatch at call site: use_operands declares s: &uniq 'e seq<u32,4> but is called as use_operands['ops](&ops) with a shared borrow; no shared-to-uniq path exists, so the call is rejected (loan/mode judgment; cards.md notes v0 has no reborrowing (T-A)).",
+    "Mode mismatch inside use_operands: seq_len and seq_get are declared over a shared receiver &'r seq<T,N> (optables.md S.1 rows, lines 64 and 66), but the writer passes a &uniq 'e binding; with no documented reborrow/coercion, a &uniq operand does not satisfy a &'r row. The function should have taken s: &'e seq<u32,4>.",
+    "Unbound region name 'ops: seq_push['ops](...) and use_operands['ops](...) cite a region that is neither a fn region parameter nor introduced by a region block; every region in cards.md is bound in the fn signature bracket or an explicit region 'v { } scope.",
+    "Iteration bypasses the documented protocol: [CAT-5] makes the for_each visitor family the default (SeqVisit + CG-ITER single-latch, must-inline, vectorization-eligible); the hand-rolled loop/break construct appears in neither document, and the per-element seq_get bounds compare is only elidable by an INB(s,i) proof (CG-GET), which no documented fact rule derives from LEN(s)=n plus the ige guard - so the loop keeps a per-element branch and loses the CG-ITER shape.",
+    "Minor: set acc0 = acc1 / set i0 = i1 rebinds plain let locals; the cards demonstrate set only on deref(...) places, so this spelling is unattested in the grading documents."
+   ]
+  },
+  {
+   "task": "seq-2",
+   "area": "seq",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "Uses a `type JobStack = seq<Job, 0>;` alias construct documented in neither optables.md nor cards.md (cards only use struct declarations and inline sealed-form spellings); all op usage is otherwise exact, so this is an extra-catalog syntactic invention, not an op-table violation.",
+    "Justification prose about the seq_push trap string ('reused the row's literal string implicitly by not restating it') is confused wording; harmless because the trap belongs to the op row itself, but unsupported by the documents."
+   ]
+  },
+  {
+   "task": "seq-3",
+   "area": "seq",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "Effect clause order 'writes('b), reads('h), reads('x), allocates(heap), traps' deviates from the EFF-1 canonical reads-first order used by every S.1 row and cards.md example (e.g. lru_get: reads('i), writes('c), traps) \u2014 cosmetic.",
+    "Inconsistent region-argument spelling at call sites: seq_reserve['b](...) passes the region, seq_push<u8>(...) omits it, seq_extend_copy<u8>['b, 'x](...) mixes both bracket styles; the docs' op-table meta-notation (CAT-1/OP-1 style) does not pin call-site grammar, so this is cosmetic rather than a signature violation.",
+    "Justification overstatement: calls seq_extend_copy's growth path and 'seq capacity overflow' trap 'dead code on this run, not merely proven' \u2014 S.1 documents SLACK-based elision only for CG-PUSH; CG-BULK has no documented SLACK elision, so the extend_copy growth branch is merely dynamically untaken, and the claim also silently assumes iadd.wrap<u64>(header_len, body_len) did not wrap (a wrapped total would under-reserve; still safe, pushes would just grow, but the 'never taken' claim would fail).",
+    "Const inline-capacity params N and H appear free in the signature (seq<u8, N>, seq<u8, H>) with no binder; the two graded documents do not specify fn const-gparam grammar, so this is an under-specified cosmetic loose end, not a documented-rule violation.",
+    "header_len taken as a caller-supplied parameter instead of computed via the documented seq_len(header) inside the function; a mismatched caller value is backstopped by seq_get's retained 'seq index out of bounds' trap, so this is a design smell, not an S.1 violation."
+   ]
+  },
+  {
+   "task": "seq-4",
+   "area": "seq",
+   "green": true,
+   "par": true,
+   "worst": "COSMETIC",
+   "defects": [
+    "Call-site spelling `seq_take_all['e](inbox)` deviates from the documented example convention: cards.md C1 spells op calls with angle-bracket type args (`pool_take<Entry>(np, victim)`) and passes regions only at loan-minting sites (`pool_entry<'v, Entry>`); expected `seq_take_all<Message, N>(inbox)` or region-free. Non-fatal because [CAT-1] states table signatures are op-table meta-notation, not fn_decl grammar, so call grammar is not normatively fixed by the grading documents.",
+    "`hand_off_to_subsystem` is an undeclared placeholder with no stated effect row, so the enclosing function's `writes('e)` effect row is only verifiable for the catalog op itself; unavoidable given the task wording, and its `move`-consuming call matches card style."
+   ]
+  }
+ ],
+ "rates": {
+  "green": "9/20",
+  "par_of_green": "9/9",
+  "byArea": {
+   "entry": {
+    "n": 4,
+    "green": 0,
+    "par": 0
+   },
+   "lru": {
+    "n": 4,
+    "green": 4,
+    "par": 4
+   },
+   "sweep": {
+    "n": 4,
+    "green": 1,
+    "par": 1
+   },
+   "pipeline": {
+    "n": 4,
+    "green": 1,
+    "par": 1
+   },
+   "seq": {
+    "n": 4,
+    "green": 3,
+    "par": 3
+   }
+  }
+ }
+}
