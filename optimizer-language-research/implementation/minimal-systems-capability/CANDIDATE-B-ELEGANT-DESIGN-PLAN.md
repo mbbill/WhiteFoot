@@ -51,8 +51,9 @@ Reuse the completed Hashbrown audit without reopening its source scope:
 
 Inspect only these official pinned revisions:
 
-- mimalloc v3.3.2, Git commit
-  `5687270e7fbb15d494a46b0d048f978bad973e4f`;
+- mimalloc v3.3.2, annotated Git tag object
+  `5687270e7fbb15d494a46b0d048f978bad973e4f`, dereferenced source commit
+  `30b2d9d89099bee08e9f67a1ffb3e12e7ba45227`;
 - SQLite 3.53.3, official Fossil source ID
   `d4c0e51e4aeb96955b99185ab9cde75c339e2c29c3f3f12428d364a10d782c62`
   and official Git mirror tag commit
