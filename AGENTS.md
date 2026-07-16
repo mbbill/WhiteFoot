@@ -70,27 +70,21 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Candidate C sparse repair has stopped at its owner gate under
+- Candidate B's bounded cross-project design research is active under
   `optimizer-language-research/implementation/minimal-systems-capability/
-  CANDIDATE-C-SPARSE-REPAIR-PLAN.md`. The owner selected C as the first
-  bounded validation hypothesis, B as the later compression challenge, and A
-  as the generality fallback; this is not a production ranking. Stage 0 and
-  Stage 1 are complete. The five-operation Hashbrown paper calibration reached
-  `C-REVISE`: C-4 is the right reusable sparse family, but exact control-to-
-  payload, transition/cleanup, provenance, fact, group-operation, and growth-
-  allocation rules remain absent. No new family was admitted, and no safety,
-  code-shape, or performance closure was claimed. The exact fifteen-row repair
-  comparison selects `SR-PROFILE`, a closed profile-indexed sparse automaton,
-  only as the next research hypothesis. `SR-CLOSED` has avoidable per-profile
-  catalog growth; `SR-ORTHOGONAL` converges to B. Candidate C v0 is unchanged,
-  the authorization is exhausted at the Sparse Repair Gate, and no repair or
-  wider source inspection is authorized. Keep the 340
-  unresolved dense obligations across 150 contexts and exact D-2/P-1 fail-
-  closed. No Stage 2, allocator, SQLite,
-  Crossbeam, Tokio, Wasmtime, safety
-  model, prototype, machine-event work, performance or AI trial, language/
-  specification/compiler/verifier/runtime implementation, capability entry,
-  standard library, container, candidate execution, benchmark, E0.1 restart,
+  CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. The question is whether one small closed
+  algebra can preserve the native representation and owner traffic of fourteen
+  frozen operations across Hashbrown, mimalloc, SQLite, and Crossbeam Epoch
+  without C-like project or topology families or A-like arbitrary writer
+  proofs. Compare exactly `B-FORMS`, `B-STRATA`, and `B-GRAPHS` in 42 routes,
+  then stop at the Candidate B Design Gate. Candidate C's Hashbrown calibration
+  and sparse-repair gate remain completed evidence; Candidate C v0 is unchanged.
+  Keep the 340 unresolved dense obligations across 150 contexts and exact
+  D-2/P-1 fail-closed. This authorization is read-only paper research: no
+  additional project or operation, formal safety model, prototype, candidate
+  execution, generated-code inspection, benchmark, measurement, AI trial,
+  language/specification/compiler/verifier/runtime implementation, capability
+  entry, standard library, container, production selection, E0.1 restart,
   migration, or default teaching is authorized.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.

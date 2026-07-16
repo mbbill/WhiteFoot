@@ -52,7 +52,7 @@ safety model, prototype, candidate execution, experiment, machine-event work,
 performance or AI trial, language/specification/compiler/runtime change,
 standard library, or production work is authorized.
 
-The owner subsequently authorized only route 1: a bounded paper repair of the
+The owner subsequently authorized route 1 for that stage: a bounded paper repair of the
 six known sparse-definition gaps. The controlling contract is
 `optimizer-language-research/implementation/minimal-systems-capability/
 CANDIDATE-C-SPARSE-REPAIR-PLAN.md`. It freezes exactly three alternatives,
@@ -70,6 +70,19 @@ profile, transition, provenance, fact, or cleanup authority to ordinary
 libraries. `SR-CLOSED` has avoidable per-profile catalog growth;
 `SR-ORTHOGONAL` is B's later compression direction. Candidate C v0 remains
 unchanged, and the authorization is exhausted at this gate.
+
+The active work has now moved to Candidate B. The owner wants the same finite
+comparative method applied across more than Hashbrown to determine whether B
+can be an elegant project-independent basis. The controlling contract is
+`optimizer-language-research/implementation/minimal-systems-capability/
+CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. It pins exactly fourteen operations across
+Hashbrown, mimalloc, SQLite, and Crossbeam Epoch; exactly three alternatives
+(`B-FORMS`, `B-STRATA`, and `B-GRAPHS`); exactly 42 comparison rows; explicit
+capability contents, removal witnesses, performance roles, ordinary-library
+derivations, unresolved problems, and pros/cons; and a mandatory stop at the
+Candidate B Design Gate. A new rule must serve at least two independent
+projects. This is read-only source and paper-design authorization, not a safety
+proof, implementation, benchmark, performance result, or production choice.
 
 ## 0.1 Earlier scope correction retained as historical context
 

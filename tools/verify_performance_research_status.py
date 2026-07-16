@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the active bounded Candidate C validation status."""
+"""Verify the active bounded Candidate B cross-project design status."""
 
 from __future__ import annotations
 
@@ -28,24 +28,26 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "Candidate C sparse repair has stopped at its owner gate",
-        "CANDIDATE-C-SPARSE-REPAIR-PLAN.md",
-        "Stage 1 are complete",
-        "`C-REVISE`",
-        "the authorization is exhausted at the Sparse Repair Gate",
-        "No Stage 2",
-        "exact D-2/P-1 fail-",
+        "Candidate B's bounded cross-project design research is active",
+        "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
+        "fourteen\n  frozen operations across Hashbrown, mimalloc, SQLite, and Crossbeam Epoch",
+        "`B-FORMS`, `B-STRATA`, and `B-GRAPHS`",
+        "then stop at the Candidate B Design Gate",
+        "read-only paper research",
+        "D-2/P-1 fail-closed.",
     )
     require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "CANDIDATE C\n   SPARSE REPAIR GATE STOPPED: SR-PROFILE",
+            "CANDIDATE B\n   CROSS-PROJECT DESIGN ACTIVE",
             "There is no evidence-\n   backed winner.",
-            "C as the first bounded validation",
-            "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+            "fourteen operations across four\n   official source revisions",
+            "exactly three B architectures",
+            "exactly 42 fail-closed operation routes",
+            "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
             "Sparse Repair Gate selects `SR-PROFILE`",
-            "No Stage 2",
+            "No Stage 2, additional",
         ),
     )
     require(
@@ -53,9 +55,10 @@ def main() -> int:
         (
             "The performance-first owner packet is complete",
             "There is no evidence-backed production winner.",
-            "C as the first bounded validation hypothesis",
-            "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-            "route 1: a bounded paper repair",
+            "The active work has now moved to Candidate B.",
+            "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
+            "Hashbrown, mimalloc, SQLite, and Crossbeam Epoch",
+            "exactly 42 comparison rows",
             "Sparse Repair Gate selects `SR-PROFILE`",
         ),
     )
@@ -71,14 +74,14 @@ def main() -> int:
         / "optimizer-language-research"
         / "implementation"
         / "minimal-systems-capability"
-        / "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
+        / "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
         (
-            "controlling research contract",
-            "Work must stop at Gate 1",
-            "Stage 0 — freeze Candidate C v0 and the rubric",
-            "Stage 1 — bounded Hashbrown calibration",
-            "Later stages — not authorized",
-            "`UNKNOWN` is unresolved, never a pass",
+            "controlling bounded paper-design and source-audit contract",
+            "Audit exactly fourteen operations.",
+            "Derive exactly three alternatives before routing any operation",
+            "Produce exactly 42 candidate-operation rows",
+            "at least two independent projects",
+            "Stop after the deliverables",
         ),
     )
     require(
@@ -118,7 +121,7 @@ def main() -> int:
             "Stage 2 is not authorized.",
         ),
     )
-    print("performance research status: Candidate C Sparse Repair Gate stopped, SR-PROFILE")
+    print("performance research status: Candidate B cross-project design active")
     return 0
 
 

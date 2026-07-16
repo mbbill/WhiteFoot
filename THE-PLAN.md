@@ -81,8 +81,8 @@ Measured non-wins (equally load-bearing):
 
 ## 4. Active build track and ranked bets
 
-1. **Performance-first minimal systems-capability research** — CANDIDATE C
-   SPARSE REPAIR GATE STOPPED: SR-PROFILE (completed 2026-07-15). The
+1. **Performance-first minimal systems-capability research** — CANDIDATE B
+   CROSS-PROJECT DESIGN ACTIVE (2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
@@ -114,6 +114,21 @@ Measured non-wins (equally load-bearing):
    unchanged, and no safety, implementation, code-shape, or performance claim
    follows.
 
+   The owner then authorized Candidate B's compression question against more
+   than Hashbrown. The bounded plan freezes fourteen operations across four
+   official source revisions: the existing five Hashbrown operations; small
+   allocation, local free, and remote free/collection in mimalloc; B-tree
+   insertion/split, deletion/rebalance, and pager rollback in SQLite; and
+   protected load, retirement, and collection in Crossbeam Epoch. It compares
+   exactly three B architectures: the original flat forms, a stratified
+   project-independent algebra, and a bounded protocol-graph control. The
+   required outputs explain each capability, its removal witness and
+   performance role, ordinary-library derivations, unresolved problems, and
+   pros/cons, followed by exactly 42 fail-closed operation routes and a stop at
+   the Candidate B Design Gate. A new rule must be needed by at least two
+   independent projects; one-project pressure remains an unresolved
+   abstraction rather than an automatic language extension.
+
    The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
    language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
    and structural-cost fields remain historical evidence and candidate inputs.
@@ -138,14 +153,17 @@ Measured non-wins (equally load-bearing):
    validation plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`; its authorization
    is exhausted at Gate 1. The completed paper-repair contract is
    `CANDIDATE-C-SPARSE-REPAIR-PLAN.md`; its authorization is exhausted at the
-   Sparse Repair Gate. No Stage 2,
-   allocator, SQLite, Crossbeam, Tokio, Wasmtime, safety model, structural
-   prototype, machine-event model, performance measurement, AI trial, language
-   or specification change, compiler or verifier implementation, capability
-   entry, standard library, container, candidate implementation or execution,
-   benchmark, E0.1 restart, xlc migration, production fact channel, or default
-   teaching is authorized. The separate xlc self-hosting build track must not be
-   mixed into this research.
+   Sparse Repair Gate. The active bounded contract is
+   `CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. It authorizes only the four pinned
+   read-only source slices, paper architecture and comparison, deterministic
+   verification, and the Candidate B Design Gate. No Stage 2, additional
+   project or operation, safety model, structural prototype, candidate
+   implementation or execution, generated-code inspection, machine-event
+   model, performance measurement, AI trial, language or specification change,
+   compiler or verifier implementation, capability entry, standard library,
+   container, benchmark, E0.1 restart, xlc migration, production fact channel,
+   production selection, or default teaching is authorized. The separate xlc
+   self-hosting build track must not be mixed into this research.
 2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver

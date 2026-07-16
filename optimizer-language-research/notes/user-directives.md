@@ -460,3 +460,28 @@ Repair Gate. It does not authorize applying a repair, changing Candidate C v0,
 admitting a family, widening source inspection, entering Stage 2, auditing
 another project, formal safety work, implementation, execution, generated-code
 inspection, benchmarking, measurement, AI trials, or production changes.
+
+### D14 Candidate B cross-project design ruling (2026-07-15)
+
+After comparing Candidate B's stated liabilities with Candidate C's extension
+pressure, the owner authorized applying the same bounded comparative method to
+Candidate B and explicitly rejected a Hashbrown-only evidence set. The active
+question is whether a small project-independent closed algebra can cover
+materially different high-performance structures more elegantly than a family
+catalog while remaining distinct from arbitrary proof authority.
+
+The controlling contract is
+`optimizer-language-research/implementation/minimal-systems-capability/
+CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. It freezes exactly fourteen operations over
+Hashbrown, mimalloc, SQLite, and Crossbeam Epoch; exactly three alternatives;
+exactly 42 candidate-operation rows; a readable capability, removal-witness,
+performance-role, ordinary-library derivation, residual-risk, and pros/cons
+report; and a mandatory Candidate B Design Gate. A proposed B rule must serve
+at least two independent projects rather than one operation or project.
+
+The authorization covers only pinned primary-source inspection, paper design,
+comparison, hostile review, deterministic verification, and status durability.
+It does not authorize another project or operation, a formal safety model,
+prototype, candidate construction or execution, generated-code inspection,
+benchmarking, measurement, AI trials, language/specification/checker/compiler/
+runtime changes, standard-library or container work, or a production choice.
