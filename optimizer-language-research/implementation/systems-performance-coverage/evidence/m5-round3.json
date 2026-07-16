@@ -1,0 +1,317 @@
+{
+ "summary": {
+  "verdict": "FAIL. Green 5/19 = 26.3% is below the 50% FAIL line (Wilson 95% CI [11.8%, 48.8%] \u2014 the entire interval is under 50%, so the band assignment is statistically robust despite small n). Par-of-green 4/5 = 80% exactly meets its band but cannot rescue the verdict. This is the first trustworthy number the trial series has produced: with the complete handout (kernel + catalog) and corrected grading, writers fail 14/19 tasks, and 12 of those 14 reds have API_MISUSE as worst severity \u2014 legality/spelling failures against documented rules, not algorithmic or performance failures. Performance judgment is largely intact (par_choice true on 16/19 tasks including most reds); the binding constraint is legal spelling of the documented surface.",
+  "green_rate": "5/19 (26.3%); greens: l3, s2, s4, q2, q3. Per-area: entry 0/3, lru 1/4, sweep 2/4, pipeline 0/4, seq 2/4. Wilson 95% CI [11.8%, 48.8%].",
+  "par_rate": "4/5 par-of-green (80.0%) \u2014 exactly on the >=80% band edge; q2 is the par miss (green code, but insert-before-evict at len=cap triggers SEQ-3 growth and a permanent SEQ-2 spill, falsifying its own stated cost promises). Overall par_choice was true on 16/19 tasks (false: s1, s3, q2).",
+  "comparison_to_history": [
+   "Headline: 26.3% is numerically identical to round 2 (5/19) and below round 1 (9/20 = 45%), but neither prior number is like-for-like. Round 1 ran on incomplete docs with known grading errors; round 2 was doubly deflated \u2014 6 of its reds carried false defects (legal loop/break graded as violations; decontaminated ceiling up to 11/19 ~ 58%) AND writers had no kernel spec at all.",
+   "The correct reading is not 'full docs bought nothing over round 2' \u2014 round 2's 26.3% was an artifact floor, not a measurement. Round 3 is the first clean baseline, and it says true writability of the documented surface is ~26%, with wide uncertainty (CI [12%, 49%]).",
+   "Round 1's 45% lies inside round 3's confidence interval, so no statistically decisive round-over-round change can be claimed in either direction, even before protocol differences.",
+   "Failure character has shifted from grading noise to a coherent signal: reds now cluster on a small set of recurring rule families (call convention GRAM-11, brand discipline CQ-2/BRAND-CROSS-FN, effect-row exactness EFF-2/CAT-5a, affine move OWN-1, region-mint OWN-10/11, meta-notation leakage CAT-1/CAT-1a), which is actionable in a way rounds 1-2 were not.",
+   "New in round 3: two whole areas are total losses \u2014 pipeline 0/4 (every task hit the brand-through-fn-signature wall, a documented OPEN-FLAG surface) and entry 0/3 \u2014 while sweep and seq each recovered 2/4. l2 missed green on a single GRAM-9 defect, the cheapest recoverable red in the set."
+  ],
+  "remaining_defects": [
+   "Call-convention inversion (5 tasks: e2, l1, s1, q4, p4): user fns called with positional args (or, p4, table ops called with named args + bracketed region lists). Responsible docs: kernel GRAM-11; HANDOUT flags the rule but cards.md worked examples show almost exclusively the table-op side, so writers never see a named user-fn call in context.",
+   "Brand discipline collapse \u2014 all 4 pipeline reds (p1, p2, p3, p4): queue brand 'q threaded through region_params, parameter types, and effect rows despite CQ-2 ('a brand may never instantiate a region parameter') and OPEN-FLAG (BRAND-CROSS-FN) [M5R2-FIX-6]; p4 quotes the flag and then violates it. Responsible docs: optables.md S.3 CQ rules + OPEN-FLAG notes; the sanctioned single-scope workaround (a) has no complete worked example.",
+   "Effect-row exactness EFF-2/CAT-5a (6 tasks: e2, l1, l4, s1, p2, p4): declared-but-unexhibited rows (internally-minted regions not dropped per CAT-5a(ii)), undeclared reads on read-modify-write conformers (l4, p2 \u2014 the count_visit precedent exists but is not being generalized), and the s1 hard wall: an undischarged bounds-checked index exhibits traps that TblVisit/TblRetain member rows cannot carry, making the required conformers unsatisfiable \u2014 a catalog gap (C1 FINDING/D16 class), not only writer error. Responsible docs: kernel EFF-1/EFF-2, optables.md S.2 member rows, cards.md C3.",
+   "Affine move discipline OWN-1 (4 tasks: e3, p2, q1, q4): bare affine places at return and at user-fn arguments; boundary of the table-op bare-operand exception (FN-8) misunderstood, and q1 shows &uniq fan-out through user fns is unwritable without inlining. Responsible docs: kernel OWN-1, cards.md M5R2-FIX-3 / C1 bare-receiver precedent.",
+   "Region-mint discipline OWN-10/OWN-11 (3 tasks: e2, q1, p4): caller-supplied regions used for borrows rooted at own bindings, region block placed outside a loop, and an unbound region name. Responsible docs: kernel section 5 OWN-10/OWN-11, cards.md borrow-minting rule (a) / M5-FIX-3(a).",
+   "Meta-notation and generics leakage (5 tasks: e3, e4, p4, s3, q4): hasher invented as a generic parameter against GRAM-2 gparam + TBL-2's closed concrete set; op-table T/K meta-notation transcribed into program text (CAT-1/CONST-1); receiver-fixed T/N respelled at call sites (the CAT-1a negative example) and, inversely, op-level binders omitted on seq_new. Responsible docs: HANDOUT CAT-1 warning, kernel GRAM-2/TYPE-5, optables.md TBL-2, cards.md CAT-1a note.",
+   "Underdetermined spellings graded against writers (l4, q2-flagged, q4): TYPE-5 requires explicit region/type args at user-fn call sites but no worked example exists in kernel, optables, or cards, and CAT-1a suppression (table-ops-only) is being over-generalized. Match arm order vs declared variant order (l4, s1, q4) is pinned by no explicit rule ID, only inferable from FORM-1. These are documentation gaps producing graded defects.",
+   "One-off hard-rule misses: GRAM-9 atom-position construct nesting (l2 \u2014 its only defect), ERR-2 non-exhaustive match omitting QueueFull (p1), TYPE-6 global variant-constructor uniqueness vs prelude Overflow (p2), OP-1 reserved dotless identifier 'len' bound as a param and an invented bare trap statement (q4), FORM-2 multi-line headers/strings (e3, q4)."
+  ],
+  "next_fixes": [
+   "HANDOUT.md: add a two-column call-convention box \u2014 'user fn: named args in declared order / table op: positional operands' \u2014 with one paired positive/negative example each; add one worked named-arg user-fn call to every cards.md card that currently shows only table-op calls. (Targets the 5-task GRAM-11 cluster.)",
+   "optables.md S.3: move OPEN-FLAG (BRAND-CROSS-FN) from a trailing note to a red box at the head of the CQ section reading approximately: \"'q is not a region: it never appears in region_params, parameter types, or your effect rows; all endpoint use must live in the scope that called cq_new (workaround a)\" \u2014 and add one complete single-scope worked pipeline (cq_new + cq_ends destructuring + send + recv). (Targets all 4 pipeline reds.)",
+   "HANDOUT.md: add a mechanical 'derive your effect row' recipe: (1) list exhibited effects op-by-op from the tables, (2) drop regions minted inside the body per CAT-5a(ii), (3) any bounds-checked index without a discharging fact exhibits traps, (4) check both directions per EFF-2, (5) conformer member rows must match exactly. Separately resolve the s1 catalog gap in optables.md S.2: either add traps to TblVisit/TblRetain member rows or state explicitly that index is unusable inside those conformers.",
+   "Kernel TYPE-5 / cards.md: add the missing worked example of a user-fn call with explicit region and type arguments (GRAM-3 targ slot), with a sentence stating CAT-1a suppression applies to table ops only. (Removes the underdetermined spelling hit in l4/q2/q4.)",
+   "cards.md borrow-minting rule (a): restate OWN-10 with the kernel's 'for locals and own parameters alike' phrase and present the local region 'e { } probe-window as the default idiom; add an OWN-11 example showing the region block INSIDE the loop body. (Targets e2, q1, p4.)",
+   "HANDOUT.md: add an affine-spelling checklist \u2014 'return move x;' always for affine types; 'move' at every user-fn argument of an affine binding; the bare-place exception is table-op place operands only (FN-8). (Targets e3, p2, q1, q4.)",
+   "optables.md TBL-2 + HANDOUT: one line \u2014 'the hasher is always a written concrete member of {fold, sip_keyed, identity, crc}; a hasher generic parameter does not parse (GRAM-2)' \u2014 with the e3/e4-shaped negative header as the example.",
+   "Pin match arm order with an explicit rule ID (amend ERR-2 or FORM-1: 'arms appear in declared variant order') so it stops being inference-only for both writers and graders.",
+   "HANDOUT.md: surface the OP-1 reserved dotless-identifier list (len, etc.) and add 'there is no bare trap statement; the only spelling is check e else trap \"msg\"; (OP-5)'.",
+   "cards.md construction note: fieldinit values are atoms (GRAM-9); show the let-then-move idiom for nested constructs. This alone recovers l2, the cheapest available green."
+  ],
+  "caveats": [
+   "Small sample: n=19 overall, n=3-4 per area; the FAIL band is CI-robust but per-area conclusions (e.g. entry 0/3) are not; the 80% par-of-green rests on n=5 and a single flip drops it below the band.",
+   "'Clean' applies to grading and handout completeness, not to task-doc fit: up to 6 of 14 reds sit partly on doc/catalog gaps rather than pure writer error \u2014 all 4 pipeline tasks probe the OPEN-FLAG brand surface (p3's substantive defects are entirely brand-gap-shaped), s1's required TblRetain conformer appears unsatisfiable under current member rows, and l4 forces an undocumented contract-member invocation. A documented-core-only rate would be higher, but even flipping all 6 yields 11/19 = 58% \u2014 still below PASS \u2014 and most of those tasks carry independent writer errors (p1 ERR-2, p2 TYPE-6/OWN-1, s1 GRAM-11), so the true core rate lies between 26% and ~58% and the FAIL/no-PASS conclusion stands either way.",
+   "Some counted defects took the strict reading of underdetermined docs (TYPE-5 region args at user-fn calls, match arm order); spot-check says no red flips green under a lenient regrade \u2014 every red retains at least one hard defect except arguably p3 \u2014 so the headline is insensitive to this, but individual defect counts are not.",
+   "Green measures legality/correctness only, not performance: q2 is green with WRONG_CHOICE severity (false cost claims under the rules it cites), which is exactly what the separate par metric exists to catch \u2014 do not read 26.3% green as 26.3% shippable.",
+   "Cross-round comparability is limited even beyond doc/grading differences: writer model, sampling, and task mix consistency across rounds 1-3 are not stated in the data provided (round 1 had 20 tasks vs 19 now), so treat round 3 as a fresh baseline rather than a trend point.",
+   "Grading itself is one reviewer deep this round; several judgments are explicitly flagged low-confidence in the record (s3's uniq-through-env NOTE, q2's TYPE-5 ambiguity, arm-order rejects graded 'probable'). A second-grader audit of the 5 greens and the near-miss l2 would harden the baseline before the next round.",
+   "Doc set referenced: /Users/bytedance/Dev/xlang/optimizer-language-research/implementation/systems-performance-coverage/m2-spec-mass/{HANDOUT.md, optables.md, cards.md} plus the kernel spec; reduced-cards-A/B and reduced-optables variants exist in the same directory \u2014 next_fixes should be applied to whichever variant set round 4 will hand out, or to both, to avoid re-introducing a docs mismatch."
+  ]
+ },
+ "rates": {
+  "green": "5/19",
+  "par_of_green": "4/5",
+  "byArea": {
+   "entry": {
+    "n": 3,
+    "green": 0
+   },
+   "lru": {
+    "n": 4,
+    "green": 1
+   },
+   "sweep": {
+    "n": 4,
+    "green": 2
+   },
+   "pipeline": {
+    "n": 4,
+    "green": 0
+   },
+   "seq": {
+    "n": 4,
+    "green": 2
+   }
+  }
+ },
+ "per_task": [
+  {
+   "task_id": "e2",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "OWN-10: tally_rec mints borrows of the own-mode parameter t at the caller-supplied region 'r (tbl_contains(&'r t,...), tbl_get_uniq(&uniq 'r t,...), tbl_insert(&uniq 'r t,...) \u2014 5 sites); OWN-10 forbids a caller-supplied region for a borrow rooted at an own binding ('for locals and own parameters alike'); fix is a local region 'e { } probe window per cards.md borrow-minting rule (a).",
+    "OWN-4/OWN-5: cur: &uniq 'r u64 from tbl_get_uniq has named-region liveness to the end of caller-owned 'r, so it is still live at return tally_rec(move t, ...); moving t while a live &uniq loan resolves into it is rejected (move requires an unborrowed own root). Consequence of defect 1; a local region ending before the tail call fixes it.",
+    "GRAM-11: both calls to the user fn tally_rec use positional arguments (tally_rec(move t, ballots, limit, i2, len) and try tally_rec(move t, &'r ballots, limit, 0_u64, n)); user-fn calls must write named arguments in declared order (tally_rec(t: move t, ballots: ballots, limit: limit, i: i2, len: len)) \u2014 the exact red the HANDOUT flags; table-op calls and constructions were correctly spelled, only the fn calls missed it.",
+    "EFF-2/CAT-5a(ii)/OWN-12: tally_rec's row reads('r), writes('r), allocates(heap), traps ties the table writes to the ballots region; under the corrected local-region spelling writes('r) becomes declared-but-unexhibited (EFF-2 both-ways error), and as written writes('r) instantiated at the caller's 'r conflicts with the caller's live shared borrow &'r ballots under OWN-12/OWN-5. Correct row: reads('r), allocates(heap), traps.",
+    "Minor edge (OP-1/[OP-2] mode choice): iadd.wrap then igt(bumped, limit) is exact only for limit < u64::MAX; at limit = u64::MAX the increment of a saturated count wraps bumped to 0, the veto misses, and 0 is silently stored \u2014 a pre-check ieq(old, limit) or iadd.checked closes the edge."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "entry"
+  },
+  {
+   "task_id": "e3",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "GRAM-2 gparam violation: `h` written as a lowercase generic parameter; gparam is `TYPEID (\":\" TYPEID)?` or `const IDENT: type`, and TBL-2's hasher is a closed concrete set (cards spell `table<u64, u64, fold>`) \u2014 hasher polymorphism exists in neither document, so the header does not parse.",
+    "cards.md C1 region/borrow discipline (b) + TYPE-5: `tbl_contains(t, k)` passes the `&uniq 'e` binding to the `&'r`-moded row \u2014 'no reborrowing and no uniq-to-shared coercion; a row spelled &'r requires a shared binding'. The solution's 'NONE-loan rows are call-only' defense governs loan duration, not operand mode. (Real doc tension: TBL-8 spells this exact pair and no `tbl_contains_uniq` exists; the strictly legal all-uniq alternatives are the tbl_entry/entry_occupied/entry_fill path or tbl_remove+tbl_insert.)",
+    "OWN-1 (confirmed by cards' borrow-minting note): `return v;` uses a bare place of affine type \u2014 a let-bound `&uniq` loan is affine and must be consumed with `move`; write `return move v;`.",
+    "FORM-2 + HANDOUT GRAM-2 index: fn header wrapped across multiple lines with the effect row on its own line; a statement is one line and the header runs through `{` on one line \u2014 non-canonical formatting is a hard error the handout explicitly pre-warned.",
+    "FORM-2/FORM-5: the `doc` STRING spans three source lines; a raw LF is not a legal STRING item (items are single ASCII-printable bytes or the three escapes) and the statement may not wrap."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "entry"
+  },
+  {
+   "task_id": "e4",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "Header declares the hasher as a generic parameter `<V, h>`: GRAM-2 gparam admits only TYPEID or `const IDENT: type`, TBL-2 makes h a closed always-written concrete set (fold/sip_keyed/identity/crc; cards C3 prune writes table<u64, u64, fold>), and the HANDOUT bars the op-table meta-notation h from ever appearing in a fn_decl (CAT-1). Hard reject [DIAG-1]; legal fix is a concrete hasher, e.g. table<u64, V, fold>.",
+    "Parameter `k: u64` omits the mandatory mode: GRAM-2 param := IDENT \":\" mode type and the HANDOUT (\"every param carries a mode\") require `k: own u64` (cards C1 lru_get: `key: own u64`). Mitigating precedent: cards C3 keep_big itself spells `key: u64`, but the kernel is the declared source of truth for spellings.",
+    "Cosmetic citation error in the prose: step 1 credits the per-binding loan judgment to CAT-4 (the token rule); the operative rules are OWN-5/OWN-12 (resolved-place exclusivity and call judgment) plus cards C1's per-binding-loan statement. The freeze analysis itself is substantively correct."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "entry"
+  },
+  {
+   "task_id": "l1",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "GRAM-11: the call `lru_get<'c, 'c>(&'c state.idx, &uniq 'c state.nodes, state.sent, ...)` passes positional arguments to a user fn; user-fn calls must write named arguments in declared order (`idx: ..., np: ..., sent: ..., hits: ..., misses: ..., key: ...`). Hard error citing GRAM-11 and the parameter list.",
+    "EFF-2 / CAT-5a(ii): `fn get` declares `allocates(heap)` but exhibits no allocation \u2014 `lru_get`'s row is `reads('i), writes('c), traps`, the 'c effects are confined to the internal `region 'c` block, and no op in the body allocates; declared-but-unexhibited is a hard error. Correct row is `traps` alone.",
+    "Design/correctness of the wrapper (card C1 state-owner discipline): `get(state: own Cache, ...)` consumes the Cache and drops it at scope exit without returning it, so the just-updated hit/miss counters are destroyed and only one get is ever possible \u2014 the field borrows should be minted in the owner's persistent scope (or the Cache threaded back out), not in a consuming one-shot wrapper.",
+    "COSMETIC: `get`'s doc says 'five disjoint field borrows' but only four borrows are minted; `state.sent` is passed as a copy hdl value (the card states handles freeze nothing), not a borrow. Minor prose muddle in the OWN-6 temporary-borrow justification as well."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "lru"
+  },
+  {
+   "task_id": "l2",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "[GRAM-9] violation: `return Some(value: Evicted(key: dead.key, val: dead.val));` nests a construct in an atom position (a fieldinit value must be an atom); hard error citing GRAM-9. Legal form requires a preceding `let ev: own Evicted = Evicted(...);` then `return Some(value: move ev);` (move required since Evicted is affine per OWN-1). The card's own hit path (`let v ...; return Some(value: v);`) shows the required shape."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "lru"
+  },
+  {
+   "task_id": "l3",
+   "green": true,
+   "par_choice": true,
+   "defects": [
+    "Sketch omits the enclosing `region 'v { }` block that [M5-FIX-3](a) (cards.md region discipline) and [CAT-1a] require to bind 'v at the dedicated-result-region call `pool_entry<'v, Entry>(np, h)`; as a two-line excerpt of the card's worked example this is presentational, but the lines as shown would not compile standalone.",
+    "Minor unsupported elaboration: 'pool_insert writes the slot's fields only under that bumped generation' \u2014 docs state only that pool_insert self-links the slot before reachability and that hdl carries generation bits under the wrap contract; the claim is consistent with but not stated by the docs."
+   ],
+   "severity_of_worst": "COSMETIC",
+   "area": "lru"
+  },
+  {
+   "task_id": "l4",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "EFF-2 / CAT-5a(iii) violation: fixed_load reads deref(env).calls through the &uniq 'e env borrow, which exhibits reads('e) (C3 is explicit: SeqVisit's row reads('v), writes('v) 'is exactly what the body exhibits (one deref read, one set write)'), but both fixed_load's declared row and Loader::load's member row omit reads('e); EFF-2 checks both ways and FN-3/CAT-5a conformance is exact, so the conformer is rejected \u2014 the member row copied from SeqSink/TblSink does not fit a read-modify-write conformer the writer himself supplied.",
+    "TYPE-5 violation: calls to region-parametric user fns (lru_get['i,'c], lru_insert['i,'c], load['e]) write no region arguments, but TYPE-5 requires call sites to state all type/region/const arguments explicitly and GRAM-3's targ := type | REGIONID | const provides the slot; the writer's CAT-1a inference argument governs table ops, not user fns (writer flagged this gap, then chose the unsupported inference reading).",
+    "Undocumented construct: the direct contract-member call load(env: move loader, key: key) \u2014 'load' is neither an operation-table spelling nor a program fn_decl, so OP-1/DIAG-1 callee lookup fails, and no document defines member invocation outside a sealed protocol op driving the conformer; the task forces some such spelling and this extrapolation (FN-3 bound-makes-available, FN-5 direct-call) is the best available, but it is strictly in neither source (writer disclosed it).",
+    "Canonical-order (FORM-1/ERR-2 discipline): match hit writes the Some arm before None(), reversing Option's declared variant order (PRE-1: None(); Some(value: T);); every documented match (EX-1, C1's gone/displaced matches) follows declaration order and FORM-1's one-legal-byte-sequence posture implies arms in declared order \u2014 cosmetic, likely a reject.",
+    "Consequential row gap: once Loader::load's member row is corrected to include reads('e), cached_fetch's declared row must also surface reads('v) ('v is a fn region param, not internally minted), so the declared row writes('v), allocates(heap), traps is one clause short of the corrected union."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "lru"
+  },
+  {
+   "task_id": "s1",
+   "green": false,
+   "par_choice": false,
+   "defects": [
+    "collect_allow_id: body contains a bounds-checked index write (set index<u64>(deref(env).ids, i) = key) with no discharging fact, so per EFF-2 it syntactically exhibits traps; its declared row reads('v), writes('v) omits traps (undeclared-but-exhibited error), and since TblVisit's member row (optables S.2) carries no traps clause, CAT-5a(iii)/FN-3 exact conformance for 'conform AllowCollect : TblVisit<u64, unit>' is unsatisfiable \u2014 the design's snapshot pass cannot compile.",
+    "keep_active_allowed: the membership scan reads index<u64>(deref(env).allow_ids, i), a bounds-checked index (OP-4; the ige/match guard is not the OP-5 stated-and-checked channel and nothing links allow_len to len(allow_ids)), so the body exhibits traps per EFF-2 while declaring only reads('v); TblRetain's member row is reads('v) with no traps, so 'conform RetainEnv : TblRetain<u64, buffer<u8>>' is rejected \u2014 the required-by-task conformer itself is the illegal piece. Blessed precedent confirms the wall: keep_big/count_visit are index-free, and the only card body using index (ring_push) declares traps, a row a TblRetain member cannot carry.",
+    "retain_active_streams calls the user fn positionally: build_allow_lookup(allow). GRAM-11 requires named arguments in declared order for user-fn calls \u2014 build_allow_lookup(allow: allow); positional atom_list is reserved for table ops. Hard error citing GRAM-11.",
+    "match nonempty writes arms False() then True(), against Bool's declared variant order (PRE-1: True(); False();). No rule ID explicitly pins arm order, but every normative example (EX-1, C1, C2, C3) uses declared order and FORM-1 admits one byte sequence per construct \u2014 probable canonical-form reject; graded cosmetic/uncertain.",
+    "Knob: hasher 'identity' chosen for both stream-id tables with the key distribution unspecified. Legal per TBL-2 (copy integer K), but per TBL-3 H1 (group selector) is the remaining high hash bits, so identity on small/sequential stream ids degenerates every probe to the same starting group; the neutral documented choice is 'fold' (C3 prune precedent). The stated justification also inverts TBL-2 (identity requires integer K; integer K does not require identity).",
+    "Par note (defect shared with items 1-2): the O(len(buffers) x len(allow)) per-entry linear scan is the honest cost of the only borrow-legal membership representation (the solution's no-borrow-fields/no-reborrow analysis is correct), but that representation is exactly what forces the undeclarable traps effect \u2014 under these documents the task's AND-with-second-table predicate has no trap-free TblRetain spelling, which is a catalog-gap-shaped finding (the C1 FINDING/D16 class), not only a writer error."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "sweep"
+  },
+  {
+   "task_id": "s2",
+   "green": true,
+   "par_choice": true,
+   "defects": [
+    "Citation mislabel: the seq op table is optables.md section S.1 (lines 43-100), not 'S.2' as the solution states; the cited line range 67-90 and all content claims are otherwise correct (cosmetic, violates no legality rule).",
+    "Minor reasoning imprecision: the solution dismisses the manual-rebuild alternative as requiring invented op names, but a compaction composition via documented ops (seq_take_all + seq_drain with a SeqSink that conditionally re-pushes, or seq_len/seq_get/seq_push rebuild) uses only S.1 vocabulary and cards.md C3 blessed iteration; it is legal, merely not 'the documented seq bulk op with a conformer keep predicate' the task named. The verdict (no such op exists) remains correct."
+   ],
+   "severity_of_worst": "COSMETIC",
+   "area": "sweep"
+  },
+  {
+   "task_id": "s3",
+   "green": false,
+   "par_choice": false,
+   "defects": [
+    "seq_new() is called with no type arguments: the row `seq_new | () -> own seq<T, N>` has no receiver to fix T/N, so both are op-level binders that must be written \u2014 TYPE-5 (call sites state all type/region/const arguments explicitly) and [CAT-1a] (only receiver-fixed generics are omitted); the blessed spelling in cards.md's borrow-minting example is `seq_new<u32, 0>()`. Must be `seq_new<Task, 0>()`; as written it is a hard compile reject, so the solution does not check.",
+    "Missing capacity reservation on the accumulator: a complete drain of n entries into a cap-0 seq pays O(log n) growth reallocations and up to 2x total element moves ([SEQ-3]/[SEQ-4]); the performance-right knob is `tbl_len(t)` (reads('r), O(1)) followed by `seq_with_cap<Task, 0>(n)` (optables.md S.1 row: one allocation, SLACK(r)>=n), matching the Rust baseline where drain().collect() preallocates via size_hint. Form and op are otherwise right (tbl_drain is the only drain row and C3's blessed iteration shape).",
+    "NOTE (not counted as a defect): the sink body's `&uniq 'v deref(env).out` is a uniq borrow through the uniq env parameter; cards.md C1 states 'v0 has no reborrowing (T-A)', but kernel [OWN-10] explicitly licenses a borrow of a place rooted at a borrow of region 'b when 'b outlives-or-equals 'a (here 'v = 'v), and the TblSink contract (env: &uniq 'v Self; member row writes('v), allocates(heap), traps per [CAT-5a](iii)) admits no other body that exhibits allocates \u2014 so this is graded as the intended spelling, not a violation. Everything else checks: exact member-row equality ([EFF-2]/[CAT-5a](iii)), region-confined writes('v) dropped from drain_to_seq's row ([CAT-5a](ii), count_all precedent), hasher written per [TBL-2], positional op operands per [GRAM-11], `return move env.out;` legal ([GRAM-5] place, [OWN-1] whole-binding death as last use). The requested post-drain report is fully doc-accurate: tbl_drain row (optables.md S.2) facts LEN(t)=0, kills HAS(t,*); ELEM(t), own column 'control bytes reset, buckets retained' \u2014 capacity retained, table immediately reusable without reallocation; ordering (scan order, deterministic per instance history, not a fact channel) is exactly [TBL-2]."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "sweep"
+  },
+  {
+   "task_id": "s4",
+   "green": true,
+   "par_choice": true,
+   "defects": [
+    "Rule mis-citation in the rejection analysis: the freeze is attributed to [CAT-4], but CAT-4 governs token-issuing rows (ISSUE tok:t) and tbl_for_each's loan column is NONE; the operative rules are kernel [OWN-5] (resolved-place exclusivity: a live &'r loan on t forbids the overlapping &uniq mint tbl_remove needs) via [OWN-12] (argument borrows are live accesses for the whole call). The loan identified (the shared 'r loan on t held for the traversal) and the per-binding loan-judgment substance are correct, so this is a citation defect only."
+   ],
+   "severity_of_worst": "COSMETIC",
+   "area": "sweep"
+  },
+  {
+   "task_id": "p1",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "Non-exhaustive match: coordinator's inner match on CqSendFail<WorkItem> handles only QueueClosed and omits the declared QueueFull(value: T) variant \u2014 hard error under ERR-2 (every match exhaustive over declared variants, no wildcards); optables S.3 declares both variants and explicitly retains QueueFull 'for regularity' even though the blocking row makes it unreachable (the writer applied this correctly for CqRecvFail but not CqSendFail).",
+    "Brand threaded through fn signatures as a region parameter: worker_loop['q] and coordinator['q] bind the queue brand via region_params and use it in parameter types cq_tx<'q, WorkItem>/cq_rx<'q, WorkItem> and effect rows \u2014 CQ-2 ('a brand is not a lexical region and may never instantiate a region parameter') and OPEN-FLAG (BRAND-CROSS-FN) [M5R2-FIX-6] ('a program that tries to thread a raw brand ... through a fn signature is rejected until the kernel rules land'); the sanctioned workaround (a) is to consume the endpoints in the same function scope that minted 'q via cq_new, and the solution's otherwise careful gap list cites BRAND-MINT/BRAND-EFFECTS but misses BRAND-CROSS-FN entirely.",
+    "Clone endpoints scoped to die before use: rx1/rx2/rx3 are let-bound inside region 'c { }, so STOR-3 drops them on every region-exit edge; the claim that they are 'minted and ready to be handed one each to the coordinator and four workers' is false \u2014 the fan-out bindings cannot outlive 'c, so any dispatch (had a spelling existed) would have to live inside the block or the lets restructured.",
+    "Cosmetic: the statically-unreachable RecvEmpty() arm is treated as clean shutdown (break @drain); harmless given the blocking row marks RecvEmpty unreachable, but empty is not closed \u2014 a check False() else trap arm (the cards' impossible-arm idiom) would state the invariant instead of silently conflating the two."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "pipeline"
+  },
+  {
+   "task_id": "p2",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "TYPE-6 (kernel \u00a74) / PRE-1: `enum WorkError { Overflow(); }` redeclares the variant constructor name `Overflow`, which the prelude already defines (`enum Overflow { Overflow(); }`); enum variant constructor names are globally unique across all enum declarations in the closed program including the prelude, so this is a hard error at check time.",
+    "EFF-2 / CAT-5a: `worker_send`'s declared row `reads('q), writes('q, 's)` omits `reads('s)`, but the body reads `deref(stats).sent` and `deref(stats).dropped` through the `&uniq 's` borrow \u2014 undeclared-but-exhibited is an error (the cards.md C3 `count_visit` precedent declares `reads('v), writes('v)` for exactly this one-deref-read-one-set-write shape).",
+    "OWN-1: `return acc;` in `collector_run` uses a bare place of affine type (`own CollectorState` is an owned composite); the spelling must be `return move acc;` \u2014 the solution itself writes `move acc` at the recursive call, so the base-case arm is inconsistent and a hard error as written.",
+    "OWN-1: `collector_run(rx: rx, acc: move acc)` passes the affine `&uniq 'e` binding `rx` bare into a user-fn call; the C1 bare-receiver precedent covers table-op operands only, and a bare place of affine type at a user-fn argument is the OWN-1 hard error (needs `move rx`; it is the last use, so the move is legal). The writer flagged this as an unsettled extension, but under the supplied documents it rejects.",
+    "EFF-1 / cards.md M5-FIX-3(a) / CAT-5a(ii): `wire_pipeline`'s declared row `writes('q)` names a brand that is minted inside the function body and appears nowhere else in the signature \u2014 a free region/brand name in the row; effects confined to an internally-minted scope do not escape into the declared row, so even under the OPEN-FLAG (BRAND-EFFECTS) convention this row is wrong for a function that mints 'q itself.",
+    "Cosmetic/incompleteness: the three `cq_tx_clone` results are dropped at `region 'x` exit and `tx0`/`rx0` at function exit, so `wire_pipeline` wires nothing to anything; partially excused by the OPEN-FLAG (THREADS)/BRAND-CROSS-FN gaps the writer explicitly flagged, but the endpoints could at least have been handed to `worker_send`/`collector_run` calls within the minting scope per workaround (a)."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "pipeline"
+  },
+  {
+   "task_id": "p3",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "API_MISUSE [CQ-2 / OPEN-FLAG (BRAND-CROSS-FN), M5-FIX-7 / M5R2-FIX-6]: producer_cycle['q, 'x] declares the queue brand 'q in region_params and threads cq_tx<'q, seq<Sample, 32>> through a user-fn signature. CQ-2: a brand 'is not a lexical region and may never instantiate a region parameter'; BRAND-CROSS-FN: there is no brand-parameter spelling in v0 and 'a program that tries to thread a raw brand ... through a fn signature is rejected until the kernel rules land.' Compile-reject; the sanctioned shape is workaround (a): mint via cq_new and perform the send in the same function scope.",
+    "Dependent on the above [OPEN-FLAG (BRAND-EFFECTS), CQ-7]: the declared row reads('q), writes('q) treats the brand as an effect region in user code; that brand-in-row spelling exists only in the catalog's own S.3 rows pending a kernel delta and is not writable in a user fn (no legal binder for 'q exists).",
+    "Task-completeness consequence [CQ-4 / BRAND-CROSS-FN workaround (a)]: because the send is only spellable in the scope that minted 'q, the shown 'accumulate-send cycle' omits the mandatory cq_new + cq_ends QueueEnds destructuring match; the demonstration as written cannot exist in a legal v0 program.",
+    "COSMETIC tension [CQ-5 / ERR-4 / cards C2 single-failure principle]: the Err arm converts QueueClosed \u2014 an expected environmental Result outcome whose payload deliberately returns the batch so no owned value is lost \u2014 into check False() trap, discarding the returned batch; defensible as a C1-style invariant check but against the expected-outcome-is-a-value doctrine."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "pipeline"
+  },
+  {
+   "task_id": "p4",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "Brand threaded through fn signatures: run_producers['q] and send_one['q,'e] declare the queue brand 'q as a region_param and call sites pass it as a region argument; [CQ-2] says a brand 'may never instantiate a region parameter' and OPEN-FLAG (BRAND-CROSS-FN) says a program that threads a raw brand through a fn signature is REJECTED \u2014 the solution quotes this flag and then violates it; the sanctioned shape consumes the endpoints in the scope that minted 'q via cq_new.",
+    "Table-op call convention wrong at every op call: cq_send['e](tx: tx_h, v: v), cq_tx_clone['p](tx: peer), cq_new['q, T, mpmc, k4]() use square-bracket region lists and NAMED operands; [GRAM-11] requires POSITIONAL operands for table ops and [CAT-1a] puts type args in angle brackets and forbids writing a region argument the receiver borrow already fixes \u2014 the legal shape is cq_send(&uniq 'e tx, move v) / cq_tx_clone(&'p tx0).",
+    "[OWN-10] violation in send_one: &uniq 'e tx borrows an own-mode parameter at the caller-supplied region 'e; OWN-10 forbids caller-supplied regions for borrows rooted at locals and own parameters alike \u2014 the borrow region must be introduced locally via region 'e { }.",
+    "'let box tx_h : &uniq ...' is ungrammatical: let_stmt is 'let' IDENT ':' mode type ([GRAM-4]); there is no 'let box' form. Additionally, per cards.md [M5R2-FIX-3] a let-bound borrow is affine and must be passed with 'move tx_h'; the solution passes it bare. The blessed spelling is the inline borrow atom at the call site.",
+    "Unbound region 'p in main: let peer : &'p cq_tx<...> = &'p tx0 names a region bound by no region 'p { } block and no region_params (main has none); [OWN-3] / cards.md [M5-FIX-3](a) require every region name to be bound \u2014 rejected.",
+    "All match arms omit '=>': [GRAM-4] arm := TYPEID '(' fieldbind_list? ')' '=>' '{' stmt* '}'; every worked example in cards.md writes 'Some(value: h) => {'. Three matches in the sketch parse-fail.",
+    "Effect rows malformed and inexact: run_producers declares bare 'reads, writes' \u2014 [EFF-1] requires reads(REGIONID+)/writes(REGIONID+); its allocates(heap) and traps, and send_one's traps, are declared-but-unexhibited (cq_send's row is reads('q), writes('q) with no traps), which [EFF-2] rejects both ways.",
+    "Op-table meta-notation transcribed as program text: bare 'T' appears in fn_decls and in cq_new targs, and 'k4' is passed for const K; [CAT-1]/HANDOUT say T/K are meta-notation never respelled, [CONST-1] requires an integer literal or declared const IDENT for K, and v0/v1 are undeclared idents. main also cannot use an unbound generic T at all ([FN-7]/[TYPE-5]).",
+    "Return types '-> unit' omit the mode ([GRAM-2] rtype := mode type; cards spell '-> own unit') and bodies lack terminating 'return unit;' \u2014 cosmetic against the worked examples."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "pipeline"
+  },
+  {
+   "task_id": "q1",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "OWN-11 violation (kernel \u00a75): `region 'x { loop @scan { ... } }` puts the region outside the loop, then mints `&uniq 'x idx_q`, `&uniq 'x val_q`, and `&uniq 'x out` inside `@scan` \u2014 inside a loop a borrow_expr may only name regions introduced inside the loop body, so every borrow atom in the hot loop is rejected; the legal shape is `loop @scan { region 'x { ... } }` (OWN-10 permits borrowing the outer-declared locals at an inner region).",
+    "OWN-1 + T-A/M5-FIX-3(b) violation: `swm_evict_smaller`/`swm_evict_expired` pass their `&uniq 'x Ring` parameters bare into user-fn calls (`ring_peek_back(q: val_q)`, then `ring_pop_back(q: val_q)`, then the recursive call). Uniq borrows are affine \u2014 a bare affine place is a hard error ('write move p'), `move` would kill the binding after the first call, and v0 has no reborrowing to fan a &uniq out; the C1 precedent for bare repeated `&uniq` use covers table-op operands only (FN-8's non-consuming place operands), not GRAM-11 user-fn atoms. Both eviction helpers are unwritable as designed; eviction must be inlined where the owned rings can mint fresh `&uniq 'x` atoms per call (or thread ownership through the recursion).",
+    "reinterpret spelling (TYPE-4/OP-1/OP-8/OP-7): `reinterpret<u64>(cur_v)` and `reinterpret<i64>(bpay)` supply only Dst; the structural-conversion family's documented call shape is two type arguments \u2014 TYPE-4 fixes `cvt<Src, Dst>(x)` and OP-8 defines reinterpret as its bit-preserving counterpart with signature `(Src) -> own Dst`; kernel ops spell type arguments explicitly even when operand-inferable, so the calls should be `reinterpret<i64, u64>(cur_v)` / `reinterpret<u64, i64>(bpay)`."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "seq"
+  },
+  {
+   "task_id": "q2",
+   "green": true,
+   "par_choice": false,
+   "defects": [
+    "WRONG_CHOICE [SEQ-2]/[SEQ-3]/[SEQ-4]/[STOR-1]: the full-buffer path inserts before evicting \u2014 seq_insert_at at len = cap = 10 forces required capacity 11 > 10, so SEQ-3 growth fires (one heap allocation, new cap 32) and SEQ-2's one-way spill permanently moves the buffer off its inline frame-resident store. The stated amortized-cost promise ('growth never triggers', 'the buffer never spills past its inline store', 'stays frame-resident [STOR-1] for its whole life') is factually false under the very rules cited, and the task explicitly asked for the cost promises relied on. The performance-right ordering with the same documented ops is evict-first: seq_remove_at(&uniq 'x buf, 0_u64) (len 10->9) then scan and seq_insert_at (len 9->10 <= cap) \u2014 truly allocation-free and inline forever. Code remains functionally correct (top-10 result is right; O(len-i)<=10 shift bound holds).",
+    "COSMETIC (consequence of the above): push_top10's doc claims 'occupancy never exceeds 10', but occupancy is 11 between the insert and the remove.",
+    "AMBIGUOUS / low confidence [TYPE-5]: calls to region-parameterized find_insert_pos['r] write no explicit region argument (TYPE-5: 'call sites state all type/region/const arguments explicitly'; GRAM-3 targ admits REGIONID; OWN-12 presumes caller region arguments). No worked example in the kernel, optables, or cards shows a region-arg user-fn call, and CAT-1a suppresses region args for table ops, so the required spelling is documented-underdetermined; flagged but not counted against severity.",
+    "COSMETIC: 'let dropped: own u64 = seq_remove_at(...)' binds a never-used value (no rule violated; expr_stmt discard was also legal)."
+   ],
+   "severity_of_worst": "WRONG_CHOICE",
+   "area": "seq"
+  },
+  {
+   "task_id": "q3",
+   "green": true,
+   "par_choice": true,
+   "defects": [],
+   "severity_of_worst": "NONE",
+   "area": "seq"
+  },
+  {
+   "task_id": "q4",
+   "green": false,
+   "par_choice": true,
+   "defects": [
+    "Bare `trap \"seq_swap_remove: empty sequence\";` statement: no trap_stmt exists in GRAM-4; trap is only spellable as `check e else trap \"msg\";` [OP-5] (cards.md C1 precedent `check False() else trap ...;`). Invented construct \u2014 in neither kernel nor catalog.",
+    "Parameter `len: own u64` binds a RESERVED identifier: OP-1 reserves the dotless op IDENTs (including `len`) \u2014 'no fn_decl, field, param, binder, or region binds them'. Hard error; mechanical fix is renaming (e.g. `n0`).",
+    "`seq_swap<T, n>(s, i, last)` and `seq_pop<T, n>(s)` respell receiver-fixed T/N at table-op call sites \u2014 exactly the CAT-1a negative example [M5R2-FIX-4]; legal spellings are `seq_swap(s, i, last)` and `seq_pop(s)`.",
+    "`return v;` where `v: own T` and T is an unbounded generic: OWN-1 requires `move v` for affine T; the solution explicitly advertises affine payloads (box<T>), for which the bare place is a hard error \u2014 contradicting its own uniformity claim (only copy-T instantiations check).",
+    "Caller-side snippet `seq_swap_remove<T, cap>(&uniq 'x buf, target_i, n0)` uses positional arguments on a user fn: GRAM-11 requires named arguments in declared order (`s: ..., i: ..., len: ...`); it also omits the explicit region argument TYPE-5 requires at call sites (spelling underdetermined by the docs' examples).",
+    "COSMETIC: fn header wrapped across four lines violates FORM-2 ('no line wrapping \u2014 a statement is one line'; HANDOUT: header runs through `{` on one line).",
+    "COSMETIC (no explicit rule ID): match arms written Some-before-None against Option's declared variant order; every normative example (EX-1, cards C1) uses declared order and FORM-1 admits one legal byte sequence."
+   ],
+   "severity_of_worst": "API_MISUSE",
+   "area": "seq"
+  }
+ ]
+}
