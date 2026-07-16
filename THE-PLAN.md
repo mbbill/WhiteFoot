@@ -82,7 +82,7 @@ Measured non-wins (equally load-bearing):
 ## 4. Active build track and ranked bets
 
 1. **Performance-first minimal systems-capability research** — CANDIDATE C
-   SPARSE PAPER REPAIR ACTIVE (owner-authorized 2026-07-15). The
+   SPARSE REPAIR GATE STOPPED: SR-PROFILE (completed 2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
@@ -104,13 +104,15 @@ Measured non-wins (equally load-bearing):
    admitted family, and no unavoidable structural tax, but provides no safety,
    code-shape, or measured-performance closure.
 
-   The owner authorized only the bounded paper-repair route after Gate 1. The
-   controlling `CANDIDATE-C-SPARSE-REPAIR-PLAN.md` freezes three alternatives:
+   The completed bounded paper-repair route compared three alternatives:
    operation-closed sparse profiles, one profile-indexed sparse automaton, and
-   an orthogonal factoring control. It requires exactly fifteen candidate-
-   operation rows, comparison across semantics, cost, safety, implementation,
-   diagnostics, AI stability, family growth, and B/A convergence, followed by
-   a mandatory Sparse Repair Gate stop.
+   an orthogonal factoring control. The exact fifteen-row matrix gives five
+   `CLOSED` routes each to the first two and five `CONVERGES-B` routes to the
+   third. The Sparse Repair Gate selects `SR-PROFILE` only as the next research
+   hypothesis: one compiler-owned profile-indexed sparse automaton plus fixed
+   insert, replace, remove, relocate, and rehash templates. Candidate C v0 is
+   unchanged, and no safety, implementation, code-shape, or performance claim
+   follows.
 
    The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
    language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
@@ -134,8 +136,9 @@ Measured non-wins (equally load-bearing):
    `optimizer-language-research/implementation/minimal-systems-capability/
    PERFORMANCE-FIRST-CAPABILITY-RESEARCH-CHARTER.md`; the controlling bounded
    validation plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`; its authorization
-   is exhausted at Gate 1. The active paper-repair contract is
-   `CANDIDATE-C-SPARSE-REPAIR-PLAN.md`. No Stage 2,
+   is exhausted at Gate 1. The completed paper-repair contract is
+   `CANDIDATE-C-SPARSE-REPAIR-PLAN.md`; its authorization is exhausted at the
+   Sparse Repair Gate. No Stage 2,
    allocator, SQLite, Crossbeam, Tokio, Wasmtime, safety model, structural
    prototype, machine-event model, performance measurement, AI trial, language
    or specification change, compiler or verifier implementation, capability

@@ -28,11 +28,11 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "Candidate C sparse paper repair is active",
+        "Candidate C sparse repair has stopped at its owner gate",
         "CANDIDATE-C-SPARSE-REPAIR-PLAN.md",
         "Stage 1 are complete",
         "`C-REVISE`",
-        "stops at the Sparse Repair Gate",
+        "the authorization is exhausted at the Sparse Repair Gate",
         "No Stage 2",
         "exact D-2/P-1 fail-",
     )
@@ -40,11 +40,11 @@ def main() -> int:
     require(
         ROOT / "THE-PLAN.md",
         (
-            "CANDIDATE C\n   SPARSE PAPER REPAIR ACTIVE",
+            "CANDIDATE C\n   SPARSE REPAIR GATE STOPPED: SR-PROFILE",
             "There is no evidence-\n   backed winner.",
             "C as the first bounded validation",
             "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
-            "mandatory Sparse Repair Gate stop",
+            "Sparse Repair Gate selects `SR-PROFILE`",
             "No Stage 2",
         ),
     )
@@ -56,7 +56,7 @@ def main() -> int:
             "C as the first bounded validation hypothesis",
             "CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md",
             "route 1: a bounded paper repair",
-            "mandatory Sparse Repair Gate stop",
+            "Sparse Repair Gate selects `SR-PROFILE`",
         ),
     )
     plan_text = (ROOT / "THE-PLAN.md").read_text(encoding="utf-8")
@@ -86,6 +86,18 @@ def main() -> int:
         / "optimizer-language-research"
         / "implementation"
         / "minimal-systems-capability"
+        / "CANDIDATE-C-SPARSE-REPAIR-CANDIDATES.md",
+        (
+            "Sparse Repair Gate disposition: `SPARSE-SELECT: SR-PROFILE`.",
+            "Candidate C v0 is unchanged.",
+            "Work stops at this gate.",
+        ),
+    )
+    require(
+        ROOT
+        / "optimizer-language-research"
+        / "implementation"
+        / "minimal-systems-capability"
         / "CANDIDATE-C-SPARSE-REPAIR-PLAN.md",
         (
             "controlling paper-repair contract",
@@ -106,7 +118,7 @@ def main() -> int:
             "Stage 2 is not authorized.",
         ),
     )
-    print("performance research status: Candidate C sparse paper repair active")
+    print("performance research status: Candidate C Sparse Repair Gate stopped, SR-PROFILE")
     return 0
 
 

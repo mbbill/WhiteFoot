@@ -61,6 +61,16 @@ mandatory Sparse Repair Gate stop. It does not authorize applying a repair,
 modifying Candidate C v0, entering Stage 2, inspecting another project,
 implementation, execution, proof, or measurement.
 
+That paper repair is complete. The exact fifteen-row comparison records five
+`CLOSED` routes for operation-closed profiles, five `CLOSED` routes for the
+profile-indexed sparse automaton, and five `CONVERGES-B` routes for orthogonal
+factoring. The Sparse Repair Gate selects `SR-PROFILE` only as a further-
+research hypothesis because it reuses a finite automaton without opening
+profile, transition, provenance, fact, or cleanup authority to ordinary
+libraries. `SR-CLOSED` has avoidable per-profile catalog growth;
+`SR-ORTHOGONAL` is B's later compression direction. Candidate C v0 remains
+unchanged, and the authorization is exhausted at this gate.
+
 ## 0.1 Earlier scope correction retained as historical context
 
 The immediate research question is **not** how to authenticate independently

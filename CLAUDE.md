@@ -70,7 +70,7 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Candidate C sparse paper repair is active under
+- Candidate C sparse repair has stopped at its owner gate under
   `optimizer-language-research/implementation/minimal-systems-capability/
   CANDIDATE-C-SPARSE-REPAIR-PLAN.md`. The owner selected C as the first
   bounded validation hypothesis, B as the later compression challenge, and A
@@ -79,10 +79,12 @@ proof discharges them — speed is earned by proof, never by weakening a check.
   `C-REVISE`: C-4 is the right reusable sparse family, but exact control-to-
   payload, transition/cleanup, provenance, fact, group-operation, and growth-
   allocation rules remain absent. No new family was admitted, and no safety,
-  code-shape, or performance closure was claimed. The current authorization
-  compares exactly three paper repairs over the existing five operations and
-  fifteen rows, then stops at the Sparse Repair Gate. It does not apply a
-  repair or reopen source inspection. Keep the 340
+  code-shape, or performance closure was claimed. The exact fifteen-row repair
+  comparison selects `SR-PROFILE`, a closed profile-indexed sparse automaton,
+  only as the next research hypothesis. `SR-CLOSED` has avoidable per-profile
+  catalog growth; `SR-ORTHOGONAL` converges to B. Candidate C v0 is unchanged,
+  the authorization is exhausted at the Sparse Repair Gate, and no repair or
+  wider source inspection is authorized. Keep the 340
   unresolved dense obligations across 150 contexts and exact D-2/P-1 fail-
   closed. No Stage 2, allocator, SQLite,
   Crossbeam, Tokio, Wasmtime, safety
