@@ -174,7 +174,7 @@ def main() -> int:
 
     print(
         "performance research status: D15 systems-performance coverage track "
-        "active; M1 pending owner authorization"
+        "active; loan-judgment gate passed, hostile review pending"
     )
     return 0
 
