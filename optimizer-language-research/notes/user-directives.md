@@ -673,3 +673,35 @@ Recorded consequences:
 
 No production change is authorized by this ruling; it fixes the direction of
 the verification track and the extensibility story.
+
+## D18 (2026-07-16): Five rulings on the parked decision list
+
+1. **Pool slot reuse: APPROVED** — generational handles supersede the
+   never-recycle posture; stale handles trap deterministically. Rider: the
+   owner asks for a bounded look at alternatives that avoid the per-access
+   version-check cost where possible ("if we can avoid the performance
+   penalty that's better") — candidate directions recorded: session loans
+   (a shared loan freezing free/reuse makes in-session derefs check-free via
+   the ratified loan machinery), affine owned-handle mode (staleness
+   impossible by construction), and fact-based elision of repeated checks on
+   one handle (requires-prologue style). Research-scope only.
+2. **Trap scope: option A ratified** — a runtime safety trap terminates the
+   whole process; availability is a supervision concern outside the process;
+   expected failures remain Result values.
+3. **v1 non-goals: all four ratified** — concurrent ordered map, writable
+   shared-memory IPC, inbound FFI callbacks, user-authored novel lock-free
+   structures; each keeps its written re-entry trigger; the fourth carries
+   the D17 proof-lane as its long-term resolution.
+4. **Loan-rule amendments: all ratified** — the four repair amendments
+   (statement-local mint disjointness; mint mode-capability; explicit
+   issues-on-source tie; R12 wording reconciliation) plus the optional
+   declaration-time tightening. The consolidated 15-rule text becomes the
+   normative research draft.
+5. **Spec budget: option 2 ratified** — eight load-bearing pattern cards
+   remain in the always-loaded manual with full worked examples; the
+   remaining seven ship as taught, non-normative example files; light trim
+   of the operation long-tail; target ~48k tokens total manual. Card
+   selection is provisional pending round-4 writability data.
+
+No production change authorized; these rulings bind the research drafts and
+the validation protocol.
