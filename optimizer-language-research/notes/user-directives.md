@@ -588,3 +588,45 @@ hostile review, cross-design comparison, and durable recording of the results.
 Production language, specification, checker, compiler, runtime,
 standard-library, container, xlc, migration, fact-channel, teaching, and
 shipping changes remain separately gated on later explicit owner decisions.
+
+## D16 (2026-07-16): Copy declaration, catalog minimality, acceptance ledger, delegated execution
+
+Four owner rulings from the same session, recorded verbatim in intent:
+
+1. **Records copy semantics (decision 5): explicit declaration selected.** A
+   record type is copyable only when declared so (`copy struct` spelling,
+   R3-provisional); the compiler verifies every field is copyable. Automatic
+   structural Copy and nominally-affine-only storage are rejected. This
+   settles the E0.1 three-way choice at the ruling level.
+
+2. **Catalog minimality criterion (decision 6, with owner amendment).** The
+   built-in component set must be lean. Do not mirror the Rust standard
+   library. A sealed built-in is admitted ONLY when ordinary users cannot
+   implement the capability themselves at par performance from the language
+   primitives and checked libraries. Everything user-implementable ships as
+   taught checked source or composition cards instead of new forms. The
+   owner's words: provide the most basic and critical methods; let users
+   implement the rest; only include what users cannot implement.
+
+3. **Built-in acceptance ledger.** Every sealed component must prove
+   performance AND safety AND reliability before shipping: the five-part
+   battery (differential testing against the reference implementation,
+   exhaustive small-bound model checking, sanitizer/fuzz soak, hostile
+   pre-ship review, CI-pinned performance and assembly shape), plus complete
+   failure semantics (programmer error traps; environmental failure returns
+   Result; no unspecified behavior), resource ceilings, and teardown
+   protocols with fault-injection evidence. A component without a complete
+   green ledger cannot ship.
+
+4. **Delegated execution.** The owner authorized continuing the program
+   autonomously ("start working; make appropriate decisions yourself; do not
+   stop until done"). Research-scope prototypes, measurements, checker
+   experiments, and writability trials are authorized within the research
+   track. Production language, specification, checker, compiler, runtime,
+   and teaching changes remain separately gated. Under the delegation, three
+   recommendations are adopted provisionally pending explicit morning
+   ratification: pool generational slot recycling (supersedes the P2
+   never-recycle posture; stale handles trap deterministically), trap =
+   process abort for the concurrency layer, and the named v1 non-goals
+   (concurrent ordered map, writable shared-memory IPC, inbound FFI
+   callbacks, user-authored novel lock-free structures).
