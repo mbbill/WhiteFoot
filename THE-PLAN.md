@@ -82,7 +82,7 @@ Measured non-wins (equally load-bearing):
 ## 4. Active build track and ranked bets
 
 1. **Performance-first minimal systems-capability research** — CANDIDATE B
-   CROSS-PROJECT DESIGN ACTIVE (2026-07-15). The
+   DESIGN GATE COMPLETE: `B-REVISE` (2026-07-15). The
    objective is to remove performance barriers caused by missing language
    expressiveness while retaining the standing safety and regularity
    constraints. The research starts from a finite ledger of blocked native
@@ -114,20 +114,28 @@ Measured non-wins (equally load-bearing):
    unchanged, and no safety, implementation, code-shape, or performance claim
    follows.
 
-   The owner then authorized Candidate B's compression question against more
-   than Hashbrown. The bounded plan freezes fourteen operations across four
-   official source revisions: the existing five Hashbrown operations; small
+   Candidate B's bounded compression comparison is complete across fourteen
+   operations and four pinned source revisions: five Hashbrown operations;
    allocation, local free, and remote free/collection in mimalloc; B-tree
    insertion/split, deletion/rebalance, and pager rollback in SQLite; and
-   protected load, retirement, and collection in Crossbeam Epoch. It compares
-   exactly three B architectures: the original flat forms, a stratified
-   project-independent algebra, and a bounded protocol-graph control. The
-   required outputs explain each capability, its removal witness and
-   performance role, ordinary-library derivations, unresolved problems, and
-   pros/cons, followed by exactly 42 fail-closed operation routes and a stop at
-   the Candidate B Design Gate. A new rule must be needed by at least two
-   independent projects; one-project pressure remains an unresolved
-   abstraction rather than an automatic language extension.
+   protected load, retirement, and collection in Crossbeam Epoch. The exact
+   42-route matrix gives the original `B-FORMS` fourteen open rows,
+   `B-STRATA` six closed and eight open rows, and `B-GRAPHS` six closed and
+   eight open rows. The mandatory Design Gate is `B-REVISE`.
+
+   `B-STRATA` is the best-defined revision hypothesis, not a selected language
+   design. Its eight project-independent layers compress physical places,
+   structural liveness, owner transitions, scoped progress and repair,
+   physical-root provenance, finite executable disposition, invalidatable
+   facts, and concurrent custody. The same layers close the paper capability
+   routes for all five Hashbrown operations and complete mimalloc small
+   allocation. Final allocator-page disposition, policy-neutral quiescence,
+   Crossbeam's heterogeneous erased one-shot action, and exact SQLite pager/
+   VFS/WAL and reinitializer contracts remain open. Independent hostile review
+   removed a validator-to-liveness authority hole, rejected hot-subpath credit
+   for complete operations, downgraded four SQLite mutation routes and both
+   local-free routes, and changed three overclaimed graph convergence rows to
+   `OPEN`. No evidence-backed production winner follows.
 
    The sealed compiler-embedded registry, P1-P9/Q1-Q6 proposal, production-
    language census, gate attacks, 49-row crosswalk, 26-domain routing, held-outs,
@@ -153,11 +161,10 @@ Measured non-wins (equally load-bearing):
    validation plan is `CANDIDATE-C-BOUNDED-VALIDATION-PLAN.md`; its authorization
    is exhausted at Gate 1. The completed paper-repair contract is
    `CANDIDATE-C-SPARSE-REPAIR-PLAN.md`; its authorization is exhausted at the
-   Sparse Repair Gate. The active bounded contract is
-   `CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. It authorizes only the four pinned
-   read-only source slices, paper architecture and comparison, deterministic
-   verification, and the Candidate B Design Gate. No Stage 2, additional
-   project or operation, safety model, structural prototype, candidate
+   Sparse Repair Gate. The completed bounded contract is
+   `CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`; its authorization is exhausted at the
+   `B-REVISE` Design Gate. No Stage 2, additional project or operation, safety
+   model, structural prototype, candidate
    implementation or execution, generated-code inspection, machine-event
    model, performance measurement, AI trial, language or specification change,
    compiler or verifier implementation, capability entry, standard library,

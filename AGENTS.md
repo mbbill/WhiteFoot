@@ -70,22 +70,24 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Current focus (2026-07-15)
 
-- Candidate B's bounded cross-project design research is active under
-  `optimizer-language-research/implementation/minimal-systems-capability/
-  CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. The question is whether one small closed
-  algebra can preserve the native representation and owner traffic of fourteen
-  frozen operations across Hashbrown, mimalloc, SQLite, and Crossbeam Epoch
-  without C-like project or topology families or A-like arbitrary writer
-  proofs. Compare exactly `B-FORMS`, `B-STRATA`, and `B-GRAPHS` in 42 routes,
-  then stop at the Candidate B Design Gate. Candidate C's Hashbrown calibration
-  and sparse-repair gate remain completed evidence; Candidate C v0 is unchanged.
-  Keep the 340 unresolved dense obligations across 150 contexts and exact
-  D-2/P-1 fail-closed. This authorization is read-only paper research: no
-  additional project or operation, formal safety model, prototype, candidate
-  execution, generated-code inspection, benchmark, measurement, AI trial,
-  language/specification/compiler/verifier/runtime implementation, capability
-  entry, standard library, container, production selection, E0.1 restart,
-  migration, or default teaching is authorized.
+- Candidate B's bounded cross-project design research stopped at the mandatory
+  Design Gate with `B-REVISE`. Across exactly 42 routes over Hashbrown,
+  mimalloc, SQLite, and Crossbeam Epoch, the original `B-FORMS` has 14 open
+  rows; `B-STRATA` has six closed and eight open rows; and `B-GRAPHS` has six
+  closed and eight open rows. `B-STRATA` is the best-defined revision hypothesis
+  only: eight project-independent layers compress physical places, liveness,
+  owner traffic, progress/repair, provenance, finite disposition, facts, and
+  concurrent custody, but final allocator-page disposition, policy-neutral
+  quiescence, heterogeneous erased one-shot actions, and exact SQLite pager/
+  VFS/WAL/reinitializer rows remain open.
+  Candidate C v0 is unchanged, there is no production winner, and the bounded
+  authorization is exhausted. Keep the 340 unresolved dense obligations across
+  150 contexts and exact D-2/P-1 fail-closed. No further project or operation,
+  formal safety model, prototype, candidate execution, generated-code
+  inspection, benchmark, measurement, AI trial, language/specification/
+  compiler/verifier/runtime implementation, capability entry, standard
+  library, container, production selection, E0.1 restart, migration, or
+  default teaching is authorized.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

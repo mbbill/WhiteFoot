@@ -71,18 +71,27 @@ libraries. `SR-CLOSED` has avoidable per-profile catalog growth;
 `SR-ORTHOGONAL` is B's later compression direction. Candidate C v0 remains
 unchanged, and the authorization is exhausted at this gate.
 
-The active work has now moved to Candidate B. The owner wants the same finite
-comparative method applied across more than Hashbrown to determine whether B
-can be an elegant project-independent basis. The controlling contract is
-`optimizer-language-research/implementation/minimal-systems-capability/
-CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`. It pins exactly fourteen operations across
-Hashbrown, mimalloc, SQLite, and Crossbeam Epoch; exactly three alternatives
-(`B-FORMS`, `B-STRATA`, and `B-GRAPHS`); exactly 42 comparison rows; explicit
-capability contents, removal witnesses, performance roles, ordinary-library
-derivations, unresolved problems, and pros/cons; and a mandatory stop at the
-Candidate B Design Gate. A new rule must serve at least two independent
-projects. This is read-only source and paper-design authorization, not a safety
-proof, implementation, benchmark, performance result, or production choice.
+Candidate B's bounded cross-project comparison is now complete. The controlling
+contract is `optimizer-language-research/implementation/minimal-systems-
+capability/CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`; its authorization is exhausted
+at the mandatory Design Gate. The exact fourteen-operation, 42-route result is:
+
+- `B-FORMS`: zero closed and fourteen open;
+- `B-STRATA`: six closed and eight open; and
+- `B-GRAPHS`: six closed and eight open.
+
+The gate is `B-REVISE`. `B-STRATA` is the best-defined revision hypothesis
+only. Its eight project-independent layers close all five Hashbrown operations
+and complete mimalloc small allocation, including cold collect/extend/retry/
+null behavior. mimalloc final page disposition, every complete SQLite route,
+and all Crossbeam routes remain open because exact observer/quiescence,
+heterogeneous erased one-shot action, or pager/VFS/WAL/reinitializer rows are
+missing. Independent hostile review removed a validator-to-liveness authority
+hole, rejected credit for hot subpaths standing in for whole operations, and
+downgraded every overclaimed row. The result is paper capability accounting,
+not safety, implementation feasibility, code-shape parity, measured
+performance, or a production choice. No further research or implementation
+step is authorized without a new owner decision.
 
 ## 0.1 Earlier scope correction retained as historical context
 

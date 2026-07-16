@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the active bounded Candidate B cross-project design status."""
+"""Verify the completed bounded Candidate B cross-project design status."""
 
 from __future__ import annotations
 
@@ -28,26 +28,27 @@ def main() -> int:
         fail("AGENTS.md and CLAUDE.md are not byte-identical")
 
     status_phrases = (
-        "Candidate B's bounded cross-project design research is active",
-        "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
-        "fourteen\n  frozen operations across Hashbrown, mimalloc, SQLite, and Crossbeam Epoch",
-        "`B-FORMS`, `B-STRATA`, and `B-GRAPHS`",
-        "then stop at the Candidate B Design Gate",
-        "read-only paper research",
+        "Candidate B's bounded cross-project design research stopped",
+        "Design Gate with `B-REVISE`",
+        "`B-FORMS` has 14 open",
+        "`B-STRATA` has six closed and eight open",
+        "`B-GRAPHS` has six\n  closed and eight open",
+        "policy-neutral\n  quiescence",
+        "authorization is exhausted",
         "D-2/P-1 fail-closed.",
     )
     require(ROOT / "AGENTS.md", status_phrases)
     require(
         ROOT / "THE-PLAN.md",
         (
-            "CANDIDATE B\n   CROSS-PROJECT DESIGN ACTIVE",
+            "CANDIDATE B\n   DESIGN GATE COMPLETE: `B-REVISE`",
             "There is no evidence-\n   backed winner.",
-            "fourteen operations across four\n   official source revisions",
-            "exactly three B architectures",
-            "exactly 42 fail-closed operation routes",
+            "complete across fourteen\n   operations and four pinned source revisions",
+            "`B-STRATA` six closed and eight open rows",
+            "`B-GRAPHS` six closed and\n   eight open rows",
             "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
             "Sparse Repair Gate selects `SR-PROFILE`",
-            "No Stage 2, additional",
+            "authorization is exhausted at the\n   `B-REVISE` Design Gate",
         ),
     )
     require(
@@ -55,20 +56,29 @@ def main() -> int:
         (
             "The performance-first owner packet is complete",
             "There is no evidence-backed production winner.",
-            "The active work has now moved to Candidate B.",
+            "Candidate B's bounded cross-project comparison is now complete.",
             "CANDIDATE-B-ELEGANT-DESIGN-PLAN.md",
-            "Hashbrown, mimalloc, SQLite, and Crossbeam Epoch",
-            "exactly 42 comparison rows",
+            "exact fourteen-operation, 42-route result",
+            "`B-STRATA`: six closed and eight open",
+            "The gate is `B-REVISE`.",
             "Sparse Repair Gate selects `SR-PROFILE`",
         ),
     )
     plan_text = (ROOT / "THE-PLAN.md").read_text(encoding="utf-8")
     agents_text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    handover_text = (ROOT / "HANDOVER.md").read_text(encoding="utf-8")
     for stale in ("CANDIDATE COMPARISON PENDING", "candidate comparison pending"):
         if stale in plan_text:
             fail(f"THE-PLAN.md retains stale status {stale!r}")
     if "Performance-first minimal-capability research is the active design track" in agents_text:
         fail("agent instructions retain stale active-design-track status")
+    for stale in (
+        "Candidate B's bounded cross-project design research is active",
+        "CANDIDATE B\n   CROSS-PROJECT DESIGN ACTIVE",
+        "The active work has now moved to Candidate B.",
+    ):
+        if stale in agents_text or stale in plan_text or stale in handover_text:
+            fail(f"status documents retain stale Candidate B status {stale!r}")
     require(
         ROOT
         / "optimizer-language-research"
@@ -82,6 +92,19 @@ def main() -> int:
             "Produce exactly 42 candidate-operation rows",
             "at least two independent projects",
             "Stop after the deliverables",
+        ),
+    )
+    require(
+        ROOT
+        / "optimizer-language-research"
+        / "implementation"
+        / "minimal-systems-capability"
+        / "CANDIDATE-B-ELEGANT-DESIGN.md",
+        (
+            "Candidate B Design Gate disposition: `B-REVISE`.",
+            "`B-STRATA` has six closed and eight open rows.",
+            "`B-GRAPHS` has six closed and eight open rows.",
+            "Work stops at\nthis gate.",
         ),
     )
     require(
@@ -121,7 +144,7 @@ def main() -> int:
             "Stage 2 is not authorized.",
         ),
     )
-    print("performance research status: Candidate B cross-project design active")
+    print("performance research status: Candidate B Design Gate complete at B-REVISE")
     return 0
 
 
