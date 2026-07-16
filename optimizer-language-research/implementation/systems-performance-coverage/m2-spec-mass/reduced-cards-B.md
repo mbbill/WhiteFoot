@@ -1,3 +1,5 @@
+v0 surface statements are exactly: `fn`, `let`, `match`, `region`, `set`, `check`, `doc`, `return`, `move`. `loop`/`break`, type aliases, line comments, block-expression `match`, and backslash continuations are not v0; a program using them is rejected. [M5-FIX-6]
+
 ## C1. Bounded cache with eviction (LRU/CLOCK) — sealed `pool<T>` + `table<K, hdl<T>>` + intrusive handle links
 
 Problem: a bounded map with O(1) get, insert, and eviction — the canonical
@@ -92,6 +94,15 @@ with an explicit `region 'v`. Loans are per-binding: a pool entry loan never
 freezes the table, and vice versa. The ordering rule the card teaches: SPLICE
 FIRST, READ SECOND — all link edits happen before the read loan is issued or
 after it dies.
+
+Region and borrow discipline (normative, not merely the example choreography
+above) [M5-FIX-3]: (a) every region name must be bound by a `fn` gparam bracket
+or an enclosing `region 'x { }` block — there are no free or placeholder region
+names; (b) v0 has no reborrowing and no uniq-to-shared coercion — a row spelled
+`&'r` requires a shared binding, so a `&uniq` receiver must use the row's
+`_uniq` variant, not the shared row; (c) only rows with a dedicated
+result-region parameter issue loans — a single-region row such as
+`tbl_get_uniq` returns its loan at the receiver's region, never a fresh one.
 
 Failure handling under the single failure principle: absence is a value
 (`Option`), never a failure. Environmental failure here is allocation growth

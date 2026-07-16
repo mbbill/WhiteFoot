@@ -1,0 +1,65 @@
+{
+  "encoding": "cl100k_base",
+  "m5_fix_token_deltas": {
+    "optables.md": {
+      "pre": 9194,
+      "post": 10297,
+      "delta": 1103,
+      "markers": [
+        "1",
+        "2",
+        "3(xref)",
+        "4",
+        "5",
+        "7",
+        "7"
+      ]
+    },
+    "cards.md": {
+      "pre": 5166,
+      "post": 5405,
+      "delta": 239,
+      "markers": [
+        "3",
+        "6"
+      ]
+    },
+    "reduced-optables.md": {
+      "pre": 9106,
+      "post": 10209,
+      "delta": 1103
+    },
+    "reduced-cards-A.md": {
+      "pre": 4528,
+      "post": 4767,
+      "delta": 239
+    },
+    "reduced-cards-B.md": {
+      "pre": 3533,
+      "post": 3772,
+      "delta": 239
+    },
+    "total_pre": 31527,
+    "total_post": 34450,
+    "total_delta": 2923
+  },
+  "optables_fix_mass_by_location": {
+    "s0_fixed_FIX_2_4_5": 762,
+    "table_form_FIX_1": 242,
+    "cq_form_FIX_7": 99
+  },
+  "appendix_extrapolation_impact": {
+    "note": "fixes are one-time additions (+1342) to the appendix; not scaled by form count or by the reduction ratios",
+    "variant_A_levers234_code_kept": {
+      "before": 59862,
+      "after": 61204,
+      "band": "FAIL"
+    },
+    "variant_B_plus_code_to_corpus": {
+      "before": 52735,
+      "after": 54077,
+      "band": "REDUCE",
+      "margin_to_FAIL": 923
+    }
+  }
+}
