@@ -2,10 +2,18 @@
 
 Date: 2026-07-16
 
-Status: paper phase complete; machine check pending (blocked on session usage
-limit, resumable). Preregistered PASS band: all six canonical verdicts correct
-with <=15 rules and no flow analysis beyond per-binding lexical loan sets;
-machine-checked derivations required for full PASS.
+Status: FULL PASS (2026-07-16). Preregistered band: all six canonical
+verdicts correct with <=15 rules and no flow analysis beyond per-binding
+lexical loan sets, machine-checked. Machine check complete: the reference
+checker (`checker.py`, 915 lines, one syntax-directed pass, structurally
+fixpoint-free — zero while-loops, runtime-asserted single visit per AST node)
+verifies all 48 programs (6 canonical + 42 adversarial) against their frozen
+verdicts with ZERO rules defects; independently rerun (`python3 run.py`).
+One faithful-ordering note, not a defect: several corpus rejections fire at
+the R6 mint-legality step before the R5 issue precondition their 'why' cites
+(machine-spec statement order is legality -> consumes -> issues), and one at
+the R9 declaration pre-pass rather than R13 — same freeze condition, same
+verdict, earlier rule.
 
 ## Result so far
 
