@@ -288,45 +288,65 @@ ONLY by a `check ile<u64>(SUM, len<T>(s))` (or `ige`) where SUM is a PROVEN
 non-wrapping `off + n` [DELTA-FIX-1]: the Ok-arm binding of `iadd.checked<u64>(off,
 n)`; or `iadd.trap<u64>(off, n)` (overflow traps before the check); or — inside a
 `requires` block, the only non-trapping legal form — `iadd.sat<u64>(off, n)`
-(overflow clamps to `u64::MAX`, which is `>= len(s)`, so the check FAILS and no
-window is produced). A SUM produced by `iadd.wrap<u64>`, or any value not proven
+(sound by the actual-`SUM` invariant below, NOT by any `len < u64::MAX`
+assumption). A SUM produced by `iadd.wrap<u64>`, or any value not proven
 overflow-free, is REJECTED as a producer (the ill-typed `iadd.checked-proven
 off+n` exemplar is deleted). From an accepted producer the engine derives
 `in_bounds(s, i)` for every `off <= i < SUM` (a checked prefix window),
 discharging the [OP-4] bounds trap for the [LOAD-1] byte-field loads and any
 `index` within it. Named consumer: C8's validated-view.
 
+[REATTACK-FIX-1] Soundness invariant (for ANY accepted `SUM`, saturated or
+otherwise): the window binds to the ACTUAL `SUM`, and the passed `check
+ile(SUM, len(s))` gives `SUM <= len(s)`, so every `i` in `[off, SUM)` has
+`i < SUM <= len(s)`, hence `i < len(s)`. There is NO `len < u64::MAX` premise —
+`len(s) = u64::MAX` is realizable (1-byte or zero-sized elements), and the check
+then passes but the derived window stays true (the place genuinely has that many
+indices). A wrapped `SUM < off` yields an EMPTY window that claims nothing.
+LOAD-1's own `off <= len(s) - K/8` runtime guard [DELTA-FIX-2] is the independent
+backstop.
+
 Why the forge now rejects [DELTA-FIX-1]: the reviewer's forge puts `off` near
 `u64::MAX` with a small `n`, produces `off + n` by `iadd.wrap` (wrapping to a
 small value `< len`), and passes `check ile(wrapped, len)` to forge an unbounded
 in-bounds window. Under the repair `iadd.wrap` is NOT an accepted producer, and
 the only accepted sums make `off + n` at the u64 edge either TRAP
-(`iadd.trap`), take the `Err` arm (`iadd.checked`), or clamp to `u64::MAX >=
-len` so the check FAILS (`iadd.sat`). No path both wraps AND produces the fact.
+(`iadd.trap`), take the `Err` arm (`iadd.checked`), or clamp to `u64::MAX`
+(`iadd.sat`) — and by the actual-`SUM` invariant above no accepted `SUM`
+(saturated, or even a wrapped one, which yields an empty window) ever produces a
+FALSE in-bounds fact: the window is always bounded by the checked `SUM <= len`.
+No path forges a non-empty over-claim.
 
 **Cross-call length invalidation [DELTA-FIX-3]** (a rule, not an appositive): any
-call whose effect row includes `writes(R)` where `R` reaches the fact's place (or
-any overlapping place [OWN-7]) KILLS all DOM-1 fact families on that place — v0
-declares no length-preservation obligation, so this is unconditional havoc on any
-writes-reaching call. For the non-resizable backing this delta admits the rule is
-VACUOUS (a `buffer`/`slice`/`array` has no length-writing op; element writes
-through `&uniq` leave `len` unchanged), which is precisely why restricting the
-backing closes the cross-call FATAL; the rule is stated so a future `seq`-backed
-extension inherits it. The ring/C8 cards were already sound because each fact
-lives inside a single op body that calls no resizer.
+call that MAY WRITE THE LENGTH of the fact's place (or any overlapping place
+[OWN-7]) — a call reaching the place through a mode that admits a length write —
+KILLS all DOM-1 fact families on that place; a call that only writes ELEMENTS
+(leaving `len` unchanged) PRESERVES them [REATTACK-FIX-2]. v0 declares no
+length-preservation obligation, so any length-write-capable call is unconditional
+havoc. For the non-resizable backing this delta admits the rule is VACUOUS —
+literally, not approximately: a `buffer`/`slice`/`array` has NO length-writing op
+at all, and element writes through `&uniq` leave `len` unchanged — which is
+precisely why restricting the backing closes the cross-call FATAL; the rule is
+stated so a future `seq`-backed extension inherits it. The ring/C8 cards were
+already sound because each fact lives inside a single op body that calls no
+resizer.
 
-**Kill wiring [DELTA-FIX-3].** The DOM-1 PRODUCER facts (POW2-MASK, LEN-window)
-are NOT monotone-cached: they are re-evaluated against the current tracked `len`
-of their place, and any row that writes a place's length kills them for that
-place. The length-writing S.1/S.2 rows whose `kills` columns gain the DOM-1
-producer families are: `seq_push`, `seq_pop`, `seq_reserve`, `seq_insert_at`,
+**Kill wiring [DELTA-FIX-3] / [REATTACK-FIX-2].** The DOM-1 PRODUCER facts
+(POW2-MASK, LEN-window) are NOT monotone-cached: they are re-evaluated against
+the current tracked `len` of their place, and the AUTHORITATIVE rule is that ANY
+row writing a place's LENGTH kills them for that place. The length-writing
+S.1/S.2 rows (an ILLUSTRATIVE enumeration under that rule) whose `kills` columns
+gain the DOM-1 producer families are: `seq_push`, `seq_pop`, `seq_insert_at`,
 `seq_remove_at`, `seq_truncate`, `seq_clear`, `seq_drain`, `seq_take_all`,
-`seq_extend_move`, `seq_extend_copy`; `tbl_insert` (None arm), `tbl_reserve`,
-`tbl_remove`, `tbl_retain`, `tbl_drain`. NONE operates on a
-`buffer`/`slice`/`array`, so for this delta's admitted backing the addition is
-inert — it is the guard for the deferred `seq`-backed case. Reconciled with
-[CAT-2]: the DERIVED `in_bounds` may survive a length INCREASE (CAT-2
-monotone-truth), but the PRODUCER pow2/LEN-window facts die on ANY length write.
+`seq_extend_move`, `seq_extend_copy`; `tbl_insert` (None arm), `tbl_remove`,
+`tbl_retain`, `tbl_drain`, `entry_fill`, `entry_remove`; and S.3's `LEN(dst)`
+writers `cq_recv_batch`/`cq_try_recv_batch` inherit it. (`seq_reserve`/
+`tbl_reserve` are NOT in this set — they are length-PRESERVING reallocations that
+touch only CAP/SLACK.) NONE operates on a `buffer`/`slice`/`array`, so for this
+delta's admitted backing the addition is inert — it is the guard for the deferred
+`seq`-backed case. Reconciled with [CAT-2]: the DERIVED `in_bounds` may survive a
+length INCREASE (CAT-2 monotone-truth), but the PRODUCER pow2/LEN-window facts
+die on ANY length write.
 
 Interactions: **[OP-4]** (the discharge target), **[OP-5]** (DOM-1 IS the first
 slice of its deferred range vocabulary), **[FN-8]** (a `requires` prologue is a
@@ -490,6 +510,16 @@ form's closed set (context-free [META-2], no search). It is not a type, region,
 or const. Instance state is distinct from the tag: `sip_keyed`'s `k0`/`k1` are
 RUNTIME arguments supplied at `tbl_new`/`cq_new` (TBL-2), not part of the tag —
 the tag selects the family, the runtime args parameterize the instance.
+[REATTACK-FIX-3] A tag is part of the sealed form's TYPE IDENTITY: for tags
+`tagA != tagB`, `form<..., tagA>` and `form<..., tagB>` are DISTINCT types with
+distinct [FN-2] monomorphizations, never unifiable, and no value of one converts
+to the other; tag erasure is runtime-only and does NOT erase this type-level
+distinction. [REATTACK-FIX-4] A TAG targ position resolves its lowercase IDENT
+SOLELY against the corresponding form parameter's declared TAGSET (positional, by
+parameter sort), never against a `const`/`fn`/region/type binding in scope — a
+same-named const or fn is not consulted there; the sort of each form gparam (tag
+vs const vs region vs type) is fixed at the form declaration, so every targ
+position is unambiguous and tag-vs-const is never shape-decided.
 
 Interactions: **GRAM-2/GRAM-3** (the new sort and targ production), **[FORM-3]**
 (resolves the lowercase-tag-vs-uppercase-TYPEID collision the gap exposed),
