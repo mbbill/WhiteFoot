@@ -78,7 +78,8 @@ cheaper." Every difference below names what it buys over Rust.**
      verbose everywhere, zero special cases. // verbose everywhere is one of the benefits from "programming language for AI not for human". but this is also not quite supporting the answer.
   4. Explicitness is what the optimizer wants anyway — so writability and speed
      *reinforce* each other instead of trading off. (This is the hinge of the
-     whole document.)
+     whole document.) // kinda weak.
+     // I think overall the 4 points are weak for answering why not Rust. In fact, Rust+unsafe ban is good enough. But that can't achive what we can here because we raised the lowest bar of how bad the code can be. that's part is not enforcable for Rust. for the highest bar, xl may win in some cases, but Rust is already pretty high. We raise the lowest bar by constraining how the program can be written. The safety is one of the methods that keep the bar.
 - **Serves the goal:** frames the reader for "this is not another safe Rust; it
   is a different bet about who writes the code."
 - Candidate line: *"make cheating unrepresentable, not punishable."*
@@ -94,17 +95,22 @@ cheaper." Every difference below names what it buys over Rust.**
   safe and fast").
 - **OWNER DECISION (open question A):** does this land as its own opening
   section for experts, or is it too abstract to lead with — merge it into § 0?
+  // as I mentioned above, safety is mostky prevent AI from writing bad code. just like banning unsafe in Rust but here we completely remove it from the language, make it impossible to write. it's one of the ways to make sure that even a bad AI can write good code. good - as it's safe, checked, and can only follow the design pattern that yields most performance. The language tries its best to not allowing AI writing wrong or low performance code. the 'noalias' happens to serve both safety and performance. // when writing this, make sure the logic is sound. this is quite a novel idea so make sure the reasoning is good. then data to support the reasoning.
 
 ---
 
 ## PART II — DIFFERENCES THAT BUY RAW SPEED
 *(the expert core; each section = the mechanism + the real codegen that proves it)*
 
+// comment for all below: we can use existing data, but we probably should make them simple enough. this is because we are showing users how and why, not doing real benchmark. so the examples should be as clear and simple as possible. please create simpler cases, and test them before use in this document.
+
 ### § 2. Checks are always on; a check is removed ONLY by machine proof.
 - **The difference:** every risky operation (bounds, overflow) is checked at
   runtime. The *only* way to remove a check is a machine-verified proof at
   compile time. A writer can never assert a fact into existence. "Speed is
   earned by proof, never bought by weakening a check."
+  // here, very naturally the reader will find that 'check is always on' goes against the claim of highest performance. so it's very important to immediately address this question, how are we going to get both. use a good example to show the user. for instance a function getting two external points and compute data in a loop. in xl arguments can be passed with uniq, and inner loop computation's boundary check can be eliminated through 'requires', then we get on par or better codegen than c or Rust, and get the checked behavior at the same time - checked access boundaries and checked arguments.
+  // but maybe we should move the above to a separate section as an introduction  in the beginning of part 2, letting user know how we can get both performance and fully checked safety. then starting from § 2 to introduce the details.
 - **The mechanism:** the `requires` entry contract — a predicate checked once at
   the function boundary; only its *success edge* becomes an optimizer fact the
   prover uses to discharge the dominated checks inside. The entry check itself
