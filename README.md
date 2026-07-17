@@ -6,14 +6,57 @@ classes unrepresentable — no unsafe escape exists — and its proofs feed the
 optimizer, so checked code runs at C-class speed: safety checks are always on
 unless a machine-verified proof discharges them.
 
+Here is what that means in one program.
+
+**This is base64. Every array read and write in it is bounds-checked at
+runtime — and the language has no `unsafe`, no `get_unchecked`, no way for a
+writer to turn a check off by hand.**
+
+```
+fn encode ['r] (out: &uniq 'r buffer<u8>, src: own buffer<u8>) -> own u64
+    reads('r), writes('r), traps requires {
+  ...
+  check ile<u64>(required_src_len, required_covered_src) else trap "base64 output capacity";
+} {
+  ...                      // the obvious indexed loop: 3 reads, 4 writes per step
+}
+```
+
+One line of contract — *the output buffer is big enough* — is checked once on
+entry. A machine proof then carries that fact into the loop and discharges all
+27 bounds checks inside it. Same source, checks retained versus proven away:
+2.48 → 4.23 GB/s (**1.71x**), output byte-identical, the entry check still live
+(an undersized buffer traps at the boundary — even for a C caller).
+
+Now the same work in Rust, same machine, full RFC semantics, isolated
+processes:
+
+| implementation | throughput | vs xlang |
+|---|---:|---:|
+| **xlang** — obvious loop + one checked `requires` line | **4.285 GB/s** | — |
+| Rust — obvious indexed loop | 2.673 GB/s | 1.60x slower |
+| Rust — obvious loop + `assert!` up front | 2.677 GB/s | 1.60x slower |
+| Rust — expert `chunks_exact/zip` restructure | 4.297 GB/s | tie |
+| Rust — `unsafe` indexed | 4.111 GB/s | 1.04x slower |
+
+Read the middle two rows. The `assert!` that *looks* like it should let the
+optimizer drop the checks recovers **nothing** — LLVM cannot connect it to the
+loop. Only an expert who knows the `chunks_exact` restructuring reaches the
+fast class, and even `unsafe` indexing is slightly slower. In xlang the
+**obvious** shape plus one checked line gets there, with every bound still
+enforced.
+
+That is the whole idea in one program: **speed is earned by proof, never
+bought by weakening a check.**
+
+The full argument — effect rows the optimizer trusts across opaque boundaries,
+ownership-driven guard-free vectorization, checked algebraic laws, and what it
+honestly does *not* beat — is in **[docs/why-xlang.md](docs/why-xlang.md)**.
+
 Highlights so far (each with a RESULTS.md under `experiments/`):
 - default floor: first-green `gpt-5.6-terra` xlang programs beat the ordinary
   public paths of two released Rust crates by 1.653x and 1.098x on locked
   workloads, with every reported xlang bounds check retained.
-- base64: byte-identical to system tools; the complete CLI beats the measured
-  GNU, uutils, and BSD tools, while the scalar kernel is in practical parity
-  with expert safe Rust. Proofs make the same xlang source 1.71x faster, with
-  the capacity contract enforced at the boundary — even for C callers.
 - wc: byte-identical under LC_ALL=C, ~2x GNU coreutils on default invocation.
 - The classifier-kernel study: i1-dataflow parity with C and safe Rust.
 - Checked algebraic laws: 3.3x on reductions, with FALSE laws refuted at
