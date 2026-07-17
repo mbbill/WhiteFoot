@@ -74,23 +74,35 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - D15 systems-performance coverage research is the active capability track:
   for most systems-programming scenarios, at least one blessed way of writing
   must reach or exceed the best existing implementations; the form count n
-  stays small under spec compactness; line-by-line reproduction is not
-  required; compiler-known forms with disciplined trusted internals are
-  admissible. The D14 B-Strata-only lock is suspended; all prior candidate
-  artifacts (B-Strata core and plan included) remain historical evidence and
-  falsifiers. The first fresh pass is complete and durably recorded in
-  `optimizer-language-research/implementation/systems-performance-coverage/`
-  (51-scenario demand map, four independent designs, twelve hostile attacks,
-  cross-design judgment). Recommended: a three-tier architecture (narrow
-  language core + sealed parameterized taught forms + composition cards,
-  ~14 spec-object families, ~60-75 kernel rules + <=40k-token catalog
-  appendix), conditional on gate #1 — a decidable loan/freeze judgment plus
-  confined borrow-carrying values. Validation ladder M1-M10 is preregistered
-  with frozen pass/fail bands; M1 runs first and can kill the architecture.
-  Owner decision points are listed in the recommendation document; no
-  production language, specification, checker, compiler, verifier, runtime,
-  standard-library, container, xlc, migration, fact-channel, teaching, or
-  shipping change is authorized before those decisions.
+  stays small under spec compactness; compiler-known forms with disciplined
+  trusted internals are admissible. The D14 B-Strata-only lock is suspended;
+  prior candidate artifacts remain historical evidence and falsifiers. Track
+  record lives in
+  `optimizer-language-research/implementation/systems-performance-coverage/`.
+  STATUS (2026-07-16 evening): the three-tier architecture (narrow language
+  core + sealed taught forms + cards) is selected and validated through its
+  first gates. Gate #1 passed and is ratified: the loan/freeze judgment plus
+  confined borrow-carrying values — exactly 15 rules, machine-verified on a
+  97-program corpus with a 9/9 mutation-caught harness, hostilely reviewed,
+  repaired, amendments ratified (RULES-RATIFIED.md is the normative research
+  draft). Owner rulings D16-D18 bind: explicit copy struct; catalog
+  minimality (10 sealed kernels after re-cut; member audits done; io-file =
+  17 enumerated rows with the Darwin F_FULLFSYNC pin); acceptance ledger
+  (performance+safety+reliability) per sealed kernel; trap = process abort;
+  pool generational reuse (check-free alternatives under research); four v1
+  non-goals with triggers; proof-gated admission (D17: proof substitutes for
+  trust, long-term user lane); spec budget option 2 (~48k always-loaded,
+  eight example-rich cards, five still to author). Dry runs validate the
+  kernel shapes: seq/table vs Rust Vec/hashbrown 4/5 in band with two wins
+  and the AoS layout finding; SPSC queue exhaustively model-checked SAFE
+  with the zero-RMW win confirmed in disassembly, beats rtrb. Writability:
+  clean single-shot baseline 26.3% (round 3; six defect families, fixes
+  applied; the brand-across-fn gap is the next kernel-rule blocker); round 4
+  adds a diagnostic-feedback cycle and is pending session-quota reset.
+  No production language, specification, checker, compiler, verifier,
+  runtime, standard-library, container, xlc, migration, fact-channel,
+  teaching, or shipping change is authorized before the remaining gates and
+  a separate landing review.
 - xlc self-hosting build in `compiler/` (SoA-tape architecture per P2).
 - D9a is complete on two independently preregistered shipped-library targets.
   First-green `gpt-5.6-terra`/medium xlang beats `percent-encoding` 2.3.2 by

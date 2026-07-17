@@ -42,12 +42,13 @@ def main() -> int:
             "D15 systems-performance coverage research is the active capability track",
             "at least one blessed way of writing",
             "The D14 B-Strata-only lock is suspended",
-            "remain historical evidence and\n  falsifiers",
+            "remain historical evidence and falsifiers",
             "systems-performance-coverage/",
-            "conditional on gate #1",
-            "loan/freeze judgment plus\n  confined borrow-carrying values",
-            "Validation ladder M1-M10 is preregistered",
-            "no\n  production language",
+            "Gate #1 passed and is ratified",
+            "exactly 15 rules, machine-verified on a",
+            "97-program corpus with a 9/9 mutation-caught harness",
+            "Owner rulings D16-D18 bind",
+            "No production language,",
         ),
     )
     require(
@@ -60,6 +61,7 @@ def main() -> int:
             "three-tier architecture",
             "loan/freeze judgment\n   plus confined borrow-carrying values",
             "M1 (paper falsification of the loan judgment",
+            "STATUS (2026-07-16 evening): gate #1 is passed and ratified",
             "Historical context of the superseded lock",
             "historical evidence, not active authority",
             "suspended under D15, retained as evidence",
@@ -174,7 +176,7 @@ def main() -> int:
 
     print(
         "performance research status: D15 systems-performance coverage track "
-        "active; loan-judgment gate passed, hostile review pending"
+        "active; gate #1 ratified, validation ladder in progress"
     )
     return 0
 

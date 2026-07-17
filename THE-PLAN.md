@@ -111,6 +111,21 @@ Measured non-wins (equally load-bearing):
    v1 non-goals; `copy struct`; the D2 budget split. No production change
    is authorized before those decisions.
 
+   STATUS (2026-07-16 evening): gate #1 is passed and ratified — the
+   loan/freeze judgment plus confined borrow-carrying values landed at
+   exactly 15 rules, machine-verified on a 97-program corpus with a 9/9
+   mutation harness, hostilely reviewed and repaired; RULES-RATIFIED.md is
+   the normative research draft. Owner rulings D16-D18 bind the drafts
+   (catalog minimality: 10 sealed kernels; acceptance ledgers; trap = abort;
+   generational pools; four v1 non-goals; proof-gated admission; spec budget
+   option 2). Kernel-shape dry runs validate seq/table (4/5 in band, two
+   wins, AoS layout pinned) and the SPSC queue (exhaustive model check SAFE,
+   zero-RMW win confirmed, beats rtrb). Writability clean baseline is 26.3%
+   single-shot with six actionable defect families; the feedback-cycle round
+   is pending quota. Next: round-4 resume, the five remaining cards, the
+   brand kernel rules (now a writability blocker), then the gated compiler
+   integration.
+
    Historical context of the superseded lock (evidence, not active
    authority): after the completed `B-REVISE` gate, the owner had selected
    `B-STRATA` as the sole capability architecture. That outcome was forced:
