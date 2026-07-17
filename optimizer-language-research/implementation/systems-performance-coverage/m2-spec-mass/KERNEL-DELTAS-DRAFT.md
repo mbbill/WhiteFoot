@@ -375,7 +375,7 @@ fixpoint, matching the M1 decidability posture (O(statements × facts)).
 
 ---
 
-## Delta 5 — BRAND-CROSS-FN (BRAND-1, v2.1; authority-carrying, regression re-review pending)
+## Delta 5 — BRAND-CROSS-FN (BRAND-1, v2.2; authority-carrying, regression re-review pending)
 
 > **REDRAFT [REDRAFT].** This replaces the first BRAND-1 draft, which two hostile
 > reviews rejected (`evidence/brand1-review.json`). The core architecture — the
@@ -430,13 +430,22 @@ share the region but are DISTINCT places, and their ids must not mix (the
 review's same-region two-arena FATAL). Minimal rows [B1V21-2]:
 `arena_mint['a](ar: &uniq 'a arena<'a, T>, v: own T) -> own ahdl<place(ar), T>` —
 loan NONE, effects `writes('a), allocates(heap), traps`, records `ar`'s resolved
-place; `arena_get['a](ar: &'a arena<'a, T>, h: ahdl<place(ar), T>) -> &'a T` —
-loan column `ISSUE & (content) at 'a` (the `seq_get` precedent: a subsequent
-`&uniq`-receiver op on the arena rejects under the live content issue), effects
-`reads('a), traps`; the result region is `'a`, the arena's OWN region carried by
-the `ar` parameter (there is NO free result region `'v` — a caller could
-otherwise book a content borrow at a region outliving the arena, an accepted UAF;
-the leak forge is rewalked in 5.8). The brand elides only the WHICH-ARENA check —
+place; `arena_get['a, 'h](ar: &'a arena<'a, T>, h: &'h ahdl<place(ar), T>) -> &'a T` —
+[B1V22-1] the id `h` is passed by a SHARED BORROW `&'h`, NOT own-mode: an affine
+id passed bare is an OWN-1 `move` (5.8's sibling walk), so an own-mode `h` would
+CONSUME the id on every get and — affine ids being one-per-allocation — make each
+allocation readable exactly once; the `&'h` borrow leaves the id unconsumed and
+its 5.2 freeze record live across the call, so mint-then-read-twice ACCEPTS. The
+place-brand check is TYPE-5 equality on the nominal `ahdl<place(ar), T>`
+constituent and compares identically through the borrow. loan column `ISSUE &
+(content) at 'a` (the `seq_get` precedent: a subsequent `&uniq`-receiver op on the
+arena rejects under the live content issue), effects `reads('a), traps`; the
+result region is `'a`, the arena's OWN region carried by the `ar` parameter
+(there is NO free result region `'v` — a caller could otherwise book a content
+borrow at a region outliving the arena, an accepted UAF; the leak forge is
+rewalked in 5.8). (`arena_mint` takes the VALUE `v: own T` correctly own — it
+STORES it — and touches no id; there is no `arena_put` or other id-consuming row,
+so `arena_get` was the only own-mode-id trap.) The brand elides only the WHICH-ARENA check —
 the id provably indexes THIS arena — never the generation/liveness check
 (`traps`, retained). `arena_mint`'s [R15] interior-address obligation is
 discharged by `arena_get`'s ISSUE clause blocking mint-under-borrow.
@@ -447,10 +456,12 @@ copied. A live arena id imposes an R6-shr-class FREEZE on its recorded source
 place: while any id into that arena is live, the place cannot be moved, rebound,
 assigned over, passed by own, or reached by an early drop [R6]. A freeze record
 exists for every live BINDING whose stated type TRANSITIVELY carries the
-lexical-sort brand (`box<ahdl<...>>`, `Option<ahdl<...>>`, any generic position
-included), created at the `let`/extract/result-stamp, expiring R7-style at that
-binding's scope end, and the freeze covers the recorded place and every
-overlapping place [OWN-7]. Because ids are affine there is exactly ONE live
+lexical-sort brand [B1V22-5]: `box<ahdl<...>>` and `Option<ahdl<...>>` are the
+ONLY admitted transitive-carrier forms in this delta; the transitivity SCAN looks
+THROUGH every constructor — generic positions included — to FIND the brand (so
+"generic position" scopes the scan, not admission). A record is created at the
+`let`/extract/result-stamp, expires R7-style at that binding's scope end, and the
+freeze covers the recorded place and every overlapping place [OWN-7]. Because ids are affine there is exactly ONE live
 carrier per allocation (a `move` renames the record; there is no second copy to
 count), so the record expires exactly when that last carrier dies — which is why
 copy would be unsound: a copy outlives its per-binding record, the freeze expires
@@ -467,11 +478,13 @@ fresh identity) — needs a "binding instance identity" notion absent from the
 kernel and SILENTLY invalidates every id when its arena name is re-let (a
 footgun). Option (a) reuses the ratified R6 freeze + R7 expiry verbatim; its only
 cost is "an arena cannot be moved while ids into it are live," acceptable because
-arenas are region-bound and are scoped, not moved, in practice. LEXICAL-sort
-brands in a CONTAINER element or generic-instantiation position are FAIL-CLOSED
-rejected in this delta (a `seq<ahdl<...>, N>` rejects at instantiation; the
-transitive-carrier freeze above covers `box`/`Option` on the stack), deferred to
-a follow-up that adds generation-keyed records.
+arenas are region-bound and are scoped, not moved, in practice. A lexical-sort
+brand in ANY container element or generic-instantiation position OTHER than the
+two admitted `box`/`Option` stack forms is FAIL-CLOSED rejected in this delta [B1V22-5]
+(a `seq<ahdl<...>, N>`, a user `Pair<ahdl<...>>`, a `Result<ahdl<...>, E>` all
+reject at instantiation); only `box<ahdl<...>>` and `Option<ahdl<...>>` are
+admitted, covered by the transitive-carrier freeze above. Deferred to a follow-up
+that adds generation-keyed records.
 
 ### 5.3 Identity sources at every boundary
 
@@ -534,10 +547,22 @@ under the by-declaration scoping that sentence stays true for every
 loan-issuing endpoint and is amended only for the loan-NONE cq/arena carriers.)
 Confined LOAN tokens (guards, cursors) remain R1/R2 as ratified.
 
+Storage ownership of a brand-carrier [B1V22-2]: a brand-carrier's internals may
+reference ONLY storage owned by the carrier set (heap, torn down by the CQ-5
+endpoint-drop protocol) — never region-bound storage or borrows. This restates
+the guarantee that ATK-zero-region-endpoint's R1/R13 proof carried under the old
+confined classification ("the queue can never die under a live endpoint"): per
+CQ-5 (S.3) the queue's heap storage is freed only when the LAST endpoint overall
+drops (drain-on-drop, a surfaced [STOR-3] drop), so endpoint liveness keeps the
+storage alive without any region binding. It is a sealed-form proof obligation
+under R15's hostile review.
+
 Sendable [B1V21-5]: GENERATIVE-sort brand-carriers (`cq_tx`/`cq_rx`/`cq_ends`)
 are Sendable per Delta-1 CONC-2 (a generative brand is a compile-time tag,
 erased, so meaningful across a thread) — this RESOLVES the Delta-1
-R2-stack-confinement-vs-Sendable tension (these types were never R2-confined). A
+R2-stack-confinement-vs-Sendable tension [B1V22-3] (these types are NO LONGER
+R2-confined — they WERE, under ratified R1/R2, until AMD-6 struck them; the sound
+reason they are now Sendable is that removal, not a false "never confined"). A
 LEXICAL-sort carrier (arena `ahdl`) is Sendable only while its source form is
 neither Sendable nor Shareable — currently VACUOUS for `arena` (no arena
 capability row exists); revisit with the 5.2 freeze-record story before any arena
@@ -603,7 +628,7 @@ unspellable. No hoisting rule is needed.
 
 Derivations (all ACCEPT under the redraft):
 1. Factored producer loop: `fn produce[brand 'q : spsc](tx: own cq_tx<'q, u64>, n: own u64) -> own unit`. One carrier `tx` (tie 5.4); body seeded with `'q` (5.3 SEED); `cq_try_send` inside a `region 'e { }` type-checks (endpoint region `'e` confined); the effect row names NO `'q` (5.5). Caller mints B, `produce<B>(tx: move t, n: 100_u64)` (TYPE-5 brand match). ACCEPT — the exact code round-3 could not spell.
-2. `(arena, id)`: `fn use_id['a](ar: &'a arena<'a, T>, h: ahdl<place(ar), T>) -> &'a T reads('a), traps` [B1V21-2] — lexical sort (5.2); the id's place-brand ties to `ar`'s resolved place (R10(a)-place check); the returned content borrow is at `'a` (the arena's own region, carried by `ar`), so it cannot outlive the arena under either the sealed-row or the user-fn reading. ACCEPT (clean under both readings).
+2. `(arena, id)`: `fn use_id['a, 'h](ar: &'a arena<'a, T>, h: &'h ahdl<place(ar), T>) -> &'a T reads('a), traps` [B1V21-2, B1V22-1] — lexical sort (5.2); `h` is a SHARED BORROW of the id (so the get does not consume it — mint-then-read-twice works); the id's place-brand ties to `ar`'s resolved place (R10(a)-place check, TYPE-5 through the borrow); the returned content borrow is at `'a` (the arena's own region, carried by `ar`), so it cannot outlive the arena under either reading. ACCEPT (clean under both readings).
 3. Two endpoints of one queue to two helpers: `produce<B>(tx: move txB)`, `consume<B>(rx: move rxB)`; each helper's `'q` instantiates to B independently; B is a fresh mint, distinct from any other queue's C. ACCEPT.
 4. Forgery negative — queues A, B; `f[brand 'q : spsc](tx: cq_tx<'q, u64>, rx: cq_rx<'q, u64>)` called `f(tx: move txA, rx: move rxB)`: TWO carriers of `'q` (all-carriers tie 5.4); `txA` identity A, `rxB` identity B; A != B → REJECT at the call carrier-equality check (R10(a) / TYPE-5). ACCEPT-as-reject.
 5. Mint-and-return: `fn make() -> own cq_ends<'q, u64>`; result-only `'q` under the existential-pack carve-out (5.4); returns a fresh brand the caller unpacks; the callee-side return check (5.3 RETURN) verifies the returned identity equals the fresh existential. ACCEPT (BRAND-MINT- and SEALED-MATCH-gated [B1V21-5] — `make`'s caller destructures `cq_ends` via CQ-4).
@@ -662,8 +687,20 @@ stale-id at the 5.2 R6 freeze with the TYPE-6 new-binder backstop; F1 same-regio
 two-arena at the 5.2/R10(a) place comparison; container transit at TYPE-5 element
 matching; vacuous-return at the 5.3 callee-side check). The five derivations keep
 their verdicts (D1/D3 ACCEPT, D2 ACCEPT now clean under the fixed `arena_get` row
-[B1V21-2], D4 accept-as-reject, D5 ACCEPT), with the generative ones now noted
-BRAND-MINT- and SEALED-MATCH-gated [B1V21-5].
+[B1V21-2] with the [B1V22-1] borrow-mode id, D4 accept-as-reject, D5 ACCEPT), with
+the generative ones now noted BRAND-MINT- and SEALED-MATCH-gated [B1V21-5].
+
+The v2 review's LEAK forge [B1V22-4] (`fn leak['o]() -> &'o u64` booking a
+content borrow at a caller-chosen region `'o` outliving a locally-scoped arena)
+dies at the fixed [B1V21-2] row: `arena_get` returns `&'a T` = `&'i u64` at the
+arena's own locally-introduced region `'i`, and `return rv` as `&'o` REJECTS —
+a borrow at a locally-introduced region cannot be returned (R13/OWN-4); there is
+no caller-chosen result region to book against.
+
+Mint-then-read-twice [B1V22-1]: `let h = arena_mint(...); let x = arena_get(ar,
+&'h h); let y = arena_get(ar, &'h h);` ACCEPTS — the `&'h` borrow does not consume
+the affine id, so the second get is legal (under the earlier own-mode spelling
+the first get would have moved `h`, dead-ending the second).
 
 Two NEW forges, rejected:
 - Fan ep-forge [B1V21-1]: `fan[brand 'q : mpmc, 'x](tx: &'x cq_tx<'q, u64>)`
