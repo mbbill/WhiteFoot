@@ -43,6 +43,19 @@ What changed and why, one line per round-1 comment:
    Part IV section on the one-program/one-tree/one-byte-form property and
    its toolchain payoffs (diff, merge, caching, reproducibility, build
    speed), with measured vs projected claims separated.
+9. *(Round 2.1) "The spine is weak — the author shift changed a lot more
+   than who writes the facts."* — The spine is rebuilt as the
+   author-bargain / information-loss ladder, mined from the founding
+   research corpus: dynamic languages recover facts by watching the
+   program run, guarded and revocable (V8/PEP 659/HotSpot, J001-J005);
+   Java makes everything a reference and escape analysis only
+   conditionally recovers what the author knew (F7); C/C++ invert the
+   aliasing burden and `restrict` is an unchecked footgun (F1-F3); Rust
+   proves checked-source-facts work, then stops at its human bargain.
+   The general law: optimization infrastructure is largely archaeology on
+   discarded authoring-time information, and correctness-grade facts
+   cannot be recovered by observation at all (static-vs-profile ruling).
+   The author shift is what makes stopping the loss rational.
 
 Factual corrections from re-verifying the previous session's draft against
 the committed records (these were wrong or stale in round 1):
@@ -106,9 +119,96 @@ trimmed listing is labeled as an excerpt with a pointer to the full file.
 
 ## 1. The spine
 
-> **An optimizer is only as fast as the facts it is handed. Humans won't
-> write those facts — an AI will. So build the language for the writer we
-> actually have now.**
+*(Rewritten in round 2.1. Sources: the founding research corpus —
+`optimizer-language-research/notes/verified-findings.md` F1-F9,
+`phase2-jit-findings.jsonl` J001-J005, and the archived static-vs-profile
+debate, `archive/research/debates/round1-static-vs-profile.md`.)*
+
+The story the whole document hangs on is **the author bargain**: languages
+are shaped by who writes them, and the author shift from human to AI
+changes the whole bargain — not just who states the aliasing facts.
+
+1. **Every mainstream language is a bargain with a human writer, and the
+   currency is information.** Ergonomics is, concretely, a license to
+   leave facts unstated: don't make me declare types, don't make me name
+   what my function touches, don't make me say which pointers can
+   overlap, let me keep my familiar patterns, give me an escape hatch
+   when I know better. Each concession is information the author had and
+   the source no longer carries.
+
+2. **The cost compounds down the pipeline** — a ladder the target reader
+   already knows first-hand, each rung worked in the doc:
+   - **Dynamic languages (JS, Python):** nearly every fact is deferred to
+     runtime, so the engine must *watch the program run* to learn what
+     the author knew at their desk — hidden classes, inline caches,
+     bytecode specialization — and every recovered fact must be guarded,
+     can be invalidated, degrades one-directionally, and bills warmup and
+     code-cache (V8 maps/deopt, CPython PEP 659, HotSpot tiering —
+     J001-J005). Some of the most brilliant engineering in the field
+     exists to conditionally recover information the language told the
+     author not to write down.
+   - **Managed static languages (Java):** types are static, but the
+     language makes nearly everything a heap reference. "This object
+     never leaves this function" was true in the author's head; the
+     language has no way to keep it, so the JIT runs escape analysis to
+     *maybe* get it back — and Oracle's own documentation is explicit
+     that the result is conditional scalar replacement, never a
+     guaranteed stack allocation (F7). The fact was free at authoring
+     time; recovered, it is partial, late, and revocable.
+   - **C/C++:** compiled and lean, but the aliasing bargain is inverted —
+     the compiler must assume pointers may overlap unless heroic analysis
+     proves otherwise; `restrict` exists but is unchecked (a wrong one is
+     a silent miscompile) and therefore rarely used (F1-F3). The kernelB
+     pair shows the bill on one page: the same reduction is ~22x slower
+     for want of one aliasing fact the author knew.
+   - **Rust — the step that proves the thesis:** make ownership a
+     *checked source fact* and one mechanism yields memory safety AND the
+     optimizer's noalias facts (the constitution's natural experiment:
+     Rust as treatment, C/C++ as control). But Rust's bargain is still
+     with human writers, so it stops partway: `unsafe` is
+     writer-accessible everywhere (facts are defeasible), interior
+     mutability punches holes in exclusivity, the aliasing facts ride on
+     parameters but not on loaded data pointers (§ 5), there is no effect
+     declaration an optimizer can trust across a boundary (§ 4), no
+     checked algebra (§ 6), and the installed base forbids deleting the
+     slow shapes (§ 0's floor).
+   - The rungs are ordered: each language down the ladder keeps more
+     facts in the source, and each is faster *for that reason*. xlang is
+     designed as the limit of the ladder.
+
+3. **The general law** (the doc's "aha"): most of what we call
+   optimization infrastructure is archaeology — compile-time and runtime
+   machinery for recovering, conditionally and at real cost, facts that
+   existed for free at authoring time. And the correctness-grade facts
+   can never be recovered by observation at all: a profile can steer a
+   cost decision (worst case: slower), but a noalias/purity/law fact is
+   UB-on-violation — it must be *checked at the source* or it cannot be
+   used, period (the founding static-vs-profile ruling). There is no
+   downstream fix for information the language threw away upstream; the
+   IR lesson agrees (Swift built SIL precisely to stop losing its own
+   semantics before LLVM — F9).
+
+4. **The author shift breaks the bargain.** For an AI writer every clause
+   flips: verbosity costs tokens, not patience; it has no style
+   attachment, no installed base, no familiarity demands; what it needs
+   instead is regularity, an in-context spec, and machine-actionable
+   compile-time feedback — and what it must *not* be given is an escape
+   hatch, because a stuck writer will use it (W3). So for the first time
+   it is rational to design a language that demands the whole truth at
+   authoring time: every fact stated, exactly one way to state it,
+   everything checked, everything carried to the optimizer. Nothing to
+   recover downstream, because nothing is discarded upstream.
+
+5. **Then, and only then, the one-liner:**
+
+> **An optimizer is only as fast as the facts it is handed. Human-first
+> languages spend their ergonomics budget throwing those facts away, and
+> the whole optimization stack labors to get them back. Change the
+> writer, and you can finally stop discarding them.**
+
+Candidate lines: *"ergonomics is a license to omit information — and the
+optimizer pays the fee"*; *"fifty years of compiler heroics are
+archaeology on facts the language forced the writer to discard."*
 
 The goal statement for the top of the doc (revised per round 1):
 
@@ -138,14 +238,23 @@ Open on the reader's own objection: "LLMs write good Rust today. Ban
 `unsafe` in CI and you have safe Rust — memory-safe, fast, mature. Why
 invent a language with no training data that nobody knows?"
 
-**Concede what's true, then answer with the floor.**
+**Concede what's true, then answer in two moves: the ladder, then the
+floor.**
 
 - Concede: for the *ceiling*, expert Rust is genuinely high. Banning
   `unsafe` is a real, cheap discipline. If your question is "can a
   top-decile engineer, given time, write a fast safe program in Rust," the
   answer is yes and this document does not dispute it.
-- The answer: **a ban on `unsafe` bounds memory safety; it does not bound
-  how the program may be written.** Nothing in safe Rust prevents the
+- **Move 1 — the ladder (from the spine):** Rust is the furthest rung of
+  the keep-the-facts ladder a for-human language can reach; its remaining
+  information losses (defeasible facts, interior-mutability holes, no
+  effect or law channel, no floor) are not oversights — they are the
+  price of its bargain with human writers. A language for an AI writer
+  can pay a different price and keep everything. This is why "extend
+  Rust" is not the move: the losses are load-bearing parts of Rust's
+  human contract.
+- **Move 2 — the floor: a ban on `unsafe` bounds memory safety; it does
+  not bound how the program may be written.** Nothing in safe Rust prevents the
   `Rc<RefCell>` object graph, the pointer-chasing layout, scattered
   mutation, the 1.6x-slower obvious indexed loop, five spellings of the
   same function, or an assert that looks like a contract and optimizes
