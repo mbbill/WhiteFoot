@@ -375,7 +375,7 @@ fixpoint, matching the M1 decidability posture (O(statements × facts)).
 
 ---
 
-## Delta 5 — BRAND-CROSS-FN (BRAND-1, v2 REDRAFT; authority-carrying, re-review required)
+## Delta 5 — BRAND-CROSS-FN (BRAND-1, v2.1; authority-carrying, regression re-review pending)
 
 > **REDRAFT [REDRAFT].** This replaces the first BRAND-1 draft, which two hostile
 > reviews rejected (`evidence/brand1-review.json`). The core architecture — the
@@ -427,16 +427,40 @@ endpoints (the review's F1-container forge; see 5.6).
 handle `ahdl<'a, T>` carries the RESOLVED PLACE of the arena it indexes as its
 brand identity — NOT the region: two arenas `a1`, `a2` in one `region 'a { }`
 share the region but are DISTINCT places, and their ids must not mix (the
-review's same-region two-arena FATAL). Minimal rows: `arena_mint['a](ar: &uniq
-'a arena<'a, T>, v: own T) -> own ahdl<place(ar), T>` (records `ar`'s resolved
-place; a copy handle out); `arena_get['a, 'v](ar: &'a arena<'a, T>, h:
-ahdl<place(ar), T>) -> &'v T` (the brand elides only the WHICH-ARENA check — the
-id provably indexes THIS arena — never the generation/liveness check, which is
-retained). A live arena id imposes an R6-shr-class FREEZE on its recorded source
+review's same-region two-arena FATAL). Minimal rows [B1V21-2]:
+`arena_mint['a](ar: &uniq 'a arena<'a, T>, v: own T) -> own ahdl<place(ar), T>` —
+loan NONE, effects `writes('a), allocates(heap), traps`, records `ar`'s resolved
+place; `arena_get['a](ar: &'a arena<'a, T>, h: ahdl<place(ar), T>) -> &'a T` —
+loan column `ISSUE & (content) at 'a` (the `seq_get` precedent: a subsequent
+`&uniq`-receiver op on the arena rejects under the live content issue), effects
+`reads('a), traps`; the result region is `'a`, the arena's OWN region carried by
+the `ar` parameter (there is NO free result region `'v` — a caller could
+otherwise book a content borrow at a region outliving the arena, an accepted UAF;
+the leak forge is rewalked in 5.8). The brand elides only the WHICH-ARENA check —
+the id provably indexes THIS arena — never the generation/liveness check
+(`traps`, retained). `arena_mint`'s [R15] interior-address obligation is
+discharged by `arena_get`'s ISSUE clause blocking mint-under-borrow.
+
+[B1V21-4] Arena ids are AFFINE, not copy — a member of the AMD-6 affine
+brand-carrier class, transferred by R8 (`move`) exactly like every carrier, never
+copied. A live arena id imposes an R6-shr-class FREEZE on its recorded source
 place: while any id into that arena is live, the place cannot be moved, rebound,
-assigned over, passed by own, or reached by an early drop [R6]; the freeze
-records expire R7-style at the ids' scope end. This is exactly the discipline
-that makes R4's place-recording sound for loans.
+assigned over, passed by own, or reached by an early drop [R6]. A freeze record
+exists for every live BINDING whose stated type TRANSITIVELY carries the
+lexical-sort brand (`box<ahdl<...>>`, `Option<ahdl<...>>`, any generic position
+included), created at the `let`/extract/result-stamp, expiring R7-style at that
+binding's scope end, and the freeze covers the recorded place and every
+overlapping place [OWN-7]. Because ids are affine there is exactly ONE live
+carrier per allocation (a `move` renames the record; there is no second copy to
+count), so the record expires exactly when that last carrier dies — which is why
+copy would be unsound: a copy outlives its per-binding record, the freeze expires
+early, and a same-binder `set`-over re-attaches a stale id (the sibling
+stale-copy forge, rewalked in 5.8). REJECTED option (copy handles): per-binding
+lexical machinery cannot count copies, and no type-driven copy-accounting is in
+v0. CONSEQUENCE of affine ids: exactly one live handle per allocation; the C1
+pool card's COPYABLE generational-handle ergonomics stay with `pool`, and arena
+ids are the strict affine cousin (a `pool` handle is the copyable one when you
+need many live references).
 
 Why option (a), not (b): option (b) — keying by binding INSTANCE (fresh `let` =
 fresh identity) — needs a "binding instance identity" notion absent from the
@@ -444,9 +468,10 @@ kernel and SILENTLY invalidates every id when its arena name is re-let (a
 footgun). Option (a) reuses the ratified R6 freeze + R7 expiry verbatim; its only
 cost is "an arena cannot be moved while ids into it are live," acceptable because
 arenas are region-bound and are scoped, not moved, in practice. LEXICAL-sort
-brands in a CONTAINER element position are FAIL-CLOSED rejected in this delta (a
-`seq<ahdl<...>, N>` rejects at instantiation), deferred to a follow-up that adds
-generation-keyed records.
+brands in a CONTAINER element or generic-instantiation position are FAIL-CLOSED
+rejected in this delta (a `seq<ahdl<...>, N>` rejects at instantiation; the
+transitive-carrier freeze above covers `box`/`Option` on the stack), deferred to
+a follow-up that adds generation-keyed records.
 
 ### 5.3 Identity sources at every boundary
 
@@ -488,25 +513,64 @@ INCLUDED — the first draft's exactly-one-tie clause wrong-rejected 4 and 5.
 
 ### 5.5 Housekeeping — the ratified-rule amendments
 
-[AMD-6, proposed in this change] Endpoints and arena ids are NOT R1
-opaque-confined tokens. Strike `endpoint` from R1's opaque-confined list and
-define the AFFINE BRAND-CARRIER class: an affine value with full R8 transfer
-(`move` renames its binding, merges the brand record, consumes the source; no
-duplication) that carries a brand in its TYPE and holds NO loan — no R4
-source-place loan-entry, no R6 freeze (the arena-id place freeze of 5.2 is the
-lexical sort's separate, stated discipline, not a loan). Brand-carriers are
-Sendable per Delta-1 CONC-2 (a brand is a compile-time tag, erased, so meaningful
-across a thread); this RESOLVES the Delta-1 R2-stack-confinement-vs-Sendable
-tension — endpoints were never R2-confined. Confined LOAN tokens (guards,
-cursors) remain R1/R2 as ratified.
+[AMD-6, proposed in this change] Scoped BY DECLARATION, not by the noun
+"endpoint" [B1V21-3]. A form-table result type is EITHER an opaque-confined LOAN
+TOKEN (it declares a loan clause: `issues`/`consumes`/`reissues`) OR an affine
+BRAND-CARRIER (it declares a brand constituent in its type and loan clause
+`NONE`); the two classes are DISJOINT, fixed at form declaration, and R15 fails
+closed on a result declaring both. AMD-6 strikes from R1's opaque-confined list
+ONLY the loan-NONE brand-carrying endpoint TYPES `cq_tx`/`cq_rx`/`cq_ends` (and
+the arena `ahdl`), reclassifying them as affine brand-carriers with full R8
+transfer (`move` renames the binding, merges the brand record, consumes the
+source; no duplication) that hold NO loan (no R4 source-place loan-entry; the
+arena-id place freeze of 5.2 is the lexical sort's separate stated discipline,
+not a loan). LOAN-ISSUING endpoint result types — a ring's `Prod`/`Cons`, which
+declare `issues Prod/Cons (shr)` — REMAIN opaque-confined under the token kind
+(R4 loan holders must be confined), so RULES-RATIFIED's ring-endpoint programs
+(the corpus's P5 canonical two-ring REJECT, A11 ACCEPT, ATK-two-struct-rings,
+ATK-zero-region-endpoint) keep their ratified verdicts and clauses UNTOUCHED.
+(RULES-RATIFIED mentions "endpoint" exactly once — R1's opaque-confined list;
+under the by-declaration scoping that sentence stays true for every
+loan-issuing endpoint and is amended only for the loan-NONE cq/arena carriers.)
+Confined LOAN tokens (guards, cursors) remain R1/R2 as ratified.
 
-ep discipline in the brand parameter: a brand parameter carries its endpoint
-discipline as a bound — `brand 'q : ep`, where `ep` is the TAG-1 tag {spsc,
-mpmc} (concrete, or an ep tag parameter for an ep-generic helper). Every
-brand-generic body then knows the discipline; `cq_tx_clone`/`cq_rx_clone` check
-`ep` and a clone under a discipline-free brand parameter is a FAIL-CLOSED reject
-citing CQ-3 (stated, not inferred from OWN-8). (The endpoint type `cq_tx<'q, T>`
-inherits `ep` from `'q`'s bound, so it is not repeated in the type.)
+Sendable [B1V21-5]: GENERATIVE-sort brand-carriers (`cq_tx`/`cq_rx`/`cq_ends`)
+are Sendable per Delta-1 CONC-2 (a generative brand is a compile-time tag,
+erased, so meaningful across a thread) — this RESOLVES the Delta-1
+R2-stack-confinement-vs-Sendable tension (these types were never R2-confined). A
+LEXICAL-sort carrier (arena `ahdl`) is Sendable only while its source form is
+neither Sendable nor Shareable — currently VACUOUS for `arena` (no arena
+capability row exists); revisit with the 5.2 freeze-record story before any arena
+capability row is added, and the Delta-1 review inherits this pin.
+
+ep discipline in the brand parameter, checkable END TO END [B1V21-1]: a brand
+parameter carries its endpoint discipline as a bound — `brand 'q : ep`, where
+`ep` is the TAG-1 tag {spsc, mpmc} (concrete, or an ep tag parameter for an
+ep-generic helper). Every brand-generic body then knows the discipline;
+`cq_tx_clone`/`cq_rx_clone` check `ep` and a clone under a discipline-free brand
+parameter is a FAIL-CLOSED reject citing CQ-3. The bound is made checkable by two
+clauses: (i) a MINT binder's bound is the mint row's ep tag — `cq_new<T, spsc, K>`
+introduces `'q : spsc`, recorded on the brand; the existential-unpack binder
+RESTATES the bound and must match the packed declaration's bound. (ii) At EVERY
+brand instantiation (a brand targ at a call, an unpack, any brand-sorted
+position) the argument brand's RECORDED bound tag must EQUAL the parameter's
+declared bound tag — TAG-1 closed-set equality, re-checked per monomorphization
+for ep-tag-generic helpers [FN-2] — and a bound-free brand argument in a bounded
+slot, OR any mismatch, rejects citing CQ-3/TAG-1. (The endpoint type `cq_tx<'q,
+T>` inherits `ep` from `'q`'s bound, so it is not repeated in the type; TYPE-5
+alone therefore CANNOT catch an ep mismatch — clause (ii) is what does.) The fan
+ep-forge — `fn fan[brand 'q : mpmc, 'x](tx: &'x cq_tx<'q, u64>) -> ...` (its body
+lawfully `cq_tx_clone`s, a producer fan-out, legal only for `mpmc`) called
+`fan<'qa>(...)` where `'qa` was minted by `cq_new<u64, spsc, 4>()` (recorded bound
+`spsc`) — REJECTS at the `fan<'qa>` instantiation: `'qa`'s recorded bound `spsc`
+!= `fan`'s declared bound `mpmc` (clause (ii), CQ-3/TAG-1); the body's clone is
+never reached.
+
+GRAM amendment lines [B1V21-5]: `region_params` gains a brand entry `"brand"
+REGIONID (":" TAG)?` (GRAM-2), and GRAM-3's `targ` REGIONID production covers
+brand names, sort-checked at the binder per the two-sort wall below (the TAG-1
+precedent — a distinct monomorphization-adjacent sort in the same bracket
+grammar).
 
 Effect rows WITHOUT brand names: a queue op's runtime effect is on its ENDPOINT'S
 BORROW REGION and the sealed op's own rows, NEVER on the brand — a brand is a
@@ -539,10 +603,10 @@ unspellable. No hoisting rule is needed.
 
 Derivations (all ACCEPT under the redraft):
 1. Factored producer loop: `fn produce[brand 'q : spsc](tx: own cq_tx<'q, u64>, n: own u64) -> own unit`. One carrier `tx` (tie 5.4); body seeded with `'q` (5.3 SEED); `cq_try_send` inside a `region 'e { }` type-checks (endpoint region `'e` confined); the effect row names NO `'q` (5.5). Caller mints B, `produce<B>(tx: move t, n: 100_u64)` (TYPE-5 brand match). ACCEPT — the exact code round-3 could not spell.
-2. `(arena, id)`: `fn use_id['a, 'v](ar: &'a arena<'a, T>, h: ahdl<place(ar), T>) -> &'v T` — lexical sort (5.2); the id's place-brand ties to `ar`'s resolved place; R10(a)-place check. ACCEPT.
+2. `(arena, id)`: `fn use_id['a](ar: &'a arena<'a, T>, h: ahdl<place(ar), T>) -> &'a T reads('a), traps` [B1V21-2] — lexical sort (5.2); the id's place-brand ties to `ar`'s resolved place (R10(a)-place check); the returned content borrow is at `'a` (the arena's own region, carried by `ar`), so it cannot outlive the arena under either the sealed-row or the user-fn reading. ACCEPT (clean under both readings).
 3. Two endpoints of one queue to two helpers: `produce<B>(tx: move txB)`, `consume<B>(rx: move rxB)`; each helper's `'q` instantiates to B independently; B is a fresh mint, distinct from any other queue's C. ACCEPT.
 4. Forgery negative — queues A, B; `f[brand 'q : spsc](tx: cq_tx<'q, u64>, rx: cq_rx<'q, u64>)` called `f(tx: move txA, rx: move rxB)`: TWO carriers of `'q` (all-carriers tie 5.4); `txA` identity A, `rxB` identity B; A != B → REJECT at the call carrier-equality check (R10(a) / TYPE-5). ACCEPT-as-reject.
-5. Mint-and-return: `fn make() -> own cq_ends<'q, u64>`; result-only `'q` under the existential-pack carve-out (5.4); returns a fresh brand the caller unpacks; the callee-side return check (5.3 RETURN) verifies the returned identity equals the fresh existential. ACCEPT (BRAND-MINT-gated).
+5. Mint-and-return: `fn make() -> own cq_ends<'q, u64>`; result-only `'q` under the existential-pack carve-out (5.4); returns a fresh brand the caller unpacks; the callee-side return check (5.3 RETURN) verifies the returned identity equals the fresh existential. ACCEPT (BRAND-MINT- and SEALED-MATCH-gated [B1V21-5] — `make`'s caller destructures `cq_ends` via CQ-4).
 
 Review forge programs (all REJECT; firing clause named):
 - F0.1 brand-binder shadowing launder (a mint binder reuses a caller's brand name to launder a fresh-instance endpoint through a container or an R10(b) return): REJECT — TYPE-6 no-redeclaration on brand binders [5.1] rejects the shadowing mint binder at the mint site.
@@ -568,10 +632,12 @@ per-record design did NOT preserve this; the redraft does — the reviewers note
 the cost claim survives only under the type-constituent redraft.)
 
 Open questions (honest): (1) BRAND-MINT (the fresh-return-brand binder spelling)
-gates derivations 1, 3, AND 5 — not just 5; so any GENERATIVE brand crossing a
-boundary is BRAND-MINT-gated, correcting the first draft's false "same-boundary
-helpers land immediately" claim. Arena ids (lexical, no mint binder) DO land
-immediately. (2) Whether the affine-brand-carrier class (AMD-6) and the
+AND SEALED-MATCH (CQ-4, the matchable brand-parameterized sealed enum for
+`cq_ends` destructure) BOTH gate derivations 1, 3, AND 5 [B1V21-5] — not just 5;
+so any GENERATIVE brand crossing a boundary is BRAND-MINT- and
+SEALED-MATCH-gated, correcting the first draft's false "same-boundary helpers
+land immediately" claim. Arena ids (lexical, no mint binder, no destructure) DO
+land immediately. (2) Whether the affine-brand-carrier class (AMD-6) and the
 confined-loan-token class share the R8 transfer machinery without a third case
 (they should — both affine, R8 is kind-agnostic). (3) The lexical-sort container
 fail-closed is a real expressiveness cut (no `seq<ahdl>`), deferred to a
@@ -585,6 +651,37 @@ generation-keyed follow-up.
 > proliferation — does every live COPY of an id keep the freeze alive to its
 > scope end; (iii) the AMD-6 declassification against the R2/Sendable story and
 > whether any ratified R1-R15 proof quoted "endpoints are confined".
+
+### 5.8 Regression appendix (v2 -> v2.1) [B1V21-6]
+
+No clause was renumbered by v2.1; 5.1-5.7 keep their numbers, and the v2 forge
+verdicts are unchanged. The five v1 forge programs still REJECT at the v2 clauses
+(F0.1 shadowing at 5.1 TYPE-6 mint-binder redeclaration, plus the fresh-binder
+and two-line-return variants at TYPE-5 seq_push / the 5.3 RETURN check; F0.2
+stale-id at the 5.2 R6 freeze with the TYPE-6 new-binder backstop; F1 same-region
+two-arena at the 5.2/R10(a) place comparison; container transit at TYPE-5 element
+matching; vacuous-return at the 5.3 callee-side check). The five derivations keep
+their verdicts (D1/D3 ACCEPT, D2 ACCEPT now clean under the fixed `arena_get` row
+[B1V21-2], D4 accept-as-reject, D5 ACCEPT), with the generative ones now noted
+BRAND-MINT- and SEALED-MATCH-gated [B1V21-5].
+
+Two NEW forges, rejected:
+- Fan ep-forge [B1V21-1]: `fan[brand 'q : mpmc, 'x](tx: &'x cq_tx<'q, u64>)`
+  (body `cq_tx_clone`s a producer, legal only for `mpmc`) called `fan<'qa>(...)`
+  with `'qa` minted `cq_new<u64, spsc, 4>()` (recorded bound `spsc`). REJECT at
+  the `fan<'qa>` instantiation: the argument brand's recorded bound `spsc` != the
+  parameter bound `mpmc` (ep-bound instantiation check, clause (ii), CQ-3/TAG-1).
+  Without the fix TYPE-5 was silent (ep is not in the endpoint type); the recorded
+  bound + instantiation comparison is what fires. The body's illegal spsc-clone is
+  never reached.
+- Sibling stale-copy [B1V21-4]: attempt two live copies of one arena id
+  (`let id2 = id1;`) so the freeze expires when `id1`'s binding dies while a copy
+  survives, then `set`-over the arena. REJECT: arena ids are AFFINE, so `let id2
+  = id1` is a `move` (a bare affine place is the OWN-1 move; no copy) — it renames
+  the single freeze record to `id2` and consumes `id1`; there is never a second
+  live carrier to strand. The `box<ahdl>`/`Option<ahdl>` smuggling variant is
+  covered by the transitive-carrier freeze clause (every live binding whose type
+  carries the lexical brand holds a record). No stale copy is expressible.
 
 ## Delta 6 — TAG-TARGS (TAG-1; closes the GRAM-3 gap the round-4 catalog exposed)
 
@@ -671,10 +768,10 @@ frozen-list discipline — no open-ended tag admission). [DELTA-FIX-5]
   pipeline cards; it is authority-carrying and needs a fresh hostile RE-review
   (the v2 states the foundations the first two reviews proved missing). Adoption
   dependency, corrected: ANY generative brand (queue endpoint) crossing a `fn`
-  boundary is BRAND-MINT-gated — including the factored producer loop and
-  two-helper cases, NOT only mint-and-return (the first draft's claim was false).
-  Arena ids (the lexical sort, no mint binder) DO land immediately. Adopt it
-  BEFORE Delta 1, after its re-review.
+  boundary is BRAND-MINT- and SEALED-MATCH-gated — including the factored producer
+  loop and two-helper cases, NOT only mint-and-return (the first draft's claim was
+  false). Arena ids (the lexical sort, no mint binder, no destructure) DO land
+  immediately. Adopt it BEFORE Delta 1, after its re-review.
 - Delta 1 (concurrency) is the heaviest and is BLOCKED on Delta 5 (BRAND-1) and
   gated on full D1/fact-channel hostile review; it should be the last adopted,
   and every clause re-proved, not this draft transcribed.
