@@ -1,0 +1,172 @@
+{
+ "summary": {
+  "verdict": "PASS. Primary metric (green after one revision) = 14/20 = 70%, meeting the >=70% final-green band; par-of-final-green = 14/14 = 100%, meeting the >=80% band; both are well clear of the <50% FAIL floor. This is the first round with a diagnostic-feedback cycle, and it clears the preregistered bar on the metric it was designed to move. First-shot (secondary) rose to 40% from the round-3 clean baseline of 26.3%.",
+  "first_shot_rate": "40% (8/20 first-shot green), up from the round-3 clean baseline of 26.3%. Tracked for comparison only; not the PASS/FAIL metric.",
+  "final_rate": "70% final-green (14/20) after one revision; par-of-final-green 100% (14/14). PASS on both preregistered conditions.",
+  "delta_analysis": [
+   "Cycle value: the diagnostic-feedback loop converted 6 of 12 first-shot failures to green (a3, b3, c2, e1, e3, e4), lifting the rate from 40% to 70% (+30pp). This is the headline: one revision round roughly halved the failure population.",
+   "Par quality is uniformly high: every final-green solution was par (14/14), and every surviving failure is a checker-REJECT (worst_final = API_MISUSE), not a perf/par miss. The residual problem is legality, not optimization quality.",
+   "CURED families (revision fixed them): whatever defects the 6 recovered tasks carried were surfaced and correctable from the feedback text alone \u2014 the cycle works when the defect is a locally-fixable spelling/derivation error the diagnostic can point at.",
+   "SURVIVING family 1 \u2014 in-loop region naming (OWN-11): survived in BOTH d1 and d4. A borrow_expr inside loop @l naming a region minted OUTSIDE the loop body. Recurrence across two tasks + survival through diagnostics is the strongest doc/design signal in the round. Responsible section: OWN-11 (C1 card) and its worked example.",
+   "SURVIVING family 2 \u2014 construct/loop grammar in atom position and missing labels (GRAM). a4: nullary construct AlreadyRegistered() placed in a fieldinit/atom slot (GRAM-5/8/9) instead of being let-bound. d4: bare `loop {}`/`break;` omitting the mandatory LABEL (GRAM-4). Responsible sections: GRAM-4, GRAM-9, and the C1 hnull let-bind pattern.",
+   "SURVIVING family 3 \u2014 effect-row derivation through deref (EFF-2). c1: both conformers omit reads('v) despite reading env/value fields via deref; the writer adopted a wrong rule ('reading through a &uniq borrow adds no reads clause') that contradicts the blessed count_visit conformer. Responsible section: EFF-2 + the conformer catalog prose for count_visit / keep_big.",
+   "SURVIVING family 4 \u2014 type/const-argument explicitness on generic scalar ops (a2). `ieq(n, 0_u64)` omits the required `<u64>`; the writer conflated 'dotless' (no .mode suffix) with 'no type argument'. CAT-1a receiver-fixed suppression is table-ops-only and does not cover receiver-less scalar compares, which TYPE-5/FN-2 require explicit. Responsible section: CAT-1a suppression scope vs TYPE-5/FN-2.",
+   "SURVIVING family 5 \u2014 reborrowing / borrow model (e2). Reborrowing a field (&uniq 'e deref(h).items) out of a borrowed wrapper struct, which v0 lacks (no reborrowing, T-A). Critically, the diagnostic cycle NEVER surfaced this \u2014 the three applied fixes were each individually correct; the real defect predates and survived the cycle undetected. This is a diagnostic blind spot, not just a doc gap. Responsible section: C1 card (T-A, no reborrowing; helpers written over the parts).",
+   "SURVIVING family 6 \u2014 genuinely undocumented spellings (spec gaps, not writer error): cq_new arity/binder site `cq_new<Record, spsc, 10>()` vs the only documented `cq_new<u64>()` (d1, and the seq/queue choice space in e2). Both were honestly flagged by the writer; these are true underspecification, so the fix is documentation, not writer correction. Responsible section: S.3 red box (cq_new instantiation).",
+   "Interpretation: cured defects were feedback-actionable local errors; surviving defects cluster into (a) recurring rule blind spots the writer re-violates even after a hint \u2014 OWN-11 above all \u2014 and (b) doc/spec gaps the diagnostic cannot resolve because the correct spelling isn't attested. Family recurrence (OWN-11 twice) and the e2 blind spot are the actionable signals."
+  ],
+  "remaining_defects": [
+   "a2 (REJECT): `ieq(n, 0_u64)` missing explicit `<u64>` type arg on a receiver-less generic scalar compare; CAT-1a suppression is table-ops-only, TYPE-5/FN-2 require explicit args. Legal: `ieq<u64>(n, 0_u64)`. (Plus a cosmetic effect-row rationale slip on seq_remove_at's `traps`/region-confinement \u2014 code correct.)",
+   "a4 (REJECT): nullary construct `AlreadyRegistered()` in an atom/fieldinit position (`Err(error: AlreadyRegistered())`); GRAM-9 hard error. Must let-bind first (C1 hnull pattern).",
+   "c1 (REJECT): both conformers omit reads('v) for deref field reads (deref(env).count, deref(env).cutoff, deref(value).expires_at); EFF-2 undeclared-but-exhibited, both-directions error. Wrong rule adopted ('reading through &uniq adds no reads'), contradicts count_visit.",
+   "d1 (REJECT): OWN-11 \u2014 in-loop `&uniq 'e r`/`&uniq 'e dst` name region 'e minted outside the loop; must mint an inner `region 'f {}`. Plus unattested `cq_new<Record, spsc, 10>()` arity (honestly flagged spec gap).",
+   "d4 (REJECT): OWN-11 \u2014 in-loop `cq_try_send(&uniq 'e t, ...)` names outer region 'e; must mint fresh in-loop region. Plus GRAM-4 \u2014 bare `loop {}`/`break;` missing mandatory LABEL. Plus task-compliance: red-box rule cited not quoted verbatim.",
+   "e2 (REJECT, non-par): reborrows a field out of a borrowed wrapper struct (&uniq 'e deref(h).items from &uniq 'e History), unspellable in v0 (T-A, no reborrowing) \u2014 undetected by the diagnostic cycle. Plus WRONG_CHOICE: seq_remove_at(s, 0_u64) front-removal is O(len) per eviction (SEQ-4), the anti-pattern C2 supersedes; defensible-but-not-blessed for the affine-Event case. This is the only non-par failure (final_par=false)."
+  ],
+  "next_fixes": [
+   "OWN-11 (C1 card): top priority \u2014 it recurred (d1, d4) and survived diagnostics. Add a prominent, repeated worked example showing the in-loop fresh-region mint (`region 'f {}` inside the loop) as the ONLY legal way to borrow a receiver inside `loop @l`, and explicitly call out the outer-region-minted-around-loop shape as the canonical rejection.",
+   "CAT-1a / TYPE-5 / FN-2 (a2): state unambiguously that receiver-fixed type-arg suppression is table-ops-only, and that receiver-less generic scalar ops (ieq/ilt/... over T) ALWAYS need explicit `<T>`. Add a 'dotless is not typeless' note to kill the 'no .mode suffix means no type arg' conflation.",
+   "EFF-2 + conformer catalog (c1): make explicit that reading an env/value field through deref exhibits reads('v) even through a &uniq borrow; annotate count_visit's reads('v) as 'from one deref field read' and state the keep_big pattern drops writes/traps from the ceiling but NEVER its reads clause. Directly refute 'reading through &uniq adds no reads.'",
+   "GRAM-9 / GRAM-5 (a4) and GRAM-4 (d4): reinforce that a construct (even nullary) may not sit in an atom/fieldinit slot \u2014 must be let-bound \u2014 and that loop/break LABELs are mandatory, not optional. Cross-link the C1 hnull and `loop @scan` examples.",
+   "C1 reborrowing / T-A (e2): add an explicit no-reborrowing example \u2014 helpers must be written over the field parts (pass &uniq 'e seq<Event,100> minted by the owner), never over a borrowed wrapper struct; contrast the ring_push place-op pattern that avoids minting a field borrow.",
+   "Document the cq_new full instantiation/binder spelling in the S.3 red box (d1) so the tag/const-arg form (ep/K binder) is attested rather than guessed; likewise clarify the blessed affine FIFO route so e2's seq-vs-C2 choice is unambiguous.",
+   "Close the diagnostic blind spot: the e2 reborrow defect was never surfaced by the cycle. Extend the feedback generator to flag reborrow-out-of-borrowed-struct and WRONG_CHOICE (perf anti-pattern) classes, not just locally-fixable spelling/derivation errors."
+  ],
+  "caveats": [
+   "Grader-not-compiler: 'green' is adjudicated by a grader, not the production xlc checker. Rejections and par verdicts are the grader's best judgment; a real checker could disagree at the margin in either direction.",
+   "Diagnostic quality is almost certainly better than a real compiler's would be \u2014 the feedback is expert-written and targets the actual defect. So the 70% final-green (and the +30pp cure delta) is plausibly an UPPER bound on what a real compiler's diagnostics would deliver; discount accordingly when projecting to shipped tooling.",
+   "Diagnostics also have a demonstrated blind spot: e2's real defect (reborrow, T-A) predated and survived the cycle uncaught while three correct-but-irrelevant fixes were applied. High cure rate does not mean diagnostics see everything.",
+   "Small n=20 with wide CIs; single round. 70% sits exactly on the PASS threshold \u2014 a one- or two-task swing crosses it, so treat the PASS as provisional, not comfortable.",
+   "First-shot 40% vs round-3 26.3% is a favorable but not strictly apples-to-apples comparison (round 3 was a 'clean baseline' without the feedback cycle); read it as directional, not a controlled delta.",
+   "All 6 surviving failures are checker-REJECTs (API_MISUSE), and e2 is the sole non-par (14/14 par among greens). The residual risk is legality/writability, not optimization quality \u2014 the perf/par story is clean.",
+   "Codenames and rule IDs (OWN-11, EFF-2, CAT-1a, etc.) are repo-log internal; in any owner-facing plain-language summary, describe these as 'the loop-borrow rule', 'the effect-tracking rule', etc."
+  ]
+ },
+ "rates": {
+  "first": "8/20",
+  "final": "14/20",
+  "par_of_final": "14/14"
+ },
+ "per_task": [
+  {
+   "task": "a1",
+   "area": "entry",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "a2",
+   "area": "entry",
+   "first": false,
+   "final": false
+  },
+  {
+   "task": "a3",
+   "area": "entry",
+   "first": false,
+   "final": true
+  },
+  {
+   "task": "a4",
+   "area": "entry",
+   "first": false,
+   "final": false
+  },
+  {
+   "task": "b1",
+   "area": "lru",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "b2",
+   "area": "lru",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "b3",
+   "area": "lru",
+   "first": false,
+   "final": true
+  },
+  {
+   "task": "b4",
+   "area": "lru",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "c1",
+   "area": "sweep",
+   "first": false,
+   "final": false
+  },
+  {
+   "task": "c2",
+   "area": "sweep",
+   "first": false,
+   "final": true
+  },
+  {
+   "task": "c3",
+   "area": "sweep",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "c4",
+   "area": "sweep",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "d1",
+   "area": "pipeline",
+   "first": false,
+   "final": false
+  },
+  {
+   "task": "d2",
+   "area": "pipeline",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "d3",
+   "area": "pipeline",
+   "first": true,
+   "final": true
+  },
+  {
+   "task": "d4",
+   "area": "pipeline",
+   "first": false,
+   "final": false
+  },
+  {
+   "task": "e1",
+   "area": "seq",
+   "first": false,
+   "final": true
+  },
+  {
+   "task": "e2",
+   "area": "seq",
+   "first": false,
+   "final": false
+  },
+  {
+   "task": "e3",
+   "area": "seq",
+   "first": false,
+   "final": true
+  },
+  {
+   "task": "e4",
+   "area": "seq",
+   "first": false,
+   "final": true
+  }
+ ]
+}
