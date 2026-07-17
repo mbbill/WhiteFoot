@@ -16,20 +16,24 @@ libraries, AND a named 51-map consumer or corpus operation needs it.
 
 ---
 
-## Delta 1 — CONCURRENCY BINDINGS (v3; rebuilt on the CONC-0 memory model)
+## Delta 1 — CONCURRENCY BINDINGS (v3.1; rebuilt on the CONC-0 memory model)
 
 > **HOSTILE-REVIEW FLAG (whole delta).** The v2 draft was ruled NOT ADOPTABLE by
 > three reviews (`evidence/conc-review.json`): the shape (static capabilities, a
 > closed set of sealed synchronization points, trap = abort) is right, but it was
 > built on a memory model the kernel does not contain, and its checker-side rules
-> admitted three data races the draft claimed closed. This v3 rebuild puts the
-> memory model FIRST (CONC-0) and repairs every FATAL/MAJOR finding; each repair
-> is marked [CONC-V3-n]. Nothing here ships without a fresh full re-attack on this
-> text — every fix (spawn's capture-loan clause, the Shareable induction,
-> guard_uniq's issue clause, the R15 concurrency schema) is itself new
-> fact-channel surface. Rule IDs remain draft namespaces; the memory-model clauses
-> MM-0..MM-10 and the amendments AMD-7/AMD-8 are PROPOSED kernel/ratified-rule
-> additions requiring owner ratification (see Escalations).
+> admitted three data races the draft claimed closed. The v3 rebuild put the
+> memory model FIRST (CONC-0) and closed two of the three FATALs; the v3 re-attack
+> (`evidence/conc-v3-reattack.json`) confirmed both closures and left ONE FATAL
+> (guard_uniq's free result region) plus two MAJORs (CONC-0 circularity; scope
+> effect-row) and MINORs. This v3.1 pass closes the last FATAL by mirroring
+> `arena_get`, makes CONC-0 a non-circular conditional reduction target, and pins
+> the effect-row root region; v3.1 repairs are marked [CONC-V31-n] (v3 repairs
+> keep their [CONC-V3-n] marks). Nothing here ships without a fresh full re-attack
+> on this text — every fix is itself new fact-channel surface. Rule IDs remain
+> draft namespaces; the memory-model clauses MM-0..MM-10 and the amendments
+> AMD-7/AMD-8 (and the EFF-1 `sync`-atom addition) are PROPOSED kernel/
+> ratified-rule additions requiring owner ratification (see Escalations).
 
 ### CONC-0 — The memory model (the foundation; a proposed kernel addition)
 
@@ -38,21 +42,34 @@ kernel defines no data race, no happens-before, and no meaning for the
 release/acquire CQ-6 asserts. Every sealed-form soundness argument therefore has
 no reduction target, and even the flagship walks' "parent reads a child's writes
 after join" correctness is unstatable. CONC-0 is the minimal happens-before
-statement the kernel must add so D1 becomes CHECKABLE. It is the REDUCTION TARGET
-every sealed-form R15 proof discharges to: a sealed author proves "my internals
-establish these synchronizes-with edges," and CONC-0 turns those edges into the
-absence of a data race. The eleven clauses:
+statement the kernel must add so D1 becomes CHECKABLE.
 
-- **MM-0 Definitions and the theorem.** A *location* is a range of bytes of a
-  language-managed object. Two accesses *conflict* iff they touch overlapping
-  locations and at least one is a write. *happens-before* (HB) is the transitive
-  closure of program order within one thread plus the closed *synchronizes-with*
-  edge list MM-1..MM-6. A *data race* is a conflicting pair of accesses on
-  distinct threads not ordered by HB. **D1 restated as a theorem:** an accepted
-  program has no data race on language-managed memory. The theorem is scoped by
-  SCOPE-3: gated FFI frames, external writers of RO-mapped files, and TCB
-  internals (allocator, scheduler, runtime) are excluded, and externally mappable
-  bytes carry no optimizer facts (the member audit's map-row discipline).
+[CONC-V31-3] **Two roles, kept apart (the non-circularity fix).** CONC-0 does
+exactly two things and they must not be conflated. (1) MM-0 DEFINES race and
+happens-before, and each of MM-1..MM-6 STATES the synchronizes-with edge a given
+sealed form is REQUIRED to establish. (2) The sealed implementation must then
+DISCHARGE that edge via its own release/acquire fences (MM-10 lowering); the model
+phase proves the discharge per form. The edges are OBLIGATIONS, not axioms — HB
+does NOT contain an MM-1..MM-6 edge unconditionally; it contains it exactly when
+the form discharges it. Otherwise the reduction is vacuous: a queue whose
+`cq_send` emitted a relaxed (non-release) store would "satisfy" a definitional
+edge while its payload races on arm64. So the theorem is **conditional**: IF every
+sealed form discharges its MM-1..MM-6 edges via its fences, THEN HB contains those
+edges and an accepted program has no data race. The eleven clauses:
+
+- **MM-0 Definitions and the conditional theorem.** A *location* is a range of
+  bytes of a language-managed object. Two accesses *conflict* iff they touch
+  overlapping locations and at least one is a write. *Program order* ranges over a
+  thread's operations AND the memory events internal to each sealed op it executes
+  (the user's `write *box` and the `cq_send` release store it precedes are both in
+  program order). *happens-before* (HB) is the transitive closure of program order
+  plus the *synchronizes-with* edges of MM-1..MM-6 **that the executing forms
+  discharge**. A *data race* is a conflicting pair of accesses on distinct threads
+  not ordered by HB. **D1 restated conditionally:** IF every sealed form discharges
+  its MM-1..MM-6 edges (the model-phase obligation), THEN an accepted program has
+  no data race on language-managed memory. Scoped by SCOPE-3: gated FFI frames,
+  external writers of RO-mapped files, and TCB internals (allocator, scheduler,
+  runtime) are excluded, and externally mappable bytes carry no optimizer facts.
 - **MM-1 Spawn / publication edge.** Everything sequenced-before a `spawn['p]` in
   the parent happens-before the child body's first action; in particular every
   capture's initialization is published to the child. (Fixes the finding that
@@ -71,10 +88,21 @@ absence of a data race. The eleven clauses:
   **O2** `unlock`_i synchronizes-with `mtx_lock`-return_{i+1}. **O3** the interior
   address is stable across the whole tenure. **O4** a token is issued only on an
   acquiring path (`try`/`timeout` variants issue solely on their `Ok` arm).
-- **MM-4 Queue publication.** `cq_send(v)` synchronizes-with the `cq_recv`
-  returning that `v`; one release publish per batch covers all its items; the
-  last-`cq_tx`-drop happens-before any `RecvClosed` observation; the last-`cq_rx`-
-  drop happens-before any `QueueClosed(value)` ownership handback.
+- **MM-4 Queue publication (memory-event granularity; a discharge obligation).**
+  The sealed queue must establish that its `cq_send(v)` contains a RELEASE store
+  event that the matching `cq_recv` reads with an ACQUIRE load, where "matching"
+  is fixed by *reads-from*: the acquire load reads the value this release store
+  wrote (or a later store in its release sequence), not some other send's — so the
+  edge lands on the send that actually produced the received `v`. **Cumulative
+  visibility:** everything program-order-before that `cq_send` (INCLUDING a user
+  `write *box` through a moved-in `box` payload) happens-before everything
+  program-order-after the matching `cq_recv`. One release publish per batch covers
+  all its items. Additionally the last-`cq_tx`-drop's release happens-before any
+  `RecvClosed` observation, and the last-`cq_rx`-drop's release happens-before any
+  `QueueClosed(value)` ownership handback. (The operation-granularity "send
+  synchronizes-with recv" of v3 was vacuously dischargeable — it omitted the
+  release/acquire event identity, reads-from, and cumulative content the SPSC
+  box-payload proof needs; this is the fix.)
 - **MM-5 Endpoint seriality (stated soundly).** All operations on one endpoint
   are HB-totally-ordered — derived from endpoint affinity, the `&uniq` receiver on
   every endpoint op, and the MM-1/2/3 edges on every legal transfer path
@@ -91,15 +119,31 @@ absence of a data race. The eleven clauses:
   is what makes CQ-5's cross-thread last-drop free not a double-free.
 - **MM-7 Non-interference / effect opacity.** A sealed synchronization op is NEVER
   `pure`, and its effect on shared internal state is NON-ERASABLE: it survives
-  region confinement (CAT-5a(ii) must not strike it). Concretely, a new EFF-1
-  effect atom `sync` is introduced for exactly this; every sealed sync op
-  (`mtx_lock`, `guard_uniq`, the guard/endpoint drops, and every `cq_*` op)
-  carries `sync`, which no region-disjointness, CSE, DSE, code-motion, or purity
-  fact may see through, and against which no reordering across the acquire/release
-  direction is licensed. Requires-engine facts over shared-reachable state fail
-  closed (generalizing CQ-6's no-occupancy-facts rule). (Fixes the derivable
-  pure-rowed enqueue: an op whose only other effect `writes('e)` is confined by
-  CAT-5a(ii) is still `sync`, so never pure.)
+  region confinement (CAT-5a(ii) must not strike it). A new EFF-1 effect atom
+  `sync` marks exactly these ops; nothing (region-disjointness, CSE, DSE,
+  code-motion, purity) sees through it, and no reordering across the
+  acquire/release direction is licensed. Requires-engine facts over
+  shared-reachable state fail closed (generalizing CQ-6's no-occupancy-facts rule).
+  [CONC-V31-9] **The canonical `sync` set (one list, reconciled).** `sync` is
+  carried by, and ONLY by: `mtx_lock`, `mtx_try_lock` (on its `Ok` arm), the guard
+  drop; the ten data `cq_*` rows (`cq_send`/`cq_try_send`/`cq_recv`/`cq_try_recv`/
+  the four batch rows/`cq_tx_clone`/`cq_rx_clone`); and the compiler-derived
+  endpoint drop bodies. NOT in the set: the PURE CONSTRUCTORS `mtx_new` and
+  `cq_new` (no cross-thread publication at mint — both endpoints still local —
+  reviewed once as vacuous), and `guard_uniq` (its interior-view write is already
+  fenced by `mtx_lock`'s acquire, which is program-order-before it and which MM-7
+  forbids reordering across; its row stays `reads('x)`). "Carries `sync`" is now
+  exactly "in the AMD-8 obligation net"; MM-7, the form rows, and the CONC-0
+  obligation list agree on this one set. (This also fixes the derivable pure-rowed
+  enqueue: a data `cq_*` op whose only other effect `writes('e)` is confined by
+  CAT-5a(ii) is still `sync`, so never pure.) [CONC-V31-11] **EFF-1/EFF-2
+  companion amendment (same landing):** EFF-1's closed canonical order becomes
+  `sync, reads, writes, allocates, traps` (grammar extended to admit `sync`;
+  `pure` stays the empty-row spelling); EFF-2 gains "a declaration exhibits `sync`
+  iff its body or `requires` block calls any operation whose row includes `sync`,
+  checked both ways"; R10(c)/R12 row-equality normalize to the amended order so a
+  `sync, reads('m)` caller row and a `reads('m), sync` callee row cannot spuriously
+  mismatch.
 - **MM-8 Split views.** A `par`/`scope` split-unique slot and CONC-1's `&uniq 'p`
   captures partition their backing into byte-disjoint ranges; two split views of
   one place must not overlap (this is the loan-side disjointness the MM-2 join
@@ -108,23 +152,38 @@ absence of a data race. The eleven clauses:
   operation, and the abort path performs no language-visible write (the general
   SCOPE-4/EFF-4 clause CONC-4 needs, previously stated only per-op, e.g. OP-9).
   Surviving threads observe only pre-trap-valid in-process state during the
-  bounded teardown window; external (persisted/peer) state receives power-loss-
-  prefix semantics, gated by a MANDATORY abort-mid-scenario fault-injection
-  battery. The no-user-signal-handler invariant (only the sealed sticky-flag
-  handler runs; `signals_general` deferred) is a load-bearing premise.
+  bounded teardown window. The PROCESS-MEMORY half is D1-sound (no surviving
+  in-process observer; the sticky-flag handler is the only writer, and it is TCB).
+  [CONC-V31-8] The EXTERNAL (persisted/peer) half carries NO prefix guarantee: on
+  an async-io target (io_uring), writes submitted before the trap are owned by the
+  kernel and an ARBITRARY SUBSET of them may land after abort, possibly OUT OF
+  ORDER — a hole, not a torn tail. A durability point therefore requires an
+  explicit submission barrier (an `IO_LINK` chain, a drain, or an `fsync`) before
+  it; only writes preceding a COMPLETED barrier are guaranteed. The MANDATORY
+  abort-mid-scenario fault-injection battery is the CHECK, not a semantic claim,
+  and it MUST exercise out-of-order completion (drop a middle write, land a later
+  one), not only torn-tail; the WAL-recovery consumer is re-scoped to this
+  subset+barrier model. The no-user-signal-handler invariant (only the sealed
+  sticky-flag handler runs; `signals_general` deferred) is a load-bearing premise.
 - **MM-10 Target mapping.** `release`/`acquire`/`acq_rel` are pinned to the
   C11/LLVM memory orderings with a per-target lowering proof; arm64 is the honest
   stress bed (Chase-Lev / Vyukov fence audits run under that mapping — the member
   audit's deque note).
 
-**The per-form obligation list the CONC hostile-review MODEL phase must discharge**
-(attached by BEHAVIOR — "the body may access state reachable from another live
-binding or thread" — not by loan class, so it reaches loan-NONE brand-carriers):
-`mtx_new`, `mtx_lock`, `guard_uniq`, the guard drop; all ten `cq_*` rows, both
-`cq_tx_clone`/`cq_rx_clone`, the compiler-derived endpoint drop bodies, and
-`cq_new`. For each: the O1-O4 tenure/handoff facts (MM-3) where it issues or
-releases exclusion, the MM-4/MM-5 publication/seriality facts where it hands data
-across a boundary, and the MM-6 reclamation facts where it frees shared storage.
+**The per-form obligation list the CONC hostile-review MODEL phase must discharge.**
+[CONC-V31-10] Attachment is SYNTACTIC, not a body judgment: an op is in the net
+iff its form-table row declares `sync` (the checker can read the row; it cannot
+read the sealed TCB body, so it cannot compute "accesses cross-thread-reachable
+state"). The form-table author's declaring `sync` on every such op is a
+TRUSTED-DECLARATION obligation, and this enumeration is the audited completeness
+check against the opaque bodies: `mtx_lock`, `mtx_try_lock` (Ok), the guard drop;
+the ten data `cq_*` rows and both `cq_tx_clone`/`cq_rx_clone`; the endpoint drop
+bodies. For each: the O1-O4 tenure/handoff facts (MM-3) where it issues or releases
+exclusion, the MM-4/MM-5 publication/seriality facts (at the memory-event
+granularity of MM-4) where it hands data across a boundary, and the MM-6
+reclamation facts where it frees shared storage. The PURE CONSTRUCTORS `mtx_new`
+and `cq_new` (no publication) and `guard_uniq` (fenced by `mtx_lock`) are NOT in
+the net — each is reviewed ONCE as vacuous and carries no discharge.
 
 ### [CONC-1] Scoped threads (rebuilt)
 
@@ -157,17 +216,30 @@ spawn captures. All later parent statements and later spawns are then governed b
 these entries via R5/R6/OWN-5: a `set` over, or a `&uniq`/own re-access of, a
 place under a live capture entry rejects (R6/OWN-5); a second `&uniq 'p` capture
 of the same place rejects (R5 uniq-overlap); two `&` captures coexist (shr).
-`own` Sendable captures are moved into the child and consumed at the spawn.
+
+[CONC-V31-4] **`own` capture and the `Err(Eagain)` path.** An `own` Sendable
+capture is moved into the child ONLY on the Ok path. On `Err(Eagain)` the child
+never runs, so the moved value is not left in limbo: the SPAWNING THREAD drops it
+before `spawn` returns — a same-thread, normal-path, trap-free drop, with no
+off-thread drop and no double-free. (MM-1's publication edge to the child body is
+vacuous when the body never runs, so no cross-thread ordering is needed for this
+drop.) This is stated as part of `spawn`'s form contract. A future refinement may
+hand the captures back inside the error (the `CqSendFail` no-loss precedent) if a
+scenario needs to recover them on `Eagain`; for now the same-thread drop is the
+sound minimum.
 
 [CONC-V3-4] **Scope exit is EVERY leaving edge, join-before-drop (the second
 FATAL fix).** "`scope` exit" is defined as every control-flow edge leaving the
-scope block — fallthrough, `break` to an outer label, and `return` — matching
-STOR-3's edge enumeration. On each such edge the join of all children executes
+scope block — fallthrough, `break` to an outer label, `return`, AND a
+try-statement `Err` propagation [CONC-V31-5] (a `let x = try e;` whose `Err` arm
+returns from the function, GRAM-4 `try_stmt` / ERR-3, is a distinct statement kind
+from `return`/`break` and must be named explicitly so a checker matching statement
+kinds does not miss it). On each such edge the join of all children executes
 FIRST, before that edge's R7/STOR-3 releases and drops. This closes the
-`return`-out-of-scope UAF (a child holding a `&'p` borrow into a frame the return
-would otherwise pop): the frame's drops cannot run until every child has joined,
-and the capture entries (CONC-V3-3) are live across the whole block, so no leaving
-edge can free a captured place under a live child.
+out-of-scope UAF (a child holding a `&'p` borrow into a frame a `return` or a `try`
+`Err` would otherwise pop): the frame's drops cannot run until every child has
+joined, and the capture entries (CONC-V3-3) are live across the whole block, so no
+leaving edge can free a captured place under a live child.
 
 [CONC-V3-5] **Publication edges.** By CONC-0 MM-1 the spawn statement is a release
 edge from the parent to the child body's entry (publishing every capture); by MM-2
@@ -183,10 +255,19 @@ row restricted to `'p` and to `heap`" was wrong twice: EFF-1 cannot even spell
 it dropped a child's writes to OUTER regions (a child writing through a `&uniq 'b`
 capture rooted at a caller borrow) from the row, hiding a cross-thread write
 channel (EFF-2 both-ways). Replacement: **the `scope` statement exhibits the
-UNION of each body's row instantiated at the actual capture regions, plus
-`allocates(heap)` (child stacks) and `sync` (MM-7), dropping ONLY regions
-introduced inside the scope or a body** (the CAT-5a(ii) discipline). Effects on
-caller-supplied or enclosing regions never drop.
+UNION of each body's row instantiated at the ROOT REGION of each captured place,
+plus `allocates(heap)` (child stacks) and `sync` (MM-7), dropping a region ONLY IF
+that root region is introduced inside the scope or a body** (the CAT-5a(ii)
+discipline). [CONC-V31-6] "Root region" means the region the captured borrow is
+rooted at per OWN-10 — NOT the `'p` annotation. A body `fn writer['w](x: &uniq 'w
+u64) writes('w)` instantiated by a capture `&uniq 'p deref(xb)` where `xb: &uniq
+'b u64` roots at `'b`, so `'w := 'b` and the scope row exhibits `writes('b)`, which
+is NOT scope-introduced and is NOT dropped — the enclosing `fn hidden_write['b]`
+then correctly exhibits `writes('b)` (no false purity, EFF-2 satisfied).
+Equivalently: capturing a caller-rooted place at a scope-local annotation region is
+FORBIDDEN — the capture must be written at the root region (`&uniq 'b deref(xb)`),
+so the caller-region write can never be dropped. Effects on caller-supplied or
+enclosing regions never drop.
 
 [CONC-V3-7] **Loop-spawn: an honest restriction for this delta.** OWN-11 forbids
 naming an outer region in a `loop @l` body and forbids moving an outside binding
@@ -232,19 +313,25 @@ terminates. The headline is corrected: the judgment is DERIVED for the
 loan-token / brand-carrier / ordinary-structural classes and STIPULATED-with-
 obligation for the sealed-synchronizer class — not a uniform per-form read-off.
 Every capture and every `par`/`spawn` slot consults it; **anything not matched by
-a row below is fail-closed: neither Sendable nor Shareable.**
+a row below is fail-closed: neither Sendable nor Shareable.** [CONC-V31-7]
+**Precedence, normative:** the `confined(...)` classification is checked FIRST and
+DOMINATES — a `confined(shr)` user struct all of whose fields are owned Sendable
+types matches both the structural row and the confined row, and the confined row
+wins (never Sendable/Shareable). The structural `struct`/`enum` rows therefore read
+NON-confined only. This closes the "filed a user confined struct as ordinary
+owned" error at the table level, not only in prose.
 
 | type | Sendable | Shareable |
 |---|---|---|
+| any `confined(...)` type (form-table token OR user) — CHECKED FIRST | never | never |
 | primitive, tag-only enum | yes | yes |
-| user `struct` | iff every field Sendable | iff every field Shareable |
-| user `enum`, `Option<T>`, `Result<T, E>` | iff every payload Sendable | iff every payload Shareable |
+| NON-confined user `struct` | iff every field Sendable | iff every field Shareable |
+| NON-confined user `enum`, `Option<T>`, `Result<T, E>` | iff every payload Sendable | iff every payload Shareable |
 | `array<T, N>` | iff `T` Sendable | iff `T` Shareable |
 | `box<T>`, `buffer<T>`, `seq<T, N>`, `table<K, V, h>` | iff every payload Sendable | iff every payload Shareable |
 | `cq_tx<'q,T>`, `cq_rx<'q,T>`, `cq_ends<'q,T>` (brand-carrier) | iff `T` Sendable [CQ-3] | never [CQ-3] |
 | `mutex<T>` (sealed synchronizer, CONC-3) | iff `T` Sendable | iff `T` Sendable — STIPULATED |
 | `slice<'r,T>`, the flagged `uslice<'e,T>`, `ahdl<place,T>` | fail-closed (deferred, v1) | fail-closed (deferred, v1) |
-| any `confined(...)` type (form-table token OR user) | never | never |
 
 [CONC-V3-10] Justifications, by class:
 - **Ordinary structural (Shareable = every-payload-Shareable, replacing "deeply
@@ -278,17 +365,27 @@ on unsynchronized registration/count state. Fix (companion S.3 change, same
 landing): **re-mode `cq_tx_clone`/`cq_rx_clone` to `&uniq` receivers**, restoring
 CQ-3's invariant literally and making a concurrent clone unspellable by
 construction (a `&uniq` receiver cannot be aliased across threads). The
-alternative (keep `&`, add both rows to the behavior-based R15 obligation set with
+alternative (keep `&`, add both rows to the `sync`-marker R15 obligation set with
 a `sync` effect home) is recorded but not recommended — re-moding is the smaller
 trusted surface. Either way both clone rows are inside the AMD-8 obligation net
 (CONC-3).
 
-[AMD-7, proposed] **Par/spawn slot capability premise.** Every `par` slot and
-every `spawn` capture carries a capability premise ON TOP OF R14/AMD-1 loan
-disjointness (both must pass): a replicate/`&` slot requires the referent
-Shareable; a split-unique/`&uniq` slot requires the referent Sendable-and-
-exclusively-transferred; an `own` slot requires the value Sendable. This is a
-marked amendment to R14, counted as a rule change (the v2 walks used it unmarked).
+[AMD-7, proposed] **Par/spawn slot capability premise AND the R14 sync-exemption.**
+Every `par` slot and every `spawn` capture carries a capability premise ON TOP OF
+R14/AMD-1 loan disjointness (both must pass): a replicate/`&` slot requires the
+referent Shareable; a split-unique/`&uniq` slot requires the referent Sendable-and-
+exclusively-transferred; an `own` slot requires the value Sendable. [CONC-V31-12]
+This marked amendment ALSO fixes the scope of R14's "no writes through replicated
+slots": that clause ranges over LOAN-JUDGED SOURCE writes (`writes(...)` rows) only;
+a `sync`-rowed op is the REVIEWED EXCEPTION (so the striped-lock ACCEPT stands —
+each body's `mtx_lock` is `sync`, not `writes('p)`, and R14's no-writes check sees
+no `writes('p)`). The load-bearing invariant, stated explicitly: **every
+`sync`-rowed PHYSICAL write must be data-race-free by discharged O1-O4 exclusion
+(MM-3) or an atomic-RMW contract** (an AMD-8 per-form obligation), and the only
+Shareable interior-mutable sealed forms are exclusion- or atomic-based — so the
+exemption cannot be abused by a Shareable sync form whose write is neither. All of
+this is counted as a rule change (the v2 walks used the capability premise and the
+sync-exemption unmarked).
 
 ### [CONC-3] Mutex — the full sealed form (rebuilt)
 
@@ -296,16 +393,19 @@ marked amendment to R14, counted as a rule change (the v2 walks used it unmarked
 headline is WITHDRAWN. The guard needs a NEW interior-view loan clause, `mutex`
 needs its formation rows, and R15 needs a concurrency schema — all new machinery.
 
-**[AMD-8, proposed] R15 concurrency schema (behavior-based attachment).** R15 as
+**[AMD-8, proposed] R15 concurrency schema (`sync`-marker attachment).** R15 as
 ratified obliges only per-invocation safety ("preserve interior addresses; safe
 under concurrent invocation") — a per-invocation predicate that a conforming
-recursive or reader-shared lock satisfies while admitting a race. Amend R15 so
-that **every sealed op or compiler-derived drop whose body may access state
-reachable from another live binding or thread** carries, by BEHAVIOR (not by loan
-class, so it reaches the loan-NONE cq carriers), the obligations: MM-3 O1-O4 where
-it issues/releases exclusion, MM-4/MM-5 where it hands data across a boundary, and
-MM-6 where it frees shared storage. The mandatory per-form scope is the CONC-0
-list. A green checker is not this proof.
+recursive or reader-shared lock satisfies while admitting a race. Amend R15 so that
+**every form-table op or compiler-derived drop whose row declares `sync`** carries
+the obligations: MM-3 O1-O4 where it issues/releases exclusion, MM-4/MM-5 (at MM-4's
+memory-event granularity) where it hands data across a boundary, and MM-6 where it
+frees shared storage. [CONC-V31-10] Attachment is the SYNTACTIC `sync` marker, not
+a body judgment (the checker cannot read the sealed TCB body); the marker reaches
+the loan-NONE `cq` carriers because they declare `sync`, and the form-table author's
+declaring `sync` on every cross-thread-reachable op is the trusted-declaration
+obligation audited against the CONC-0 completeness list. A green checker is not
+this proof.
 
 **Mutex form-table rows** (nine-column S.4 discipline; `sync` per MM-7):
 
@@ -313,7 +413,7 @@ list. A green checker is not this proof.
 |---|---|---|---|---|---|---|---|---|
 | `mtx_new` | `<T>(v: own T) -> own mutex<T>` (`T` must be Sendable, else compile reject [CAP-1]) | consumes `v` | NONE | pure (frame init; no publication yet) | — | — | — | — |
 | `mtx_lock` | `['m](m: &'m mutex<T>) -> own guard<'m, T>` | returns own guard | ISSUE uniq (interior) | `sync` [blocks, pending BLOCKS-EFFECT] | — (blocking, total) | — | — | CG-LOCK |
-| `guard_uniq` | `['x, 'v](g: &'x guard<'m, T>) -> &uniq 'v T` | — | ISSUE uniq on source(guard-holder), result region `'v` (dedicated) | reads('x) | — | — | — | CG-INL |
+| `guard_uniq` | `['x](g: &'x guard<'m, T>) -> &uniq 'x T` | — | ISSUE uniq (interior) on source(g), view holder R8-transferable, result region `'x` (the receiver's own region, no free result region) | reads('x) | — | — | — | CG-INL |
 | `mtx_try_lock` | `['m](m: &'m mutex<T>) -> own Result<guard<'m,T>, LockBusy>` | guard own-out on Ok | ISSUE uniq (interior) on the Ok arm ONLY [O4] | `sync` | Result: LockBusy | — | — | CG-LOCK |
 
 `enum LockBusy { Busy(); }` (companion). Guard drop is a surfaced [STOR-3]
@@ -321,23 +421,39 @@ compiler-derived drop whose form-declared release is the UNLOCK; it removes the
 interior-uniq entry, is blocked if any `guard_uniq` view entry on `g` is still
 live (R7 overlapped-drop check), and its body is trap-free (MM-9).
 
-[CONC-V3-13] **The interior-view clause (the third FATAL fix), a marked AMD-5
-carve-out.** `guard_uniq` cannot use `issues uniq on source(receiver)` — AMD-5
-declaration-rejects a uniq result — and the v2 "statement-scoped [R3]" story is
-unspellable under GRAM-9 (a call result is not an atom, so it must be let-bound,
-and a let-bound `&uniq 'm` view lives to `'m`'s end and can be returned or `give`n
-past the unlock). Replacement: **`guard_uniq` issues a uniq loan ENTRY on the
-GUARD HOLDER's place (entry `(g, uniq, view)`), and returns the interior as
-`&uniq 'v T` where `'v` is a DEDICATED result region strictly inside `g`'s life
-(the `pool_entry` pattern), never `'m`.** Consequences: the entry FREEZES `g`
-(R6), so a second `guard_uniq` (a second uniq issue overlapping `g`) rejects —
-exactly one live interior view, restoring OWN-9 noalias; the guard's R7 unlock is
-blocked while a view entry is live (R7 overlapped-drop check); and because the
-view is at the locally-introduced `'v`, it can never be returned or `give`n past
-the guard (R13/GIVE-1/OWN-4 reject a borrow at a locally-introduced region). This
-is new loan machinery, carried as a marked AMD-5 carve-out (owner escalation:
-AMD-5 was a D18 tightening). The interior address is stable across the view by
-MM-3 O3.
+[CONC-V31-1] **The interior-view clause (the last FATAL fix), corrected to mirror
+`arena_get` exactly.** The v3 row spelled a FREE result region `'v` in the
+parameter list `['x, 'v]`; OWN-3 makes a `region_param` caller-supplied, so the
+caller chose `'v` and could book the view at an outer region and `give`/`return`
+it past the unlock — the v3 escape defense ("locally-introduced `'v`") was void,
+re-committing the exact free-result-region mistake `arena_get` was repaired for
+(BRAND-1.3: "there is NO free result region `'v`... an accepted UAF"). Corrected,
+mirroring `arena_get`: **`guard_uniq['x](g: &'x guard<'m, T>) -> &uniq 'x T` — the
+view is returned at `'x`, the receiver's OWN region carried by the `&'x g`
+parameter, with NO free result region.** Why `'x`, not `'m`: `'m` is the mutex
+borrow region and can OUTLIVE the guard binding (the mutex may live longer than the
+guard), so a `'m` view could outlive the tenure — the escape. `'x` is the region at
+which `g` (an own binding) is borrowed for this call, so OWN-10's own-binding clause
+forces `'x` to be introduced WITHIN `g`'s scope; the view cannot outlive `'x`,
+hence cannot outlive `g`. A `give`/`return` of the view to any destination region
+`'o` now REJECTS at GIVE-1/OWN-4 (which require `'x` outlives-or-equals `'o`, false
+for an outer `'o`) — there is no caller-chosen region to book against.
+
+Two backstops, both real: (i) `guard_uniq` still issues a uniq loan ENTRY on `g`
+(entry `(g, uniq, view)`), and this entry is specified as an R8-TRANSFERABLE holder
+whose holder is the returned view binding — an R8 `move` of the view renames the
+entry, so the entry follows the view wherever it goes within `'x`, and R7's
+overlapped-drop check on `g` (the guard's own drop) fires against a still-live view
+entry NO MATTER how the view was moved, not only via the region tie. (ii) The entry
+FREEZES `g` (R6), so a second `guard_uniq` (a second uniq issue overlapping `g`)
+rejects — exactly one live interior view, restoring OWN-9 noalias. This is new loan
+machinery — a marked AMD-5 carve-out (owner escalation: AMD-5 was a D18 tightening),
+and the borrow-held loan entry is itself new (R4/R7/R10(b) today issue and track
+entries only for CONFINED results, not borrow results). **The carve-out's
+interior-exclusivity soundness now reduces entirely to "the view does not outlive
+`g`'s tenure," which the `'x` region tie (OWN-10 bounding `'x` within `g`'s scope,
+plus GIVE-1/OWN-4 blocking escape) provides, with the R8-transferable entry as the
+R7 drop-order backstop.** The interior address is stable across the view by MM-3 O3.
 
 Admission (D16): a lock-protects-data guard with compiler-derived, un-leakable,
 single-view unlock is unreachable from primitives; named consumer is scenario 40
@@ -366,12 +482,15 @@ argument's conclusion holds but three premises were wrong or unstated; reworded:
    surviving in-process observer exists (cross-process shared writable maps are a
    ratified v1 non-goal; the sealed sticky-flag signal handler is the only code in
    the window, benign by the no-user-handler invariant).
-4. **External (persisted/peer) state is NOT inert** — an in-flight `pwrite`/
-   `net_sendv` issued before the trap can land after it, and a sibling mid-syscall
-   can complete a partial write in the window; external state receives
-   power-loss-prefix semantics, and this MANDATES the abort-mid-scenario
-   fault-injection battery (the KV WAL-recovery path is the consumer). The claim
-   is scoped to the pinned OS targets.
+4. **External (persisted/peer) state is NOT inert, and carries NO prefix
+   guarantee** [CONC-V31-8] — an in-flight `pwrite`/`net_sendv`/io_uring SQE
+   submitted before the trap is kernel-owned and an ARBITRARY SUBSET may land after
+   abort, possibly out of order (a hole, not a torn tail). Durability requires an
+   explicit submission barrier (`IO_LINK`/drain/`fsync`) before the point; only
+   writes preceding a COMPLETED barrier are guaranteed. This MANDATES the
+   abort-mid-scenario fault-injection battery as the CHECK (not a semantic claim),
+   exercising OUT-OF-ORDER completion, and re-scopes the KV WAL-recovery consumer to
+   the subset+barrier model (MM-9). Scoped to the pinned OS targets.
 
 Implication (unchanged): guard unlock and CQ-5 drain-on-drop are NORMAL-exit R7
 actions; the abort path bypasses them and by (3) needs to; a drain-on-drop or
@@ -384,16 +503,27 @@ unlock body must be trap-free on the normal path (an R15/AMD-8 obligation).
    kernel memory-model addition, including the new `sync` EFF-1 effect atom
    (MM-7) and the MM-10 target-mapping proofs; D1 is uncheckable until it does.
 2. **AMD-7 and AMD-8 need owner ratification** (they amend ratified R14 and R15),
-   as does the AMD-5 carve-out for `guard_uniq` (CONC-V3-13).
-3. **The per-form model proofs** (the CONC-0 list) — the R15/AMD-8 obligations
-   discharged per form (`mtx_lock`/guard drop, all ten `cq_*`, both clone rows,
-   endpoint drops, `cq_new`) — are the hostile-review MODEL phase's job; none is
-   discharged here.
-4. **The abort-mid-scenario fault-injection battery** (MM-9) is required before
-   any WAL/peer-durability claim.
-5. **Effect-row companion changes** in the same landing: the `sync` atom on all
-   `cq_*`/mutex rows (correcting the 5.5 `writes('q)`-strike so it can't yield a
-   pure enqueue), and the clone-row `&uniq` re-mode (CONC-V3-11).
+   as does the AMD-5 carve-out for `guard_uniq` (CONC-V31-1).
+3. **The per-form model proofs** (the reconciled CONC-0 `sync`-set) — the AMD-8
+   obligations discharged per form (`mtx_lock`/`mtx_try_lock`/guard drop, the ten
+   data `cq_*` rows, both clone rows, endpoint drops), each MM-4 edge at the
+   memory-event granularity [CONC-V31-9] — are the MODEL phase's job; the pure
+   constructors `mtx_new`/`cq_new` and `guard_uniq` are reviewed-once-vacuous, not
+   discharged. None is discharged here.
+4. **The abort-mid-scenario fault-injection battery** (MM-9) — exercising
+   OUT-OF-ORDER async-io completion, not only torn-tail — is required before any
+   WAL/peer-durability claim [CONC-V31-8].
+5. **Effect-row companion changes** in the same landing: the `sync` atom added to
+   EFF-1's canonical order (`sync, reads, writes, allocates, traps`) with the EFF-2
+   exhibits clause and R10(c)/R12 normalization [CONC-V31-11]; `sync` on the
+   reconciled cq/mutex rows (correcting the 5.5 `writes('q)`-strike); and the
+   clone-row `&uniq` re-mode (CONC-V3-11).
+7. **The borrow-held loan entry** that `guard_uniq`'s `(g, uniq, view)` requires is
+   new machinery: R4/R7/R10(b) today issue and track entries only for CONFINED
+   results, not borrow results, so the entry's issuance, R8-transfer, and R7
+   drop-order tracking for a borrow result must be fully specified. Per the review
+   this can only over-reject (leak/over-freeze), never race, but it is unspecified
+   surface the model phase owes.
 6. **Spec-mass budget.** The honest kernel-rule count is ~11 (scope/spawn,
    capture-entry persistence, exit-edge join, scope effect row, Sendable class,
    Shareable structural recursion, the AMD-7 boundary premise, guard + interior-
@@ -422,22 +552,32 @@ unlock body must be trap-free on the normal path (an R15/AMD-8 obligation).
   Shareable (CQ-3), so `seq<cq_tx>` is not Shareable; the replicate-`&` capture
   fails the AMD-7 capability premise. Independently the clone `&uniq` re-mode
   (CONC-V3-11) makes a concurrent clone unspellable.
-- **F-race-3: guard interior-view escape.** `fn peek['m,'x](g: &'x guard<'m,u64>)
-  -> &uniq 'm u64 { let r = guard_uniq(g); return r; }` then a `give`/`return` of
-  the view past the guard drop — REJECT: `guard_uniq` now returns `&uniq 'v u64`
-  at a dedicated locally-introduced `'v`, and returning/`give`-ing a
-  locally-introduced-region borrow fails R13/GIVE-1/OWN-4; the `peek` signature
-  `-> &uniq 'm` no longer type-checks against the `'v` result. The single-threaded
-  two-view variant (`let v1 = guard_uniq(g); let v2 = guard_uniq(g);`) REJECTS:
-  the second `guard_uniq` issues a uniq entry overlapping the live `(g, uniq,
-  view)` entry (CONC-V3-13). An early guard drop under a live view REJECTS at R7's
-  overlapped-drop check.
+- **F-race-3: guard interior-view escape (the reviewer's v3 reopen).** The v3
+  reopen booked the view at a caller-supplied region and gave it out:
+  `region 'o { let keep: &uniq 'o u64 = match sel { True() => { region 'i {
+  let mr: &'i mutex<u64> = &'i shared_mx; let g: own guard<'i, u64> = mtx_lock(mr);
+  let v: &uniq 'x u64 = guard_uniq(g); give v; } } False() => { ... } };
+  set deref(keep) = 999_u64; }`. Under the corrected row [CONC-V31-1] `guard_uniq`
+  returns `&uniq 'x u64` at the RECEIVER region `'x` (no free `'v`), and OWN-10
+  bounds `'x` within `g`'s scope (the inner `'i`); the `give v` to `keep` at the
+  outer `'o` REJECTS at GIVE-1/OWN-4 — the view region `'x` (within `'i`) does not
+  outlive-or-equal `'o`, and there is no caller-chosen region to book against. The
+  single-threaded two-view variant (`let v1 = guard_uniq(g); let v2 =
+  guard_uniq(g);`) REJECTS: the second `guard_uniq` issues a uniq entry overlapping
+  the live `(g, uniq, view)` entry (R6 freeze / R5 overlap). An early guard drop
+  under a live view REJECTS at R7's overlapped-drop check — and because the
+  `(g, uniq, view)` entry is an R8-transferable holder following the view, that
+  backstop holds even if the view was `move`d.
 
 Reviewer walks added:
-- **Cross-function re-lock REJECT.** `let g1 = mtx_lock(&'m m); helper(&'m m);`
-  where `helper` calls `mtx_lock` again — REJECT under MM-3 O1 (process-wide,
-  thread-agnostic tenure exclusion: a same-instance re-acquire must block or trap,
-  never issue a second token). This is the race a per-invocation R15 accepted.
+- **Cross-function re-lock — RUNTIME-BLOCKS or TRAPS (not a static REJECT).**
+  [CONC-V31-13] `let g1 = mtx_lock(&'m m); helper(&'m m);` where `helper` re-locks
+  is STATICALLY CALLABLE — `helper`'s fresh per-function loan table (R10c) has no
+  entry on the interior, so `mtx_lock` type-checks. At RUNTIME the second
+  same-instance acquire blocks (self-deadlock) or traps under MM-3 O1, so no second
+  token ever issues and the two-live-`&uniq` race never forms. This is a LIVENESS
+  failure (CAP-1 out of scope), NOT a compile-time rejection nor a D1 race — the v3
+  appendix mislabeled it "REJECT."
 - **seq<mutex<u64>, 4> striped lock ACCEPT.** Replicate-`&` capture of the stripe
   array into par bodies, each locking its stripe — ACCEPT: `seq<mutex<u64>,4>` is
   Shareable iff `mutex<u64>` is, and `mutex<u64>` is Shareable (`u64` Sendable);
@@ -446,6 +586,13 @@ Reviewer walks added:
   scope, each thread locking then sending on the one `spsc` producer — ACCEPT,
   sound only by MM-5 HB-seriality (mutex tenures chain HB edges via MM-3 O2), NOT
   by CQ-3's literal single-threaded reading.
+- **hidden_write — the scope effect row exhibits the caller write.** [CONC-V31-6]
+  `fn hidden_write['b](xb: &uniq 'b u64) -> own unit writes('b) { scope 'p { let s =
+  spawn['p](writer, x: &uniq 'b deref(xb)); } return unit; }`. The capture is
+  written at the ROOT region `'b` (capturing a caller-rooted place at the scope-local
+  `'p` is now forbidden), so `writer`'s `'w := 'b`, the scope row exhibits
+  `writes('b)` (NOT scope-introduced, NOT dropped), and `hidden_write` correctly
+  exhibits `writes('b)` — EFF-2 both-ways is satisfied and no false purity ships.
 
 Three original walks (verdicts preserved, citations corrected):
 - **Walk 1 two-thread pipeline** (spawn + endpoint move + loop send + join):
@@ -461,11 +608,12 @@ Three original walks (verdicts preserved, citations corrected):
   holder `g`).
 - **Walk 3 replicate-shared par mutex capture:** Direction A (`u64` Sendable, so
   legal) ACCEPT — each body locks inside; mtx_lock's `sync` effect is NOT a
-  "write through a replicated slot" in R14's sense (R14's no-writes clause refers
-  to loan-judged source writes; R15/AMD-8-certified sync internals are the
-  reviewed exception), so the replicate-`&` capture stands. Direction B (`T` not
-  Sendable, so rejected) REJECT at the CONC-2 `mutex` row via the AMD-7 replicate
-  premise.
+  "write through a replicated slot" in R14's sense (the marked AMD-7 sync-exemption
+  [CONC-V31-12]: R14's no-writes clause ranges over loan-judged `writes(...)` source
+  writes; a `sync`-rowed op is the reviewed exception, its physical write
+  data-race-free by discharged O1-O4 exclusion), so the replicate-`&` capture
+  stands. Direction B (`T` not Sendable, so rejected) REJECT at the CONC-2 `mutex`
+  row via the AMD-7 replicate premise.
 
 ### Escalations (decisions for the owner)
 
