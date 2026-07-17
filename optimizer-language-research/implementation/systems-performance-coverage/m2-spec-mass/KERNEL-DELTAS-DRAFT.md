@@ -296,6 +296,115 @@ killed by a length write; no fixpoint, matching the M1 decidability posture
 
 ---
 
+## Delta 5 — BRAND-CROSS-FN (BRAND-1; authority-carrying, hostile review required)
+
+> **HOSTILE-REVIEW FLAG (whole delta).** This is the machinery that keeps two
+> queues' endpoints from mixing and an arena id from addressing the wrong arena
+> — an authority/soundness property (mixing SPSC endpoints breaks the
+> single-producer invariant D1 rests on). The generalized identity comparison
+> (I2) and generative-brand freshness (I3) are the attack surfaces.
+
+### The problem, precisely (verified against RULES-RATIFIED)
+
+R4 records, per confined holder, a source PLACE per region parameter; R10(a)
+verifies a call by comparing that recorded source place against the resolved
+place of the tied argument (the instance-brand check). This is total INSIDE one
+function and dies at every signature boundary: a branded value passed into a
+callee loses the caller's place identity, so a queue endpoint or arena id cannot
+cross a `fn` boundary — the factored-pipeline killer (round-3 pipeline 0/4).
+
+### [BRAND-1] Brand parameters and cross-function brand identity
+
+A signature may declare, in its parameter bracket alongside region parameters, a
+BRAND PARAMETER `'q` (a distinct sort — spelled `brand 'q` to preserve CQ-2's
+"a brand is not a lexical region"). A branded parameter or result names `'q`;
+`'q` must TIE to exactly one carrying argument whose type carries `'q` (the R9
+totality discipline verbatim: zero or several carriers, or a `'q` named only by
+a result, reject the declaration). The checker tracks per branded binding a
+BRAND IDENTITY, records it (R4-style), transfers it on move (R8), verifies it at
+each call (R10a), seeds the callee body from its signature (R10c), and
+propagates it on return (R10b) — reusing that scaffolding with no new pass.
+
+Two brand SORTS, and this is the one place the reuse is not verbatim:
+- **Lexical-region brand (arena)** — an arena handle carries the arena's region
+  `'r`; its identity IS `'r`'s source place, so R10(a)'s PLACE comparison applies
+  VERBATIM. Arenas need only the "brand parameter is a region parameter" reading.
+- **Generative brand (queue, CQ-2)** — a `cq_new` mints a FRESH existential brand
+  per execution; its identity is that fresh skolem symbol, NOT a place. (I2)
+  R10(a) must therefore compare BRAND IDENTITIES, not places: place identity
+  would wrongly equate two queues minted at one syntactic `cq_new` in a loop, so
+  a generative brand cannot be a place. This is the single generalization
+  BRAND-1 makes to R10(a): "same recorded source place" becomes "same brand
+  identity," where an identity is a place (arena) or a generative symbol (queue).
+
+Everything else is R9/R10 reuse: the tie is R9; the call-site check is R10(a) on
+identities; the body is seeded per brand parameter like R10(c) seeds loans; a
+returned branded value propagates its brand per R10(b).
+
+### Must-handle derivations
+
+1. **Factored producer loop** (the round-3 killer). `fn produce['q](tx: own cq_tx<'q, u64>, n: own u64) -> own unit reads('q), writes('q)` — sends `n` items in a `loop`/self-recursion, borrowing `tx` per send. `'q` is a brand parameter tied to `tx`. Caller: `cq_new` mints identity B, destructures, `produce<B>(tx: move t, n: 100_u64)`. The body is seeded with `'q` (R10c-analog), so `cq_send(&uniq 'e tx, v)` type-checks; no brand crosses further. Writable — the exact code round-3 could not spell.
+2. **`(arena, id)` pairs** — `fn use_id['a](ar: &'a arena<'a, T>, id: ahdl<'a, T>) -> ...` ties the id's region `'a` to the `ar` argument. This is the LEXICAL-region case: R9 tie + R10(a) PLACE comparison verbatim, no generalization; the id addresses only the tied arena.
+3. **Two endpoints of ONE queue to two helpers** — `produce['q](tx)` and `consume['q](rx)`; caller mints B, `produce<B>(tx: move txB)`, `consume<B>(rx: move rxB)`. Each helper instantiates its own `'q` to B independently; B is a fresh skolem distinct from any other queue's C, so no endpoint of B is ever accepted where C is expected.
+4. **Forgery negative** — queues A and B; `fn f['q](tx: cq_tx<'q, u64>, rx: cq_rx<'q, u64>)`. `f<?>(tx: move txA, rx: move rxB)` REJECTS: the single brand parameter `'q` requires both arguments tied to it to share ONE brand identity; `txA` carries A, `rxB` carries B, and A != B. **The clause that fires is R10(a)** (the instance-brand check, generalized to identities) — the same clause that already rejects loan-token source-place mismatches, now on generative symbols.
+5. **Mint-and-return** — `fn make() -> own cq_ends<'q, u64>` calls `cq_new` and returns the ends. The return type EXISTENTIALLY binds a fresh `'q` (the caller unpacks a fresh skolem on each `make()` call, so two calls yield unconfusable brands). This is NOT the R13 escape violation: R13 forbids returning a value carrying a locally-introduced LEXICAL region; a generative brand return is an existential PACK, sound because the returned brand is fresh-to-the-caller (exactly `cq_new`'s own behavior, which `make` wraps). It DEPENDS on OPEN-FLAG (BRAND-MINT): the fresh-return-brand binder spelling is the remaining gap.
+
+### Interactions with R1-R15 / AMD
+
+- **R4 (LOAN-1)**: adds a per-branded-binding brand-identity record, parallel to R4's per-holder source-place record; the two coexist (a value is a loan holder OR a brand carrier — endpoints/arena-ids are brand carriers, NOT loan-confined tokens, so R2 stack-confinement does not bind them; see Delta-1 open Q1).
+- **R8 (LOAN-5)**: a `move` of a branded value carries its brand identity to the destination, exactly as it carries a holder's source records; kind/identity never changes in transfer.
+- **R9 (SIG-1)**: a brand parameter ties to exactly one carrying argument under R9's totality — zero/several carriers reject at declaration.
+- **R10 (SIG-2)**: (a) generalized to compare brand identities (the ONE change); (b) a branded result propagates its brand to the tied argument's identity; (c) the body is seeded with each brand parameter.
+- **R13 (ESC-1)**: unchanged for lexical regions; BRAND-1 adds the generative-brand existential-pack return (derivation 5) as a distinct, sound return path gated on BRAND-MINT.
+- **R14 (PAR-1) / CONC-1**: a `par`/`scope` body is a named `fn`, so passing a branded endpoint into it is a brand crossing a `fn` boundary — BRAND-1 is exactly what makes that spellable; this is why concurrency is BLOCKED on BRAND-1.
+- **CQ-2/CQ-3/CQ-4**: brand stays a distinct non-region sort (CQ-2); Sendable endpoints (CQ-3) are the brand-carrier-not-loan-token class; the mint origin is the `cq_new`/destructure site (CQ-4).
+- **AMD-1..5**: untouched — BRAND-1 changes no loan clause, no par disjointness, no form-table rule; AMD-3's receiver-holder tie and AMD-5's declaration fail-closed are orthogonal.
+
+### What CONC-1's spawn additionally needs (noted, not solved here)
+
+Capturing a branded endpoint into a `spawn` body moves the brand across the
+`scope` boundary. BRAND-1 makes the brand crossing type-check, but the spawn
+ALSO needs: the branded value Sendable (Delta-1 CONC-2 — a brand identity is a
+compile-time tag, erased at runtime, so it is meaningful across the thread), and
+the `scope` join to keep the queue alive for the child's extent (CONC-1). Those
+are concurrency obligations, not resolved by BRAND-1.
+
+### Checker cost
+
+One-pass, table lookups only. A brand identity is a per-binding tag in the same
+decidability environment that already holds the region-parameter -> source-place
+map (M1 §Decidability); a call is a positional lookup + one identity comparison
+(R10a), seeding is one entry per brand parameter (R10c), transfer is a rename
+(R8). No unification search, no fixpoint, no lattice — the identity comparison is
+an equality test on tags. Cost stays O(statements x env size).
+
+### Open questions
+
+1. Generative-brand identity representation: how the fresh skolem per `cq_new` is
+   allocated and equality-tested; ties directly to OPEN-FLAG (BRAND-MINT) for the
+   mint-and-return binder (derivation 5).
+2. Loop-minted freshness: a `cq_new` inside a `loop` mints a fresh brand each
+   iteration; the checker must treat each as a distinct identity and must not
+   hoist — an OWN-11-style per-iteration rule for brands.
+3. Whether to unify the two sorts (lexical-region arena brand vs generative queue
+   brand) or keep them distinct; this draft keeps them distinct (arenas = pure
+   R9/R10 reuse, queues = the R10a generalization), which is the smaller change.
+4. Erasure: a brand identity must be provably compile-time-only (zero runtime
+   representation) so it can cross a thread by Sendable without a runtime tag —
+   an erasure obligation for the hostile review.
+
+### Admission (D16) and hostile-review demand
+
+Admission: factored pipeline code (helpers over endpoints/ids) is unreachable
+without this — round-3 measured pipeline 0/4 precisely because it is unwritable;
+named consumers are every pipeline scenario and CONC-1. Hostile review: YES,
+mandatory. This is authority-carrying — the R10(a) generalization is what
+prevents endpoint forgery/mixing (derivation 4), and a hole lets two queues'
+endpoints cross, breaking the SPSC/MPMC single-owner invariants that D1's
+data-race-freedom rests on. The attack surface is (I2) the identity comparison
+admitting a place where a generative symbol is required (or vice versa) and (I3)
+two `cq_new` sites colliding on one identity.
+
 ## Adoption ordering (dependency note)
 
 - Delta 4 (DOM-1) and Delta 3 (LOAD-1) are adoptable together and independently
@@ -304,7 +413,11 @@ killed by a length write; no fixpoint, matching the M1 decidability posture
 - Delta 2 (`tbl_clone`) is adoptable standalone (lightest; no fact channel, no
   loan) and unblocks C5's single-threaded clone-modify step; C5's atomic publish
   still waits on Delta 1.
-- Delta 1 (concurrency) is the heaviest and is BLOCKED on the brand-cross-fn
-  kernel rule (open question 2) and gated on full D1/fact-channel hostile review;
-  it should be the last adopted, and every clause re-proved, not this draft
-  transcribed.
+- Delta 5 (BRAND-1) is the named unblocker for Delta 1 and for the pipeline
+  cards; it is authority-carrying and needs its own hostile review, but it is
+  adoptable independently of concurrency (arena ids and same-function-boundary
+  endpoint helpers land immediately; only the mint-and-return path waits on
+  BRAND-MINT). Adopt it BEFORE Delta 1.
+- Delta 1 (concurrency) is the heaviest and is BLOCKED on Delta 5 (BRAND-1) and
+  gated on full D1/fact-channel hostile review; it should be the last adopted,
+  and every clause re-proved, not this draft transcribed.
