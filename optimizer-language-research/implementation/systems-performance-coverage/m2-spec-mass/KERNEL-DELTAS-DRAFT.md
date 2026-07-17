@@ -162,34 +162,43 @@ sealed form under R15's fail-closed table; zero new judgment.
 
 New S.2 `table` row:
 
-`tbl_clone['r](t: &'r table<K, V, h>) -> own table<K, V, h>` — deep-clones the
-whole table and returns a FRESH, independent owner. K and V must be clone
-(compile reject otherwise, cites this row; an affine V has no clone and is
-rejected). loan NONE; own: returns own (a new table, `t` unchanged);
-effects `reads('r), allocates(heap), traps`; failure `trap "table capacity
-overflow"` [TBL-4] on the fresh bucket-array byte-size overflow, OOM per
-[CAT-6]; facts `LEN(r)=LEN(t)`; kills nothing on `t`; cg `CG-CLONE`. No loan is
-issued or consumed — the result is a plain owned value.
+`tbl_clone['r](t: &'r table<K, V, h>) -> own table<K, V, h>` — deep-COPIES the
+whole table and returns a FRESH, independent owner. [DELTA-FIX-4] K and V must be
+COPY (OWN-1) — the enforceable predicate, identical to `seq_extend_copy`'s "T
+copy required", NOT an undefined "clone" (v0 has only copy/affine and no Clone
+contract); an affine K or V is a compile-time reject citing this row and OWN-1.
+loan NONE; own: returns own (a new table, `t` unchanged); effects `reads('r),
+allocates(heap), traps`; failure `trap "table capacity overflow"` [TBL-4] on the
+fresh bucket-array byte-size overflow, OOM per [CAT-6]; facts `LEN(r)=LEN(t)
+(link)` — a relational len-link matching the `seq_as_slice` "LEN(r)=LEN(s)
+(link)" precedent [CAT-2], not a `len=value` fact; kills nothing on `t`; cg
+`CG-CLONE`. The hasher instance state (`sip_keyed` k0/k1) transfers, so equal
+keys hash equal in the clone (normative, not optional). No loan is issued or
+consumed — the result is a plain owned value.
 
-Cost: O(n). For copy V the clone is a control-byte + slot bulk copy at DRAM
-bandwidth (~1-2 ns/entry, `evidence/microbench/RESULTS.md`); for owning V it is
-n element clones + n allocations (~30-3000 ns/entry by value size, same source).
-`CG-CLONE`: at most one growth-free bulk `memcpy` region for copy V; a serial
-per-entry clone loop for owning V.
+Cost: O(n), a control-byte + slot bulk copy at DRAM bandwidth (~1-2 ns/entry,
+`evidence/microbench/RESULTS.md`). `CG-CLONE`: at most one growth-free bulk
+`memcpy` region.
+
+FUTURE WORK (NOT this delta) [DELTA-FIX-4]: an owning-value (heap V, bytes K)
+whole-table clone is BLOCKED on a separate Clone-contract delta that first adds a
+checkable Clone capability predicate plus a per-type deep-clone conformer (and a
+byte-buffer clone for bytes keys), and passes its own review; its measured cost
+is ~30-3000 ns/entry by value size (same source). A shallow "share the values"
+fallback is a double-free and is excluded — do not lower an owning-V clone to
+anything in v0.
 
 Interactions: **[TBL-4]** (rehash/overflow discipline reused for the fresh
-array), **[CAT-6]** (OOM stance), **[CAT-2]** (produces LEN(r), touches no fact
-on `t`). No loan-rule interaction (loan-free row). Admission (D16): a
-bulk-copy whole-table clone is unreachable from primitives — a
-`for_each`-then-`insert` rebuild pays n hashes + n probes (~10-40 ns/entry)
-versus the ~1-2 ns/entry bulk copy, not at par; named consumer is C5
-COW-republish (the clone IS the publish). Checker cost: one row, no new
-judgment. Open questions: (a) a shallow "share immutable values" clone variant
-for owning V (would need a Shareable-value refcount — defer to the concurrency
-delta); (b) whether `h`'s instance state (sip_keyed k0/k1) is cloned (yes — the
-fresh table must hash identically); (c) hostile review is light here (no fact
-channel, no loan), but the owning-V clone cost must be cited honestly in any
-COW falsifier by value type.
+array), **[CAT-6]** (OOM stance), **[CAT-2]** (produces the LEN(r) link, touches
+no fact on `t`), **[OWN-1]** (the copy K/V predicate is the enforceable rule). No
+loan-rule interaction (loan-free row; a clone under a live loan on `t` is sound —
+R6 blocks the clone-under-uniq-token case, and a shared loan coexists read-only,
+both reviewer-confirmed). Admission (D16): a bulk-copy whole-table clone is
+unreachable from primitives — a `for_each`-then-`insert` rebuild pays n hashes +
+n probes (~10-40 ns/entry) versus ~1-2 ns/entry bulk copy, not at par; named
+consumer is C5 COW-republish (the POD/handle regime, the clone IS the publish).
+Checker cost: one row, no new judgment. Hostile review: light (no fact channel,
+no loan).
 
 ---
 
@@ -201,14 +210,24 @@ New OP-1 rows (machine-core intrinsics, admitted through the frozen-list
 one-line rule): `load_le_u16`, `load_le_u32`, `load_le_u64`, `load_be_u16`,
 `load_be_u32`, `load_be_u64`. Each: `(s: slice<'r, u8>, off: u64) -> own uK`
 reads the `K/8` bytes at byte offset `off` and assembles a `uK` with the stated
-endianness. Effect `reads('r), traps`: an out-of-range access
-(`off + K/8 > len(s)`) traps [OP-4, SCOPE-4]. **Bounds-trap elidability**: the
-trap is discharged when the requires engine proves `off + K/8 <= len(s)` by a
-deterministic-checker discharge [OP-4] — a `check` fact [OP-5], a `requires`
-prologue fact [FN-8], or the length-domination fact [DOM-1]; a solver may never
-promote it. **CG contract**: a discharged load lowers to exactly one unaligned
-machine load, plus one `bswap` for the big-endian rows — codegen-identical to
-the C idiom, asm-diff pinned in the codegen corpus.
+endianness. Effect `reads('r), traps`. [DELTA-FIX-2] The out-of-range trap is
+NEVER spelled `off + K/8 > len(s)` — that sum wraps at the u64 edge and would
+admit an OOB read on an attacker-influenced near-max `off` even with elision OFF
+(fail-closed does not save it). The runtime pass condition is `len(s) >= K/8 AND
+off <= len(s) - K/8`: the subtraction `len(s) - K/8` is computed ONLY under the
+first conjunct so it never underflows, and `K/8` is a monomorphization constant
+(one subtraction). Equivalently, trap iff `len(s) < K/8` OR `off > len(s) - K/8`.
+This exact non-wrapping form is pinned in the codegen corpus. **Bounds-trap
+elidability**: the trap is discharged when the requires engine proves `off <=
+len(s) - K/8` (same non-wrapping form) by a deterministic-checker discharge
+[OP-4] — a `check` fact [OP-5], a `requires` prologue fact [FN-8], or the
+length-domination fact [DOM-1(b)]; a solver may never promote it. **CG contract
+[DELTA-FIX-2]**: a discharged load lowers to an LLVM `load iK, ptr, align 1` (the
+unaligned / `memcpy`-to-temp idiom, per-target legalized), plus one `bswap` for
+the big-endian rows. LOAD-1 needs NO alignment fact BECAUSE it lowers at align 1;
+a strict-alignment target (e.g. arm64 strict-align) lowers to the safe byte-wise
+sequence, never a natural-alignment assumption, and never a trap or UB. The
+codegen corpus pins BOTH an x86-64 and a strict-alignment (arm64) asm-diff.
 
 ### [LOAD-2] `reinterpret` stays scalar-only
 
@@ -226,13 +245,14 @@ Interactions: **[OP-4]** (bounds discharge target), **[OP-5]/[FN-8]/[DOM-1]**
 assembly (`index<u8>` + `ishl.wrap`/`ior` over K/8 bytes) is 4-8 instructions per
 field versus 1 load — not at par; named consumers are C8 validated-view and
 51-map scenarios 24 (serialization) and 27 (zero-copy typed views). Checker
-cost: the bounds obligation `off + K/8 <= len(s)` is one linear range test the
-requires engine already performs for `index`; low. Open questions: (a) a
-`store_le/be` writer counterpart (deferred to the same delta once a writer
-scenario names it); (b) whether the CG "penalty-free unaligned" assumption needs
-a split-cache-line note for the deployment target; (c) whether `off` as a
-compile-const should get a stronger elision. Hostile-review flag: LIGHT — the
-only fact channel is the bounds discharge, shared with [DOM-1]'s review.
+cost: the bounds obligation `off <= len(s) - K/8` (non-wrapping [DELTA-FIX-2]) is
+one linear range test the requires engine already performs for `index`; low. Open
+questions: (a) a `store_le/be` writer counterpart (deferred to the same delta once
+a writer scenario names it); (b) whether `off` as a compile-const should get a
+stronger elision. (The former alignment open-Q is CLOSED as a correctness pin —
+align-1 lowering above — not a performance note.) Hostile-review flag: LIGHT — the
+base trap arithmetic is now non-wrapping [DELTA-FIX-2] and the only remaining
+fact channel is the bounds discharge, shared with [DOM-1]'s review.
 
 ---
 
@@ -242,57 +262,96 @@ only fact channel is the bounds discharge, shared with [DOM-1]'s review.
 
 Two checked fact forms enter the stated-and-checked channel [OP-5] (whose
 "loop invariants, ranges" vocabulary is explicitly DEFERRED there; this is the
-first slice). Both attach to a resolved place and its length binding, and both
-are deterministic-checker discharges [OP-4], never solver-promoted.
+first slice). Both are deterministic-checker discharges [OP-4], never
+solver-promoted, and both carry a FORMATION CONDITION [DELTA-FIX-3]: a
+length-domination fact may be formed ONLY on a NON-RESIZABLE backing place —
+`buffer<T>`, `slice<'r, T>`, or `array<T, N>` — whose length cannot change after
+formation (`buffer` length is fixed at allocation [TYPE-2], a slice is a
+fixed-length view, an array is compile-time sized). This covers both consumers
+(C2's ring on a `buffer<u64>`, C8's views on a `slice<'r, u8>`) and removes every
+length-writing op from the picture; windows over a resizable `seq<T, N>` are
+FUTURE WORK, gated on the cross-call length-invalidation rule below.
 
-(a) **POW2-MASK domination.** From a passed `check ieq(ipopcount<u64>(len), 1_u32)`
-(or a `requires` prologue [FN-8] proving `pow2(len(b))`), the engine derives
-`in_bounds(b, iand<u64>(x, isub.wrap<u64>(len, 1_u64)))` for any `x` — a masked
-index `x & (len-1)` is always `< len`. This discharges the [OP-4] bounds trap at
-masked-index sites. Named consumer: C2's ring (the `F1 pow2-mask domination`
-the ring card already gates on).
+(a) **POW2-MASK domination.** For a non-resizable place `b`, a passed `check
+ieq(ipopcount<u64>(len<T>(b)), 1_u32)` (or a `requires` prologue [FN-8] proving
+`pow2(len(b))`) produces `pow2(len(b))`. [DELTA-FIX-3] The engine admits
+`in_bounds(b, iand<u64>(x, isub.wrap<u64>(L, 1_u64)))` for any `x` ONLY where `L`
+is provably `len(b)` at the index site (a live `LEN(b)=L` fact tied to the SAME
+binding `b`) and the mask operand is that same `b`'s length — no free variable,
+and the masked index uses the CURRENT tracked length of the very place indexed.
+The safety-sufficient premise is `len(b) != 0` (which `popcount == 1` already
+guarantees, blocking the `len = 0` mask-nothing edge); `pow2` is the correctness
+superset the ring's F1 story rests on. Named consumer: C2's ring.
 
-(b) **LEN-CHECK domination.** From a passed `check ile(iadd.checked-proven off+n, len(s))`
-— an offset+count within length — the engine derives `in_bounds(s, i)` for every
-`off <= i < off + n` (a checked prefix window). This discharges the [OP-4]
-bounds trap for the [LOAD-1] byte-field loads and any `index` within the window.
-Named consumer: C8's validated-view (validate length once, then trust the field
-loads).
+(b) **LEN-CHECK domination.** For a non-resizable place `s`, the fact is produced
+ONLY by a `check ile<u64>(SUM, len<T>(s))` (or `ige`) where SUM is a PROVEN
+non-wrapping `off + n` [DELTA-FIX-1]: the Ok-arm binding of `iadd.checked<u64>(off,
+n)`; or `iadd.trap<u64>(off, n)` (overflow traps before the check); or — inside a
+`requires` block, the only non-trapping legal form — `iadd.sat<u64>(off, n)`
+(overflow clamps to `u64::MAX`, which is `>= len(s)`, so the check FAILS and no
+window is produced). A SUM produced by `iadd.wrap<u64>`, or any value not proven
+overflow-free, is REJECTED as a producer (the ill-typed `iadd.checked-proven
+off+n` exemplar is deleted). From an accepted producer the engine derives
+`in_bounds(s, i)` for every `off <= i < SUM` (a checked prefix window),
+discharging the [OP-4] bounds trap for the [LOAD-1] byte-field loads and any
+`index` within it. Named consumer: C8's validated-view.
 
-**Producers**: the pow2 `check`/`requires` fact (a); the length `check`/`requires`
-fact (b). **Invalidators**: any op that writes the place's length — grow,
-reserve, clear, truncate, a resizing store — KILLS both fact families for that
-place [CAT-2 kill discipline]; a `move` or drop of the place kills them; the
-facts do not survive across a length write. **What the prover must ADDITIONALLY
-discharge**: for (a), the pow2 fact must hold AND no length-writing op may lie on
-the dominated path between the check and the index (syntactic: the ring card's
-"no row in this card resizes buf" property, checked, not assumed); for (b), the
-`off + n` arithmetic must be proven non-overflowing (spelled `.checked` or a
-proven range) so the derived `i < len` is sound — an overflowing `off + n` that
-wrapped could otherwise forge an in-bounds fact.
+Why the forge now rejects [DELTA-FIX-1]: the reviewer's forge puts `off` near
+`u64::MAX` with a small `n`, produces `off + n` by `iadd.wrap` (wrapping to a
+small value `< len`), and passes `check ile(wrapped, len)` to forge an unbounded
+in-bounds window. Under the repair `iadd.wrap` is NOT an accepted producer, and
+the only accepted sums make `off + n` at the u64 edge either TRAP
+(`iadd.trap`), take the `Err` arm (`iadd.checked`), or clamp to `u64::MAX >=
+len` so the check FAILS (`iadd.sat`). No path both wraps AND produces the fact.
 
-Interactions: **[OP-4]** (the discharge target; DOM-1 facts are exactly the
-"deterministic-checker discharge" OP-4 admits), **[OP-5]** (DOM-1 IS the
-first slice of OP-5's deferred range vocabulary — this is the delta OP-5 names),
-**[FN-8]** (a `requires` prologue is a legal producer; FN-8 already says its
-passed fact "may eliminate downstream implicit checks such as [OP-4] bounds
-checks"), **[CAT-2]** (kill discipline on length writes). Admission (D16):
-without DOM-1 every masked-ring access and every validated-view field retains a
-runtime bounds branch — not at par (the whole point of both cards); named
-consumers are C2 and C8, both of which currently "fail closed" pending exactly
-this extension. Checker cost: two path-local fact families, produced by a check,
-killed by a length write; no fixpoint, matching the M1 decidability posture
-(O(statements × facts)).
+**Cross-call length invalidation [DELTA-FIX-3]** (a rule, not an appositive): any
+call whose effect row includes `writes(R)` where `R` reaches the fact's place (or
+any overlapping place [OWN-7]) KILLS all DOM-1 fact families on that place — v0
+declares no length-preservation obligation, so this is unconditional havoc on any
+writes-reaching call. For the non-resizable backing this delta admits the rule is
+VACUOUS (a `buffer`/`slice`/`array` has no length-writing op; element writes
+through `&uniq` leave `len` unchanged), which is precisely why restricting the
+backing closes the cross-call FATAL; the rule is stated so a future `seq`-backed
+extension inherits it. The ring/C8 cards were already sound because each fact
+lives inside a single op body that calls no resizer.
+
+**Kill wiring [DELTA-FIX-3].** The DOM-1 PRODUCER facts (POW2-MASK, LEN-window)
+are NOT monotone-cached: they are re-evaluated against the current tracked `len`
+of their place, and any row that writes a place's length kills them for that
+place. The length-writing S.1/S.2 rows whose `kills` columns gain the DOM-1
+producer families are: `seq_push`, `seq_pop`, `seq_reserve`, `seq_insert_at`,
+`seq_remove_at`, `seq_truncate`, `seq_clear`, `seq_drain`, `seq_take_all`,
+`seq_extend_move`, `seq_extend_copy`; `tbl_insert` (None arm), `tbl_reserve`,
+`tbl_remove`, `tbl_retain`, `tbl_drain`. NONE operates on a
+`buffer`/`slice`/`array`, so for this delta's admitted backing the addition is
+inert — it is the guard for the deferred `seq`-backed case. Reconciled with
+[CAT-2]: the DERIVED `in_bounds` may survive a length INCREASE (CAT-2
+monotone-truth), but the PRODUCER pow2/LEN-window facts die on ANY length write.
+
+Interactions: **[OP-4]** (the discharge target), **[OP-5]** (DOM-1 IS the first
+slice of its deferred range vocabulary), **[FN-8]** (a `requires` prologue is a
+legal producer, with the `iadd.sat` non-wrapping spelling above), **[CAT-2]**
+(kill discipline + the monotone-truth caveat), **[OWN-7]** (overlap for the
+cross-call kill), **[TYPE-2]** (the non-resizable-backing formation condition).
+Admission (D16): without DOM-1 every masked-ring access and every validated-view
+field retains a runtime bounds branch — not at par; named consumers C2, C8.
+Checker cost: two path-local fact families, tied to a place's current `len`,
+killed by any length write, produced only by the pinned non-wrapping checks; no
+fixpoint, matching the M1 decidability posture (O(statements × facts)).
 
 > **HOSTILE-REVIEW FLAG.** DOM-1 is a fact channel that licenses eliding a
 > safety check (the [OP-4] bounds trap) — the exact class the standing rule
-> requires be adversarially reviewed BEFORE shipping. The two soundness edges
-> are the overflow of `off + n` (b) and the "no resize on the dominated path"
-> obligation (a); both must survive a hostile attack (e.g. a wrapping offset, a
-> resize hidden behind a conformer call, an aliased length binding) before
-> adoption. Per PATTERNS P8 this is proof-elision of a non-source-weakening
-> check: the source retains the check spelling; only the proven-away branch is
-> elided.
+> requires be adversarially reviewed BEFORE shipping. The repair round closed
+> the two FATALs the first review found: the wrapping-`off+n` forge (b) is
+> rejected by the pinned non-wrapping producers [DELTA-FIX-1], and the
+> cross-call resize UAF (a/b) is removed by the non-resizable-backing formation
+> condition + the stated havoc rule [DELTA-FIX-3]. The delta MUST be re-attacked
+> before spec: the new surfaces are (i) whether a `slice<'r, T>` view of a
+> resizable `seq` can smuggle a stale length past the freeze (it should not — the
+> view's `'r` borrow freezes the seq, but pin this), and (ii) the `iadd.sat`
+> requires-block producer's clamp-to-MAX-fails-the-check argument. Per PATTERNS
+> P8 this is proof-elision of a non-source-weakening check: the source retains
+> the check spelling; only the proven-away branch is elided.
 
 ---
 
@@ -405,14 +464,77 @@ data-race-freedom rests on. The attack surface is (I2) the identity comparison
 admitting a place where a generative symbol is required (or vice versa) and (I3)
 two `cq_new` sites colliding on one identity.
 
+## Delta 6 — TAG-TARGS (TAG-1; closes the GRAM-3 gap the round-4 catalog exposed)
+
+The problem (verified against the kernel): sealed forms parameterize on closed-set
+TAGS — the hasher `h` in `table<K, V, h>` (`h` in {fold, sip_keyed, identity,
+crc}, TBL-2) and the endpoint discipline `ep` in `conc_queue<T, ep, K>` (`ep` in
+{spsc, mpmc}, CQ-1). These are written in the targ position, but GRAM-3 `targ :=
+type | REGIONID | const` and a `type` TYPEID is uppercase-initial [FORM-3], so a
+lowercase tag (`fold`, `spsc`) is NOT a valid targ. Every `table<..., h>` and
+`conc_queue<T, ep, K>` in the catalog is, as written, ungrammatical — a latent
+spec gap the catalog assumed away.
+
+### [TAG-1] Tag parameters and tag targs
+
+A sealed form may declare a TAG PARAMETER `tag NAME : TAGSET`, where TAGSET is a
+form-declared CLOSED set of lowercase tag identifiers (each a nullary marker —
+the closed-enum-of-markers discipline). GRAM-2 `gparam` gains this sort, and
+GRAM-3 `targ` gains `| TAG`, where a TAG is a lowercase IDENT that MUST name a
+member of the corresponding parameter's declared TAGSET (a compile-time reject
+otherwise, citing the form and its set [DIAG-1], with the set listed). A tag is a
+monomorphization-only, compile-time-ERASED selector [FN-2]: it selects WHICH
+sealed monomorphization runs (which hasher family, which endpoint protocol), has
+NO runtime representation, carries no value, and is resolved by NAME against the
+form's closed set (context-free [META-2], no search). It is not a type, region,
+or const. Instance state is distinct from the tag: `sip_keyed`'s `k0`/`k1` are
+RUNTIME arguments supplied at `tbl_new`/`cq_new` (TBL-2), not part of the tag —
+the tag selects the family, the runtime args parameterize the instance.
+
+Interactions: **GRAM-2/GRAM-3** (the new sort and targ production), **[FORM-3]**
+(resolves the lowercase-tag-vs-uppercase-TYPEID collision the gap exposed),
+**[CONST-1]** (tags are the closed analog of const targs — closed, no
+computation, monomorphization-evaluated), **[FN-2]** (monomorphization-only,
+explicit), **[TBL-2]** (`h` is a tag parameter, TAGSET {fold, sip_keyed,
+identity, crc}), **[CQ-1]** (`ep` is a tag parameter, TAGSET {spsc, mpmc}),
+**[META-2]** (positional context-free resolution, the OP-1 op-vs-fn partition).
+It is the natural companion to BRAND-1's brand parameter — both are
+non-type/non-region/non-const monomorphization-time parameters.
+
+Admission (D16): the closed-set tags are used pervasively and cannot be spelled
+at all without this (`cq_new<Record, spsc, 10>()`, `table<u64, u64, fold>`); the
+hasher/endpoint selection picks a sealed monomorphization and is not reachable
+from primitives. Named consumers: every `table<K, V, h>` and `conc_queue<T, ep,
+K>`. Checker cost: a name lookup against the form's closed tag set at the targ
+position; no search, no unification.
+
+Open questions: (1) whether tag, const, and brand parameters unify into one
+"non-type gparam" sort or stay distinct (this draft keeps tag distinct, closest
+to the existing closed-enum discipline); (2) whether a `fn` may be generic OVER a
+tag (`fn f(t: &'r table<K, V, h>)` for any `h`) — needs a tag gparam on the fn
+tied to the receiver's tag, a TYPE-5-style explicit tag arg at the call; (3)
+misspelled-tag diagnostics must list the closed set. Hostile-review flag: LIGHT —
+no fact channel, no loan, no runtime representation; authority-ADJACENT only in
+that a tag selects which trusted hasher/protocol monomorphization runs, so the
+review need only confirm tag ERASURE and the closed-set totality (the
+frozen-list discipline — no open-ended tag admission). [DELTA-FIX-5]
+
+---
+
 ## Adoption ordering (dependency note)
 
 - Delta 4 (DOM-1) and Delta 3 (LOAD-1) are adoptable together and independently
   of concurrency; DOM-1 (b) is a prerequisite for LOAD-1 being at par, and
   DOM-1 (a) unblocks C2. Both need the fact-channel hostile review.
-- Delta 2 (`tbl_clone`) is adoptable standalone (lightest; no fact channel, no
-  loan) and unblocks C5's single-threaded clone-modify step; C5's atomic publish
-  still waits on Delta 1.
+- Delta 6 (TAG-1) is adoptable FIRST and standalone (lightest of all; no fact
+  channel, no loan, no runtime rep) — it closes the GRAM-3 tag-targ gap that
+  makes every existing `table<..., h>` and `conc_queue<T, ep, K>` spelling
+  grammatical, so it gates nothing but is a prerequisite for the catalog parsing
+  at all. Adopt it before or with anything that spells a tag.
+- Delta 2 (`tbl_clone`, copy K/V only after [DELTA-FIX-4]) is adoptable
+  standalone (light; no fact channel, no loan) and unblocks C5's POD/handle
+  clone-modify step; C5's owning-value clone waits on a Clone-contract delta and
+  its atomic publish waits on Delta 1.
 - Delta 5 (BRAND-1) is the named unblocker for Delta 1 and for the pipeline
   cards; it is authority-carrying and needs its own hostile review, but it is
   adoptable independently of concurrency (arena ids and same-function-boundary

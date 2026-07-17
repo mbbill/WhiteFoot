@@ -655,14 +655,16 @@ The falsifier MUST pick its constant by the target scenario's value type; the
 old ~50-100 ns/entry blanket figure is wrong in both directions (25-100x high
 for POD, 3-30x low for KB values).
 
-> **UNSPELLABLE IN v0 [CARD-2 FLAG].** Two gaps, neither invented here. (1) The
-> atomic-pointer publish and cross-thread reader sharing are concurrency — CAP-1
-> gives no thread construct and no atomic cell. (2) There is NO `tbl_clone` op:
-> the S.2 `table` form declares no whole-table clone row, so even the
-> single-threaded clone-modify step has no v0 spelling. This card is therefore a
-> pattern + measured viability rule; it becomes writable when the table form
-> gains a `tbl_clone` row (its cost the constants above) and the concurrency
-> layer provides a shareable atomic snapshot cell. Do not spell either today.
+> **UNSPELLABLE IN v0 [CARD-2 FLAG; updated per KERNEL-DELTAS-DRAFT].** Two gaps,
+> neither invented here. (1) The atomic-pointer publish and cross-thread reader
+> sharing are concurrency — CAP-1 gives no thread construct and no atomic cell
+> (blocked on Delta 1). (2) The single-threaded clone-modify step: the POD /
+> handle-valued regime (copy K/V) is now covered by the drafted `tbl_clone` row
+> (KERNEL-DELTAS-DRAFT Delta 2, copy K/V only, ~1-2 ns/entry) and lands with that
+> delta; the OWNING-value regime (heap V, bytes K, ~30-3000 ns/entry) is BLOCKED
+> on a separate Clone-contract delta (a Clone predicate + per-type deep-clone
+> conformer). So: POD/handle COW is spellable once Delta 2 lands; owning-value
+> COW waits on the Clone delta; the atomic publish of either waits on Delta 1.
 
 ## C6. Durability-ordering — WAL fsync discipline [CARD-3]
 
