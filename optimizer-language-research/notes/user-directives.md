@@ -705,3 +705,41 @@ the verification track and the extensibility story.
 
 No production change authorized; these rulings bind the research drafts and
 the validation protocol.
+
+## D19 (2026-07-17): The five concurrency-delta decisions
+
+The owner ruled on the five decisions surfaced by the concurrency kernel delta
+(dossier `systems-performance-coverage/DESIGN-DOSSIER.md` §5):
+
+1. **Land the concurrency memory model (CONC-0) as kernel text — YES.** The
+   MM-0..MM-10 happens-before model becomes the reduction target that makes D1
+   (data-race impossibility) checkable rather than asserted. Production landing
+   remains gated on the separate landing review; this ratifies the direction.
+2. **Loop-spawn fan-out — OPTION (a) for v1, with (b) scheduled as a tracked
+   follow-up.** v1 ships fixed straight-line spawn plus the sealed
+   `par.for_chunks` combinator (which already gives runtime-N chunk parallelism
+   internally). The OWN-11 capture carve-out that would allow user-written
+   dynamic spawn loops capturing shared outer state is deferred and MUST be
+   tracked so it is not lost (owner's explicit instruction); recorded in
+   `systems-performance-coverage/FOLLOW-UPS.md`.
+3. **Ratify AMD-5-carve-out / AMD-7 / AMD-8 — YES, all three.** The minimal
+   amendments that make the concurrency mechanisms sound (par-slot capability
+   premise; R15 concurrency schema; mutex guard interior-view carve-out).
+4. **Clone-row re-mode to `&uniq` — YES (option a).** `cq_tx_clone`/`cq_rx_clone`
+   take exclusive receivers, making a concurrent clone unspellable by
+   construction (closes the race without adding a trusted proof obligation). The
+   ergonomic cost is nil: endpoints are cloned during setup while owned, never
+   on the hot path. The re-mode was already applied in the CONC v3 draft; this
+   ratifies it.
+5. **Concurrency spec-mass cut — YES (normative-only).** Keep rule text and
+   operation tables in the always-loaded manual; move rationale, attack
+   walkthroughs, and review history to the separate review record; then count
+   tokens against the ~48k target. Governing principle stated by the owner:
+   the always-loaded spec gives a new AI agent exactly what it needs to write
+   correct and efficient code, and nothing more — rationale is excluded unless
+   its absence would cause wrong or slow code.
+
+These rulings settle the concurrency delta's design at the research level. No
+production language, specification, checker, compiler, runtime, or teaching
+change is authorized; the CONC-0 kernel landing, the amendment ratifications,
+and all production spec drafting remain gated on the separate landing review.

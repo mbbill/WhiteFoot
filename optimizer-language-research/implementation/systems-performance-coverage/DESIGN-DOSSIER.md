@@ -424,6 +424,16 @@ still owed (§5, decision 5).
 
 ## 5. The five owner decisions
 
+**RULED 2026-07-17 (D19).** (1) Land CONC-0 memory model as kernel text: **YES**
+(direction ratified; production landing still gated). (2) Loop-spawn: **option (a)**
+— fixed fan-out + sealed `par.for_chunks` for v1; the OWN-11 carve-out (b) is a
+**tracked follow-up** (`FOLLOW-UPS.md` FU-1). (3) Ratify AMD-5-carve-out/AMD-7/
+AMD-8: **YES, all three**. (4) Clone re-mode to `&uniq`: **YES** (already applied
+in the CONC v3 draft). (5) Concurrency spec-mass cut: **YES**, normative-only,
+governed by the principle that the always-loaded spec holds only what an AI agent
+needs to write correct+efficient code. The recommendations below stand as the
+reasoning behind those rulings.
+
 Each: what it is in plain terms, the options, the trade-off, and a recommendation.
 
 ### Decision 1 — Land the concurrency memory model (CONC-0) as kernel text
