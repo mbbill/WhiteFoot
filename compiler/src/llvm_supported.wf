@@ -28,12 +28,14 @@ fn llvm_supported_fail ['w] (report: &uniq 'w LlvmSupportedReport, status: own L
   return unit;
 }
 
-fn llvm_supported_analyze_kind ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &'c AstValidationReport, symbols: &'c SymbolTape, function: own u64, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w LlvmSupportedReport) -> own LlvmSupportedKind reads('c 'w), writes('w), traps {
+fn llvm_supported_analyze_kind_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &'c AstValidationReport, symbols: &'c SymbolTape, function: own u64, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, report: &uniq 'w LlvmSupportedReport) -> own LlvmSupportedKind reads('c 'w), writes('w), traps {
   let semantic_body_invalid_function_atom_0720: own SemanticBodyStatus = SemanticBodyInvalidFunction();
-  let capability_report: own SemanticCapabilityReport = SemanticCapabilityReport(status: semantic_body_invalid_function_atom_0720, function: function, related: semantic_facts_none);
+  let capability_rule_none: own SemanticRuleId = SemanticRuleNone();
+  let capability_fix_none: own SemanticFixCode = SemanticFixNone();
+  let capability_report: own SemanticCapabilityResult = SemanticCapabilityResult(status: semantic_body_invalid_function_atom_0720, function: function, related: semantic_facts_none, rule: capability_rule_none, fix: capability_fix_none, primary_node: function, related_node: ast_none);
   let capability: own SemanticCapabilityKind = SemanticCapabilityFailed();
   region 'llvm_supported_semantic_dispatch {
-    set capability = semantic_unit_dispatch(source: source, tokens: tokens, ast: ast, validation: validation, symbols: symbols, function: function, types: &uniq 'llvm_supported_semantic_dispatch deref(types), facts: &uniq 'llvm_supported_semantic_dispatch deref(facts), scratch: &uniq 'llvm_supported_semantic_dispatch deref(scratch), report: &uniq 'llvm_supported_semantic_dispatch capability_report);
+    set capability = semantic_unit_classify_validated(source: source, tokens: tokens, ast: ast, validation: validation, symbols: symbols, function: function, types: &uniq 'llvm_supported_semantic_dispatch deref(types), facts: &uniq 'llvm_supported_semantic_dispatch deref(facts), scratch: &uniq 'llvm_supported_semantic_dispatch deref(scratch), report: &uniq 'llvm_supported_semantic_dispatch capability_report);
   }
   match capability {
     SemanticCapabilityFailed() => {
@@ -231,7 +233,7 @@ fn llvm_supported_append_kind ['c, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c 
   }
 }
 
-fn llvm_supported_emit_module ['c, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &'c AstValidationReport, symbols: &'c SymbolTape, functions: &'c buffer<u64>, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, out: &uniq 'o ByteTape, report: &uniq 'w LlvmSupportedReport) -> own unit reads('c 'w 'o), writes('w 'o), traps {
+fn llvm_supported_emit_module ['c, 'v, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, validation: &uniq 'v AstValidationReport, symbols: &'c SymbolTape, functions: &'c buffer<u64>, types: &uniq 'w TypeTape, facts: &uniq 'w NodeFacts, scratch: &uniq 'w SemanticBodyScratch, out: &uniq 'o ByteTape, report: &uniq 'w LlvmSupportedReport) -> own unit reads('c 'v 'w 'o), writes('v 'w 'o), traps {
   set deref(report).status = LlvmSupportedClean();
   set deref(report).function = ast_none;
   set deref(report).related = semantic_facts_none;
@@ -260,6 +262,10 @@ fn llvm_supported_emit_module ['c, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c 
       }
       return unit;
     }
+  }
+  let source_length: own u64 = len<u8>(deref(source));
+  region 'llvm_supported_refresh_validation {
+    ast_validate(source_length: source_length, token_count: deref(tokens).count, ast: ast, report: &uniq 'llvm_supported_refresh_validation deref(validation));
   }
   let ast_validation_clean_atom_0733: own AstValidationStatus = AstValidationClean();
   match ieq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0733) {
@@ -337,7 +343,7 @@ fn llvm_supported_emit_module ['c, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c 
     }
     let kind: own LlvmSupportedKind = LlvmSupportedKindFailed();
     region 'llvm_supported_validate_analyze {
-      set kind = llvm_supported_analyze_kind(source: source, tokens: tokens, ast: ast, validation: validation, symbols: symbols, function: function, types: &uniq 'llvm_supported_validate_analyze deref(types), facts: &uniq 'llvm_supported_validate_analyze deref(facts), scratch: &uniq 'llvm_supported_validate_analyze deref(scratch), report: &uniq 'llvm_supported_validate_analyze deref(report));
+      set kind = llvm_supported_analyze_kind_validated(source: source, tokens: tokens, ast: ast, validation: &'llvm_supported_validate_analyze deref(validation), symbols: symbols, function: function, types: &uniq 'llvm_supported_validate_analyze deref(types), facts: &uniq 'llvm_supported_validate_analyze deref(facts), scratch: &uniq 'llvm_supported_validate_analyze deref(scratch), report: &uniq 'llvm_supported_validate_analyze deref(report));
     }
     let llvm_supported_clean_atom_0739: own LlvmSupportedStatus = LlvmSupportedClean();
     match ieq<LlvmSupportedStatus>(deref(report).status, llvm_supported_clean_atom_0739) {
@@ -414,7 +420,7 @@ fn llvm_supported_emit_module ['c, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c 
     let emitted_function: own u64 = index<u64>(deref(functions), position);
     let emitted_kind: own LlvmSupportedKind = LlvmSupportedKindFailed();
     region 'llvm_supported_emit_analyze {
-      set emitted_kind = llvm_supported_analyze_kind(source: source, tokens: tokens, ast: ast, validation: validation, symbols: symbols, function: emitted_function, types: &uniq 'llvm_supported_emit_analyze deref(types), facts: &uniq 'llvm_supported_emit_analyze deref(facts), scratch: &uniq 'llvm_supported_emit_analyze deref(scratch), report: &uniq 'llvm_supported_emit_analyze deref(report));
+      set emitted_kind = llvm_supported_analyze_kind_validated(source: source, tokens: tokens, ast: ast, validation: &'llvm_supported_emit_analyze deref(validation), symbols: symbols, function: emitted_function, types: &uniq 'llvm_supported_emit_analyze deref(types), facts: &uniq 'llvm_supported_emit_analyze deref(facts), scratch: &uniq 'llvm_supported_emit_analyze deref(scratch), report: &uniq 'llvm_supported_emit_analyze deref(report));
     }
     let llvm_supported_clean_atom_0744: own LlvmSupportedStatus = LlvmSupportedClean();
     match ieq<LlvmSupportedStatus>(deref(report).status, llvm_supported_clean_atom_0744) {

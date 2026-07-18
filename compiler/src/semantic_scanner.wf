@@ -743,6 +743,9 @@ fn semantic_scanner_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape,
   set deref(report).status = SemanticBodyInvalidTokenTape();
   set deref(report).node = ast_none;
   set deref(report).related = semantic_facts_none;
+  set deref(report).rule = SemanticRuleNone();
+  set deref(report).fix = SemanticFixNone();
+  set deref(report).related_node = ast_none;
 
   let scanner_run_tokens_valid: own Bool = symbol_token_tape_shape_valid(tokens: tokens);
   match scanner_run_tokens_valid {

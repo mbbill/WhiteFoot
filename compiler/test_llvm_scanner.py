@@ -158,7 +158,7 @@ def analyze(library, data, name):
         fact_caps=(case[5].count,) * len(NODE_COLUMNS),
         scratch_caps=(6,) * 4,
     )
-    report = SemanticBodyReport(99, 123, 456)
+    report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
     library.semantic_scanner_run(
         case[1],
         ctypes.byref(case[3]),

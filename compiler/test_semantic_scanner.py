@@ -145,7 +145,7 @@ def scanner_fixture(scanner, predicate):
 
 
 def invoke(library, case, function, outputs):
-    report = SemanticBodyReport(99, 123, 456)
+    report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
     library.semantic_scanner_run(
         case[1],
         ctypes.byref(case[3]),

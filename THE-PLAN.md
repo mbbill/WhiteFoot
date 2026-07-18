@@ -32,6 +32,13 @@ migration, and concurrency feature.
 A failed correctness gate returns work to the first phase that owns the defect.
 A phase cannot borrow a future artifact to satisfy its gate.
 
+Every reproducible defect or discrepancy gets the smallest practical automated
+regression before its fix closes. Language and specification discrepancies use
+conformance cases; implementation defects use focused unit or integration
+tests; hostile boundary failures also pin failure atomicity and guard behavior.
+If automation is not practical, the decision log records the reproducer and why
+the gate cannot execute it yet.
+
 ## Measured baseline
 
 Baseline date: 2026-07-17, before plan consolidation.
@@ -267,14 +274,27 @@ the authorized seven-phase scope.
 
 ## Execution cursor
 
-Phase 2 is active. Its first compiler slice covers
-`lexer_scan_op_suffix` and `lexer_scan_word` as one acyclic-decision semantic
-family. It first adds canonical rule-ID and source-span diagnostics, then
-records the canonical node path, primary and related nodes, and applicable fix
-code. It then supports nested `let`, `match`, and early-return flow; primitive
-expression typing; named multi-argument calls; and effect containment. It adds
-no LLVM lowering and keeps the existing 15-function module byte-identical. The
-expected next source-order frontier is `lexer_ampuniq_at`.
+Phase 2 is active. The canonical rejection-ABI checkpoint is complete. wfc now
+produces rule and fix codes at the rejection site, validates the complete AST
+before publishing a source span or root-to-primary node path, and commits no
+partial diagnostic on invalid input or insufficient capacity. Hostile cases
+for stale validation, malformed topology, invalid related nodes, one-short
+buffers, and late publication failure are automated regressions. The current
+unit has 488 functions: 15 clean, 473 legal but unsupported, and zero rejected.
+Its self-parse is deterministic at 1,135,190 source bytes, 224,462 tokens, and
+112,640 unique-head AST nodes. LLVM support remains the same byte-identical
+15-function module.
+
+The next checkpoint closes a source/specification discrepancy before adding
+the acyclic-decision semantic family: calls must retain the explicit region
+arguments required by TYPE-5 and consumed by OWN-12. Add the AST, parser, and
+stage-0 support, then migrate the six regionful calls in
+`lexer_scan_op_suffix` and the one in `lexer_scan_word`. Migrate the remaining
+compiler call families as semantic coverage reaches them, with no omissions by
+the phase-2 fixpoint. Then admit those two functions with nested `let`, `match`,
+and early-return flow; primitive expression typing; named multi-argument calls;
+and effect containment. This slice adds no LLVM lowering. The expected next
+source-order frontier remains `lexer_ampuniq_at`.
 
 ## Work outside the seven-phase scope
 

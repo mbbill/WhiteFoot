@@ -360,6 +360,29 @@ def assert_work_capacity_failures(library, case, nodes):
         )
 
 
+def assert_stale_validation_failure_atomic(library, case, nodes):
+    function = nodes[0]
+    case[4][2][function] = case[1].length + 1
+    worklist_storage, worklist = make_worklist(nodes)
+    assert len(worklist_storage) == len(nodes)
+    work = make_work(library, case[5].count)
+    storage, out = make_output(96)
+    prefix = b"validated-prefix:"
+    for index, value in enumerate(prefix):
+        storage[index] = value
+    out.count = len(prefix)
+    before_bytes = bytes(storage)
+    before_state = (out.status, out.count)
+    report = invoke(library, case, worklist, work, out)
+    assert (report.status, report.emitted, case[6].status) == (
+        STATUS_SEMANTIC,
+        0,
+        8,
+    )
+    assert (out.status, out.count) == before_state
+    assert bytes(storage) == before_bytes
+
+
 def main():
     assert len(FUNCTION_NAMES) == 15
     with tempfile.TemporaryDirectory() as raw_directory:
@@ -370,12 +393,13 @@ def main():
         module = assert_output_modes(library, case, worklist, work)
         assert_worklist_failures(library, data, case, nodes)
         assert_work_capacity_failures(library, case, nodes)
+        assert_stale_validation_failure_atomic(library, case, nodes)
         native_path = compile_shared(directory, module)
         assert_native_behavior(native_path)
     print(
         "llvm supported: exact 15-function module, one shared prelude, "
         "measure/exact/short/retry, clang/native families, atomic worklists, "
-        "and work capacities pass"
+        "fresh validation, and work capacities pass"
     )
 
 

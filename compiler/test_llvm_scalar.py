@@ -63,6 +63,9 @@ class SemanticBodyReport(ctypes.Structure):
         ("status", ctypes.c_int32),
         ("node", ctypes.c_uint64),
         ("related", ctypes.c_uint64),
+        ("rule", ctypes.c_int32),
+        ("fix", ctypes.c_int32),
+        ("related_node", ctypes.c_uint64),
     ]
 
 
@@ -296,7 +299,7 @@ def analyze_semantic_body(
         Buffer(ctypes.cast(modes, ctypes.c_void_p), scratch_capacity),
         0,
     )
-    report = SemanticBodyReport(99, 123, 456)
+    report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
     library.semantic_body_run(
         source,
         ctypes.byref(tokens),

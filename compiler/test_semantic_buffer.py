@@ -408,7 +408,7 @@ def make_buffer_outputs(library, ast_count, scratch_count=14):
 
 
 def invoke_run(library, case, function, outputs, generic=False):
-    report = SemanticBodyReport(99, 123, 456)
+    report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
     run = (
         library.semantic_buffer_fixed_width_run
         if generic

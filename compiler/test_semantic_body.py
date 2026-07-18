@@ -54,6 +54,33 @@ BODY_UNKNOWN_NAME = 11
 BODY_TYPE_MISMATCH = 12
 BODY_INVALID_LITERAL = 13
 BODY_INVALID_SYMBOL_TAPE = 14
+BODY_EFFECT_MISMATCH = 15
+
+RULE_NONE = 0
+RULE_FORM7 = 1
+RULE_GRAM11 = 2
+RULE_TYPE5 = 3
+RULE_TYPE6 = 4
+RULE_TYPE7 = 5
+RULE_EFFECT2 = 6
+RULE_FORM5 = 7
+
+FIX_NONE = 0
+FIX_CANONICAL_LITERAL = 1
+FIX_NAME_ARGUMENTS = 2
+FIX_MATCH_TYPE = 3
+FIX_DECLARE_BEFORE_USE = 4
+FIX_RENAME_BINDING = 5
+FIX_DEREF_BORROW = 6
+FIX_DECLARE_EFFECT = 7
+FIX_ADD_LITERAL_TYPE_SUFFIX = 8
+
+U8_LITERAL_READY = 0
+U8_LITERAL_WRONG_TYPE = 1
+U8_LITERAL_MISSING_SUFFIX = 2
+U8_LITERAL_NONCANONICAL = 3
+U8_LITERAL_INVALID_VALUE = 4
+U8_LITERAL_MALFORMED = 5
 
 FACTS_CLEAN = 0
 FACTS_INVALID_SHAPE = 1
@@ -90,6 +117,16 @@ class SemanticBodyReport(ctypes.Structure):
         ("status", ctypes.c_int32),
         ("node", ctypes.c_uint64),
         ("related", ctypes.c_uint64),
+        ("rule", ctypes.c_int32),
+        ("fix", ctypes.c_int32),
+        ("related_node", ctypes.c_uint64),
+    ]
+
+
+class SemanticU8LiteralResult(ctypes.Structure):
+    _fields_ = [
+        ("status", ctypes.c_int32),
+        ("value", ctypes.c_uint64),
     ]
 
 
@@ -184,6 +221,11 @@ def user_call_fixture(
     callee_parameters=b"x: own u8",
     callee_return=b"own Bool",
     callee_effect=b"pure",
+    callee_body=(
+        b"  let ge: own Bool = ige<u8>(x, 1_u8);\n"
+        b"  let le: own Bool = ile<u8>(x, 2_u8);\n"
+        b"  return band<Bool>(ge, le);\n"
+    ),
     caller_prefix=b"",
 ):
     return (
@@ -194,10 +236,8 @@ def user_call_fixture(
         + b" "
         + callee_effect
         + b" {\n"
-        b"  let ge: own Bool = ige<u8>(x, 1_u8);\n"
-        b"  let le: own Bool = ile<u8>(x, 2_u8);\n"
-        b"  return band<Bool>(ge, le);\n"
-        b"}\n"
+        + callee_body
+        + b"}\n"
         b"fn caller (c: own u8) -> own Bool pure {\n"
         + caller_prefix
         + b"  let answer: own Bool = "
@@ -210,7 +250,23 @@ def user_call_fixture(
     )
 
 
+def earlier_return_fixture():
+    return (
+        b"fn earlier (c: own u8) -> own Bool pure {\n"
+        b"  let first: own Bool = ige<u8>(c, 1_u8);\n"
+        b"  let second: own Bool = ile<u8>(c, 2_u8);\n"
+        b"  return first;\n"
+        b"}\n"
+    )
+
+
 def configure(library):
+    library.semantic_body_parse_u8_literal.argtypes = [
+        Buffer,
+        ctypes.POINTER(TokenTape),
+        ctypes.c_uint64,
+    ]
+    library.semantic_body_parse_u8_literal.restype = SemanticU8LiteralResult
     library.semantic_body_run.argtypes = [
         Buffer,
         ctypes.POINTER(TokenTape),
@@ -403,7 +459,7 @@ def invoke(library, parsed_case, function, outputs, symbols=None):
         _,
         _,
     ) = outputs
-    report = SemanticBodyReport(99, 123, 456)
+    report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
     library.semantic_body_run(
         source,
         ctypes.byref(tokens),
@@ -465,6 +521,10 @@ def report_tuple(report):
     return (report.status, report.node, report.related)
 
 
+def diagnostic_tuple(report):
+    return (report.rule, report.fix, report.related_node)
+
+
 def body_nodes(columns, function):
     direct = children_of(columns, function)
     assert len(direct) == 6
@@ -486,6 +546,8 @@ def body_nodes(columns, function):
         "return_mode": direct[2],
         "return_type": direct[3],
         "first_let": first_let,
+        "first_binding_type": children_of(columns, first_let)[2],
+        "first_binding_value": children_of(columns, first_let)[3],
         "second_let": second_let,
         "return": return_node,
         "first_call": first_call,
@@ -922,6 +984,7 @@ def assert_symbol_clean_facts(library):
     )
     report = invoke(library, case, function, outputs)
     assert report_tuple(report) == (BODY_CLEAN, U64_MAX, U64_MAX)
+    assert diagnostic_tuple(report) == (RULE_NONE, FIX_NONE, U64_MAX)
     assert_output_guards(outputs)
 
     _, types, fact_storage, facts, _, _, scratch, _, _ = outputs
@@ -1227,6 +1290,7 @@ def assert_user_call_clean_facts(library):
     )
     report = invoke(library, case, caller, outputs)
     assert report_tuple(report) == (BODY_CLEAN, U64_MAX, U64_MAX)
+    assert diagnostic_tuple(report) == (RULE_NONE, FIX_NONE, U64_MAX)
     facts = outputs[2]
     type_ids, resolved, ordinals, operations, _, _, modes, _ = facts
     assert (
@@ -1266,33 +1330,91 @@ def assert_user_call_clean_facts(library):
 def assert_user_call_failures(library):
     wrong_actual_prefix = b"  let flag: own Bool = ieq<u8>(c, 0_u8);\n"
     cases = (
-        (user_call_fixture(call_name=b"missing"), BODY_UNKNOWN_NAME),
-        (user_call_fixture(arguments=b"missing: c"), BODY_UNKNOWN_NAME),
-        (user_call_fixture(arguments=b"x: c, x: c"), BODY_MALFORMED),
-        (user_call_fixture(arguments=b""), BODY_TYPE_MISMATCH),
-        (user_call_fixture(arguments=b"x: c, extra: c"), BODY_UNKNOWN_NAME),
         (
-            user_call_fixture(callee_parameters=b"x: own Bool"),
+            user_call_fixture(call_name=b"missing"),
+            BODY_UNKNOWN_NAME,
+            RULE_TYPE5,
+            FIX_DECLARE_BEFORE_USE,
+        ),
+        (
+            user_call_fixture(arguments=b"missing: c"),
+            BODY_UNKNOWN_NAME,
+            RULE_GRAM11,
+            FIX_NAME_ARGUMENTS,
+        ),
+        (
+            user_call_fixture(arguments=b"x: c, x: c"),
+            BODY_MALFORMED,
+            RULE_GRAM11,
+            FIX_NAME_ARGUMENTS,
+        ),
+        (
+            user_call_fixture(arguments=b""),
             BODY_TYPE_MISMATCH,
+            RULE_GRAM11,
+            FIX_NAME_ARGUMENTS,
+        ),
+        (
+            user_call_fixture(arguments=b"x: c, extra: c"),
+            BODY_UNKNOWN_NAME,
+            RULE_GRAM11,
+            FIX_NAME_ARGUMENTS,
+        ),
+        (
+            user_call_fixture(
+                callee_parameters=b"x: own Bool",
+                callee_body=b"  return bor<Bool>(x, x);\n",
+            ),
+            BODY_TYPE_MISMATCH,
+            RULE_TYPE5,
+            FIX_MATCH_TYPE,
         ),
         (
             user_call_fixture(callee_parameters=b"x: &'r u8"),
-            BODY_TYPE_MISMATCH,
+            BODY_UNSUPPORTED,
+            RULE_NONE,
+            FIX_NONE,
         ),
-        (user_call_fixture(callee_return=b"own u8"), BODY_TYPE_MISMATCH),
-        (user_call_fixture(callee_effect=b"traps"), BODY_TYPE_MISMATCH),
         (
-            user_call_fixture(callee_parameters=b"x: own u8, y: own u8"),
+            user_call_fixture(
+                callee_return=b"own u8",
+                callee_body=b"  return x;\n",
+            ),
             BODY_TYPE_MISMATCH,
+            RULE_TYPE5,
+            FIX_MATCH_TYPE,
+        ),
+        (
+            user_call_fixture(
+                callee_effect=b"traps",
+                callee_body=(
+                    b"  let next: own u8 = iadd.trap<u8>(x, 1_u8);\n"
+                    b"  return ieq<u8>(next, next);\n"
+                ),
+            ),
+            BODY_EFFECT_MISMATCH,
+            RULE_EFFECT2,
+            FIX_DECLARE_EFFECT,
+        ),
+        (
+            user_call_fixture(
+                callee_parameters=b"x: own u8, y: own u8",
+                callee_body=b"  return ieq<u8>(x, y);\n",
+            ),
+            BODY_UNSUPPORTED,
+            RULE_NONE,
+            FIX_NONE,
         ),
         (
             user_call_fixture(
                 arguments=b"x: flag", caller_prefix=wrong_actual_prefix
             ),
             BODY_TYPE_MISMATCH,
+            RULE_TYPE5,
+            FIX_MATCH_TYPE,
         ),
     )
-    for data, expected in cases:
+    for data, expected, expected_rule, expected_fix in cases:
         case = parsed(library, data)
         caller = find_function_by_text(data, case[4], case[5], b"caller")
         nodes = linear_body_nodes(case[4], caller)
@@ -1303,6 +1425,11 @@ def assert_user_call_failures(library):
         )
         report = invoke(library, case, caller, outputs)
         assert report.status == expected, (data, report_tuple(report), expected)
+        assert (report.rule, report.fix) == (expected_rule, expected_fix), (
+            data,
+            diagnostic_tuple(report),
+        )
+        assert report.related_node == U64_MAX or report.related_node < case[5].count
         assert report.node != U64_MAX
         assert outputs[1].status == FACTS_INVALID_SHAPE
         assert outputs[3].status == FACTS_INVALID_SHAPE
@@ -1321,6 +1448,26 @@ def assert_user_call_failures(library):
     outputs = make_outputs(library, case[5].count)
     report = invoke(library, case, caller, outputs)
     assert report.status == BODY_TYPE_MISMATCH, report_tuple(report)
+    assert (report.rule, report.fix, report.related_node) == (
+        RULE_TYPE5,
+        FIX_MATCH_TYPE,
+        children_of(case[4], case[5].root)[0],
+    )
+    assert_output_guards(outputs)
+
+
+def assert_earlier_return_is_accepted(library):
+    data = earlier_return_fixture()
+    case = parsed(library, data)
+    function = find_function_by_text(data, case[4], case[5], b"earlier")
+    outputs = make_outputs(
+        library,
+        case[5].count,
+        scratch_caps=(3,) * len(SCRATCH_COLUMNS),
+    )
+    report = invoke(library, case, function, outputs)
+    assert report_tuple(report) == (BODY_CLEAN, U64_MAX, U64_MAX)
+    assert diagnostic_tuple(report) == (RULE_NONE, FIX_NONE, U64_MAX)
     assert_output_guards(outputs)
 
 
@@ -1378,14 +1525,57 @@ def assert_hostile_symbol_tapes(library):
 
 def assert_semantic_failures(library):
     cases = (
-        (fixture(first_operand=b"missing"), BODY_UNKNOWN_NAME),
-        (fixture(first_binding_type=b"u8"), BODY_TYPE_MISMATCH),
-        (fixture(return_op=b"bxor"), BODY_UNSUPPORTED),
-        (fixture(first_literal=b"097_u8"), BODY_INVALID_LITERAL),
-        (fixture(first_binding=b"c"), BODY_MALFORMED),
-        (fixture(second_binding=b"ge"), BODY_MALFORMED),
+        (
+            fixture(first_operand=b"missing"),
+            BODY_UNKNOWN_NAME,
+            RULE_TYPE5,
+            FIX_DECLARE_BEFORE_USE,
+        ),
+        (
+            fixture(first_binding_type=b"u8"),
+            BODY_TYPE_MISMATCH,
+            RULE_TYPE5,
+            FIX_MATCH_TYPE,
+        ),
+        (fixture(return_op=b"bxor"), BODY_UNSUPPORTED, RULE_NONE, FIX_NONE),
+        (
+            fixture(first_literal=b"097_u8"),
+            BODY_INVALID_LITERAL,
+            RULE_FORM7,
+            FIX_CANONICAL_LITERAL,
+        ),
+        (
+            fixture(first_literal=b"1_u16"),
+            BODY_TYPE_MISMATCH,
+            RULE_TYPE5,
+            FIX_MATCH_TYPE,
+        ),
+        (
+            fixture(first_literal=b"256_u8"),
+            BODY_INVALID_LITERAL,
+            RULE_FORM7,
+            FIX_NONE,
+        ),
+        (
+            fixture(first_literal=b"1"),
+            BODY_INVALID_LITERAL,
+            RULE_FORM5,
+            FIX_ADD_LITERAL_TYPE_SUFFIX,
+        ),
+        (
+            fixture(first_binding=b"c"),
+            BODY_MALFORMED,
+            RULE_TYPE6,
+            FIX_RENAME_BINDING,
+        ),
+        (
+            fixture(second_binding=b"ge"),
+            BODY_MALFORMED,
+            RULE_TYPE6,
+            FIX_RENAME_BINDING,
+        ),
     )
-    for data, expected in cases:
+    for data, expected, expected_rule, expected_fix in cases:
         parsed_case = parsed(library, data)
         function = find_function_by_text(
             data, parsed_case[4], parsed_case[5], b"lexer_is_lower"
@@ -1393,10 +1583,44 @@ def assert_semantic_failures(library):
         outputs = make_outputs(library, parsed_case[5].count)
         report = invoke(library, parsed_case, function, outputs)
         assert report.status == expected, (data, report.status, expected)
+        assert (report.rule, report.fix) == (expected_rule, expected_fix)
+        assert report.related_node == U64_MAX or report.related_node < parsed_case[5].count
+        if data == fixture(first_binding_type=b"u8"):
+            nodes = body_nodes(parsed_case[4], function)
+            assert report.node == nodes["first_binding_value"]
+            assert report.related_node == nodes["first_binding_type"]
         assert report.node != U64_MAX
         assert outputs[1].status == FACTS_INVALID_SHAPE
         assert outputs[3].status == FACTS_INVALID_SHAPE
         assert_output_guards(outputs)
+
+    unsupported_u8_local = (
+        b"fn unsupported_local (c: own u8) -> own Bool pure {\n"
+        b"  let x: own u8 = iadd.wrap<u8>(c, 1_u8);\n"
+        b"  return ieq<u8>(x, x);\n"
+        b"}\n"
+    )
+    unsupported_case = parsed(library, unsupported_u8_local)
+    unsupported_function = find_function_by_text(
+        unsupported_u8_local,
+        unsupported_case[4],
+        unsupported_case[5],
+        b"unsupported_local",
+    )
+    unsupported_outputs = make_outputs(
+        library,
+        unsupported_case[5].count,
+        scratch_caps=(2,) * len(SCRATCH_COLUMNS),
+    )
+    unsupported_report = invoke(
+        library,
+        unsupported_case,
+        unsupported_function,
+        unsupported_outputs,
+    )
+    assert unsupported_report.status == BODY_UNSUPPORTED
+    assert diagnostic_tuple(unsupported_report) == (RULE_NONE, FIX_NONE, U64_MAX)
+    assert_output_guards(unsupported_outputs)
 
     poison_data = fixture(first_operand=b"missing")
     poison_case = parsed(library, poison_data)
@@ -1430,6 +1654,76 @@ def assert_semantic_failures(library):
         )
         assert_output_guards(poison_outputs)
     assert poison_results[0] == poison_results[1]
+
+
+def assert_u8_literal_classification(library):
+    cases = (
+        (b"0_u8", U8_LITERAL_READY, 0),
+        (b"97_u8", U8_LITERAL_READY, 97),
+        (b"255_u8", U8_LITERAL_READY, 255),
+        (b"1_u16", U8_LITERAL_WRONG_TYPE, U64_MAX),
+        (b"1", U8_LITERAL_MISSING_SUFFIX, U64_MAX),
+        (b"097_u8", U8_LITERAL_NONCANONICAL, U64_MAX),
+        (b"256_u8", U8_LITERAL_INVALID_VALUE, U64_MAX),
+    )
+    for spelling, expected_status, expected_value in cases:
+        data = fixture(first_literal=spelling)
+        parsed_case = parsed(library, data)
+        function = find_function_by_text(
+            data, parsed_case[4], parsed_case[5], b"lexer_is_lower"
+        )
+        literal = body_nodes(parsed_case[4], function)["first_literal"]
+        token = parsed_case[4][1][literal]
+        result = library.semantic_body_parse_u8_literal(
+            parsed_case[1], ctypes.byref(parsed_case[3]), token
+        )
+        assert (result.status, result.value) == (
+            expected_status,
+            expected_value,
+        ), (spelling, result.status, result.value)
+
+    data = fixture()
+    parsed_case = parsed(library, data)
+    malformed_ordinal = library.semantic_body_parse_u8_literal(
+        parsed_case[1],
+        ctypes.byref(parsed_case[3]),
+        parsed_case[3].count,
+    )
+    assert (malformed_ordinal.status, malformed_ordinal.value) == (
+        U8_LITERAL_MALFORMED,
+        U64_MAX,
+    )
+
+    function = find_function_by_text(
+        data, parsed_case[4], parsed_case[5], b"lexer_is_lower"
+    )
+    literal = body_nodes(parsed_case[4], function)["first_literal"]
+    token = parsed_case[4][1][literal]
+    original_kind = parsed_case[2][0][token]
+    parsed_case[2][0][token] = 1
+    malformed_kind = library.semantic_body_parse_u8_literal(
+        parsed_case[1], ctypes.byref(parsed_case[3]), token
+    )
+    assert (malformed_kind.status, malformed_kind.value) == (
+        U8_LITERAL_MALFORMED,
+        U64_MAX,
+    )
+    malformed_outputs = make_outputs(library, parsed_case[5].count)
+    malformed_report = invoke(
+        library, parsed_case, function, malformed_outputs
+    )
+    assert report_tuple(malformed_report) == (
+        BODY_MALFORMED,
+        literal,
+        token,
+    )
+    assert diagnostic_tuple(malformed_report) == (
+        RULE_NONE,
+        FIX_NONE,
+        U64_MAX,
+    )
+    assert_output_guards(malformed_outputs)
+    parsed_case[2][0][token] = original_kind
 
 
 def assert_capacity_and_input_guards(library):
@@ -1634,6 +1928,7 @@ def assert_current_compiler(library):
             name,
             report_tuple(report),
         )
+        assert diagnostic_tuple(report) == (RULE_NONE, FIX_NONE, U64_MAX)
         facts = outputs[2]
         type_ids, resolved, ordinals, operations, _, _, modes, _ = facts
         for ordinal, (let_node, initializer) in enumerate(
@@ -1681,8 +1976,10 @@ def main():
         focused_user_nodes = assert_user_call_clean_facts(library)
         symbol_nodes = assert_symbol_clean_facts(library)
         assert_semantic_failures(library)
+        assert_u8_literal_classification(library)
         assert_space_failures(library)
         assert_user_call_failures(library)
+        assert_earlier_return_is_accepted(library)
         assert_symbol_failures(library)
         assert_hostile_symbol_tapes(library)
         assert_capacity_and_input_guards(library)
