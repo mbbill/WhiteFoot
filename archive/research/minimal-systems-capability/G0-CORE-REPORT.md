@@ -25,7 +25,7 @@ The defensible G0-Core result is therefore:
 3. global safety, lifecycle, generativity, and no-tax laws;
 4. topology and cross-container witnesses that separate superficially similar
    designs;
-5. explicit gaps in current xlang and explicit later systems families; and
+5. explicit gaps in current whitefoot and explicit later systems families; and
 6. an evidence protocol by which a later family can compare concrete
    mechanisms without smuggling one into this research result.
 
@@ -81,7 +81,7 @@ recovery under current EFF-4 and writer-facing direct memory-intrinsic authority
 The checked memory-copy need remains live through safe displacement contracts.
 Rust-safe raw-pointer, manual-lifetime, leak, and
 spare-capacity routes therefore remain boundary evidence rather than checked
-xlang APIs, while their underlying partial-initialization, ownership, resource,
+whitefoot APIs, while their underlying partial-initialization, ownership, resource,
 or platform need remains visible. The detailed data-contract census
 independently groups the selected array,
 slice, text, unique-owner, sequence, deque, list, heap, ordered and unordered
@@ -277,7 +277,7 @@ merely because it is immediately stored or consumed.
 
 Rust is used only as caller-demand and implementation-pressure evidence. Its
 traits, destructors, raw pointers, unsafe internals, representations, and API
-names receive no xlang presumption. Rust's standard library is also not treated
+names receive no whitefoot presumption. Rust's standard library is also not treated
 as sufficient: the witness registry adds stable pools, arenas, inline-small
 sequences, recursive ownership, dynamic graphs, ECS migration, and gap storage,
 plus four separately budgeted held-outs.
@@ -357,7 +357,7 @@ uses clone-from on the nonfinal live destinations, then moves the owned seed
 into the last slot, while `fill_with` evaluates a producer before each true
 replacement. Empty input invokes neither behavior and still disposes the owned
 seed or callable exactly once. The exact call count is Rust implementation
-evidence, not a selected xlang surface guarantee; destination reuse,
+evidence, not a selected whitefoot surface guarantee; destination reuse,
 producer-before-replace ordering, normal validity, and owner disposition are
 the semantic obligations.
 
@@ -489,12 +489,12 @@ copies the sealed endpoint values into independent owning cursor state and
 leaves the descriptor unchanged because those concrete values are `Copy`, not
 because a shared receiver is pure. Consequently these rows require no user
 `Clone`, generic callable, behavior-effect relation, or generic-abstraction
-authority and have no stored-borrow complement. The xlang demand is exact
+authority and have no stored-borrow complement. The whitefoot demand is exact
 monomorphized checked stepping: half-open and inclusive iteration never compute
 an invalid successor, inclusive iteration yields the last endpoint once without
 computing `last + 1`, and the unbounded form yields its maximum once before the
 next demand traps prior to mutation and never wraps. Rust's internal unchecked
-specialization is implementation evidence and grants no xlang authority. This
+specialization is implementation evidence and grants no whitefoot authority. This
 scope is pinned to Rust commit
 `2d8144b7880597b6e6d3dfd63a9a9efae3f533d3` and
 `library/core/src/iter/range.rs` SHA-256
@@ -538,7 +538,7 @@ once. These transitions must not be collapsed into guard bookkeeping.
 
 ### 3.4 No unwind does not remove lifecycle obligations
 
-xlang traps abort and run no cleanup. This removes Rust's panic-unwind repair
+whitefoot traps abort and run no cleanup. This removes Rust's panic-unwind repair
 edges, but not fallthrough, `return`, `break`, `give`, recoverable error
 propagation, callback return, owner destruction, or abandonment of an affine
 protocol value. Current affinity prevents duplication but does not require a
@@ -551,10 +551,10 @@ abandonable value exists, establish an exact-use rule on every normal path, or
 provide compiler-owned derived cleanup with fully specified semantics and cost.
 G0-Core selects none of those alternatives.
 
-`RAW-SAFE-LEAK-01` is boundary evidence, not an ordinary xlang cleanup route.
+`RAW-SAFE-LEAK-01` is boundary evidence, not an ordinary whitefoot cleanup route.
 Rust's operation consumes an owner while deliberately destroying neither its
 payload nor its allocation. It therefore carries neither `OW-DROP` nor
-`EX-NORMAL` and does not weaken xlang's exact-resource law. Any checked
+`EX-NORMAL` and does not weaken whitefoot's exact-resource law. Any checked
 process-lifetime transfer requires a separate frozen boundary contract.
 
 ### 3.5 Identity, address, and refinement are independent axes
@@ -598,7 +598,7 @@ The clone conversion is also a distinct cost and failure branch: for an
 `n`-element borrowed slice it performs one allocation and exactly `n`
 `T::clone` calls on normal success, in contrast to O(1) representation reuse.
 Normal and recoverable exits account every initialized output owner. A
-`T::clone` trap follows xlang `EFF-4`: it aborts without a cleanup or post-state
+`T::clone` trap follows whitefoot `EFF-4`: it aborts without a cleanup or post-state
 promise, while the partially initialized state must not be read invalidly or
 create duplicate ownership before abort. The proof must not import Rust unwind
 cleanup or make memory safety depend on trap-edge cleanup. OOM remains the
@@ -739,9 +739,9 @@ checked substrate. Its Family Lock still has to show, for every exact
 unrelated protected contracts do not pay for its generality. A cluster-wide
 capability or cost union is never candidate evidence.
 
-## 5. Current xlang status
+## 5. Current whitefoot status
 
-Current xlang has useful but narrow evidence:
+Current whitefoot has useful but narrow evidence:
 
 - fixed, fully initialized Copy buffers with checked indexing;
 - unique heap ownership and compiler-derived simple normal-exit release;
@@ -793,7 +793,7 @@ also non-closed; none can be promoted through a family-local base result.
 
 ## 6. Ordinary-library and performance standard
 
-A capability is not closed by showing that a privileged xlang standard library
+A capability is not closed by showing that a privileged whitefoot standard library
 could implement `Vec` or `HashMap`. It must support an ordinary external
 no-unsafe library using the same checked public mechanisms available to an
 unrelated library. It fails if it requires raw payload access, a hidden
@@ -846,7 +846,7 @@ Performance closure has two distinct controls:
 1. same-shape attribution against Rust with matched algorithm,
    representation, capacity policy, allocator, payload, and trace, including
    facts-on/off and structural counters; and
-2. end-to-end comparison between the selected canonical xlang route and the
+2. end-to-end comparison between the selected canonical whitefoot route and the
    unmodified idiomatic Rust 1.97.0 standard-library route for the same
    observable contract.
 
@@ -896,7 +896,7 @@ boundaries, and dynamic-library policy.
 
 Thus G0-Core can make owner review of the first Family Lock draft eligible. It
 does not make a family experiment eligible and cannot support the statement
-that xlang already covers systems programming.
+that whitefoot already covers systems programming.
 
 ## 8. E0.1 reconciliation
 
@@ -972,7 +972,7 @@ permits only the following claim:
 > the owner to review whether to authorize the first Family Lock A.
 
 It does not claim that a minimal production mechanism set has been selected,
-that current xlang can implement the floor, that any family is closed, that any
+that current whitefoot can implement the floor, that any family is closed, that any
 timing threshold has been met, or that the general-purpose systems-language
 goal is complete.
 
@@ -1004,7 +1004,7 @@ goal is complete.
   `RUST-DATA-UNSAFE-EVIDENCE-MAP.tsv`: exact once-only crosswalks for the 545
   canonical stable-safe inherent declarations and all 35 canonical
   stable-unsafe data-floor declarations. Every unsafe route terminates in one
-  of eight `RAW-UNSAFE-*` evidence clusters and admits no xlang surface.
+  of eight `RAW-UNSAFE-*` evidence clusters and admits no whitefoot surface.
 - `RUST-D10-SURFACE-MAP.tsv`: exact 175-declaration iteration/range crosswalk,
   including redundant surface routes.
 - `RUST-1.97.0-TRAIT-IMPL-CROSSWALK.tsv` and

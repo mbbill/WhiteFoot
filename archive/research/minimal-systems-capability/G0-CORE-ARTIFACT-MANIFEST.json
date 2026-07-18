@@ -43,57 +43,57 @@
     },
     {
       "bytes": 12469,
-      "path": "../../../mcts_mem/xlang.md",
+      "path": "../../../mcts_mem/whitefoot.md",
       "sha256": "e64ed3bcff2bbbc53b91479b8d73571b6221655dc9820ef013e11094b597da94"
     },
     {
       "bytes": 10484,
-      "path": "../../../mcts_mem/xlang/data-model.md",
+      "path": "../../../mcts_mem/whitefoot/data-model.md",
       "sha256": "366d5b2390f45f89a05bb6f068937c8313ce9e5c36e4dd308337f2382cd8ee37"
     },
     {
       "bytes": 12177,
-      "path": "../../../mcts_mem/xlang/ownership.md",
+      "path": "../../../mcts_mem/whitefoot/ownership.md",
       "sha256": "38b815d58842078807134210b5ada058f65f0088780517c6b3282900e3095a98"
     },
     {
       "bytes": 1423,
-      "path": "../../../mcts_mem/xlang/ownership/copy-classification.md",
+      "path": "../../../mcts_mem/whitefoot/ownership/copy-classification.md",
       "sha256": "9a822795a28c4b4eaee34ed4f8e04f5c9ba81d4acf9c8684053e2a7293c75bf1"
     },
     {
       "bytes": 1149,
-      "path": "../../../mcts_mem/xlang/ownership/copy-classification.alt/uniform-affine-enums.md",
+      "path": "../../../mcts_mem/whitefoot/ownership/copy-classification.alt/uniform-affine-enums.md",
       "sha256": "963679bed1becdace46631aa88524e8f5ccbb6c7e3eeb2f244619f1a97c21fe5"
     },
     {
       "bytes": 7927,
-      "path": "../../../mcts_mem/xlang/ownership/no-reborrow.md",
+      "path": "../../../mcts_mem/whitefoot/ownership/no-reborrow.md",
       "sha256": "972a9c181d521b0ccd944bdde494b6b972254243f5f128fdfdcc774af6fa7293"
     },
     {
       "bytes": 3372,
-      "path": "../../../mcts_mem/xlang/pattern-doctrine.md",
+      "path": "../../../mcts_mem/whitefoot/pattern-doctrine.md",
       "sha256": "652cea2264a30123ba1e2034b5facdc2133e0da68e063619b8dbe09b1a9dbb14"
     },
     {
       "bytes": 792,
-      "path": "../../../mcts_mem/xlang/pattern-doctrine.alt/unconstrained-architecture.md",
+      "path": "../../../mcts_mem/whitefoot/pattern-doctrine.alt/unconstrained-architecture.md",
       "sha256": "51f584062789a2fb63581fe3da6e824491f38763c6a44e5f472c7482cdb98685"
     },
     {
       "bytes": 3540,
-      "path": "../../../mcts_mem/xlang/fact-channels.md",
+      "path": "../../../mcts_mem/whitefoot/fact-channels.md",
       "sha256": "73961a3b807d2fd67bb5e5aecd6b8df74248e9a79d17db76684f3adb13b49012"
     },
     {
       "bytes": 2522,
-      "path": "../../../mcts_mem/xlang/surface-form.md",
+      "path": "../../../mcts_mem/whitefoot/surface-form.md",
       "sha256": "32f2aa92ec19edc34b0aac7882f23f23b11752d064ee80b202150609895a633a"
     },
     {
       "bytes": 2563,
-      "path": "../../../mcts_mem/xlang/toolchain.md",
+      "path": "../../../mcts_mem/whitefoot/toolchain.md",
       "sha256": "813ce07902004d14f966634b8c7801112b143488af7290a83fde4937a0cccae5"
     },
     {
@@ -393,47 +393,47 @@
     },
     {
       "bytes": 1521,
-      "path": "canaries/xlang_buildhasher_root_swap.rs",
+      "path": "canaries/whitefoot_buildhasher_root_swap.rs",
       "sha256": "76588ebc4bf1cc9c191e4b08f3cee00dffd96fa39e315ab3bd5a057bc7aa9a09"
     },
     {
       "bytes": 922,
-      "path": "canaries/xlang_buildhasher_transfer.rs",
+      "path": "canaries/whitefoot_buildhasher_transfer.rs",
       "sha256": "0a366e560f3eaf10b85e8bee963a0204d218e3df4766e758e718087c12e9d962"
     },
     {
       "bytes": 2843,
-      "path": "canaries/xlang_clone_source_effects.rs",
+      "path": "canaries/whitefoot_clone_source_effects.rs",
       "sha256": "456a9ffe70b4df2b90c9d4eb0edf353aeb41f3b135b06e8b31da931293730642"
     },
     {
       "bytes": 2750,
-      "path": "canaries/xlang_clone_helper_source_effects.rs",
+      "path": "canaries/whitefoot_clone_helper_source_effects.rs",
       "sha256": "6120847f27ff814f60f0f92a96ff016970ca64cb32aa3718cee6f96607be1284"
     },
     {
       "bytes": 5703,
-      "path": "canaries/xlang_behavior_receiver_effects.rs",
+      "path": "canaries/whitefoot_behavior_receiver_effects.rs",
       "sha256": "ac42b0d6cd70a8ee3b04528184335768f725ee7f925c9d7253897cb8523fdef8"
     },
     {
       "bytes": 2782,
-      "path": "canaries/xlang_repeat_n_source_effects.rs",
+      "path": "canaries/whitefoot_repeat_n_source_effects.rs",
       "sha256": "ca5cdad81136a15d5b5291a670963d8c4c9a97436bdfd85fb39ed646fe9f3ff5"
     },
     {
       "bytes": 2030,
-      "path": "canaries/xlang_range_step_stable_entrances.rs",
+      "path": "canaries/whitefoot_range_step_stable_entrances.rs",
       "sha256": "99a7243215ed384b2ba7fa0890bddbf3c05463e2c2b293552bda2f637da9208d"
     },
     {
       "bytes": 166,
-      "path": "canaries/xlang_range_step_ascii_char_rejected.rs",
+      "path": "canaries/whitefoot_range_step_ascii_char_rejected.rs",
       "sha256": "a98c1a8c266b173c219127931f44f7c170076127252310886e04440d8465437b"
     },
     {
       "bytes": 713,
-      "path": "canaries/xlang_range_step_downstream_impl_rejected.rs",
+      "path": "canaries/whitefoot_range_step_downstream_impl_rejected.rs",
       "sha256": "aa9f46fa6f2aea5a850cf569f7f87867cca4d197c9f221ea083e4830b06171ce"
     },
     {
@@ -574,5 +574,5 @@
   ],
   "rust_peeled_commit": "2d8144b7880597b6e6d3dfd63a9a9efae3f533d3",
   "rust_release": "1.97.0",
-  "schema": "xlang-g0-core-artifact-manifest-v1"
+  "schema": "whitefoot-g0-core-artifact-manifest-v1"
 }

@@ -79,7 +79,7 @@ def decision_readiness(records, tasks, required_suites, min_trials_per_task):
             "tasks": pending,
         })
     for suite in required_suites:
-        for language in ("rust", "xlang"):
+        for language in ("rust", "whitefoot"):
             seen = {(r["task"], r["language"], r["suite"]) for r in records}
             missing = [t["id"] for t in tasks.values()
                        if language not in t.get("pending_languages", {})
@@ -118,7 +118,7 @@ def decision_readiness(records, tasks, required_suites, min_trials_per_task):
                         "tasks": insufficient,
                     })
     for suite in required_suites:
-        for language in ("rust", "xlang"):
+        for language in ("rust", "whitefoot"):
             failures = [r for r in records
                         if r["suite"] == suite
                         and r["language"] == language
@@ -141,7 +141,7 @@ def recommendation(readiness):
     if "pending_language_tasks" in kinds:
         return {
             "status": "hold_self_hosting",
-            "next": "implement_or_explicitly_abandon_the_minimum_xlang_M3_unblocks",
+            "next": "implement_or_explicitly_abandon_the_minimum_whitefoot_M3_unblocks",
         }
     if "missing_required_records" in kinds or "insufficient_required_trials" in kinds:
         return {

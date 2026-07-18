@@ -83,7 +83,7 @@ EXCLUDED_MEMBERS = {'DENSE-LAZY-DRAIN-EVIDENCE': 'O-LAZY-DRAIN is not promoted; 
                                'mandatory.',
  'DENSE-RAW-SPARE-REJECTED': 'Writer-visible spare-capacity initialization state is '
                              'constitutionally inadmissible.',
- 'DENSE-UNCHECKED-ACCESS-EVIDENCE': 'Unchecked caller access is evidence only and never an xlang '
+ 'DENSE-UNCHECKED-ACCESS-EVIDENCE': 'Unchecked caller access is evidence only and never a whitefoot '
                                     'surface.',
  'DENSE-ALIGN-EVIDENCE': 'Unchecked type-punning is evidence only and outside the dense claim.',
  'DENSE-INIT-AUTHORITY-EVIDENCE': 'Writer-forgeable initialization authority is evidence only.',

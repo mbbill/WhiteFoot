@@ -1,6 +1,6 @@
 # xlc
 
-This directory contains the production xlang compiler, written in xlang. Python
+This directory contains the production whitefoot compiler, written in whitefoot. Python
 `prototype/democ` is stage 0 only: it compiles xlc until xlc can compile itself.
 
 The compiler currently uses fixed-capacity structure-of-arrays tapes backed by

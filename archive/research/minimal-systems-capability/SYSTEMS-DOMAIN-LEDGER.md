@@ -2,7 +2,7 @@
 
 Status: full-envelope research accounting, 2026-07-14. This artifact classifies
 the stable public Rust 1.97.0 `core`, `alloc`, and `std` surface by
-caller-observable systems domain. It selects no xlang mechanism, changes no
+caller-observable systems domain. It selects no whitefoot mechanism, changes no
 language rule, closes no capability family, and authorizes no implementation.
 
 ## 1. Purpose and claim discipline
@@ -20,7 +20,7 @@ the two scopes separate:
 - it records the claims that remain blocked even if every current data-
   structure family later passes.
 
-The classification is an accounting destination, not a finding that xlang can
+The classification is an accounting destination, not a finding that whitefoot can
 already derive the contract. In particular, `LIB` does not mean "derivable
 today," `FRAME` does not authorize privilege, and `G0` does not mean "closed."
 Every derivability, soundness, performance, and adoption claim still needs the
@@ -28,8 +28,8 @@ gate named by the research charter.
 
 Rust is a finite external anchor, not a design oracle. Rust API names, traits,
 representations, destructors, unsafe implementation techniques, and source
-spellings carry no presumption for xlang. This ledger records needs and
-boundaries only. It deliberately does not name a candidate xlang syntax, type,
+spellings carry no presumption for whitefoot. This ledger records needs and
+boundaries only. It deliberately does not name a candidate whitefoot syntax, type,
 operator, storage primitive, compiler intrinsic, or privileged container.
 
 ## 2. Pinned source universe
@@ -84,7 +84,7 @@ The mechanical declaration classification records exactly one `domain_id`, one
 `surface_evidence_status`, and one independent `need_route_kind` plus stable
 `need_route_id` per canonical source declaration: 5,278 safe and 277 unsafe.
 Every row retains Rust `caller_safety` without treating Rust-safe as approved
-xlang surface. The surface axis distinguishes safe contract anchors, safe
+whitefoot surface. The surface axis distinguishes safe contract anchors, safe
 boundary evidence, unsafe boundary evidence, and Rust-only namespace/source
 surface. The need axis independently routes the underlying caller requirement
 to `G0_CONTRACT`, `LIB_CONTRACT`, `LATER_FAMILY`, `FRAME`, `REDUNDANT`,
@@ -100,7 +100,7 @@ ratified first-principles rule may use `NG`, with that authority recorded. The
 normalization before their domain can claim closure.
 
 Thus Rust boundary and unsafe implementation requirements cannot disappear,
-but they also cannot be smuggled into xlang as an unchecked escape or mislabeled
+but they also cannot be smuggled into whitefoot as an unchecked escape or mislabeled
 as evidence that the underlying systems need is absent.
 
 ## 3. Need-route codes
@@ -112,7 +112,7 @@ mechanical table uses the exact route names in this table.
 | Route | Meaning | What the route does not claim |
 |---|---|---|
 | `G0_CONTRACT` | The contract is in the bounded G0-Core accounting: the sequential, unique-owner data-structure floor or a prerequisite that must be protected while evaluating it. | It does not close a family, select a mechanism, authorize implementation, or prove derivability. |
-| `LIB_CONTRACT` | The contract belongs in an ordinary checked library after its dependencies close. | It does not assert current derivability, require an xlang standard library, or copy Rust's API shape. |
+| `LIB_CONTRACT` | The contract belongs in an ordinary checked library after its dependencies close. | It does not assert current derivability, require a whitefoot standard library, or copy Rust's API shape. |
 | `FRAME` | The declaration is itself a named compiler, runtime, allocator, ABI, OS, clock, scheduler, target, or MMIO boundary service. | It does not authorize a trusted path or allow writer-authored trust. A later contract that depends on a frame remains `LATER_FAMILY` with `required_frame_ids`. |
 | `LATER_FAMILY` | The contract blocks a broader claim and requires its own registry, exact family lock, evidence, and owner adoption decision. | It may not inherit closure from G0 or from an adjacent family. |
 | `REDUNDANT` | The declaration has a canonical contract elsewhere and no distinct observable ownership, failure, invalidation, cost, identity, address, or platform guarantee. | It requires an exact canonical replacement; name similarity is insufficient. |
@@ -267,7 +267,7 @@ never be reported as passing the whole envelope.
 
 - **Rust families:** `core`/`std::panic`, `std::backtrace`, assertion and panic
   macros, panic payload and hook APIs, unwind boundaries, and backtrace capture.
-- **Disposition:** xlang's aborting trap and the checks retained by the floor
+- **Disposition:** whitefoot's aborting trap and the checks retained by the floor
   are `G0`. Trap reporting and stack capture cross `FRAME` `F-TRAP`; richer diagnostic
   presentation is `LIB` after that frame exists. Panic hooks, payloads, and
   backtraces are `LATER`. Source-visible unwinding, catching, resuming, or using
@@ -494,7 +494,7 @@ never be reported as passing the whole envelope.
 - **Disposition:** thread creation, joining, parking, and thread-local runtime
   service cross `FRAME` `F-THREAD`; the entire threading and thread-local family is
   `LATER`.
-- **Blocked claim:** xlang v0 has no thread construct. G0 cannot claim send,
+- **Blocked claim:** whitefoot v0 has no thread construct. G0 cannot claim send,
   share, join, scoped-thread lifetime, thread-local destruction, panic
   propagation, scheduling, or race-freedom beyond its single-threaded scope.
 
@@ -790,7 +790,7 @@ Only after every mandatory baseline, witness, held-out, lifecycle, failure,
 fact-channel, construction, and performance obligation for the floor closes may
 the project seek the following claim:
 
-> Ordinary no-unsafe xlang libraries can implement the registered sequential,
+> Ordinary no-unsafe whitefoot libraries can implement the registered sequential,
 > unique-owner collection and topology contracts efficiently through public
 > checked mechanisms.
 
@@ -831,7 +831,7 @@ witnesses.
    duplication are never counted as new capabilities without a distinct
    observable contract.
 3. **Unsafe is evidence only.** A newly stable unsafe API reopens the underlying
-   domain analysis but never authorizes a writer-visible unchecked xlang
+   domain analysis but never authorizes a writer-visible unchecked whitefoot
    surface.
 4. **`G0` does not spread.** A G0 family can close only its frozen contracts.
    Cross-family dependencies require all implicated contracts to be frozen

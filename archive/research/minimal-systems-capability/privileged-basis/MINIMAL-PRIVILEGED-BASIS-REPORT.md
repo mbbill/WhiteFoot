@@ -38,7 +38,7 @@ The corrected result has four layers:
    exact normal-exit rules, and a selected cleanup model. The current language
    provides none of those as a complete package.
 4. **One preserved objective:** sequences, deques, hash tables, trees, arenas,
-   graphs, strings, and other policies should remain ordinary generic xlang
+   graphs, strings, and other policies should remain ordinary generic whitefoot
    code, so the toolchain need not ship named containers. The present research
    does not yet prove that objective for every family.
 
@@ -230,7 +230,7 @@ prevents the gate from absorbing unforeseen containers and defeating ordinary-
 library generativity.
 
 The root and capsule can have a readable authoring representation for review without
-making that representation xlang source syntax. Its canonicalizer/parser,
+making that representation whitefoot source syntax. Its canonicalizer/parser,
 schema, and output bytes have pinned identities and reject duplicate, unknown,
 ambiguous, or noncanonical encodings. This internal authoring language counts
 against TCB, review, and META-5 cost even though it grants no ordinary-source
@@ -250,7 +250,7 @@ compiler and conformance identity and cannot emit a conforming artifact
 identity.
 
 Privileged compiler identities never serialize as forgeable names. If future
-binary xlang libraries, incremental artifacts, LTO input, or object input are
+binary whitefoot libraries, incremental artifacts, LTO input, or object input are
 supported, each carries the exact used-entry tuples, approval-snapshot
 identity, and certificates. The consumer revalidates both the certificate and
 current authenticated-snapshot membership. An unsupported form is rejected rather than treated
@@ -318,7 +318,7 @@ The precedent survey supports private builtins as an admission mechanism, but
 does not identify an existing language that also provides a Pareto-small,
 proof-checked, generative public basis.
 
-| System | Admission mechanism | What it establishes | Why it is not sufficient for xlang |
+| System | Admission mechanism | What it establishes | Why it is not sufficient for whitefoot |
 |---|---|---|---|
 | Rust | [`#[lang = "..."]`](https://rustc-dev-guide.rust-lang.org/lang-items.html), [compiler intrinsics](https://doc.rust-lang.org/stable/core/intrinsics/index.html), and [special compiler-known types](https://doc.rust-lang.org/reference/special-types-and-traits.html#boxt) | Toolchain/core crates can provide compiler-known identities through explicitly unstable hooks; ordinary stable crates cannot rely on them. Compiler operations can be wrapped, and Rust `Box<T>` has non-replicable language semantics. | Rust has several admission forms. The official [Nomicon Vec construction](https://doc.rust-lang.org/nomicon/vec/vec.html) shows the conventional stable-Rust extension route using public `unsafe`; it is evidence of that design, not a proof that every conceivable Rust design must do so. Access control and manual unsafe invariants remain trusted. |
 | Swift | A compiler-constructed `Builtin` module visible while building the standard library | The compiler book states that `Builtin` contains compiler types and intrinsics, is normally invisible, and user code does not interact with it directly ([compiler book, sections 2.5 and 3.3](https://download.swift.org/docs/assets/generics.pdf)). | This is the closest hidden-module precedent, not evidence of a security boundary: `-parse-stdlib` selects visibility. The builtin set is large, while ordinary custom buffer collections use facilities such as [`ManagedBuffer`](https://developer.apple.com/documentation/swift/managed-buffers) and unsafe pointer-level APIs. |
@@ -333,11 +333,11 @@ Two negative findings are as important as the precedent:
    admission gate, a small semantic basis, ordinary safe-library generativity,
    and machine-checked low-level invariants.
 2. Private builtins alone commonly move unsafe code into a larger trusted
-   standard library. That result would not satisfy xlang's stated objective.
+   standard library. That result would not satisfy whitefoot's stated objective.
 
 ## 5. Literature evidence for the public basis
 
-The academic systems do not supply a ready-made xlang design. Together they
+The academic systems do not supply a ready-made whitefoot design. Together they
 show that the required components are feasible and expose their costs.
 
 | Work | Relevant result | Design consequence |
@@ -357,10 +357,10 @@ The surveyed literature supports one central candidate direction:
 ownership/state relations can be represented by proofs that are checked and
 erased, avoiding a mandatory runtime mirror in the systems studied. It does not
 show that arbitrary library invariants can be inferred automatically, that the
-combined xlang design is already feasible under D1a/META-5, or that proof
+combined whitefoot design is already feasible under D1a/META-5, or that proof
 generation is cheap. ATS uses explicit views; Low-star and Steel co-develop
 programs and proofs; proof-carrying code moves proof construction to the
-producer. If xlang later consumes an out-of-tier proposition as safety or fact
+producer. If whitefoot later consumes an out-of-tier proposition as safety or fact
 authority, any proof-bearing fallback must count proof-generation, checking,
 diagnostic, and artifact cost. Ordinary algorithm invariants need no such
 certificate unless explicitly promoted. A private unchecked core and a
@@ -491,7 +491,7 @@ logic.
 A nominal ordinary-library owner would have to seal a block, one complete
 shape permission, and its runtime endpoints while existentially hiding `rho`.
 Fresh generative identity and existential or abstract-type sealing are
-load-bearing, not notation. Current xlang does not yet provide the required
+load-bearing, not notation. Current whitefoot does not yet provide the required
 ordinary-library abstraction mechanism, so this is a blocking prerequisite.
 
 The valid-value invariant is:
@@ -577,7 +577,7 @@ Arbitrary relocation outside it remains blocked. Growth is acquire, permitted
 relocation, and release. Clear is repeated take and structural drop.
 These derived operations may receive optimized compiler lowerings only after
 same-semantics proof. The sketch establishes their conservation equations, not
-that current xlang can package or clean up the resulting owner.
+that current whitefoot can package or clean up the resulting owner.
 
 ### 7.2 Runtime metadata relation
 

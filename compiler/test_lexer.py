@@ -248,7 +248,7 @@ def corpus_paths():
     roots = [
         ROOT / "conformance" / "cases",
         ROOT / "codegen-corpus" / "cases",
-        ROOT / "m3" / "submissions" / "reference" / "xlang",
+        ROOT / "m3" / "submissions" / "reference" / "whitefoot",
         ROOT / "experiments" / "port-study",
         ROOT / "prototype" / "democ" / "examples",
         ROOT / "compiler",

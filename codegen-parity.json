@@ -19,11 +19,11 @@
     {
       "id": "scalar-backend-parity",
       "mode": "gate",
-      "description": "The same splitmix loop must select the same instruction sequence from xlang, C, and safe Rust.",
+      "description": "The same splitmix loop must select the same instruction sequence from whitefoot, C, and safe Rust.",
       "variants": [
         {
-          "name": "xlang",
-          "kind": "xlang",
+          "name": "whitefoot",
+          "kind": "whitefoot",
           "source": "experiments/codegen-vs-rust-c/xl/kernelA.xl",
           "function": "mix_n",
           "opt": "O3"
@@ -45,14 +45,14 @@
       ],
       "checks": [
         {
-          "label": "xlang opcode sequence equals C",
-          "left": "xlang.asm.opcodes",
+          "label": "whitefoot opcode sequence equals C",
+          "left": "whitefoot.asm.opcodes",
           "op": "eq",
           "right": "c.asm.opcodes"
         },
         {
-          "label": "xlang opcode sequence equals safe Rust",
-          "left": "xlang.asm.opcodes",
+          "label": "whitefoot opcode sequence equals safe Rust",
+          "left": "whitefoot.asm.opcodes",
           "op": "eq",
           "right": "rust.asm.opcodes"
         }
@@ -65,14 +65,14 @@
       "variants": [
         {
           "name": "facts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "prototype/democ/examples/twice_read.xl",
           "function": "twice_read",
           "opt": "O2"
         },
         {
           "name": "nofacts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "prototype/democ/examples/twice_read.xl",
           "function": "twice_read",
           "facts": false,
@@ -101,14 +101,14 @@
       "variants": [
         {
           "name": "facts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "prototype/democ/examples/soa_kernel.xl",
           "function": "kernel",
           "opt": "O2"
         },
         {
           "name": "nofacts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "prototype/democ/examples/soa_kernel.xl",
           "function": "kernel",
           "facts": false,
@@ -149,14 +149,14 @@
       "variants": [
         {
           "name": "facts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "prototype/democ/examples/sat_reduce.xl",
           "function": "reduce",
           "opt": "O2"
         },
         {
           "name": "nofacts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "prototype/democ/examples/sat_reduce.xl",
           "function": "reduce",
           "facts": false,
@@ -184,8 +184,8 @@
       "description": "The real chunk classifier must retain C-equivalent vector width with no surviving trap in summarize.",
       "variants": [
         {
-          "name": "xlang",
-          "kind": "xlang",
+          "name": "whitefoot",
+          "kind": "whitefoot",
           "source": "experiments/port-study/wc-chunk-summary/chunk_wc.xl",
           "function": "summarize",
           "opt": "O3"
@@ -200,20 +200,20 @@
       ],
       "checks": [
         {
-          "label": "xlang reaches at least 16-byte vector width",
-          "left": "xlang.opt_ir.max_vector_width",
+          "label": "whitefoot reaches at least 16-byte vector width",
+          "left": "whitefoot.opt_ir.max_vector_width",
           "op": "ge",
           "value": 16
         },
         {
-          "label": "xlang vector width equals C",
-          "left": "xlang.opt_ir.max_vector_width",
+          "label": "whitefoot vector width equals C",
+          "left": "whitefoot.opt_ir.max_vector_width",
           "op": "eq",
           "right": "c.opt_ir.max_vector_width"
         },
         {
-          "label": "xlang summarize has no machine trap",
-          "left": "xlang.asm.traps",
+          "label": "whitefoot summarize has no machine trap",
+          "left": "whitefoot.asm.traps",
           "op": "eq",
           "value": 0
         }
@@ -226,7 +226,7 @@
       "variants": [
         {
           "name": "facts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "codegen-corpus/cases/requires-check-tautology.xl",
           "function": "guarded",
           "opt": "O3"
@@ -260,14 +260,14 @@
       "variants": [
         {
           "name": "facts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "experiments/port-study/base64/b64.xl",
           "function": "encode",
           "opt": "O3"
         },
         {
           "name": "nofacts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "experiments/port-study/base64/b64.xl",
           "function": "encode",
           "facts": false,
@@ -398,14 +398,14 @@
       "variants": [
         {
           "name": "facts",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "experiments/port-study/base64/b64.xl",
           "function": "encode",
           "opt": "O3"
         },
         {
           "name": "ceiling",
-          "kind": "xlang",
+          "kind": "whitefoot",
           "source": "experiments/port-study/base64/b64.xl",
           "function": "encode",
           "elide_bounds": true,

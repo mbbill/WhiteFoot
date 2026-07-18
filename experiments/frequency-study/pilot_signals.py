@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-SCHEMA = "xlang.frequency-study.pilot-signals.v1"
+SCHEMA = "whitefoot.frequency-study.pilot-signals.v1"
 LABEL = "heuristic_candidate_not_proven_speedup"
 EXCLUDED_DIRECTORIES = frozenset(
     {

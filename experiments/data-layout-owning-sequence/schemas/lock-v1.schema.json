@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xlang.local/data-layout-owning-sequence/lock-v1.schema.json",
+  "$id": "https://whitefoot.local/data-layout-owning-sequence/lock-v1.schema.json",
   "title": "Native F-SOA score lock v1",
   "type": "object",
   "required": [

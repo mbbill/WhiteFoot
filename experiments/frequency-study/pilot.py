@@ -311,7 +311,7 @@ def _download(url: str, destination: Path) -> None:
     if parsed.scheme not in ("https", "file"):
         raise PilotError("only https and local file URLs are accepted")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    request = urllib.request.Request(url, headers={"User-Agent": "xlang-frequency-pilot/1"})
+    request = urllib.request.Request(url, headers={"User-Agent": "whitefoot-frequency-pilot/1"})
     size = 0
     try:
         with urllib.request.urlopen(request, timeout=30) as response, destination.open("xb") as output:

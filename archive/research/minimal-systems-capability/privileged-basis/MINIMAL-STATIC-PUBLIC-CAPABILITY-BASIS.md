@@ -47,7 +47,7 @@ Abstract contract:
 - represent each typed place as `Vacant<T>` or `Live<T>` proof state without a
   mandatory runtime tag.
 
-Ordinary current xlang cannot implement this contract because every array and
+Ordinary current whitefoot cannot implement this contract because every array and
 buffer slot is fully initialized, affine aggregate buffers are rejected, and
 source cannot create uninitialized typed storage or generative place identity.
 Inline-small storage, heterogeneous arenas, packed records, type-erased
@@ -92,7 +92,7 @@ returning the sole owner. `destroy` invokes the statically selected checked
 disposition exactly once. Traps abort, but no dead place is read or destroyed
 before the trap.
 
-Current xlang kills an entire aggregate after a partial affine move and cannot
+Current whitefoot kills an entire aggregate after a partial affine move and cannot
 reinitialize it. Dense push/pop, sparse insert/remove, gap movement, node
 extraction, array mapping, draining, and failure-atomic relocation depend on
 P2.

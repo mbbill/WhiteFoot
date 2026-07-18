@@ -58,7 +58,7 @@ def main() -> None:
         raise SystemExit(f"usage: {sys.argv[0]} [BYTES] [SAMPLES]")
     print("| variant | throughput | time/pass |")
     print("|---|---:|---:|")
-    with tempfile.TemporaryDirectory(prefix="xlang-base64-proof-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-base64-proof-") as temporary:
         build_dir = Path(temporary)
         for name, options in VARIANTS:
             executable = build(build_dir, name, options)

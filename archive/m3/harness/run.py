@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """M3 decision-sprint harness.
 
-Runs Rust and xlang submissions for each task in m3/tasks.jsonl and emits one
+Runs Rust and whitefoot submissions for each task in m3/tasks.jsonl and emits one
 JSON record per task/language pair. The harness intentionally does not call an
 LLM; generated code is an input, not hidden inside the scorer.
 """
@@ -66,7 +66,7 @@ def submission_sources(task, suite, language, trials=None):
     Multi-trial model layout:
       submissions/<suite>/<language>/<task>/<trial>.{rs,xl}
     """
-    ext = {"rust": "rs", "xlang": "xl"}[language]
+    ext = {"rust": "rs", "whitefoot": "xl"}[language]
     root = M3 / "submissions" / suite / language
     legacy = root / f"{task['id']}.{ext}"
     trial_dir = root / task["id"]
@@ -124,7 +124,7 @@ def verdict_from_runs(task, runs, language=None):
     return True, "ok"
 
 
-def compile_xlang(src, task, tmp):
+def compile_whitefoot(src, task, tmp):
     import democ
     from checker import CheckError
 
@@ -211,7 +211,7 @@ def run_one(task, suite, language, trial, src):
         if language == "rust":
             exe, compile_result = compile_rust(src, task, tmp)
         else:
-            exe, compile_result = compile_xlang(src, task, tmp)
+            exe, compile_result = compile_whitefoot(src, task, tmp)
         record["compile"] = compile_result
         if exe is None:
             record.update({"verdict": compile_result["status"], "pass": False})
@@ -234,14 +234,14 @@ def run_one(task, suite, language, trial, src):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default="reference")
-    ap.add_argument("--language", choices=["rust", "xlang"], action="append")
+    ap.add_argument("--language", choices=["rust", "whitefoot"], action="append")
     ap.add_argument("--task", action="append")
     ap.add_argument("--trial", action="append",
                     help="Run one named trial from submissions/<suite>/<language>/<task>/<trial>.{rs,xl}")
     ap.add_argument("--out")
     args = ap.parse_args()
 
-    languages = args.language or ["rust", "xlang"]
+    languages = args.language or ["rust", "whitefoot"]
     want_tasks = set(args.task or [])
     records = []
     for task in load_tasks():

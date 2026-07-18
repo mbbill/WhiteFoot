@@ -12,7 +12,7 @@ Completed:
 - the baseline-only native harness passes self-test and a two-process non-scoring
   smoke with frozen source/IR/executable/correctness hashes;
 - an unconditional candidate was executed only in the detached worktree
-  `/private/tmp/xlang-e01a-candidate`; its exact 57,547-byte reviewed source diff is
+  `/private/tmp/whitefoot-e01a-candidate`; its exact 57,547-byte reviewed source diff is
   durable as `DETACHED_CANDIDATE.patch` at commit `68a55e4`; its repository-wide
   `make check`, 73 checker tests, 10,000-case modelcheck, field-only IR shape, two
   64-bit target layout folds, and four unchanged-source raw-IR pins passed;

@@ -739,8 +739,8 @@ or algorithm choice.
 | Capacity/growth policy | `<required: exact matched policy>` |
 | Allocator | `<required: exact matched allocator and calls>` |
 | Payload and traces | `<required: exact shared matrix cells>` |
-| xlang facts-on build | `<required: exact command and expected fact accounting>` |
-| xlang facts-off build | `<required: exact command and retained-check expectation>` |
+| whitefoot facts-on build | `<required: exact command and expected fact accounting>` |
+| whitefoot facts-off build | `<required: exact command and retained-check expectation>` |
 | Rust/reference build | `<required: exact source, version, command, and safety boundary>` |
 | Structural equivalence gate | `<required: allocations, bytes, moves, branches, calls, and layout conditions>` |
 | Primary attribution endpoint | `<required: endpoint and direction>` |
@@ -757,7 +757,7 @@ unmodified idiomatic Rust 1.97 route for the same caller contract.
 | Control field | Required locked value |
 |---|---|
 | Caller contract | `<required: exact member_contract_id and outcome_id set plus equivalence oracle>` |
-| Canonical xlang route | `<required: candidate-selection result that would supply this route>` |
+| Canonical whitefoot route | `<required: candidate-selection result that would supply this route>` |
 | Rust 1.97 route | `<required: exact stable API and unmodified source authority>` |
 | Permitted adapters | `<required: contract-only harness adapters applied symmetrically>` |
 | Inputs and traces | `<required: exact immutable cells>` |
@@ -879,7 +879,7 @@ branch, check, or code-shape cost.
 |---|---|---|---|---|---|---|
 | `<required: B, W, H, or promoted O witness ID>` | `<required: role>` | `<required: capability/family dependency>` | `<required: exact frozen contract reference>` | `<required: exact public dependencies>` | `<required: exact exclusions>` | `<required: structural, soundness, scored, or composition stage>` |
 
-Every implicated W witness must compile as an ordinary external xlang library
+Every implicated W witness must compile as an ordinary external whitefoot library
 using the same public checked capabilities as unrelated code. A sealed library
 witness cannot substitute for it.
 

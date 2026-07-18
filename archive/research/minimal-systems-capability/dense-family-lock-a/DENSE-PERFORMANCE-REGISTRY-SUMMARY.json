@@ -192,7 +192,7 @@
     "U8": 2,
     "ZST": 2
   },
-  "schema": "xlang-dense-performance-registry-summary-v5",
+  "schema": "whitefoot-dense-performance-registry-summary-v5",
   "schemas": {
     "algorithms": [
       "algorithm_id",

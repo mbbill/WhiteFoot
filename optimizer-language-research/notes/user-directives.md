@@ -61,8 +61,8 @@ and writer's excerpt stay (already built; can run anytime as validation).
 
 Owner: design patterns are part of a language's contract with its writers.
 Human languages must let users carry familiar patterns in, or they are
-rejected; xlang has no such constraint (D0a: AI writes, human approves). So
-xlang may make radical restrictions: force a curated SUBSET of design patterns
+rejected; whitefoot has no such constraint (D0a: AI writes, human approves). So
+whitefoot may make radical restrictions: force a curated SUBSET of design patterns
 for modeling tasks, exactly as it forces one loop form and one conditional
 form at the micro level. Two-fold acceptance test for the catalog:
 (1) COMPLETE — every task must be modelable inside the blessed patterns
@@ -96,7 +96,7 @@ in-place tier), owner referees equivalence.
 Owner: the QOI-class artifact is technically right but lacks "big news"
 feeling; the target class is "re-implemented X: xx% faster, feature parity,
 no CVE" headlines. Ruling folded with strategy discussion: the Rust-rewrite
-headline is already taken (uutils -> Ubuntu), so xlang's differentiator is the
+headline is already taken (uutils -> Ubuntu), so whitefoot's differentiator is the
 AI-authorship story stacked on the safety+speed story: "a language designed so
 AI cannot write the bug classes; the AI wrote your coreutils; they are faster
 than GNU and the memory-corruption CVE class is unrepresentable." Scope
@@ -127,7 +127,7 @@ zlib-rs/uutils/rustls) and Pile B (properties Rust structurally cannot express
 — checked constant-time, guaranteed musttail dispatch, checked laws). Strategy:
 FUSION — put a Pile-B property on a Pile-A artifact. The chosen fusion:
 constant-time crypto primitive (ChaCha20, pure ARX = add/rotate/xor on u32 —
-already the xlang op table), AI-written, RFC-8439-vector-verified, with
+already the whitefoot op table), AI-written, RFC-8439-vector-verified, with
 timing-safety as a CHECKED TYPE PROPERTY (secret-typed data; branching or
 indexing on a secret is a compile error). Framing requirement (owner-risk
 noted): "AI-written crypto" alone reads as scary to security people — the
@@ -175,22 +175,22 @@ compiler-proven-safe, faster than the C tool, produces byte-identical output."
 Durable-log note: decision-gates.md + user-directives.md are the recovery
 record; replay from last git commit after any rewind.
 
-## D9a (2026-07-12, owner re-ruling): Default-path xlang vs shipped Rust is the primary confidence gate
+## D9a (2026-07-12, owner re-ruling): Default-path whitefoot vs shipped Rust is the primary confidence gate
 
 The primary question is no longer whether benchmark-specialized expert safe
-Rust can match xlang. Rust is expressive enough that expert restructuring can
+Rust can match whitefoot. Rust is expressive enough that expert restructuring can
 often reach the ceiling, while shipped libraries commonly choose maintainable
-shapes. The product claim to test is whether xlang raises the default
+shapes. The product claim to test is whether whitefoot raises the default
 performance floor for its intended AI writer.
 
-Before any xlang generation, pre-register: (a) one unmodified existing Rust
+Before any whitefoot generation, pre-register: (a) one unmodified existing Rust
 library at an exact version/commit, with default features and its ordinary
 release build; (b) one fixed low-tier writer, with an exact 5.6 Luna or Terra
 model identifier and settings; and (c) the behavior contract, corpus,
 correctness harness, repair budget, measurement protocol, and success band.
 The scoring workload must be fresh: it cannot be one previously used to
-develop or tune xlang's compiler, proof rules, or benchmark implementation.
-“Default xlang” is the first artifact in one model trajectory to pass the
+develop or tune whitefoot's compiler, proof rules, or benchmark implementation.
+“Default whitefoot” is the first artifact in one model trajectory to pass the
 frozen correctness gate. The model may respond to compiler/checker diagnostics
 and failing correctness cases, but receives no Rust implementation source,
 benchmark numbers, profiler output, IR or assembly, performance hints, or human
@@ -201,7 +201,7 @@ Benchmark that frozen source both with facts on and with facts off for causal
 attribution. A primary win may come from proof elision, ownership/effect
 information, or a language-taught or language-forced algorithm, layout, or
 control-flow shape; fact attribution is informative, not the only admissible
-source of value. Expert safe Rust and stronger xlang models may be run only
+source of value. Expert safe Rust and stronger whitefoot models may be run only
 after the primary result is frozen, as ceiling or model-gradient evidence;
 neither may rescore the primary shipped-Rust comparison.
 
@@ -230,7 +230,7 @@ validation for documentation and report changes.
 
 ## D11 (2026-07-13): General-purpose data-structure capability is an eventual target; closure is staged by family
 
-xlang is intended to become a general-purpose systems language. For data
+whitefoot is intended to become a general-purpose systems language. For data
 structures, representative standard collection contracts must have one taught,
 efficient route, and ordinary no-unsafe libraries must be able to implement
 representative held-out structures through public checked mechanisms without
@@ -279,7 +279,7 @@ teaching; the next step remains a separate owner discussion.
 
 ## D12 (2026-07-14): Complete the minimal systems-capability research before selecting mechanisms
 
-xlang's target is a general-purpose systems language. It may have no standard
+whitefoot's target is a general-purpose systems language. It may have no standard
 library, and it need not reproduce Rust types or APIs one for one, but ordinary
 checked libraries must be able to express the capabilities needed by everyday
 systems programs with competitive asymptotic and structural performance. Named
@@ -293,7 +293,7 @@ destruction, complexity, contiguity and stable identity or address, iteration,
 resource ceilings, behavior parameters, concurrency, and platform boundaries.
 Rust is not a design oracle, and its traits, unsafe internals, destructors, and
 representations receive no default presumption. Stable unsafe and nightly APIs
-are implementation evidence, not acceptable xlang surface authority.
+are implementation evidence, not acceptable whitefoot surface authority.
 
 Derive a Pareto-small checked capability basis below the named-container layer.
 Do not optimize primitive count in isolation: normative rules, checker and TCB
@@ -358,7 +358,7 @@ they share one admission mechanism and proof ledger. Do not minimize by hiding
 independent effects, facts, cleanup obligations, or TCB branches behind one
 name.
 
-xlang need not ship a standard library. Ordinary unprivileged libraries must be
+whitefoot need not ship a standard library. Ordinary unprivileged libraries must be
 able to implement the required container and systems contracts through the
 public checked basis without a privileged named container, writer-visible
 unsafe, a hidden Copy/Clone/Default requirement, pathological simulation,
@@ -380,7 +380,7 @@ For D14, "nonforgeable privileged admission route" means one static compiler,
 runtime, or official-core privilege-definition boundary that ordinary source
 cannot enter. The active research must first study how production languages
 reserve semantic-definition authority to their toolchains, then recommend one
-such mechanism for xlang, and only afterward derive the minimum safe public
+such mechanism for whitefoot, and only afterward derive the minimum safe public
 capability basis ordinary checked libraries require.
 
 This clarification excludes cryptographic authorization and independently
@@ -551,7 +551,7 @@ derivation.
 
 The objective, in the owner's terms:
 
-- xlang must be usable for general systems programming with top-tier
+- whitefoot must be usable for general systems programming with top-tier
   performance.
 - The project does not need to provide the ability to rewrite existing
   software line by line. It must provide, for most systems-programming

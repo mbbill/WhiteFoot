@@ -1,6 +1,6 @@
 # Rust 1.97.0 Concrete Trait-Implementation Crosswalk
 
-Status: generated evidence for G0-Core review. This artifact selects no xlang
+Status: generated evidence for G0-Core review. This artifact selects no whitefoot
 trait syntax, dispatch mechanism, storage representation, or implementation
 privilege.
 

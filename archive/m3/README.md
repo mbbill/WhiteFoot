@@ -14,7 +14,7 @@ and run this harness.
 - `submissions/reference/` — deterministic reference submissions.
 - `harness/run.py` — local compiler/test runner.
 - `RESULTS.md` — current local result and decision-readiness blockers.
-- `IMPLEMENTATION_GATES.md` — audit of the xlang-pending task blockers and the
+- `IMPLEMENTATION_GATES.md` — audit of the whitefoot-pending task blockers and the
   next continue/stop gate.
 
 ## Run
@@ -26,7 +26,7 @@ python3 m3/harness/run.py --suite reference
 To save JSONL:
 
 ```
-python3 m3/harness/run.py --suite reference --out /private/tmp/xlang-m3-reference.jsonl
+python3 m3/harness/run.py --suite reference --out /private/tmp/whitefoot-m3-reference.jsonl
 ```
 
 The output records compile status, run status, timing samples, source hash, and a
@@ -37,7 +37,7 @@ without failing the smoke run.
 To summarize a saved result file:
 
 ```
-python3 m3/harness/score.py /private/tmp/xlang-m3-reference.jsonl
+python3 m3/harness/score.py /private/tmp/whitefoot-m3-reference.jsonl
 ```
 
 To ask whether the evidence is decision-ready for named model suites:
@@ -54,7 +54,7 @@ For a model suite named `weak-001`, either write one generated file per task:
 
 ```
 m3/submissions/weak-001/rust/checked_loop_sum.rs
-m3/submissions/weak-001/xlang/checked_loop_sum.xl
+m3/submissions/weak-001/whitefoot/checked_loop_sum.xl
 ```
 
 or write multiple fixed-budget trials per task:
@@ -62,8 +62,8 @@ or write multiple fixed-budget trials per task:
 ```
 m3/submissions/weak-001/rust/checked_loop_sum/001.rs
 m3/submissions/weak-001/rust/checked_loop_sum/002.rs
-m3/submissions/weak-001/xlang/checked_loop_sum/001.xl
-m3/submissions/weak-001/xlang/checked_loop_sum/002.xl
+m3/submissions/weak-001/whitefoot/checked_loop_sum/001.xl
+m3/submissions/weak-001/whitefoot/checked_loop_sum/002.xl
 ```
 
 Optional sidecars named `001.rs.meta.json`, `001.xl.meta.json`, or

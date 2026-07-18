@@ -18,7 +18,7 @@ and measurements rather than automatically restarting them.
 ## 0. Executive conclusion
 
 Specification and implementation audits, not performance experiments, confirm the
-first real expressiveness gap: xlang can manually express SoA with multiple
+first real expressiveness gap: whitefoot can manually express SoA with multiple
 `buffer<primitive>` values, but it cannot safely place an ordinary named record in a
 `buffer<Record>` or guarantee that `index<Record>(rows, i).field` lowers correctly to
 a row GEP, field GEP, and scalar load/store. Programs with an obviously row-oriented
@@ -370,7 +370,7 @@ claim to be target-generic.
 ### 5.4 Limited evidence from the isolated prototype
 
 The executable prototype was built in the disposable worktree
-`/private/tmp/xlang-e01a-candidate`, used no feature flag, and never entered the
+`/private/tmp/whitefoot-e01a-candidate`, used no feature flag, and never entered the
 production toolchain. Its exact reviewed source is durable: commit `68a55e4` archives
 the 57,547-byte [`DETACHED_CANDIDATE.patch`](DETACHED_CANDIDATE.patch), based on
 `58baa71fb4c36a4728dd42aea6b05ce4be7aa0b1`, with SHA-256
@@ -675,9 +675,9 @@ this historical list.
 - Separation of external sources and inferences: [`RESEARCH.md`](RESEARCH.md)
 - Current pattern doctrine: [`../../PATTERNS.md`](../../PATTERNS.md)
 - Copy-classification design record:
-  [`../../mcts_mem/xlang/ownership/copy-classification.md`](../../mcts_mem/xlang/ownership/copy-classification.md)
+  [`../../mcts_mem/whitefoot/ownership/copy-classification.md`](../../mcts_mem/whitefoot/ownership/copy-classification.md)
 - Current data-model direction:
-  [`../../mcts_mem/xlang/data-model.md`](../../mcts_mem/xlang/data-model.md)
+  [`../../mcts_mem/whitefoot/data-model.md`](../../mcts_mem/whitefoot/data-model.md)
 - LLVM `getelementptr`: <https://llvm.org/docs/LangRef.html#getelementptr-instruction>
 - LLVM aggregate code-shape guidance:
   <https://llvm.org/docs/Frontend/PerformanceTips.html#avoid-creating-values-of-aggregate-type>

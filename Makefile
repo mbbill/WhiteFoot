@@ -1,4 +1,4 @@
-# xlang verification stack — `make check` runs every layer.
+# whitefoot verification stack — `make check` runs every layer.
 PY=python3 -B
 check: spec rules soundness perf parity conformance bootstrap
 	@echo "== ALL VERIFICATION LAYERS GREEN =="
@@ -12,7 +12,7 @@ soundness:                 # layer 3: generative model check vs independent orac
 perf:                      # layer 4: pinned optimizer-fact effects
 	cd prototype/democ && $(PY) perf_regress.py
 	$(PY) experiments/port-study/base64/verify.py
-parity:                    # layer 5: xlang/facts-off/C/Rust codegen properties + visible debt
+parity:                    # layer 5: whitefoot/facts-off/C/Rust codegen properties + visible debt
 	$(PY) tools/test_checked_automation.py
 	$(PY) tools/codegen_parity.py --corpus --promotion
 corpus:                    # focused proof/codegen corpus; positive + adversarial gates

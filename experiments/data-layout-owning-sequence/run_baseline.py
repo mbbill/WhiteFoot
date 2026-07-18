@@ -51,7 +51,7 @@ FROZEN_REPORT = {
     "function_count": 477,
 }
 REPORT_FIELDS = tuple(FROZEN_REPORT)
-CORRECTNESS_PREFIX = b"xlang-fsoa-frontend-report-v1\0"
+CORRECTNESS_PREFIX = b"whitefoot-fsoa-frontend-report-v1\0"
 
 VARIANT = "F-SOA"
 PHASE = "cold-wrapper"
@@ -734,7 +734,7 @@ def load_schemas() -> None:
 
 def self_test() -> None:
     load_schemas()
-    with tempfile.TemporaryDirectory(prefix="xlang-fsoa-self-test-") as raw:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-fsoa-self-test-") as raw:
         campaign = Path(raw) / "campaign"
         manifest = run_campaign(mode="smoke", out_dir=campaign)
         if manifest["status"] != "complete" or manifest["samples_completed"] != 2:

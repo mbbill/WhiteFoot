@@ -8,7 +8,7 @@ fact channel, xlc migration, E0.1 restart, or default teaching.
 
 ## 1. Claim under test
 
-For one fixed xlang semantic root, one nonforgeable admission mechanism must
+For one fixed whitefoot semantic root, one nonforgeable admission mechanism must
 account for every privileged semantic edge. Above that gate, an ordinary
 unapproved producer must be able to construct proof-checked modules that
 implement the required container and systems contracts without a privileged

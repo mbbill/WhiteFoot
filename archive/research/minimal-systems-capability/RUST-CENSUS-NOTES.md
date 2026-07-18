@@ -2,7 +2,7 @@
 
 Status: mechanical evidence inventory, 2026-07-14. This document and its TSV
 files are inputs to contract normalization. Item counts are not capability
-counts and select no xlang mechanism.
+counts and select no whitefoot mechanism.
 
 ## Provenance
 
@@ -131,4 +131,4 @@ cross-ecosystem witnesses and held-out structures remain mandatory.
 The 545 selected safe declarations normalize into a much smaller set of
 observable contract clusters. Similar names do not justify merging distinct
 ownership, failure, invalidation, order, complexity, address, identity, or
-cleanup behavior; many Rust spellings do not justify separate xlang mechanisms.
+cleanup behavior; many Rust spellings do not justify separate whitefoot mechanisms.

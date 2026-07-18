@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
 
 
 def main() -> None:
-    with tempfile.TemporaryDirectory(prefix="xlang-base64-verify-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-base64-verify-") as temporary:
         build_dir = Path(temporary)
         facts, facts_report = build(build_dir, "facts", facts=True)
         nofacts, nofacts_report = build(build_dir, "nofacts", facts=False)

@@ -198,10 +198,10 @@ CANARY_PHRASES = {
     "FT-SHARED": "last-strong",
 }
 
-EFF4_CLAUSE = "Under xlang [EFF-4], an invoked-behavior trap aborts immediately"
-GENERIC_EFF4_CLAUSE = "Under xlang [EFF-4], a trap aborts immediately"
+EFF4_CLAUSE = "Under whitefoot [EFF-4], an invoked-behavior trap aborts immediately"
+GENERIC_EFF4_CLAUSE = "Under whitefoot [EFF-4], a trap aborts immediately"
 EFF4_REFERENCE = "spec/kernel-spec-v0.6.md [EFF-4]"
-OP9_OOM_CLAUSE = "Under xlang [OP-9], OOM is a TCB-level divergent allocation-policy edge"
+OP9_OOM_CLAUSE = "Under whitefoot [OP-9], OOM is a TCB-level divergent allocation-policy edge"
 OP9_REFERENCE = "spec/kernel-spec-v0.6.md [OP-9]"
 
 COMPOSITION_FAMILIES = {
@@ -649,7 +649,7 @@ EXACT_REPAIR_FRAGMENTS = {
             "With strong=1 and weak>0 it allocates, relocates the payload exactly once without Clone or payload drop",
             "all old Weak upgrades become None",
             OP9_OOM_CLAUSE,
-            "Under xlang [EFF-4], an invoked-behavior trap aborts immediately",
+            "Under whitefoot [EFF-4], an invoked-behavior trap aborts immediately",
             "Neither edge is recoverable, so FL-ATOMIC is not implied",
         ),
         "fact_channels_and_invalidators": (
@@ -1438,7 +1438,7 @@ def verify(root: Path) -> list[str]:
     registry_set = set(registry_ids)
     registry_rank = {capability_id: index for index, capability_id in enumerate(registry_ids)}
     registry_status = {
-        row.get("capability_id", "").strip(): row.get("current_xlang_status", "").strip()
+        row.get("capability_id", "").strip(): row.get("current_whitefoot_status", "").strip()
         for row in registry_rows
     }
     registry_by_id = {
@@ -1531,7 +1531,7 @@ def verify(root: Path) -> list[str]:
             "repeated calls consume the preceding post-state",
             "infer no purity, idempotence, repeatability, leaf-map preservation",
             "trap/fail the invoked behavior",
-            "xlang_behavior_receiver_effects",
+            "whitefoot_behavior_receiver_effects",
         ):
             if fragment not in matrix_text:
                 errors.append(

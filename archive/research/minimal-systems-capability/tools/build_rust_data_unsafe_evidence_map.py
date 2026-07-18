@@ -170,7 +170,7 @@ def build_rows() -> list[dict[str, str]]:
         require(field in inventory_fields, f"inventory lost field {field}")
 
     contract_fields, contracts = read_tsv(CONTRACTS)
-    for field in ("contract_id", "family", "xlang_current_status"):
+    for field in ("contract_id", "family", "whitefoot_current_status"):
         require(field in contract_fields, f"contract census lost field {field}")
     contracts_by_id: dict[str, list[dict[str, str]]] = collections.defaultdict(list)
     for contract in contracts:
@@ -187,7 +187,7 @@ def build_rows() -> list[dict[str, str]]:
             f"{cluster_id} is no longer an unsafe evidence cluster",
         )
         require(
-            matches[0]["xlang_current_status"].startswith("Forbidden xlang surface"),
+            matches[0]["whitefoot_current_status"].startswith("Forbidden whitefoot surface"),
             f"{cluster_id} no longer rejects the Rust-unsafe surface",
         )
 
@@ -235,7 +235,7 @@ def build_rows() -> list[dict[str, str]]:
                 "stability": representative["stability"],
                 "caller_safety": representative["caller_safety"],
                 "evidence_cluster_id": cluster_id,
-                "evidence_disposition": "RAW_EVIDENCE_ONLY_NO_XLANG_SURFACE",
+                "evidence_disposition": "RAW_EVIDENCE_ONLY_NO_WHITEFOOT_SURFACE",
                 "markers": "canonical_stable_unsafe;unsafe_evidence_only",
             }
         )

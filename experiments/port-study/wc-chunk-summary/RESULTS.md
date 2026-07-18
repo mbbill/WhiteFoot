@@ -7,7 +7,7 @@ compiler's checked-law consumer for this workload on the present evidence.
 ## Question
 
 Can `wc` be recast as `map byte chunks -> ordered associative reduction` so
-that xlang's checked-law channel produces a real-program advantage over
+that whitefoot's checked-law channel produces a real-program advantage over
 best-effort safe Rust?
 
 The summary carries `(lines, words, bytes, first_space, last_space)`. Its
@@ -20,7 +20,7 @@ The operation is associative but deliberately **not commutative**.
 - `check_algebra.py`: identity and every split are checked over all byte
   strings of length <=4 from `{a,b,space,newline}`; associativity holds for
   all **39,651,821** summary triples.
-- `verify.py`: xlang and Rust agree with an independent byte oracle on 107
+- `verify.py`: whitefoot and Rust agree with an independent byte oracle on 107
   cases and 1,284 implementation/thread-split verdicts. Cases include empty
   input, every byte value, random binary inputs, empty chunks, and more
   threads than bytes.
@@ -37,8 +37,8 @@ five fresh-process samples; thread creation and ordered merge are included.
 
 | variant | 1 thread | 2 threads | 4 threads | 8 threads |
 |---|---:|---:|---:|---:|
-| xlang-facts | 241.9 ms | 115.9 ms | 57.4 ms | 39.2 ms |
-| xlang-no-facts | 220.4 ms | 112.9 ms | 56.5 ms | 41.2 ms |
+| whitefoot-facts | 241.9 ms | 115.9 ms | 57.4 ms | 39.2 ms |
+| whitefoot-no-facts | 220.4 ms | 112.9 ms | 56.5 ms | 41.2 ms |
 | C control | 133.6 ms | 67.5 ms | 34.8 ms | 24.8 ms |
 | safe Rust | 135.0 ms | 67.2 ms | 34.4 ms | **24.1 ms** |
 
@@ -50,17 +50,17 @@ is noise rather than a fact-channel delta. Facts only shorten the tiny
 
 1. **The algebra works.** Word counting really can be represented as an
    ordered monoid, and arbitrary chunk boundaries merge exactly.
-2. **Parallel headroom is real.** xlang scales about 5.6x from one to eight
+2. **Parallel headroom is real.** whitefoot scales about 5.6x from one to eight
    threads. This validates chunk summarization as an implementation pattern.
 3. **It is not presently a channel-3 win.** The existing consumer requires
    associative + commutative scalar reductions. This workload needs an
    associative-only, order-preserving tree reduction plus a parallel runtime.
 4. **Even the ceiling does not beat expert safe Rust.** The safe Rust shape is
-   fully expressible and 1.6-1.8x faster than xlang here. C and Rust are at
+   fully expressible and 1.6-1.8x faster tha whitefoot here. C and Rust are at
    parity, so this is not a library/I/O artifact.
-5. **A separate xlang code-shape gap dominates.** Clang vectorizes the xlang
+5. **A separate whitefoot code-shape gap dominates.** Clang vectorizes the whitefoot
    loop at width 2 x interleave 4; equivalent C and Rust loops vectorize at
-   width 16. Moving `first_space` out of the loop improved xlang from ~311 ms
+   width 16. Moving `first_space` out of the loop improved whitefoot from ~311 ms
    to ~220 ms, but forcing width 16 still did not close the gap. The kernel's
    Bool/word-transition lowering needs investigation independently of laws.
 
@@ -95,8 +95,8 @@ selects) now vectorizes at width 16 (29 x16b ops; previously zero).
 
 | variant | 1 thread | 2 threads | 4 threads | 8 threads |
 |---|---:|---:|---:|---:|
-| xlang-facts | ~134-140 ms | 70.3 ms | 35.6 ms | 26.4 ms |
-| xlang-no-facts | 134.3 ms | 67.2 ms | 34.1 ms | 27.5 ms |
+| whitefoot-facts | ~134-140 ms | 70.3 ms | 35.6 ms | 26.4 ms |
+| whitefoot-no-facts | 134.3 ms | 67.2 ms | 34.1 ms | 27.5 ms |
 | C control | 132.6 ms | 67.5 ms | 34.8 ms | 27.6 ms |
 | Rust safe | 133.9 ms | 67.6 ms | 34.2 ms | 27.9 ms |
 
@@ -108,4 +108,4 @@ best-of shows <2% spread.
 PARITY ACHIEVED: the 1.6-1.8x gap was entirely the i64-recurrence lowering,
 as diagnosed. The experiment's DECISION IS UNCHANGED: this remains a
 no-fact-advantage workload (safe Rust expresses the identical algorithm);
-what changed is that xlang's scalar codegen no longer owes anyone 1.6x.
+what changed is that whitefoot's scalar codegen no longer owes anyone 1.6x.

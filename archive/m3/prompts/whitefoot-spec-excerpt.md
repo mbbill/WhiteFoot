@@ -1,6 +1,6 @@
-# xlang Writer's Excerpt (kernel v0.6 subset)
+# whitefoot Writer's Excerpt (kernel v0.6 subset)
 
-You are writing xlang: a checked systems language with no operator syntax, no
+You are writing whitefoot: a checked systems language with no operator syntax, no
 `if`/`while`/`for`, explicit types everywhere, and value semantics with
 ownership. The checker rejects anything outside these rules with a rule-cited
 diagnostic. Everything below is exact; there are no other forms.

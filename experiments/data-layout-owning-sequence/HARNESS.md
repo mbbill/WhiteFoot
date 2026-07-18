@@ -23,7 +23,7 @@ From the repository root:
 ```sh
 python3 -B experiments/data-layout-owning-sequence/run_baseline.py self-test
 python3 -B experiments/data-layout-owning-sequence/run_baseline.py smoke \
-  --out-dir /tmp/xlang-fsoa-smoke
+  --out-dir /tmp/whitefoot-fsoa-smoke
 ```
 
 `self-test` builds in a temporary directory, launches two independent smoke
@@ -82,7 +82,7 @@ and lock formats.
 
 Correctness is the exact frozen public `FrontendReport` plus a SHA-256 digest of
 its eleven fields encoded as little-endian unsigned 64-bit values after the
-domain separator `xlang-fsoa-frontend-report-v1\0`.  Digesting occurs after the
+domain separator `whitefoot-fsoa-frontend-report-v1\0`.  Digesting occurs after the
 clock stops.
 
 ## Limitations

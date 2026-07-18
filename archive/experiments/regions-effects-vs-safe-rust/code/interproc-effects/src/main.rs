@@ -23,8 +23,8 @@ fn baseline_samecrate(input: &[f64], out: &mut [f64], cfg: &Config) {
     }
 }
 
-// (2) BEST-EFFORT SAFE RUST == (3) XLANG CEILING: hoist by hand (one line).
-//     This is exactly the code xlang's effect row produces automatically.
+// (2) BEST-EFFORT SAFE RUST == (3) WHITEFOOT CEILING: hoist by hand (one line).
+//     This is exactly the code whitefoot's effect row produces automatically.
 #[inline(never)]
 fn hoisted(input: &[f64], out: &mut [f64], cfg: &Config) {
     let g = compute_gain(cfg);

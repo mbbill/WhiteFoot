@@ -1,4 +1,4 @@
-/* wc driver: reads each file into one buffer, calls the xlang kernels,
+/* wc driver: reads each file into one buffer, calls the whitefoot kernels,
    prints GNU-format counts. Kernel ABI: buffer<u8> = {ptr, i64} by value;
    Counts returned as {i64,i64,i64}. */
 #include <stdio.h>

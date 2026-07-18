@@ -9,7 +9,7 @@ change.
 
 ## Objective
 
-Find the smallest coherent xlang capability sets that let ordinary checked
+Find the smallest coherent whitefoot capability sets that let ordinary checked
 programs obtain required native representations and machine-code shapes without
 unavoidable initialization, zeroing, copying, relocation, tags, metadata,
 allocation, indirection, dynamic dispatch, checks, or extra machine events.
@@ -44,7 +44,7 @@ Each gap must record:
 
 - a stable gap identity and at least one exact demand identity;
 - the required caller-observable contract;
-- the current xlang rule that blocks the representation or code shape;
+- the current whitefoot rule that blocks the representation or code shape;
 - the unavoidable cost or impossibility under current semantics;
 - protected asymptotic time and space;
 - layout, contiguity, and allocation topology;

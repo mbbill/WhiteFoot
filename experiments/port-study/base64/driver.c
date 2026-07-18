@@ -1,4 +1,4 @@
-/* base64 driver: reads a file, calls the xlang encode kernel, writes the
+/* base64 driver: reads a file, calls the whitefoot encode kernel, writes the
    base64 output. Kernel ABI: encode(&uniq buffer<u8> out, own buffer<u8> src)
    -> u64 length. buffer<u8> = {ptr,i64} by value. */
 #include <stdio.h>

@@ -51,7 +51,7 @@ CONTRACT_FIELDS = [
     "layout_identity_order",
     "behavior_parameter",
     "implementation_privilege_evidence",
-    "xlang_current_status",
+    "whitefoot_current_status",
     "required_obligations",
     "source_refs",
 ]
@@ -934,7 +934,7 @@ def main() -> None:
             f"unsafe declaration has unknown evidence cluster: {mapped['canonical_key']}",
         )
         require(
-            mapped["evidence_disposition"] == "RAW_EVIDENCE_ONLY_NO_XLANG_SURFACE",
+            mapped["evidence_disposition"] == "RAW_EVIDENCE_ONLY_NO_WHITEFOOT_SURFACE",
             f"unsafe declaration is not evidence-only: {mapped['canonical_key']}",
         )
 

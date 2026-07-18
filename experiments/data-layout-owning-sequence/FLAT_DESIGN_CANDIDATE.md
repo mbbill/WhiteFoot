@@ -15,7 +15,7 @@ unchanged SoA sources retain raw-IR identity.
 
 No candidate may be introduced behind a checker, compiler, CLI, teaching, or runtime
 flag. A flag would make one compiler maintain two language semantics and violate
-xlang's single canonical language rule.
+whitefoot's single canonical language rule.
 
 Experiments use two isolated toolchains:
 

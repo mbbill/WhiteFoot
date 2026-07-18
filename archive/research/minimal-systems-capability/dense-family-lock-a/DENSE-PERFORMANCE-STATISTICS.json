@@ -723,7 +723,7 @@
       "nuisance_coordinates": "six Williams rows times five layout salts",
       "null": "For one exact cell, endpoint, and directed pair, conditional on the frozen assignment manifest let p_(c,h) be each scheduled slot's strict-success probability over r cycles and 30 row-by-salt coordinates. H0 is sum(p_(c,h))/(30*r)<=1/2. It is not a claim that every slot or nuisance coordinate has probability <=1/2.",
       "p_value_arithmetic": "Use unbounded nonnegative integers and reduced rationals for all combinations, tails, gcds, Holm thresholds, and cross-products.",
-      "schema": "xlang-dense-scheduled-mixture-tail-v1"
+      "schema": "whitefoot-dense-scheduled-mixture-tail-v1"
     }
   },
   "multiplicity": {
@@ -870,7 +870,7 @@
           "marginal": "p_rm(q)"
         }
       ],
-      "schema": "xlang-dense-benefit-partition-categories-v1",
+      "schema": "whitefoot-dense-benefit-partition-categories-v1",
       "symbols": {
         "L": "all selected-branch non-ZST memory cells",
         "M": "positive-reference memory subset",
@@ -1764,7 +1764,7 @@
         "law_n90_sha256",
         "law_n120_sha256"
       ],
-      "schema": "xlang-dense-power-law-key-manifest-v1",
+      "schema": "whitefoot-dense-power-law-key-manifest-v1",
       "sort_and_hash_rule": "Sort complete rows bytewise ASCII by key_identity_fields. Each row hash is SHA-256 of its canonical ASCII JSON object excluding only row_sha256; the manifest hash covers the ordered complete rows.",
       "support_and_polynomial_join_rule": "Every key binds one frozen cell, target, endpoint, multiplier orientation, strict cross-product grammar, pilot-cycle support hash, Q and P polynomial-ledger hashes, M polynomial hash, and the exact n=60,90,120 law hashes. Missing, duplicate, or mismatched joins make the power protocol infeasible."
     },
@@ -1782,7 +1782,7 @@
       "randomization_protocol_sha256": "2bdd22490485eb1b7a3e9012fad7687f9215337ca8060b957d8cdd3e968666a6",
       "resource_limits_sha256": "2a44c9b173ec6730062f3eaf4b62bc9e0283232588f2ebbb5950ce7773713bbe",
       "scheduled_mixture_tail_protocol_sha256": "d916ed6f53d99a2a494e1d0320941f6c47a0fab1540a8004c46f9ad51204fdf5",
-      "schema": "xlang-dense-power-engine-protocol-authority-v1"
+      "schema": "whitefoot-dense-power-engine-protocol-authority-v1"
     },
     "power_engine_protocol_sha256": "20d359a6b5d9e0873b4f5670173193119006dc78daa35053bc554a905180287c",
     "power_floor": "9/10",
@@ -1822,7 +1822,7 @@
       ],
       "maximum_identity_domain_rule": "Before the reference pilot, freeze the exact maximum identity domain: for each active branch, five true winners times each branch timing cell for the timing endpoint plus each non-ZST memory cell for the memory endpoint, crossed with n=60,90,120.",
       "power_task_id_rule": "power_task_id is the lowercase SHA-256 hex digest of the canonical ASCII JSON object containing every identity field, every common artifact-binding field, and exactly the fields registered for that task endpoint. Canonical JSON sorts object keys bytewise ASCII, uses no insignificant whitespace, and excludes only power_task_id and row_sha256. No applicable binding may be PENDING or omitted, and an endpoint-inapplicable binding is forbidden.",
-      "schema": "xlang-dense-power-task-manifest-v1"
+      "schema": "whitefoot-dense-power-task-manifest-v1"
     },
     "reference_model": "For each endpoint and exact cell retain four complete raw integer crossed-cycle supports. Each support contains all thirty blocks across six Williams rows and five salts; no scalar residual or nuisance adjustment exists.",
     "resource_limits": {
@@ -2024,13 +2024,13 @@
     "candidate_root_binding": "After power selection and Candidate Freeze B, hash the typed grammar with raw seed, selected branch, selected block count, exact power-result hash, Candidate Freeze B hash, and matrix hash.",
     "failure_rule": "A missing commitment, early disclosure, duplicate/missing assignment, manifest mismatch, order mismatch, or custody-log gap invalidates the owner branch. No seed rotation, rerandomization, or replacement run is permitted after observation.",
     "global_block_order": "Create all blocks first. A canonical block identity is the typed block-identity message with ordered ASCII fields owner_branch_id, cell_id, target_id, complete_cycle_index, layout_salt_id, and williams_row_id. Its unique block_id is uppercase ASCII BLOCK- plus the SHA-256 hex digest of that complete identity message; duplicate identities or IDs invalidate the manifest. The typed block-order message has ordered fields root as BYTES, then those six ASCII identity fields, then block_id as ASCII. Sort by its SHA-256 digest and break a digest tie by bytewise ASCII block_id.",
-    "hash_and_encoding": "XLANG-DENSE-RANDOMIZATION-V2 NUL magic; u64be domain length and ASCII domain; u64be field count; for each ordered field, u64be ASCII-name length, name, one-byte type A or B, u64be value length, and value. ASCII values are strict 0x20..0x7e; BYTES values are unmodified bytes.",
+    "hash_and_encoding": "WHITEFOOT-DENSE-RANDOMIZATION-V2 NUL magic; u64be domain length and ASCII domain; u64be field count; for each ordered field, u64be ASCII-name length, name, one-byte type A or B, u64be value length, and value. ASCII values are strict 0x20..0x7e; BYTES values are unmodified bytes.",
     "mapping_scope": "Use one manifest permutation per exact cell, target, complete-cycle index, and layout salt in both pilot and candidate stages. Hold it fixed across that salt's six Williams rows; derive the next rank only from the stage's sorted key stream. Pilot supports are indexed by realized numeric symbol, never by a static pseudo-to-symbol assumption.",
     "power_mapping_reduction": "For any marginal directed C/D event, each per-salt/cycle exact-uniform 720-mapping average reduces to the 30 ordered numeric-symbol pairs; the remaining 4! labels cancel. The power DP keeps the same mapping across six rows but integrates mappings independently by salt and cycle.",
     "randomness_interpretation": "Operational ranks are computationally pseudorandom under the frozen CSPRNG and hidden-seed custody. Q/P/M power is an exact finite calculation under the preregistered ideal independent-uniform rank planning model; it is not a proof that a deterministic CSPRNG transcript is independent.",
     "raw_row_binding": "Every raw row carries randomization_commitment_sha256, assignment_manifest_sha256, and assignment_row_id; exact lookup, treatment, predecessor, period, and execution rank must match.",
     "reference_pilot_root": "Hash the typed grammar whose domain string is reference-root with the raw reference seed, branch, and performance-registry-summary hash.",
-    "schema": "xlang-dense-randomization-custody-v2",
+    "schema": "whitefoot-dense-randomization-custody-v2",
     "seed_custody": "An independent custodian generates two independent uniform 32-byte seeds. Commit SHA256(raw seed) for the reference seed before the pilot and release it only to the isolated reference runner. Commit the candidate seed before Candidate Freeze B and release it only to the isolated candidate runner after Freeze B. Both stay hidden from all candidate authors; commitments, releases, and receipts are distinct.",
     "status": "BLOCKED_RANDOMIZATION_CUSTODY_ABSENT",
     "test_vectors": {
@@ -2299,7 +2299,7 @@
     "schedule": "Use the exact Williams rows and five salts above; pseudo labels occupy the six treatment positions exactly as candidate labels will later occupy them.",
     "stopping_rule": "Run exactly four complete crossed cycles. No pilot result, power estimate, or observed response may adapt, extend, replace, or rerun a block. Any timeout, signal, nonzero exit, absent row, or invalid scheduled row makes the owner branch PROTOCOL_INFEASIBLE before candidate construction."
   },
-  "schema": "xlang-dense-performance-statistics-v5",
+  "schema": "whitefoot-dense-performance-statistics-v5",
   "selection": {
     "dominance": "C dominates D only if every exact C/D primary cell is noninferior and at least one registered benefit hypothesis for C over D is rejected by the one global Holm family and meets the frozen 0.90 time or 0.85 memory threshold.",
     "no_pooling": "Operations, sort shapes, edit indices, retain 10/50/90, clone_from length relations, splice position/replacement relations, traversal modes, payloads, sizes, and targets are independent intersection gates and are never pooled.",
@@ -3176,7 +3176,7 @@
       "CANDIDATE_CONSTRUCTION",
       "CANDIDATE_FREEZE_B"
     ],
-    "schema": "xlang-dense-stage-prerequisites-v1",
+    "schema": "whitefoot-dense-stage-prerequisites-v1",
     "side_stages": [
       "DESCRIPTIVE_COUNTER_REPORT"
     ]

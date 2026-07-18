@@ -51,7 +51,7 @@ MEASUREMENTS = {
     "SCOPED-ALIAS-2026-07-09": ROOT / "experiments/scoped-alias-channel/RESULTS.md",
     "CHECKED-LAW-2026-07-09": ROOT / "experiments/checked-law-channel/RESULTS.md",
     "BOUNDS-PROOF-2026-07-10": ROOT / "experiments/port-study/base64/RESULTS.md",
-    "INTERPRETER-DISPATCH-CARDED-2026-07-10": ROOT / "mcts_mem/xlang/fact-channels.md",
+    "INTERPRETER-DISPATCH-CARDED-2026-07-10": ROOT / "mcts_mem/whitefoot/fact-channels.md",
 }
 
 
@@ -74,11 +74,11 @@ def main() -> int:
         fail("gap IDs must be the closed ordered range PF-G01 through PF-G15")
 
     cap_header, cap_rows = read_tsv(CAPABILITIES)
-    required_cap_fields = {"capability_id", "current_xlang_status"}
+    required_cap_fields = {"capability_id", "current_whitefoot_status"}
     if not required_cap_fields.issubset(cap_header):
         fail("capability registry schema is missing required fields")
     capability_status = {
-        row["capability_id"]: row["current_xlang_status"] for row in cap_rows
+        row["capability_id"]: row["current_whitefoot_status"] for row in cap_rows
     }
 
     domain_text = DOMAINS.read_text(encoding="utf-8")

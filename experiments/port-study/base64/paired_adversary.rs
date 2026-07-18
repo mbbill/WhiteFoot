@@ -1,7 +1,7 @@
 //! One balanced adversary block for the checked base64 encoder.
 //!
 //! The assert, idiomatic, and unsafe Rust candidates implement the same
-//! padded-tail behavior and entry-capacity relation as the xlang encoder; the
+//! padded-tail behavior and entry-capacity relation as the whitefoot encoder; the
 //! naive candidate deliberately remains the no-entry-proof control. The
 //! idiomatic candidate itself is fully safe Rust; unsafe code appears only in
 //! the explicit unsafe baseline and the necessarily unsafe FFI wrapper.
@@ -58,7 +58,7 @@ fn write_tail(out: &mut [u8], tail: &[u8]) -> usize {
 }
 
 #[inline(never)]
-fn encode_xlang(out: &mut [u8], src: &[u8]) -> usize {
+fn encode_whitefoot(out: &mut [u8], src: &[u8]) -> usize {
     let out = Buf {
         p: out.as_mut_ptr(),
         n: out.len().try_into().unwrap(),
@@ -68,7 +68,7 @@ fn encode_xlang(out: &mut [u8], src: &[u8]) -> usize {
         n: src.len().try_into().unwrap(),
     };
     // SAFETY: the safe Rust caller supplies live, non-overlapping source and
-    // output slices.  The retained xlang entry check independently establishes
+    // output slices.  The retained whitefoot entry check independently establishes
     // output capacity; raw FFI itself does not establish aliasing or liveness.
     unsafe { encode(out, src) as usize }
 }
@@ -147,7 +147,7 @@ fn encode_unchecked(out: &mut [u8], src: &[u8]) -> usize {
 }
 
 const VARIANTS: [(&str, Kernel); 5] = [
-    ("xlang-proof", encode_xlang),
+    ("whitefoot-proof", encode_whitefoot),
     ("rust-naive", encode_naive),
     ("rust-assert", encode_assert),
     ("rust-chunks-full", encode_idiomatic),
@@ -161,7 +161,7 @@ fn verify_equivalence() {
             .collect();
         let out_len = required_groups(n) * 4;
         let mut expected = vec![0xA5; out_len];
-        let expected_len = encode_xlang(&mut expected, &src);
+        let expected_len = encode_whitefoot(&mut expected, &src);
         for &(name, kernel) in &VARIANTS[1..] {
             let mut actual = vec![0x5A; out_len];
             let actual_len = kernel(&mut actual, &src);

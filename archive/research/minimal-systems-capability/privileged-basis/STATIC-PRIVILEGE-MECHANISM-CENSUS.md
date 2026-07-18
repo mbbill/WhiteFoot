@@ -1,7 +1,7 @@
 # Static privilege-definition mechanism census
 
 Status: D14 production-language evidence census, 2026-07-15. This report is
-descriptive evidence for the next gate comparison. It does not select an xlang
+descriptive evidence for the next gate comparison. It does not select a whitefoot
 mechanism, public capability basis, source spelling, or implementation.
 
 ## Question and method
@@ -25,7 +25,7 @@ link symbol. The contrast set is deliberately small and mechanism-diverse:
 
 These cases cover the candidate classes named in `HANDOVER.md` without turning
 the census into an API inventory. All implementation claims below are pinned to
-official documentation or official source. The xlang consequences are
+official documentation or official source. The whitefoot consequences are
 inferences from those facts and the binding P0, W1, and W3 rules.
 
 ## Observed production mechanisms
@@ -68,7 +68,7 @@ Cost and portability:
   user-friendly safe wrappers then belong to ordinary libraries or a
   compiler-embedded interface.
 
-Xlang consequence: compiler-owned semantics plus checked public wrappers can
+Whitefoot consequence: compiler-owned semantics plus checked public wrappers can
 serve P0, but copying nightly feature gates, user attributes, lang-item
 declarations, or `unsafe` would directly fail W3 and add W1-visible modes.
 
@@ -86,7 +86,7 @@ specific `Builtin` module object, and module identity tests compare against that
 object. An ordinary source module named `Builtin` is therefore not the same
 compiler-owned module. However, the sampled toolchain exposes
 `-enable-builtin-module`, while `-parse-stdlib` implicitly imports the module.
-Those user-selectable modes are explicit counterexamples to xlang's required
+Those user-selectable modes are explicit counterexamples to whitefoot's required
 admission policy. Swift also exposes writer-accessible unsafe facilities.
 
 Authority and ownership:
@@ -111,7 +111,7 @@ Cost and portability:
   then expose any intended public primitive contract itself or allow ordinary
   checked libraries to wrap an unforgeably identified public declaration.
 
-Xlang consequence: a compiler-created declaration identity is a strong W3
+Whitefoot consequence: a compiler-created declaration identity is a strong W3
 building block and can keep public wrappers regular for W1. A flag-selected
 privileged mode is not acceptable, and using a module name rather than the
 compiler-created identity would lose the relevant property.
@@ -128,7 +128,7 @@ compiler can replace selected declarations with target operations.
 The `go` command prevents imports of an `internal` package from outside the
 parent tree, and standard-library import paths are resolved specially rather
 than fetched as ordinary modules. These are useful distribution boundaries,
-but a package path or function name alone is not a sufficient xlang authority
+but a package path or function name alone is not a sufficient whitefoot authority
 identity: the compiler registry visibly begins from names, and an alternative
 front end or raw compilation path must preserve the official-package
 provenance check.
@@ -157,7 +157,7 @@ Cost and portability:
   compiler owns stable declaration identities or public declarations. Merely
   reserving import strings would make authority depend on package resolution.
 
-Xlang consequence: exact operation tables and safe wrappers are favorable to
+Whitefoot consequence: exact operation tables and safe wrappers are favorable to
 P0 and auditability. Name/path recognition and writer-accessible directives are
 W3 failures if treated as authority, while architecture-specific tables impose
 a visible TCB and maintenance cost.
@@ -205,7 +205,7 @@ Cost and portability:
   no-standard-library language would need the analogous identities embedded in
   the compiler or runtime rather than supplied by a distributable user library.
 
-Xlang consequence: toolchain-owned declaration identity is stronger than an
+Whitefoot consequence: toolchain-owned declaration identity is stronger than an
 attribute spelling and supports auditable exact matching. Multiple JIT and
 native import routes increase TCB branches, and a mandatory runtime transition
 would need a P0 justification for each primitive.
@@ -238,7 +238,7 @@ would need a P0 justification for each primitive.
    transition. Native shims do, and fallback calls may. The mechanism class
    does not guarantee zero cost for every semantic operation.
 6. **Extension.** Every credible route requires a toolchain change. This is a
-   desired review boundary for xlang, not an extensibility defect. The minimum
+   desired review boundary for whitefoot, not an extensibility defect. The minimum
    changed components depend on whether the new operation needs runtime state.
 7. **No standard library.** Compiler-hard-coded operations and embedded
    declarations work directly. Source-mode and core-assembly mechanisms require
@@ -248,7 +248,7 @@ would need a P0 justification for each primitive.
    not free: each backend needs an implementation, a specified runtime/libcall
    fallback, or an explicit unsupported-target result.
 9. **Route count.** Rust and .NET demonstrate how intrinsic, library-hook, and
-   native-import routes accumulate. A single xlang admission decision should
+   native-import routes accumulate. A single whitefoot admission decision should
    not be confused with a single physical lowering or runtime body.
 10. **P0/W1/W3/TCB.** Direct lowering and safe wrappers support P0; one regular
     public call model supports W1; only toolchain-owned identity with no
@@ -328,6 +328,6 @@ to the revisions named above.
 
 This census establishes comparison facts, not a recommendation. In particular,
 it does not prove that a sealed embedded module, an intrinsic declaration form,
-or any combination is minimal for xlang. That decision requires an explicit
+or any combination is minimal for whitefoot. That decision requires an explicit
 architectural comparison against the falsifiers above, followed by hostile
 review. Only after that review may the public capability basis be derived.

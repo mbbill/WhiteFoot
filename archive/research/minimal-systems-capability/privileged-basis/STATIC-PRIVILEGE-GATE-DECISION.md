@@ -7,9 +7,9 @@ change.
 
 ## Decision question
 
-Choose one static route by which xlang's compiler, runtime, or official core
+Choose one static route by which whitefoot's compiler, runtime, or official core
 implementation can define a semantic operation that ordinary source may call
-but cannot define. The route must work when xlang ships no standard library,
+but cannot define. The route must work when whitefoot ships no standard library,
 must expose no writer-selectable privileged mode, and must not make a name,
 path, attribute, symbol, contract, or command-line flag authoritative.
 
@@ -19,7 +19,7 @@ semantic operations that use the route.
 
 ## Recommendation
 
-Select a **sealed compiler-embedded primitive registry** as xlang's sole
+Select a **sealed compiler-embedded primitive registry** as whitefoot's sole
 privilege-definition route.
 
 At compiler-context construction, the compiler creates one built-in module
@@ -74,7 +74,7 @@ operation has the same physical body.
 The embedded declaration is a normal checked callable at use sites. Calls obey
 the same typing, ownership, effect, and check rules as any ordinary function.
 The only exceptional property is that the declaration's body meaning comes
-from its compiler-owned identity rather than an ordinary xlang body.
+from its compiler-owned identity rather than an ordinary whitefoot body.
 
 An ordinary library may provide a higher-level safe abstraction only when its
 ordinary body type-checks over these declarations. It receives no privileged
@@ -148,7 +148,7 @@ semantic operation set is minimal.
 - **W3:** a writer can call fixed safe operations but cannot mint the
   compiler-created declaration identity, select an official-core mode, install
   a contract, or bind an arbitrary implementation.
-- **Delta over Rust:** xlang retains compiler-owned intrinsic semantics and safe
+- **Delta over Rust:** whitefoot retains compiler-owned intrinsic semantics and safe
   wrapper composition while removing writer-accessible `unsafe`, nightly
   lang-item/intrinsic definition, and user-selectable internal attributes. The
   intended machine-code path remains direct, so the delta is W3 rather than a

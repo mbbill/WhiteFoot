@@ -5,8 +5,8 @@ Status: local reference scaffold plus blocker audit; not decision-ready.
 Last local command:
 
 ```
-python3 m3/harness/run.py --suite reference --out /private/tmp/xlang-m3-reference.jsonl
-python3 m3/harness/score.py /private/tmp/xlang-m3-reference.jsonl
+python3 m3/harness/run.py --suite reference --out /private/tmp/whitefoot-m3-reference.jsonl
+python3 m3/harness/score.py /private/tmp/whitefoot-m3-reference.jsonl
 ```
 
 ## Reference Summary
@@ -14,9 +14,9 @@ python3 m3/harness/score.py /private/tmp/xlang-m3-reference.jsonl
 | suite | language | runnable | passed | pending | current meaning |
 |---|---:|---:|---:|---:|---|
 | reference | Rust | 7 | 7 | 0 | Rust can express and pass every current task prompt. |
-| reference | xlang | 7 | 7 | 0 | xlang passes every current task prompt (arena via the STOR-1 shape-C append-only pool, pending owner ratification). |
+| reference | whitefoot | 7 | 7 | 0 | whitefoot passes every current task prompt (arena via the STOR-1 shape-C append-only pool, pending owner ratification). |
 
-The six runnable xlang tasks are:
+The six runnable whitefoot tasks are:
 
 - `checked_loop_sum`
 - `value_match_result`
@@ -30,8 +30,8 @@ The six runnable xlang tasks are:
   no recycling so no UAF class; owner ratification of the shape still requested)
 
 Verification-semantics note: Rust references print `ok` and are checked on stdout;
-xlang has no print surface in the kernel subset, so xlang references are checked on
-exit code (`expected_xlang: {"exit": 0}` in `tasks.jsonl`). Every xlang assertion
+whitefoot has no print surface in the kernel subset, so whitefoot references are checked on
+exit code (`expected_whitefoot: {"exit": 0}` in `tasks.jsonl`). Every whitefoot assertion
 routes failure through `check ... else trap` (abort, nonzero exit), and the
 discriminator was negative-tested: mutating the expected sum in
 `buffer_index_kernel.xl` makes the harness report `fail exit -5 != 0`.
@@ -42,13 +42,13 @@ The current evidence is **not** sufficient for a continue/stop decision.
 
 Two independent blockers remain:
 
-1. **Language/toolchain surface blocker: CLEARED 2026-07-09** — xlang runs all seven tasks (arena via STOR-1 shape C, ruling memo filed).
+1. **Language/toolchain surface blocker: CLEARED 2026-07-09** — whitefoot runs all seven tasks (arena via STOR-1 shape C, ruling memo filed).
 2. **Model evidence blocker**: no weak/middle/strong generated submissions have been run yet. This is now the dominant blocker.
 
 The strict scorer makes this explicit:
 
 ```
-python3 m3/harness/score.py /private/tmp/xlang-m3-reference.jsonl \
+python3 m3/harness/score.py /private/tmp/whitefoot-m3-reference.jsonl \
   --required-suite weak --required-suite middle --required-suite strong \
   --require-decision-ready
 ```
@@ -61,9 +61,9 @@ against the fixed-budget protocol rather than a single cherry-picked source.
 
 ## Current Interpretation
 
-This is not a pass for xlang and not a final failure of the project thesis. It is a
+This is not a pass for whitefoot and not a final failure of the project thesis. It is a
 clear finding that the project cannot honestly run the stated M3 decision sprint
-until the missing xlang subset lands or the sprint is narrowed with an explicit
+until the missing whitefoot subset lands or the sprint is narrowed with an explicit
 owner decision.
 
 The next decision is therefore smaller than continue/stop:
@@ -98,7 +98,7 @@ with opaque boundaries (details in `optimizer-language-research/implementation/d
 |---|---|---|
 | effect rows -> fn attrs (2) | O(n) -> O(1) at opaque boundaries vs default build | tie vs fat-LTO, at per-file build cost |
 | scoped alias from ownership (1) | 2.0x at n=8, parity >= 32; 17x code size | 1.17x at n=8, parity above |
-| checked-law reassociation (3) | 3.3x (sat-add reduction) | tie — but expert shape is UNCHECKED; false laws are refuted compile-time in xlang |
+| checked-law reassociation (3) | 3.3x (sat-add reduction) | tie — but expert shape is UNCHECKED; false laws are refuted compile-time in whitefoot |
 
 The R0 condition ">= 1 robust Phase-B delta" is plausibly met (channels 2 and 3).
 The remaining R0 leg is the W1 distributional claim: the Phase C model-tier

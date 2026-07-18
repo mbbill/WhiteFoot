@@ -8,7 +8,7 @@
 // every out slot is written exactly once => writes are provably DISJOINT and
 // the loop is embarrassingly parallel. Safe Rust's borrow checker cannot see
 // perm is injective, so it forbids out[perm[i]] = .. across threads. That
-// disjointness fact is exactly what an xlang region/permutation effect carries
+// disjointness fact is exactly what a whitefoot region/permutation effect carries
 // into the optimizer, licensing an automatic parallel scatter with no unsafe.
 
 use rayon::prelude::*;
@@ -24,7 +24,7 @@ fn transform(x: f64, work: usize) -> f64 {
     a
 }
 
-// Send/Sync raw pointer: the "xlang ceiling" write channel. What xlang emits
+// Send/Sync raw pointer: the "whitefoot ceiling" write channel. What whitefoot emits
 // automatically once the permutation-disjointness fact proves scatter writes
 // never collide.
 #[derive(Copy, Clone)]
@@ -217,10 +217,10 @@ fn main() {
     });
     verify(&out, "bucketed");
 
-    // ---------------- V3 XLANG CEILING: parallel scatter -------------------
-    // What xlang emits automatically from the permutation fact: split the input
+    // ---------------- V3 WHITEFOOT CEILING: parallel scatter -------------------
+    // What whitefoot emits automatically from the permutation fact: split the input
     // range across threads, each scatters out[perm[i]]. Disjoint => no races.
-    let t_scatter = bench("V3 xlang par-scatter", reps, || {
+    let t_scatter = bench("V3 whitefoot par-scatter", reps, || {
         let base = SendPtr(out.as_mut_ptr());
         (0..n).into_par_iter().for_each(|i| {
             let base = base;
@@ -324,16 +324,16 @@ fn main() {
     println!("V2b   gather only (no inv) : {:8.3}", t_gather_only);
     println!("V2c safe range-own scatter : {:8.3}", t_own);
     println!("V2d safe bucketed 2-phase  : {:8.3}", t_bucket);
-    println!("V3  xlang par-scatter      : {:8.3}", t_scatter);
+    println!("V3  whitefoot par-scatter      : {:8.3}", t_scatter);
     println!("V4  guard verify perm      : {:8.3}", t_guard);
     println!("V4  guarded par-scatter    : {:8.3}", t_guarded_scatter);
     println!("V4b guard stamp reuse      : {:8.3}", t_guard_reuse);
     println!("V4b guarded stamp scatter  : {:8.3}", t_guarded_scatter_reuse);
     println!("best safe adversary        : {:8.3}", best_safe);
-    println!("\nbest-safe / xlang-ceiling  : {:.2}x", best_safe / t_scatter);
+    println!("\nbest-safe / whitefoot-ceiling  : {:.2}x", best_safe / t_scatter);
     println!("best-safe / guarded-scatter: {:.2}x", best_safe / t_guarded_scatter);
     println!("best-safe / guarded-stamp  : {:.2}x", best_safe / t_guarded_scatter_reuse);
-    println!("guarded / xlang-ceiling    : {:.2}x", t_guarded_scatter / t_scatter);
+    println!("guarded / whitefoot-ceiling    : {:.2}x", t_guarded_scatter / t_scatter);
     println!("guarded-stamp / ceiling    : {:.2}x", t_guarded_scatter_reuse / t_scatter);
-    println!("baseline  / xlang-ceiling  : {:.2}x", t_base / t_scatter);
+    println!("baseline  / whitefoot-ceiling  : {:.2}x", t_base / t_scatter);
 }

@@ -31,7 +31,7 @@ rustc -O3): `obvious` = `iter().fold(0, saturating_add)`; `expert` =
 hand-written 4-accumulator chunks_exact(4) — the human ASSERTS associativity,
 nothing checks it. Apple M4, ns/element:
 
-| n | xlang-facts | xlang-control | rust-obvious | rust-expert |
+| n | whitefoot-facts | whitefoot-control | rust-obvious | rust-expert |
 |---:|---:|---:|---:|---:|
 | 4096 | 0.210 | 0.530 | 0.521 | 0.155 |
 | 65536 | **0.156** | 0.511 | 0.512 | 0.159 |
@@ -46,10 +46,10 @@ All variants produce identical sinks (semantics preserved).
    serial — correctly, since it cannot prove associativity.
 2. **Ties expert Rust** — but the expert shape is an UNVERIFIED assertion.
    Swap in a non-associative op (signed sat-add, saturating_sub) and Rust
-   compiles it silently to garbage; xlang refutes the law at compile time.
+   compiles it silently to garbage; whitefoot refutes the law at compile time.
    This is the W3 delta in its purest form: the cheat (or the honest mistake)
    is structurally unavailable.
-3. **W1 delta**: the fast shape in xlang IS the obvious fold; in Rust the fast
+3. **W1 delta**: the fast shape in whitefoot IS the obvious fold; in Rust the fast
    shape requires knowing the 4-accumulator idiom and being right about the
    algebra with no checker behind you.
 4. Headroom: the 4 chains are scalar (adds+csinv x4, paired loads); SLP does

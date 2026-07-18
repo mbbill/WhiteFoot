@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xlang.local/codegen-corpus/schema.json",
-  "title": "xlang codegen corpus family",
+  "$id": "https://whitefoot.local/codegen-corpus/schema.json",
+  "title": "whitefoot codegen corpus family",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "family", "tags", "hypothesis", "measurement", "cases"],

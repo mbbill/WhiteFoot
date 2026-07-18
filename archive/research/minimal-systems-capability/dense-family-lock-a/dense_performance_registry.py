@@ -926,7 +926,7 @@ REFERENCE_ROUTES = [
     },
     {
         "reference_route_id": "REF-PROTECTED-BASELINE",
-        "reference_kind": "PINNED_XLANG_BASELINE",
+        "reference_kind": "PINNED_WHITEFOOT_BASELINE",
         "contract_route": "B-FIX and B-P2 exact no-tax source and artifact gates.",
         "rust_version": "NOT_APPLICABLE",
         "rust_commit": "NOT_APPLICABLE",
@@ -1111,7 +1111,7 @@ TARGETS = [
         ),
         "layout_id": "LAYOUT-AARCH64-DARWIN",
         "toolchain_identity": (
-            f"rustc {RUST_VERSION} sha256 {RUSTC_SHA256}; exact xlang, linker, "
+            f"rustc {RUST_VERSION} sha256 {RUSTC_SHA256}; exact whitefoot, linker, "
             "runtime, counter tool, and configuration hashes pending"
         ),
         "required_for_selection": "YES_NATIVE_IUT",
@@ -1128,7 +1128,7 @@ TARGETS = [
         "power_affinity_thermal_noise": PENDING,
         "layout_id": "LAYOUT-X86_64-LINUX",
         "toolchain_identity": (
-            f"Rust source {RUST_COMMIT}; exact rustc, xlang, linker, libc, "
+            f"Rust source {RUST_COMMIT}; exact rustc, whitefoot, linker, libc, "
             "runtime, perf, and configuration hashes pending"
         ),
         "required_for_selection": "YES_NATIVE_IUT_FOR_DUAL_BRANCH",
@@ -1145,7 +1145,7 @@ TARGETS = [
         "power_affinity_thermal_noise": "NOT_APPLICABLE",
         "layout_id": "LAYOUT-I686-LINUX",
         "toolchain_identity": (
-            f"Rust source {RUST_COMMIT}; exact cross-tool and xlang hashes pending"
+            f"Rust source {RUST_COMMIT}; exact cross-tool and whitefoot hashes pending"
         ),
         "required_for_selection": "YES_STRUCTURAL",
         "status": PENDING,
@@ -2005,7 +2005,7 @@ FACTS = [
 GENERATORS = [
     {
         "generator_id": "GEN-DENSE-PLAN-V3",
-        "schema": "xlang-dense-performance-input-v3",
+        "schema": "whitefoot-dense-performance-input-v3",
         "seed_rule": (
             "seed64=first eight bytes of SHA256(cell_id || domain), big-endian; "
             "zero maps to 0x9e3779b97f4a7c15"
@@ -2021,7 +2021,7 @@ GENERATORS = [
     },
     {
         "generator_id": "GEN-PROTECTED-V3",
-        "schema": "xlang-dense-protected-input-v3",
+        "schema": "whitefoot-dense-protected-input-v3",
         "seed_rule": "No random seed",
         "operation_encoding": (
             "Exact source, target layout, artifact authorities, and comparison graph"
@@ -2572,7 +2572,7 @@ def stage_prerequisite_protocol() -> dict[str, Any]:
             "side_stages": side,
         }
     return {
-        "schema": "xlang-dense-stage-prerequisites-v1",
+        "schema": "whitefoot-dense-stage-prerequisites-v1",
         "pipeline_stage_order": list(PIPELINE_STAGE_ORDER),
         "side_stages": list(SIDE_STAGES),
         "earliest_stage_rule": (
@@ -2980,7 +2980,7 @@ def make_descriptor_and_cell(
     )
     growth_id = growth_policy_for(member, outcome, payload_id)
     trace_plan = {
-        "schema": "xlang-dense-performance-trace-plan-v3",
+        "schema": "whitefoot-dense-performance-trace-plan-v3",
         "cell_id": cell_id,
         "cell_role": role,
         "operation_gate_id": operation_gate["operation_gate_id"],
@@ -3017,7 +3017,7 @@ def make_descriptor_and_cell(
         "candidate_execution_authorized": False,
     }
     oracle_plan = {
-        "schema": "xlang-dense-performance-oracle-plan-v3",
+        "schema": "whitefoot-dense-performance-oracle-plan-v3",
         "cell_id": cell_id,
         "contract_id": source["contract_id"],
         "post_state": source["post_state"],
@@ -3103,7 +3103,7 @@ def make_descriptor_and_cell(
         "candidate_execution_authorized": "NO",
     }
     descriptor = {
-        "schema": "xlang-dense-performance-input-v3",
+        "schema": "whitefoot-dense-performance-input-v3",
         "cell_id": cell_id,
         "trace_plan": trace_plan,
         "trace_sha256": trace_sha,
@@ -3186,7 +3186,7 @@ def make_control_cell(
     }
     cell_id = "DPERF-" + digest_value(seed)[:20].upper()
     trace_plan = {
-        "schema": "xlang-dense-protected-trace-plan-v3",
+        "schema": "whitefoot-dense-protected-trace-plan-v3",
         "cell_id": cell_id,
         "control_id": control_id,
         "shape_id": shape_id,
@@ -3199,7 +3199,7 @@ def make_control_cell(
         "candidate_execution_authorized": False,
     }
     oracle_plan = {
-        "schema": "xlang-dense-protected-oracle-plan-v3",
+        "schema": "whitefoot-dense-protected-oracle-plan-v3",
         "cell_id": cell_id,
         "control_id": control_id,
         "layout_oracle": control["layout_oracle"],
@@ -3295,7 +3295,7 @@ def make_control_cell(
         "candidate_execution_authorized": "NO",
     }
     descriptor = {
-        "schema": "xlang-dense-protected-input-v3",
+        "schema": "whitefoot-dense-protected-input-v3",
         "cell_id": cell_id,
         "trace_plan": trace_plan,
         "trace_sha256": trace_sha,
@@ -3326,7 +3326,7 @@ def make_arithmetic_cell(
     )[:20].upper()
     last_valid = (1 << bits) - 2
     trace_plan = {
-        "schema": "xlang-dense-arithmetic-trace-plan-v3",
+        "schema": "whitefoot-dense-arithmetic-trace-plan-v3",
         "cell_id": cell_id,
         "target_id": target_id,
         "layout_id": TARGET_LAYOUT[target_id],
@@ -3348,7 +3348,7 @@ def make_arithmetic_cell(
         "candidate_execution_authorized": False,
     }
     oracle_plan = {
-        "schema": "xlang-dense-arithmetic-oracle-plan-v3",
+        "schema": "whitefoot-dense-arithmetic-oracle-plan-v3",
         "cell_id": cell_id,
         "pass_rule": (
             "Exact last-valid result and exact first failed premise; zero "
@@ -3416,7 +3416,7 @@ def make_arithmetic_cell(
         "candidate_execution_authorized": "NO",
     }
     descriptor = {
-        "schema": "xlang-dense-protected-input-v3",
+        "schema": "whitefoot-dense-protected-input-v3",
         "cell_id": cell_id,
         "trace_plan": trace_plan,
         "trace_sha256": trace_sha,
@@ -3615,7 +3615,7 @@ def generated_input_rows(
 ) -> list[dict[str, Any]]:
     return [
         {
-            "schema": "xlang-dense-performance-generated-input-v3",
+            "schema": "whitefoot-dense-performance-generated-input-v3",
             "cell_id": row["cell_id"],
             "descriptor_sha256": digest_value(row),
             "trace_sha256": row["trace_sha256"],
@@ -3734,7 +3734,7 @@ def benefit_hypothesis_ids(
 
 def scheduled_mixture_tail_protocol() -> dict[str, Any]:
     return {
-        "schema": "xlang-dense-scheduled-mixture-tail-v1",
+        "schema": "whitefoot-dense-scheduled-mixture-tail-v1",
         "nuisance_coordinate_count": 30,
         "nuisance_coordinates": "six Williams rows times five layout salts",
         "allowed_block_counts": [60, 90, 120],
@@ -4009,10 +4009,10 @@ def randomization_protocol() -> dict[str, Any]:
     for rank, row in enumerate(block_order_vectors, start=1):
         row["global_execution_rank"] = rank
     return {
-        "schema": "xlang-dense-randomization-custody-v2",
+        "schema": "whitefoot-dense-randomization-custody-v2",
         "status": "BLOCKED_RANDOMIZATION_CUSTODY_ABSENT",
         "hash_and_encoding": (
-            "XLANG-DENSE-RANDOMIZATION-V2 NUL magic; u64be domain length and ASCII "
+            "WHITEFOOT-DENSE-RANDOMIZATION-V2 NUL magic; u64be domain length and ASCII "
             "domain; u64be field count; for each ordered field, u64be ASCII-name "
             "length, name, one-byte type A or B, u64be value length, and value. "
             "ASCII values are strict 0x20..0x7e; BYTES values are unmodified bytes."
@@ -4120,7 +4120,7 @@ def encode_randomization_message(
         return value.to_bytes(8, "big")
 
     domain_bytes = domain.encode("ascii")
-    result = bytearray(b"XLANG-DENSE-RANDOMIZATION-V2\x00")
+    result = bytearray(b"WHITEFOOT-DENSE-RANDOMIZATION-V2\x00")
     result.extend(u64be(len(domain_bytes)))
     result.extend(domain_bytes)
     result.extend(u64be(len(fields)))
@@ -4144,7 +4144,7 @@ def encode_randomization_message(
 
 def power_task_manifest_protocol() -> dict[str, Any]:
     return {
-        "schema": "xlang-dense-power-task-manifest-v1",
+        "schema": "whitefoot-dense-power-task-manifest-v1",
         "identity_fields": [
             "owner_branch_id",
             "true_winner_id",
@@ -4338,7 +4338,7 @@ def power_failure_event_ledger_schema() -> list[dict[str, Any]]:
 
 def benefit_partition_category_protocol() -> dict[str, Any]:
     return {
-        "schema": "xlang-dense-benefit-partition-categories-v1",
+        "schema": "whitefoot-dense-benefit-partition-categories-v1",
         "symbols": {
             "T": "all selected-branch timing cells",
             "L": "all selected-branch non-ZST memory cells",
@@ -4394,7 +4394,7 @@ def benefit_partition_category_protocol() -> dict[str, Any]:
 
 def power_law_key_manifest_protocol() -> dict[str, Any]:
     return {
-        "schema": "xlang-dense-power-law-key-manifest-v1",
+        "schema": "whitefoot-dense-power-law-key-manifest-v1",
         "key_count_formula": "5*T+3*M",
         "key_identity_fields": [
             "branch_id",
@@ -4736,7 +4736,7 @@ def statistics_payload(
     task_manifest_protocol_sha256 = digest_value(task_manifest_protocol)
     resource_limits = power_resource_limits()
     power_engine_protocol_authority = {
-        "schema": "xlang-dense-power-engine-protocol-authority-v1",
+        "schema": "whitefoot-dense-power-engine-protocol-authority-v1",
         "method": "EXACT_REFERENCE_EMPIRICAL_DP_NO_MONTE_CARLO",
         "scheduled_mixture_tail_protocol_sha256": digest_value(tail_protocol),
         "benefit_testing_protocol_sha256": benefit_testing_sha256,
@@ -4845,7 +4845,7 @@ def statistics_payload(
         stage_protocol["per_owner_branch"].items()
     }
     return {
-        "schema": "xlang-dense-performance-statistics-v5",
+        "schema": "whitefoot-dense-performance-statistics-v5",
         "status": "BLOCKED_REFERENCE_ONLY_PILOT_ABSENT",
         "candidate_construction_authorized": False,
         "stage_prerequisite_protocol": stage_protocol,
@@ -5676,7 +5676,7 @@ def main() -> None:
         artifact_record(HERE / OUTPUTS["protocol"])
     ]
     summary = {
-        "schema": "xlang-dense-performance-registry-summary-v5",
+        "schema": "whitefoot-dense-performance-registry-summary-v5",
         "status": "RESEARCH_PROTOCOL_FROZEN_CONSTRUCTION_BLOCKED",
         "candidate_construction_authorized": False,
         "frozen_inputs": {

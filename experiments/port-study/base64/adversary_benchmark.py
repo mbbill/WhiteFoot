@@ -27,7 +27,7 @@ import democ  # noqa: E402
 
 
 VARIANTS = (
-    "xlang-proof",
+    "whitefoot-proof",
     "rust-naive",
     "rust-assert",
     "rust-chunks-full",
@@ -57,9 +57,9 @@ def build(build_dir: Path) -> tuple[Path, dict[str, int]]:
         "retained": 0,
         "output_capacity_lockstep": 12,
     }:
-        raise RuntimeError(f"xlang PROOF-2 accounting changed: {proof_summary}")
-    ll = build_dir / "xlang-proof.ll"
-    obj = build_dir / "xlang-proof.o"
+        raise RuntimeError(f"whitefoot PROOF-2 accounting changed: {proof_summary}")
+    ll = build_dir / "whitefoot-proof.ll"
+    obj = build_dir / "whitefoot-proof.o"
     executable = build_dir / "paired-adversary"
     ll.write_text(llvm_ir)
     subprocess.run(
@@ -176,7 +176,7 @@ def summarize(rows: list[dict[str, str]], size: int) -> None:
         if sorted(positions[variant]) != expected_positions:
             raise RuntimeError(f"unbalanced positions for {variant}")
 
-    xlang = "xlang-proof"
+    whitefoot = "whitefoot-proof"
     print(
         "\n| variant | median | MAD/median | throughput | "
         "XL/variant process-block ratio (row-bootstrap 95% interval) |"
@@ -186,11 +186,11 @@ def summarize(rows: list[dict[str, str]], size: int) -> None:
         times = by_variant[variant]
         median_ns = statistics.median(times)
         mad_ns = statistics.median(abs(value - median_ns) for value in times)
-        if variant == xlang:
+        if variant == whitefoot:
             ratio_text = "1.000"
         else:
             # Same byte count: XL throughput / variant throughput = variant time / XL time.
-            ratios = [block[variant] / block[xlang] for block in by_block.values()]
+            ratios = [block[variant] / block[whitefoot] for block in by_block.values()]
             ratio = statistics.median(ratios)
             low, high = bootstrap_median_interval(ratios, 0xB64 + index)
             ratio_text = f"{ratio:.3f} ({low:.3f}..{high:.3f})"
@@ -202,7 +202,7 @@ def summarize(rows: list[dict[str, str]], size: int) -> None:
 
     block_ids = list(by_block)
     chunks_ratios = [
-        by_block[block]["rust-chunks-full"] / by_block[block][xlang]
+        by_block[block]["rust-chunks-full"] / by_block[block][whitefoot]
         for block in block_ids
     ]
     ratio = statistics.median(chunks_ratios)
@@ -212,7 +212,7 @@ def summarize(rows: list[dict[str, str]], size: int) -> None:
     elif high < 0.98:
         verdict = "Rust lead above the 2% equivalence margin"
     elif low > 1.02:
-        verdict = "xlang lead above the 2% equivalence margin"
+        verdict = "whitefoot lead above the 2% equivalence margin"
     else:
         verdict = "inconclusive against the predeclared ±2% equivalence margin"
     cycle_ratios = {
@@ -226,12 +226,12 @@ def summarize(rows: list[dict[str, str]], size: int) -> None:
     xl_first = statistics.median(
         value
         for block, value in zip(block_ids, chunks_ratios, strict=True)
-        if block_positions[block][xlang] < block_positions[block]["rust-chunks-full"]
+        if block_positions[block][whitefoot] < block_positions[block]["rust-chunks-full"]
     )
     rust_first = statistics.median(
         value
         for block, value in zip(block_ids, chunks_ratios, strict=True)
-        if block_positions[block]["rust-chunks-full"] < block_positions[block][xlang]
+        if block_positions[block]["rust-chunks-full"] < block_positions[block][whitefoot]
     )
     print(
         f"\nPrimary comparison: XL/Rust-chunks = {ratio:.3f} "
@@ -287,7 +287,7 @@ def write_evidence(
         "host": host,
         "toolchains": {"rustc": rustc_version, "clang": clang_version},
         "compile_flags": {
-            "xlang_ir": "democ.compile_program(default facts; asserted 27 proved, 0 retained)",
+            "whitefoot_ir": "democ.compile_program(default facts; asserted 27 proved, 0 retained)",
             "clang": ["-O3", "-mcpu=native", "-c"],
             "rustc": [
                 "--edition=2024",
@@ -338,7 +338,7 @@ def main() -> None:
     print(f"clang: {clang_version}")
     print(f"protocol: {size} bytes, {cycles * 10} isolated Williams-row processes")
 
-    with tempfile.TemporaryDirectory(prefix="xlang-base64-adversary-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-base64-adversary-") as temporary:
         executable, proof_summary = build(Path(temporary))
         rows = run_blocks(executable, size, cycles)
     if raw_path is not None:

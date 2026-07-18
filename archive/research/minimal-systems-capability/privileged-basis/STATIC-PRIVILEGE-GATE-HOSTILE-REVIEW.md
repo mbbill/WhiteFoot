@@ -20,7 +20,7 @@ channel conformance remain unproved production obligations.
 The attacker controls all application and dependency source, module and package
 names, build inputs, ordinary command-line options, cached dependency
 artifacts, link inputs, native symbols, and ordinary library wrappers. The
-attacker does not control the selected xlang compiler/runtime release itself.
+attacker does not control the selected whitefoot compiler/runtime release itself.
 Replacing or modifying the compiler is outside this static language-boundary
 question; accepting a modified toolchain is a distribution-authentication
 problem explicitly outside D14.
@@ -39,7 +39,7 @@ path, trusted build script, or cooperative writer.
 | Enable an `official-core`, `parse-stdlib`, `builtin`, bootstrap, or unsafe command-line mode | Arbitrary source must not acquire registry origin | PASS only if no such public or dependency-controlled option exists |
 | Publish a dependency at a reserved package or module path | Resolver provenance cannot turn it into the embedded module | PASS: package resolution is not authority |
 | Forge or replay a serialized AST/module carrying a primitive tag | Current compiler discards serialized authority and rebinds only exact registry identities after validating all contracts and versions | PASS only with non-serializable or revalidated origin; production test required |
-| Feed hand-written IR or object code to a lower compilation phase | It cannot enter the accepted-source proof/fact path as checked xlang | PASS only if raw IR/object ingestion is an external/foreign boundary and cannot claim xlang semantics |
+| Feed hand-written IR or object code to a lower compilation phase | It cannot enter the accepted-source proof/fact path as checked whitefoot | PASS only if raw IR/object ingestion is an external/foreign boundary and cannot claim whitefoot semantics |
 | Export a native symbol matching a runtime helper | Binder rejects it unless selected by an authorized registry row and exact ABI/provider identity | PASS: symbol spelling alone is non-authoritative |
 | Swap a runtime library or JIT implementation after checking | Loaded implementation must remain tied to the selected toolchain/runtime and exact registry contract; otherwise the build/load fails closed | PASS architecturally; final-image validation is a production obligation, not a new source authority route |
 | Register an intrinsic through a compiler, backend, runtime, linker, or JIT plugin | Plugin cannot extend the privilege registry | PASS only if extension plugins are excluded from the trusted path |

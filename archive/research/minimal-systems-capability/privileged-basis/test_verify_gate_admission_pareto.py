@@ -24,7 +24,7 @@ def load_verifier():
 
 
 def expect_rejection(module, dimensions: bytes, matrix: bytes, label: str) -> None:
-    with tempfile.TemporaryDirectory(prefix="xlang-gate-pareto-") as directory:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-gate-pareto-") as directory:
         root = Path(directory)
         dimension_path = root / module.DIMENSIONS.name
         matrix_path = root / module.MATRIX.name

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic code-generation parity gate for xlang.
+"""Deterministic code-generation parity gate for whitefoot.
 
 The runner compiles every variant in a temporary directory, extracts stable
 IR/assembly properties, and evaluates the relations in codegen-parity.json.
@@ -145,7 +145,7 @@ def result_exit_code(results: list[dict[str, Any]]) -> int:
 
 def load_democ():
     path = ROOT / "prototype/democ/democ.py"
-    spec = importlib.util.spec_from_file_location("xlang_democ", path)
+    spec = importlib.util.spec_from_file_location("whitefoot_democ", path)
     if spec is None or spec.loader is None:
         raise HarnessError(f"cannot import {path}")
     module = importlib.util.module_from_spec(spec)
@@ -634,7 +634,7 @@ def compile_variant(case_id: str, variant: dict[str, Any], build: Path, democ: A
     if not re.fullmatch(r"O[0-3sz]", level):
         raise HarnessError(f"invalid optimization level {level!r}")
 
-    if kind == "xlang":
+    if kind == "whitefoot":
         proof_report: list[dict[str, Any]] = []
         raw_ir = democ.compile_program(
             source.read_text(),
@@ -669,7 +669,7 @@ def compile_variant(case_id: str, variant: dict[str, Any], build: Path, democ: A
     if kind == "c":
         raw_ir = optimized_ir
     return metrics(raw_ir, optimized_ir, asm_path.read_text(), compiled.stderr,
-                   variant.get("function"), proof_report if kind == "xlang" else None)
+                   variant.get("function"), proof_report if kind == "whitefoot" else None)
 
 
 def resolve(reference: str, variants: dict[str, dict[str, Any]]) -> Any:
@@ -721,7 +721,7 @@ def validate_manifest(
         if any(not isinstance(name, str) or not name for name in names) or len(names) != len(set(names)):
             raise HarnessError(f"{case_id}: variant names must be non-empty and unique")
         for variant in variants:
-            if variant.get("kind") not in {"xlang", "c", "rust"}:
+            if variant.get("kind") not in {"whitefoot", "c", "rust"}:
                 raise HarnessError(f"{case_id}/{variant.get('name')}: invalid kind")
             if not isinstance(variant.get("source"), str):
                 raise HarnessError(f"{case_id}/{variant.get('name')}: source is required")
@@ -780,11 +780,11 @@ def validate_manifest(
                 raise HarnessError(
                     f"{case_id}: unknown checked-automation variant {variant_name!r}"
                 )
-            if variant["kind"] != "xlang" \
+            if variant["kind"] != "whitefoot" \
                     or variant.get("facts", True) is not True \
                     or variant.get("elide_bounds", False) is not False:
                 raise HarnessError(
-                    f"{case_id}/{variant_name}: promotion requires facts-on, non-ceiling xlang"
+                    f"{case_id}/{variant_name}: promotion requires facts-on, non-ceiling whitefoot"
                 )
             if root["source"] != variant["source"] \
                     or root["function"] != variant.get("function"):
@@ -1195,14 +1195,14 @@ def load_corpus_cases() -> list[dict[str, Any]]:
                 "variants": [
                     {
                         "name": "facts",
-                        "kind": "xlang",
+                        "kind": "whitefoot",
                         "source": relative_source,
                         "function": function,
                         "opt": measurement.get("opt", "O2"),
                     },
                     {
                         "name": "nofacts",
-                        "kind": "xlang",
+                        "kind": "whitefoot",
                         "source": relative_source,
                         "function": function,
                         "facts": False,
@@ -1365,7 +1365,7 @@ def main() -> int:
         if args.audit_only:
             selected = [case for case in selected if case["mode"] == "audit"]
         democ = load_democ()
-        with tempfile.TemporaryDirectory(prefix="xlang-codegen-parity-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="whitefoot-codegen-parity-") as temporary:
             build = Path(temporary)
             results = [run_case(case, build, democ) for case in selected]
         if args.promotion:

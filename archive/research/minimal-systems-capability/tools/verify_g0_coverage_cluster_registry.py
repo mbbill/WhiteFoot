@@ -47,7 +47,7 @@ EXPECTED_POLICY = {
         "CAPABILITY_INHERITANCE;COST_INHERITANCE;FAMILY_LOCK_IMPORT;"
         "CANDIDATE_CONSTRUCTION;SCORED_EXPERIMENT;FAMILY_E;FAMILY_P"
     ),
-    "policy_version": "xlang-g0-coverage-cluster-policy-v1",
+    "policy_version": "whitefoot-g0-coverage-cluster-policy-v1",
 }
 
 

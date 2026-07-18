@@ -9,7 +9,7 @@ the failing run record. Nothing here tunes prompts per language beyond the
 fixed per-language excerpt file (DECISION_SPRINT.md protocol).
 
 Usage:
-  python3 m3/harness/trial.py --language xlang --tier weak \
+  python3 m3/harness/trial.py --language whitefoot --tier weak \
       --gen-cmd 'your-model-cli --flags' [--task NAME]... \
       [--trials 3] [--repairs 3] --out /path/results.jsonl
 
@@ -31,10 +31,10 @@ import run as harness                     # compile/verdict machinery, task tabl
 
 M3 = HERE.parent
 EXCERPT = {
-    "xlang": M3 / "prompts" / "xlang-spec-excerpt.md",
+    "whitefoot": M3 / "prompts" / "whitefoot-spec-excerpt.md",
     "rust": M3 / "prompts" / "rust-guardrails.md",
 }
-EXT = {"xlang": "xl", "rust": "rs"}
+EXT = {"whitefoot": "xl", "rust": "rs"}
 
 FENCE = re.compile(r"```[a-zA-Z]*\n(.*?)```", re.S)
 
@@ -78,7 +78,7 @@ def attempt(task, language, source_path):
         if language == "rust":
             exe, cres = harness.compile_rust(source_path, task, tmp)
         else:
-            exe, cres = harness.compile_xlang(source_path, task, tmp)
+            exe, cres = harness.compile_whitefoot(source_path, task, tmp)
         rec["compile"] = cres
         if exe is None:
             return False, cres.get("stderr", "") or cres.get("status", "compile failed"), rec
@@ -98,7 +98,7 @@ def attempt(task, language, source_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--language", required=True, choices=("xlang", "rust"))
+    ap.add_argument("--language", required=True, choices=("whitefoot", "rust"))
     ap.add_argument("--tier", required=True)
     ap.add_argument("--gen-cmd", required=True,
                     help="shell command; prompt on stdin, program on stdout")

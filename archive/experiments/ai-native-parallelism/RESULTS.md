@@ -39,7 +39,7 @@ cargo run --release -- 16777216 5 64
 
 Machine: same local Apple M4 environment as the earlier scatter study. Values
 below are medians in milliseconds from sequential runs. `best safe` is the best
-of the safe Rust adversaries in the benchmark. `direct` is the unsafe/xlang
+of the safe Rust adversaries in the benchmark. `direct` is the unsafe/whitefoot
 ceiling scatter. `guarded` verifies the permutation with an `O(n)` byte-table
 pass on every dispatch and then runs direct scatter. `stamp guarded` uses a
 reusable `u32` stamp table to avoid per-dispatch allocation/zeroing.

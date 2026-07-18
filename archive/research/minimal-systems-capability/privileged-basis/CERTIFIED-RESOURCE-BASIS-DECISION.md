@@ -573,7 +573,7 @@ Promising Semantics*, retrieved 2026-07-15: 757,427 bytes, SHA-256
 `e409056a3305fdd89b3d7012cf83b3d43f904f3311d1c20293b7f1a1785dac7a`.
 Its `ProgramEvent` read, write, update, and fence semantics and its `relaxed`,
 `strong_relaxed`, `acqrel`, and `seqcst` ordering lattice are the witness, not a
-loose "Promising-family" reference. Xlang's research mapping uses fixed typed
+loose "Promising-family" reference. Whitefoot's research mapping uses fixed typed
 atomic locations; acquire loads and release stores are the direction-specific
 views of `acqrel`, an RMW carries separate read/write orderings, compare-
 exchange failure is a read branch, weak spurious failure is an explicit
@@ -748,7 +748,7 @@ The paper witnesses preserve candidate routes to the representation, allocation
 count, indirection count, operation sequence, and asymptotic algorithm of a
 best-known unsafe or privileged implementation. They do not establish this for
 every exact protected contract, so P-1 remains pending. They also do not prove
-that a future xlang compiler will generate equal code. Code size, throughput,
+that a future whitefoot compiler will generate equal code. Code size, throughput,
 proof production, checking time, diagnostics, and weak-writer success require
 separately authorized measurements.
 
@@ -810,7 +810,7 @@ derived or dominated rather than independently necessary.
 ## 14. Evidence base
 
 The sources establish the feasibility of components, not the correctness of an
-unimplemented xlang design:
+unimplemented whitefoot design:
 
 - [Foundational Proof-Carrying Code](https://www.cs.princeton.edu/~appel/papers/fpcc.pdf)
   reduces trusted checking to logic plus machine semantics and a small checker.
@@ -851,9 +851,9 @@ unimplemented xlang design:
   fragment rather than unrestricted backtracking.
 - [StarMalloc](https://arxiv.org/abs/2403.09435) demonstrates a competitive
   verified concurrent allocator and reusable verified data structures over
-  Steel, while not proving xlang's default-writer or compiler-cost claims.
+  Steel, while not proving whitefoot's default-writer or compiler-cost claims.
 
-No cited system simultaneously establishes xlang's complete combination of no
+No cited system simultaneously establishes whitefoot's complete combination of no
 writer-visible unsafe, no garbage collector, no unwind, ordinary unprivileged
 library generativity, predictable AI proof production, and protected default-
 shape performance. Those remain project-specific obligations.

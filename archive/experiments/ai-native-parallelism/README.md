@@ -97,7 +97,7 @@ Recast the existing parallel-scatter benchmark as:
 - fact: `perm` is bijective over `0..n`,
 - runtime guard: verify permutation once, then dispatch to direct parallel
   scatter; otherwise fall back,
-- baselines: best safe Rust range-ownership, unsafe Rust ceiling, current xlang
+- baselines: best safe Rust range-ownership, unsafe Rust ceiling, current whitefoot
   proxy ceiling.
 
 Decision value: this tests whether the strongest existing structural win remains

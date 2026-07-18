@@ -6,7 +6,7 @@ Status: finite research input; no language, syntax, checker, compiler, runtime, 
 
 ## 1. Question and boundary
 
-This report asks one question: where does current xlang lack the checked expressive power needed to obtain a demanded representation, code shape, or exact machine-event sequence without paying avoidable initialization, clearing, copying, movement, allocation, metadata, indirection, dispatch, checking, or event costs?
+This report asks one question: where does current whitefoot lack the checked expressive power needed to obtain a demanded representation, code shape, or exact machine-event sequence without paying avoidable initialization, clearing, copying, movement, allocation, metadata, indirection, dispatch, checking, or event costs?
 
 The answer is the 15-row companion ledger. It is deliberately organized by performance contract, not by a proposed mechanism. A row may eventually be served by a language rule, ownership rule, proof rule, ordinary checked abstraction, builtin, runtime leaf, target leaf, or a combination. The ledger does not select among them.
 

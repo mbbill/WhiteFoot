@@ -18,6 +18,6 @@ int main(void) {
   sink ^= xcrc32(0, buf, n); sink ^= zcrc(0, buf, n);   /* warm */
   double t0 = now(); for (int r = 0; r < 8; r++) sink ^= xcrc32(0, buf, n); double tx = (now() - t0) / 8;
   t0 = now(); for (int r = 0; r < 8; r++) sink ^= zcrc(0, buf, n); double tz = (now() - t0) / 8;
-  printf("xlang crc32: %.2f GB/s\nsystem zlib: %.2f GB/s\n(sink %lx)\n", n / tx / 1e9, n / tz / 1e9, sink);
+  printf("whitefoot crc32: %.2f GB/s\nsystem zlib: %.2f GB/s\n(sink %lx)\n", n / tx / 1e9, n / tz / 1e9, sink);
   return 0;
 }

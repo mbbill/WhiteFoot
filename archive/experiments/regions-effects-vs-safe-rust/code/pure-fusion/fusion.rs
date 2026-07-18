@@ -3,7 +3,7 @@
 //   A BASELINE      : each stage a separate Vec-returning fn (materializes intermediates)
 //   A2 BASELINE-inl : same but not inline(never) (let rustc try to fuse/elide)
 //   B BEST-EFFORT   : single fused safe iterator chain (no unsafe)
-//   C XLANG-CEILING : hand fused single-pass loop into preallocated buffer
+//   C WHITEFOOT-CEILING : hand fused single-pass loop into preallocated buffer
 //   D DYN-PIPELINE  : Vec<Box<dyn Fn>> plugin-style boundary (iterators can't fuse)
 // All produce bit-identical f64 output.
 
@@ -81,7 +81,7 @@ fn fused_iter(input: &[f64]) -> Vec<f64> {
         .collect()
 }
 
-// ---- C: xlang ceiling: manual single-pass loop into preallocated buffer ----
+// ---- C: whitefoot ceiling: manual single-pass loop into preallocated buffer ----
 fn fused_loop(input: &[f64]) -> Vec<f64> {
     let mut out = vec![0.0f64; input.len()];
     for i in 0..input.len() {

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""xlang conformance test system — spec-anchored, rule-keyed, toolchain-agnostic.
+"""whitefoot conformance test system — spec-anchored, rule-keyed, toolchain-agnostic.
 
 Each case is a canonical `.xl` source (conformance/cases/<id>.xl) plus a manifest
 entry (conformance/manifest.jsonl) declaring the rule id(s) it exercises and the
 expected verdict. Cases are driven through a TOOLCHAIN ADAPTER — democ today, any
-conformant xlang compiler (real, then self-hosted) tomorrow — and the verdict is
+conformant whitefoot compiler (real, then self-hosted) tomorrow — and the verdict is
 asserted; for a rejection the EXACT cited rule id is checked [DIAG-1]. A coverage
 tracker binds cases to the spec's rule ids and reports which rules are untested.
 

@@ -31,7 +31,7 @@ AUTHORIZATION_HEADING = "## D13 (2026-07-14): Draft the dense unique-owner Famil
 AUTHORIZATION_DIRECTIVE_SHA256 = "3a209c195f575408a65d1a81b9e3e01b4c95dd406b589fab801c64b3ed29c64c"
 UNRESOLVED_DECISIONS = ["OD-0", "OD-1", "OD-2", "OD-3", "OD-4", "OD-5"]
 CALLER_VISIBLE_FAMILY_CLAIM = (
-    "Ordinary no-unsafe xlang libraries can implement the frozen sequential, "
+    "Ordinary no-unsafe whitefoot libraries can implement the frozen sequential, "
     "unique-owner dense-prefix contracts for region-free, borrow-free, "
     "non-address-sensitive affine payloads with the frozen ownership, failure, "
     "destruction, asymptotic, structural, and target-local performance bounds, "
@@ -83,10 +83,10 @@ CURRENT_CONTROLS = (
     "CLAUDE.md",
     "THE-PLAN.md",
     "optimizer-language-research/notes/user-directives.md",
-    "mcts_mem/xlang.md",
-    "mcts_mem/xlang/data-model.md",
-    "mcts_mem/xlang/ownership.md",
-    "mcts_mem/xlang/fact-channels.md",
+    "mcts_mem/whitefoot.md",
+    "mcts_mem/whitefoot/data-model.md",
+    "mcts_mem/whitefoot/ownership.md",
+    "mcts_mem/whitefoot/fact-channels.md",
 )
 
 COVERAGE_REVIEW_FILES = (
@@ -872,7 +872,7 @@ def build_manifest() -> dict[str, object]:
         for relative in CURRENT_CONTROLS
     ]
     return {
-        "schema": "xlang-dense-family-lock-a-closure-manifest-v4",
+        "schema": "whitefoot-dense-family-lock-a-closure-manifest-v4",
         "lock_id": LOCK_ID,
         "family_name": FAMILY_NAME,
         "lock_revision": LOCK_REVISION,
@@ -942,7 +942,7 @@ def manifest_bytes(manifest: dict[str, object]) -> bytes:
 
 def build_summary(manifest: dict[str, object], encoded_manifest: bytes) -> dict[str, object]:
     return {
-        "schema": "xlang-dense-family-lock-a-build-summary-v4",
+        "schema": "whitefoot-dense-family-lock-a-build-summary-v4",
         "lock_id": LOCK_ID,
         "family_name": FAMILY_NAME,
         "lock_revision": LOCK_REVISION,

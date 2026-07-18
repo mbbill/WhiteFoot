@@ -1,4 +1,4 @@
 fn main () -> own unit traps {
-  // comments do not exist in xlang
+  // comments do not exist in whitefoot
   return unit;
 }

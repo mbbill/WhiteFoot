@@ -122,7 +122,7 @@ The following meanings are also fixed for this comparison:
   publication, same-domain association, payload noninterference, unreachability,
   or quiescence.
 
-The analytical names below are not proposed xlang syntax.
+The analytical names below are not proposed whitefoot syntax.
 
 ## 5. Alternative 1: B-FORMS
 

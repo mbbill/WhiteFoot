@@ -1,5 +1,5 @@
 fn main () -> own unit pure {
-  doc "no comments in xlang [FORM-4].";
+  doc "no comments in whitefoot [FORM-4].";
   /* block comment */
   return unit;
 }

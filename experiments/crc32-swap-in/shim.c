@@ -1,6 +1,6 @@
-/* zlib-ABI shim over the xlang CRC-32 kernel (D4 FFI frame: the C side owns
+/* zlib-ABI shim over the whitefoot CRC-32 kernel (D4 FFI frame: the C side owns
    the boundary discipline — single-threaded init, buffers passed by {ptr,len}
-   value, xlang treats each call's buffer as an owned affine value). */
+   value, whitefoot treats each call's buffer as an owned affine value). */
 #include <stddef.h>
 
 typedef struct { void *p; long long n; } Buf;

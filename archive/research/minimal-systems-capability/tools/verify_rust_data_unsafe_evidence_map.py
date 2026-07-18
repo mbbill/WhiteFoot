@@ -90,7 +90,7 @@ def main() -> None:
             f"wrong member kind on {row['canonical_key']}",
         )
         require(
-            row["evidence_disposition"] == "RAW_EVIDENCE_ONLY_NO_XLANG_SURFACE",
+            row["evidence_disposition"] == "RAW_EVIDENCE_ONLY_NO_WHITEFOOT_SURFACE",
             f"non-evidence disposition on {row['canonical_key']}",
         )
         require(

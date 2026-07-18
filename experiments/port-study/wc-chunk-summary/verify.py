@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Differentially verify xlang and Rust chunk summaries across arbitrary splits."""
+"""Differentially verify whitefoot and Rust chunk summaries across arbitrary splits."""
 
 import random
 import subprocess
@@ -43,7 +43,7 @@ def main():
     ]
     for _ in range(100):
         cases.append(bytes(rng.randrange(256) for _ in range(rng.randrange(8193))))
-    with tempfile.TemporaryDirectory(prefix="xlang-wc-summary-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-wc-summary-") as tmp:
         path = Path(tmp) / "case.bin"
         checked = 0
         for data in cases:

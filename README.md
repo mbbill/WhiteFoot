@@ -1,4 +1,4 @@
-# xlang
+# whitefoot
 
 A systems language for AI-written, human-approved code. The checker makes the
 memory-corruption, data-race, silent-overflow, and uninitialized-read bug
@@ -31,9 +31,9 @@ entry. A machine proof then carries that fact into the loop and discharges all
 Now the same work in Rust, same machine, full RFC semantics, isolated
 processes:
 
-| implementation | throughput | vs xlang |
+| implementation | throughput | vs whitefoot |
 |---|---:|---:|
-| **xlang** — obvious loop + one checked `requires` line | **4.285 GB/s** | — |
+| **whitefoot** — obvious loop + one checked `requires` line | **4.285 GB/s** | — |
 | Rust — obvious indexed loop | 2.673 GB/s | 1.60x slower |
 | Rust — obvious loop + `assert!` up front | 2.677 GB/s | 1.60x slower |
 | Rust — expert `chunks_exact/zip` restructure | 4.297 GB/s | tie |
@@ -42,7 +42,7 @@ processes:
 Read the middle two rows. The `assert!` that *looks* like it should let the
 optimizer drop the checks recovers **nothing** — LLVM cannot connect it to the
 loop. Only an expert who knows the `chunks_exact` restructuring reaches the
-fast class, and even `unsafe` indexing is slightly slower. In xlang the
+fast class, and even `unsafe` indexing is slightly slower. In whitefoot the
 **obvious** shape plus one checked line gets there, with every bound still
 enforced.
 
@@ -51,12 +51,12 @@ bought by weakening a check.**
 
 The full argument — effect rows the optimizer trusts across opaque boundaries,
 ownership-driven guard-free vectorization, checked algebraic laws, and what it
-honestly does *not* beat — is in **[docs/why-xlang.md](docs/why-xlang.md)**.
+honestly does *not* beat — is in **[docs/why-whitefoot.md](docs/why-whitefoot.md)**.
 
 Highlights so far (each with a RESULTS.md under `experiments/`):
-- default floor: first-green `gpt-5.6-terra` xlang programs beat the ordinary
+- default floor: first-green `gpt-5.6-terra` whitefoot programs beat the ordinary
   public paths of two released Rust crates by 1.653x and 1.098x on locked
-  workloads, with every reported xlang bounds check retained.
+  workloads, with every reported whitefoot bounds check retained.
 - wc: byte-identical under LC_ALL=C, ~2x GNU coreutils on default invocation.
 - The classifier-kernel study: i1-dataflow parity with C and safe Rust.
 - Checked algebraic laws: 3.3x on reductions, with FALSE laws refuted at

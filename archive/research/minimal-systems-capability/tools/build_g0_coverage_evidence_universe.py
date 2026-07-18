@@ -49,7 +49,7 @@ CENSUS_FIELDS = [
     "layout_identity_order",
     "behavior_parameter",
     "implementation_privilege_evidence",
-    "xlang_current_status",
+    "whitefoot_current_status",
     "required_obligations",
     "source_refs",
 ]
@@ -211,7 +211,7 @@ SELECTOR_MATERIALIZATION_POLICY = (
     "BLOCKS_ALL_UNRESOLVED_CHILD_CLAIMS;SELF_SELECTED_CHILD_SET_OR_PARENT_"
     "ONLY_REFINEMENT_INVALID"
 )
-POLICY_VERSION = "xlang-g0-coverage-evidence-universe-v3"
+POLICY_VERSION = "whitefoot-g0-coverage-evidence-universe-v3"
 
 OPERATION_GATE_ASSIGNMENT_AUTHORITY = {
     "TRAIT-EXTEND-01": (
@@ -617,7 +617,7 @@ def build_rows() -> list[dict[str, str]]:
         if (
             row["stability"] != "stable"
             or row["caller_safety"] != "unsafe"
-            or row["evidence_disposition"] != "RAW_EVIDENCE_ONLY_NO_XLANG_SURFACE"
+            or row["evidence_disposition"] != "RAW_EVIDENCE_ONLY_NO_WHITEFOOT_SURFACE"
         ):
             fail(f"unsafe key {row['canonical_key']} is not stable evidence-only input")
         add_relation(

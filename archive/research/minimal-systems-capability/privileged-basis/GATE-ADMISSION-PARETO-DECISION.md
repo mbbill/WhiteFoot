@@ -82,7 +82,7 @@ generic unapproved native-call operation cannot safely and efficiently cover
 that domain:
 
 - an ordinary writer-authored claim that foreign code does not retain, race,
-  overrun, free, unwind through, or reenter xlang memory is forgeable;
+  overrun, free, unwind through, or reenter whitefoot memory is forgeable;
 - runtime isolation, serialization, or copying can enforce a conservative
   boundary, but imposes forbidden structural cost on zero-copy I/O, mappings,
   DMA, MMIO, callbacks, and direct provider calls; and
@@ -236,7 +236,7 @@ GrantApprovalRequestID = H_grant_approval_request(
 
 GrantSignatureSet = CanonicalThresholdSignatures(
   private keys selected by GrantSignerPolicyID,
-  "xlang-frame-grant-v2" || ApprovalPolicyID ||
+  "whitefoot-frame-grant-v2" || ApprovalPolicyID ||
     GrantSignerPolicyID || GrantApprovalRequestID)
 
 GrantEnvelopeID = H_grant_envelope(
@@ -582,18 +582,18 @@ later alternative if the owner makes local extension-grant currentness required.
 
 - [SPKI authorization certificates](https://www.rfc-editor.org/rfc/rfc2693)
   show that canonical signed authorization records can be held and transported
-  by untrusted parties. Xlang rejects SPKI delegation, validity intervals, and
+  by untrusted parties. Whitefoot rejects SPKI delegation, validity intervals, and
   general tuple reduction; they add authority and currentness semantics not
   required here.
 - [KeyNote](https://www.rfc-editor.org/rfc/rfc2704) separates signed credentials
-  from a compliance checker. Xlang uses a closed frame-template schema rather
+  from a compliance checker. Whitefoot uses a closed frame-template schema rather
   than a general assertion language.
 - [DSSE](https://github.com/secure-systems-lab/dsse) authenticates a separated
-  payload type and payload bytes. It does not define xlang key custody,
+  payload type and payload bytes. It does not define whitefoot key custody,
   canonical schemas, or semantic checking.
 - [in-toto](https://github.com/in-toto/docs/blob/master/in-toto-spec.md) provides
   precedent for signed explicit material/product binding. It does not establish
-  xlang ownership, effects, facts, or final-code refinement.
+  whitefoot ownership, effects, facts, or final-code refinement.
 - [TUF](https://theupdateframework.github.io/specification/draft/) uses trusted
   version state for rollback protection. This supports the conclusion that S's
   mutable state purchases currentness, not signature nonforgeability.

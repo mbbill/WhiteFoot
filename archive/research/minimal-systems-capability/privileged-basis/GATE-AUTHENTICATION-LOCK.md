@@ -8,7 +8,7 @@ container, or production deployment.
 
 ## 1. Decision
 
-Relative to one fixed authenticated semantic toolchain root, xlang has exactly
+Relative to one fixed authenticated semantic toolchain root, whitefoot has exactly
 one stateful sealed admission verifier for privileged semantic edges.
 
 The compiler installation embeds:
@@ -128,7 +128,7 @@ For every schema type tau, identity is conceptually:
 ~~~
 id_tau(value) =
   Hash(
-    "xlang-gate-v1" ||
+    "whitefoot-gate-v1" ||
     length(tau) || tau ||
     length(CanonicalEncode_tau(value)) || CanonicalEncode_tau(value)
   )
@@ -388,7 +388,7 @@ semantic object cache key. An old artifact whose exact entries remain active may
 be reused after current revalidation. An artifact containing a revoked or
 mismatched entry is rejected.
 
-Current xlang has no runtime loader or JIT. If either is later admitted, it must
+Current whitefoot has no runtime loader or JIT. If either is later admitted, it must
 apply the same predicate at the load boundary. This document makes no claim of
 recalling an already emitted static executable.
 
@@ -506,15 +506,15 @@ independent records inside this one gate.
 - TUF supplies the relevant attack model and state contracts: an out-of-band
   root, threshold verification, sequential versions, nonvolatile state,
   rollback checks, snapshot consistency, revocation, and old-plus-new key
-  rotation. Xlang uses one local approval registry rather than copying TUF's
+  rotation. Whitefoot uses one local approval registry rather than copying TUF's
   distribution roles.
 - DSSE supports domain-separated authentication of payload type and exact
   bytes while treating key IDs as hints. In-toto supports exact material and
   product binding but does not justify trusting a producer's declared
-  dependency list; xlang reconstructs its semantic cones.
+  dependency list; whitefoot reconstructs its semantic cones.
 
 These precedents establish feasibility of the selected components, not the
-security of an unimplemented xlang gate. Exact encoding test vectors,
+security of an unimplemented whitefoot gate. Exact encoding test vectors,
 cryptographic suite, threshold size and custody, protected-state provider,
 dynamic-provider rules, verifier limits, and conformance corpus remain future
 implementation-lock work. They cannot weaken the semantics fixed here.

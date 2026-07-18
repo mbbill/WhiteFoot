@@ -68,12 +68,12 @@ hot-swappable JIT code, and sparse GPU residency. No listed witness found an
 architecture-shape need for a named privileged container or a second gate.
 
 The literature and implementation precedents support the components rather
-than the complete xlang combination: foundational proof-carrying code and
+than the complete whitefoot combination: foundational proof-carrying code and
 untrusted proof production support the fixed-checker boundary; permission and
 separation logics support generative resources, borrowing, and interference;
 RefinedC and SteelCore support foundational checked library proofs; GhostCell
 supports generative identity; and verified allocator work supports ordinary
-proof-carrying resource modules. None proves xlang's complete no-unsafe,
+proof-carrying resource modules. None proves whitefoot's complete no-unsafe,
 no-GC, no-unwind, ordinary-library, predictable-AI, protected-performance goal,
 so the project-specific exact gates remain necessary.
 

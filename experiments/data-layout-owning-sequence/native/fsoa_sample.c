@@ -196,7 +196,7 @@ static void store_le64(uint8_t output[8], uint64_t value) {
 }
 
 static void report_digest(const FrontendReport *report, uint8_t digest[32]) {
-  static const uint8_t prefix[] = "xlang-fsoa-frontend-report-v1\0";
+  static const uint8_t prefix[] = "whitefoot-fsoa-frontend-report-v1\0";
   uint64_t fields[11] = {
       (uint64_t)(uint32_t)report->stage,
       report->status,

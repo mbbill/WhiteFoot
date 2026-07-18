@@ -2,7 +2,7 @@
   "artifact_class_record_count": 7,
   "artifact_count": 74,
   "authorization_granted_by_approving_this_lock": "SIX_OWNER_RESEARCH_PROTOCOL_DECISIONS_ONLY; no pilot, candidate construction, execution, language or specification decision, compiler implementation, or production adoption without a later separate authorization.",
-  "caller_visible_family_claim": "Ordinary no-unsafe xlang libraries can implement the frozen sequential, unique-owner dense-prefix contracts for region-free, borrow-free, non-address-sensitive affine payloads with the frozen ownership, failure, destruction, asymptotic, structural, and target-local performance bounds, while protected B-FIX and B-P2 paths remain unchanged.",
+  "caller_visible_family_claim": "Ordinary no-unsafe whitefoot libraries can implement the frozen sequential, unique-owner dense-prefix contracts for region-free, borrow-free, non-address-sensitive affine payloads with the frozen ownership, failure, destruction, asymptotic, structural, and target-local performance bounds, while protected B-FIX and B-P2 paths remain unchanged.",
   "candidate_construction_authorized": false,
   "candidate_execution_authorized": false,
   "candidate_freeze_b_authorized": false,
@@ -416,7 +416,7 @@
       "status": "EXTERNAL_EXACT_HASH_REVIEW_REQUIRED"
     }
   },
-  "schema": "xlang-dense-family-lock-a-build-summary-v4",
+  "schema": "whitefoot-dense-family-lock-a-build-summary-v4",
   "selection_or_scoring_authorized": false,
   "status": "OWNER_REVIEW_READY_RESEARCH_ONLY",
   "unresolved_owner_decisions": [

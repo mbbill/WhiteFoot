@@ -43,7 +43,7 @@ FIELDS = [
     "policy_version",
 ]
 
-POLICY_VERSION = "xlang-g0-trait-impl-topology-routing-v1"
+POLICY_VERSION = "whitefoot-g0-trait-impl-topology-routing-v1"
 CLASSIFICATION_POLICY = (
     "EXACT_IMPLEMENTER_STRING_MEMBERSHIP_IN_CLOSED_ENUMERATED_CLASS;NO_REGEX;"
     "NO_PREFIX;NO_SUBSTRING;NO_FUZZY_MATCH;NO_DEFAULT;NO_UNMATCHED;"

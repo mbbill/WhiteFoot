@@ -14,17 +14,17 @@ CANARY_ROOT = ROOT / "canaries"
 EXPECTED_VERSION = "rustc 1.97.0 (2d8144b78 2026-07-07)"
 EXPECTED_COMMIT = "2d8144b7880597b6e6d3dfd63a9a9efae3f533d3"
 CANARIES = {
-    "xlang_buildhasher_root_swap.rs": "76588ebc4bf1cc9c191e4b08f3cee00dffd96fa39e315ab3bd5a057bc7aa9a09",
-    "xlang_buildhasher_transfer.rs": "0a366e560f3eaf10b85e8bee963a0204d218e3df4766e758e718087c12e9d962",
-    "xlang_clone_source_effects.rs": "456a9ffe70b4df2b90c9d4eb0edf353aeb41f3b135b06e8b31da931293730642",
-    "xlang_clone_helper_source_effects.rs": "6120847f27ff814f60f0f92a96ff016970ca64cb32aa3718cee6f96607be1284",
-    "xlang_behavior_receiver_effects.rs": "ac42b0d6cd70a8ee3b04528184335768f725ee7f925c9d7253897cb8523fdef8",
-    "xlang_repeat_n_source_effects.rs": "ca5cdad81136a15d5b5291a670963d8c4c9a97436bdfd85fb39ed646fe9f3ff5",
+    "whitefoot_buildhasher_root_swap.rs": "76588ebc4bf1cc9c191e4b08f3cee00dffd96fa39e315ab3bd5a057bc7aa9a09",
+    "whitefoot_buildhasher_transfer.rs": "0a366e560f3eaf10b85e8bee963a0204d218e3df4766e758e718087c12e9d962",
+    "whitefoot_clone_source_effects.rs": "456a9ffe70b4df2b90c9d4eb0edf353aeb41f3b135b06e8b31da931293730642",
+    "whitefoot_clone_helper_source_effects.rs": "6120847f27ff814f60f0f92a96ff016970ca64cb32aa3718cee6f96607be1284",
+    "whitefoot_behavior_receiver_effects.rs": "ac42b0d6cd70a8ee3b04528184335768f725ee7f925c9d7253897cb8523fdef8",
+    "whitefoot_repeat_n_source_effects.rs": "ca5cdad81136a15d5b5291a670963d8c4c9a97436bdfd85fb39ed646fe9f3ff5",
 }
 OTHER_CANARY_SOURCES = {
-    "xlang_range_step_stable_entrances.rs",
-    "xlang_range_step_ascii_char_rejected.rs",
-    "xlang_range_step_downstream_impl_rejected.rs",
+    "whitefoot_range_step_stable_entrances.rs",
+    "whitefoot_range_step_ascii_char_rejected.rs",
+    "whitefoot_range_step_downstream_impl_rejected.rs",
 }
 
 
@@ -78,7 +78,7 @@ def verify_source_hashes() -> None:
 
 
 def compile_and_run() -> None:
-    with tempfile.TemporaryDirectory(prefix="xlang-g0-canaries-") as directory:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-g0-canaries-") as directory:
         output_root = Path(directory)
         for name in CANARIES:
             source = CANARY_ROOT / name

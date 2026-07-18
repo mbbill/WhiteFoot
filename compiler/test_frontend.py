@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drive the owned xlang front end through its single bootstrap ABI."""
+"""Drive the owned whitefoot front end through its single bootstrap ABI."""
 
 import ctypes
 import tempfile

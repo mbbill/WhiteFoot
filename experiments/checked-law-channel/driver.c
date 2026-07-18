@@ -1,4 +1,4 @@
-/* Driver for the checked-law reduction kernel: xlang `reduce` takes an owned
+/* Driver for the checked-law reduction kernel: whitefoot `reduce` takes an owned
    buffer ({ptr,i64} by value: x0=ptr, x1=len on arm64) and returns u64. */
 #include <stdio.h>
 #include <stdlib.h>

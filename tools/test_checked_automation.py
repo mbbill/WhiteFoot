@@ -70,7 +70,7 @@ def manifest(*, mode="gate", facts=True, elide_bounds=False, approvals=None):
                 "variants": [
                     {
                         "name": "facts",
-                        "kind": "xlang",
+                        "kind": "whitefoot",
                         "source": PROMOTED_SOURCE,
                         "function": "encode",
                         "facts": facts,

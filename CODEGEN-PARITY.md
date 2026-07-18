@@ -46,7 +46,7 @@ facts-on report; they do not promote those cases.
 
 The initial coverage is deliberately small and high-signal:
 
-- exact backend opcode parity for one xlang/C/safe-Rust scalar kernel;
+- exact backend opcode parity for one whitefoot/C/safe-Rust scalar kernel;
 - the facts-on/off load-elimination, scoped-alias, and checked-law channels;
 - vector-width and trap parity on the real wc chunk classifier;
 - exact local proof accounting on the real base64 encoder;
@@ -61,8 +61,8 @@ runtime gate later only for a stable, dedicated benchmark host.
 
 ## Manifest vocabulary
 
-Each variant names a `kind` (`xlang`, `c`, or `rust`), source, optimization
-level, and optional function. xlang variants may disable the fact bundle with
+Each variant names a `kind` (`whitefoot`, `c`, or `rust`), source, optimization
+level, and optional function. whitefoot variants may disable the fact bundle with
 `"facts": false`; `"elide_bounds": true` is reserved for the explicitly
 labelled ceiling audit. Checks compare `variant.metric` to a literal or another
 variant. Supported operators are `eq`, `ne`, `lt`, `le`, `gt`, and `ge`.

@@ -476,7 +476,7 @@ def expected_power_law_classes() -> list[dict[str, str]]:
 
 def expected_benefit_partition_category_protocol() -> dict[str, Any]:
     return {
-        "schema": "xlang-dense-benefit-partition-categories-v1",
+        "schema": "whitefoot-dense-benefit-partition-categories-v1",
         "symbols": {
             "T": "all selected-branch timing cells",
             "L": "all selected-branch non-ZST memory cells",
@@ -1181,7 +1181,7 @@ def validate_stage_prerequisites(
     protocol = stats.get("stage_prerequisite_protocol")
     if (
         not isinstance(protocol, dict)
-        or protocol.get("schema") != "xlang-dense-stage-prerequisites-v1"
+        or protocol.get("schema") != "whitefoot-dense-stage-prerequisites-v1"
         or protocol.get("pipeline_stage_order")
         != ["REFERENCE_PILOT", "CANDIDATE_CONSTRUCTION", "CANDIDATE_FREEZE_B"]
         or protocol.get("side_stages") != ["DESCRIPTIVE_COUNTER_REPORT"]
@@ -1245,7 +1245,7 @@ def validate_statistics(
     branches: list[dict[str, str]],
     matrix: list[dict[str, str]],
 ) -> None:
-    if stats.get("schema") != "xlang-dense-performance-statistics-v5":
+    if stats.get("schema") != "whitefoot-dense-performance-statistics-v5":
         fail("statistics schema is not v5")
     if stats["candidate_construction_authorized"] is not False:
         fail("statistics authorizes construction")
@@ -1520,7 +1520,7 @@ def validate_statistics(
         "law_n120_sha256",
     ]
     if (
-        law_protocol["schema"] != "xlang-dense-power-law-key-manifest-v1"
+        law_protocol["schema"] != "whitefoot-dense-power-law-key-manifest-v1"
         or law_protocol["key_count_formula"] != "5*T+3*M"
         or law_protocol["key_identity_fields"] != expected_law_identity_fields
         or len(law_protocol["key_identity_fields"])
@@ -1559,7 +1559,7 @@ def validate_statistics(
         ],
     }
     if (
-        task_protocol["schema"] != "xlang-dense-power-task-manifest-v1"
+        task_protocol["schema"] != "whitefoot-dense-power-task-manifest-v1"
         or task_protocol["identity_fields"] != expected_task_identity_fields
         or len(task_protocol["identity_fields"])
         != len(set(task_protocol["identity_fields"]))
@@ -1579,7 +1579,7 @@ def validate_statistics(
         fail("benefit partition category algebra changed")
     verify_benefit_category_algebra()
     expected_engine_authority = {
-        "schema": "xlang-dense-power-engine-protocol-authority-v1",
+        "schema": "whitefoot-dense-power-engine-protocol-authority-v1",
         "method": "EXACT_REFERENCE_EMPIRICAL_DP_NO_MONTE_CARLO",
         "scheduled_mixture_tail_protocol_sha256": registry.digest_value(
             estimand["scheduled_mixture_tail_protocol"]
@@ -1990,7 +1990,7 @@ def verify_source_pins() -> None:
 def verify_summary() -> None:
     summary = read_json("summary")
     if (
-        summary["schema"] != "xlang-dense-performance-registry-summary-v5"
+        summary["schema"] != "whitefoot-dense-performance-registry-summary-v5"
         or summary["candidate_construction_authorized"] is not False
         or summary["exact_contract_count"] != 303
         or summary["operation_gate_count"] != 97

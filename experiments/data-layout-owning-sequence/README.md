@@ -3,9 +3,9 @@
 This experiment asks two questions that are separate unless the selected initializer
 requires a builder:
 
-1. can xlang store a flat record in a fixed buffer without changing the
+1. ca whitefoot store a flat record in a fixed buffer without changing the
    performance or semantics of existing primitive buffers and SoA programs?
-2. can xlang express an affine, initialized-prefix owning sequence without
+2. ca whitefoot express an affine, initialized-prefix owning sequence without
    adding initialization, growth, drop, or alias overhead to the no-grow hot
    path?
 

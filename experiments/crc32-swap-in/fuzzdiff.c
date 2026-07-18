@@ -1,4 +1,4 @@
-/* Bit-identical fuzz-diff: xlang crc32 vs the system zlib, random buffers,
+/* Bit-identical fuzz-diff: whitefoot crc32 vs the system zlib, random buffers,
    random incremental chaining splits. */
 #include <stdio.h>
 #include <stdlib.h>

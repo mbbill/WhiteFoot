@@ -3,7 +3,7 @@
 Status: **complete directional pilot; stop after this run**
 
 This directory answers one practical question: do ordinary, popular Rust
-projects contain enough optimization shapes relevant to current xlang to
+projects contain enough optimization shapes relevant to current whitefoot to
 justify moving on? It is disposable research tooling, not a general Rust
 analyzer, a preregistered population study, or a source of precise prevalence
 estimates.
@@ -53,17 +53,17 @@ and output JSON live under `/tmp` or the ignored `work/` directory.
 
 ```sh
 curl -fsSL \
-  -A 'xlang-frequency-pilot/1.0 (+https://github.com/mbbill/xlang)' \
-  -o /tmp/xlang-source-ranking.json \
+  -A 'whitefoot-frequency-pilot/1.0 (+https://github.com/mbbill/whitefoot)' \
+  -o /tmp/whitefoot-source-ranking.json \
   'https://crates.io/api/v1/crates?page=1&per_page=100&sort=downloads'
 
 curl -fsSL \
-  -A 'xlang-frequency-pilot/1.0 (+https://github.com/mbbill/xlang)' \
-  -o /tmp/xlang-app-ranking.json \
+  -A 'whitefoot-frequency-pilot/1.0 (+https://github.com/mbbill/whitefoot)' \
+  -o /tmp/whitefoot-app-ranking.json \
   'https://crates.io/api/v1/crates?page=1&per_page=100&sort=downloads&category=command-line-utilities'
 
 python3 -B experiments/frequency-study/pilot.py \
-  /tmp/xlang-source-ranking.json \
+  /tmp/whitefoot-source-ranking.json \
   --limit 30 --min-loc 1000 --fetch --trust-crates-io \
   --reassociation-command \
     'cargo run --quiet --offline --locked --manifest-path experiments/frequency-study/reassociation/Cargo.toml --' \
@@ -71,7 +71,7 @@ python3 -B experiments/frequency-study/pilot.py \
   --output experiments/frequency-study/work/source30.json
 
 python3 -B experiments/frequency-study/pilot.py \
-  /tmp/xlang-app-ranking.json \
+  /tmp/whitefoot-app-ranking.json \
   --limit 12 --min-loc 1000 --require-bin --fetch --trust-crates-io \
   --reassociation-command \
     'cargo run --quiet --offline --locked --manifest-path experiments/frequency-study/reassociation/Cargo.toml --' \
@@ -101,7 +101,7 @@ python3 -B experiments/frequency-study/effect-attrs/classify_ir.py \
 
 The source audit inspected all high-signal index and alias records, rejecting
 test/generated code, already expert-safe shapes, unrelated alias relationships,
-and cases current xlang cannot express or annotate. Application candidates were
+and cases current whitefoot cannot express or annotate. Application candidates were
 audited again rather than promoted automatically. Three buildable libraries
 (`comrak`, `inferno`, and `crc`) received a small optimized-IR follow-up.
 

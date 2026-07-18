@@ -114,7 +114,7 @@ therefore measures record use sites and materialization rather than extrapolatin
 from tag size.
 
 The declarative arm is not selected by Rust analogy. Its experimental ground is
-the xlang-specific fail-closed omission direction and reuse of one current Copy
+the whitefoot-specific fail-closed omission direction and reuse of one current Copy
 judgment. The opposing evidence is non-Rust as well: Swift's noncopyable-value
 work shows that an all-scalar representation need not be semantically
 duplicable, while Move separates storage ability from copy ability. D3 remains
@@ -246,7 +246,7 @@ unchanged-source identity lane.
 
 The only added declaration spelling is:
 
-```xlang
+```whitefoot
 copyable struct TokenRow {
     kind: TokenKind;
     start: u64;
@@ -256,7 +256,7 @@ copyable struct TokenRow {
 
 The experiment reserves the currently collision-free candidate word `copyable`
 and inserts it immediately before `struct`. Lock A repeats the collision census
-over every frozen xlang source; a collision requires owner review of a new
+over every frozen whitefoot source; a collision requires owner review of a new
 spelling rather than renaming baseline code. The marker names the checked
 duplicability invariant and deliberately does not reuse Rust's `Copy` token.
 There is no inferred Copy record, negative `affine` marker, call-site copy
@@ -339,7 +339,7 @@ buffer_build_finish<T>(own buffer_builder<T>) -> own buffer<T>
 
 The canonical calls are positional operation-table calls:
 
-```xlang
+```whitefoot
 let builder: own buffer_builder<TokenRow> =
   buffer_build_new<TokenRow>(capacity);
 region 'push {
@@ -444,7 +444,7 @@ must pass its exact-byte reviews before any candidate code exists.
 
 ## 5. Pre-implementation corpus census
 
-Before candidate code, freeze a repository corpus containing production xlang
+Before candidate code, freeze a repository corpus containing production whitefoot
 sources, the current xlc unit, and the two completed first-green default-floor
 artifacts. Tests written to exercise a proposed route are excluded from
 prevalence counts.
@@ -470,7 +470,7 @@ fixture, but it is not prevalence evidence and cannot by itself reject
 `DECLARATIVE_COPY`. A nominal-affinity result becomes a decision gate only if the
 owner identifies and freezes a real project requirement before either candidate
 is implemented. The lock must state the required invariant and why ordinary
-affinity is part of the task contract. Current closed-unit xlang has no private
+affinity is part of the task contract. Current closed-unit whitefoot has no private
 constructor or module boundary, so this lane may claim only that one issued value
 cannot be duplicated after construction; it may not claim that fresh values are
 unforgeable.

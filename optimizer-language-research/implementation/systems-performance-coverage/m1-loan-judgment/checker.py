@@ -1,4 +1,4 @@
-"""M1 reference checker for xlang's loan/freeze judgment.
+"""M1 reference checker for whitefoot's loan/freeze judgment.
 
 Implements EXACTLY the 15 merged rules and the machine spec in
 ../m1extract/machine_spec.md. One syntax-directed pass over an explicit AST

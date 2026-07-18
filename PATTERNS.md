@@ -1,4 +1,4 @@
-# xlang Pattern Doctrine (D6)
+# whitefoot Pattern Doctrine (D6)
 
 Status: seeded 2026-07-09; normative once ratified. The language forces a
 closed pattern vocabulary at the architecture level, exactly as the kernel
@@ -32,7 +32,7 @@ Problem: many homogeneous-ish nodes with cross-references (AST, graph, ECS).
 Pattern: one struct of parallel `buffer<T>` columns plus a count; a node is a
 `u64` index; construction appends (`push` through `&uniq`); indices never
 recycle; the whole pool drops at once. Reference:
-`archive/m3/submissions/reference/xlang/arena_ast_builder.xl`.
+`archive/m3/submissions/reference/whitefoot/arena_ast_builder.xl`.
 Fast because: contiguous per-field columns (cache, vectorization), and the
 borrowed-SoA shape is exactly what channel 1's scoped-alias facts optimize;
 no per-node allocation, headers, or refcounts.

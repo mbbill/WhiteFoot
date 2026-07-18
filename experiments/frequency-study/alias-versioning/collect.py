@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
 CALIBRATION_SOURCE = REPO_ROOT / "experiments/scoped-alias-channel/rust_kernels.rs"
 EXPECTED_CALIBRATION_LOOPS = 2
-SCHEMA = "xlang.alias-versioning-calibration.v1"
+SCHEMA = "whitefoot.alias-versioning-calibration.v1"
 EXPECTED_CALIBRATION_FINGERPRINT = {
     "raw_vector_memcheck_block_count": 2,
     "validated_alias_versioned_loop_count": 2,
@@ -488,7 +488,7 @@ def calibration_report(rustc: str = "rustc") -> dict[str, object]:
         "debuginfo=line-tables-only",
         "--emit=llvm-ir",
     ]
-    with tempfile.TemporaryDirectory(prefix="xlang-alias-versioning-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-alias-versioning-") as temporary:
         ir_path = Path(temporary) / "calibration.ll"
         command = [*compile_args, "-o", str(ir_path), str(CALIBRATION_SOURCE)]
         completed = subprocess.run(

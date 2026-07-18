@@ -99,15 +99,15 @@ AUTHORED_TEXT = [
     "tools/verify_g0_core.py",
     "tools/build_g0_manifest.py",
     "canaries/README.md",
-    "canaries/xlang_behavior_receiver_effects.rs",
-    "canaries/xlang_buildhasher_root_swap.rs",
-    "canaries/xlang_buildhasher_transfer.rs",
-    "canaries/xlang_clone_helper_source_effects.rs",
-    "canaries/xlang_clone_source_effects.rs",
-    "canaries/xlang_repeat_n_source_effects.rs",
-    "canaries/xlang_range_step_stable_entrances.rs",
-    "canaries/xlang_range_step_ascii_char_rejected.rs",
-    "canaries/xlang_range_step_downstream_impl_rejected.rs",
+    "canaries/whitefoot_behavior_receiver_effects.rs",
+    "canaries/whitefoot_buildhasher_root_swap.rs",
+    "canaries/whitefoot_buildhasher_transfer.rs",
+    "canaries/whitefoot_clone_helper_source_effects.rs",
+    "canaries/whitefoot_clone_source_effects.rs",
+    "canaries/whitefoot_repeat_n_source_effects.rs",
+    "canaries/whitefoot_range_step_stable_entrances.rs",
+    "canaries/whitefoot_range_step_ascii_char_rejected.rs",
+    "canaries/whitefoot_range_step_downstream_impl_rejected.rs",
 ]
 
 
@@ -1340,7 +1340,7 @@ def verify_g0_non_importability() -> None:
         "report": (ROOT / "G0-CORE-REPORT.md").read_text(encoding="utf-8"),
         "template": (ROOT / "FAMILY-LOCK-A-TEMPLATE.md").read_text(encoding="utf-8"),
         "plan": (REPO / "THE-PLAN.md").read_text(encoding="utf-8"),
-        "design memory": (REPO / "mcts_mem/xlang.md").read_text(encoding="utf-8"),
+        "design memory": (REPO / "mcts_mem/whitefoot.md").read_text(encoding="utf-8"),
     }
     normalized = {name: re.sub(r"\s+", " ", text) for name, text in artifacts.items()}
     required = {
@@ -1484,7 +1484,7 @@ def verify_report_accounting() -> None:
     unsafe_map_fragments = {
         "`RUST-DATA-UNSAFE-EVIDENCE-MAP.tsv`",
         "all 35 canonical stable-unsafe data-floor declarations",
-        "Every unsafe route terminates in one of eight `RAW-UNSAFE-*` evidence clusters and admits no xlang surface",
+        "Every unsafe route terminates in one of eight `RAW-UNSAFE-*` evidence clusters and admits no whitefoot surface",
     }
     missing_unsafe_map = sorted(
         fragment for fragment in unsafe_map_fragments if fragment not in normalized_report
@@ -1673,7 +1673,7 @@ def verify_manifest() -> None:
     if not MANIFEST.is_file():
         fail("missing G0-CORE-ARTIFACT-MANIFEST.json")
     payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    if payload.get("schema") != "xlang-g0-core-artifact-manifest-v1":
+    if payload.get("schema") != "whitefoot-g0-core-artifact-manifest-v1":
         fail("unexpected exact-artifact manifest schema")
     if payload.get("rust_release") != "1.97.0":
         fail("unexpected exact-artifact Rust release")

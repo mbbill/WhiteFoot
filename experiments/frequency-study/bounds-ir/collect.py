@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-SCHEMA = "xlang.bounds-ir-candidates.v1"
+SCHEMA = "whitefoot.bounds-ir-candidates.v1"
 CLASSIFICATION = "heuristic-surviving-bounds-candidate"
 
 _DEFINE_RE = re.compile(r"^\s*define\b")

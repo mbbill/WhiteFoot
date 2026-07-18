@@ -12,10 +12,10 @@ harness, scored trace, or production authorization.
 ## 1. Claim being tested
 
 Rust's standard library is a finite demand anchor, not a generativity proof.
-Passing only Rust-shaped containers could mean that xlang or a privileged
+Passing only Rust-shaped containers could mean that whitefoot or a privileged
 standard library prebuilt those exact types. The stronger detailed claim is:
 
-> Ordinary no-unsafe xlang libraries can implement the registered sequential,
+> Ordinary no-unsafe whitefoot libraries can implement the registered sequential,
 > unique-owner collection and topology contracts efficiently through the same
 > public checked mechanisms available to unrelated libraries.
 
@@ -103,7 +103,7 @@ named-container-only result.
 | W-GRAPH | W | Frozen CSR has O(V+E) storage and contiguous edge scans. Dynamic form has stable non-reviving node/edge identities, O(1) lookup, O(local degree) node removal including incident edges, unrelated-handle stability, and O(1) known-neighbor handle-based splice/rewire. | A pool alone does not test referential integrity, cascading mutation, or multi-node repair. Handle-based rewiring is the safe analogue under the current pin/intrusive deferral. | `K-SCALAR`, `FAM-DENSE`, `W-POOL`, `ST-DEPENDENT`, `OW-MOVEOUT`, `OW-REPLACE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `BR-CURSOR`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `ID-LOGICAL`, `ID-FRESH`, `ID-POOL`, `FT-STATE`, `FT-IDENTITY`, `AB-SEAL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ` |
 | W-ECS | W | Two or three fixed archetypes suffice. Entity identity remains stable while adding/removing a component migrates aligned affine columns; swap-removal repairs the displaced entity's reverse location; column scans remain contiguous; no per-entity allocation; failure duplicates or loses no payload. | Existing append-only compiler SoA does not test atomic movement across several aligned buffers plus reverse-index repair. | `K-SCALAR`, `FAM-DENSE`, `W-POOL`, `ST-DENSE`, `ST-DEPENDENT`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-SWAP`, `OW-RELOCATE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `ID-LOGICAL`, `ID-FRESH`, `FT-STATE`, `FT-IDENTITY`, `AB-SEAL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ` |
 | W-GAP | W | Logical sequence content is independent of gap position; shared indexed observation returns an owner-tied borrow; insert/delete at the gap are amortized O(1); moving the gap is O(distance); the hole is never readable or droppable as T; growth and recoverable failure preserve the old logical sequence. Use bytes and affine records, not Unicode semantics. | Separates a simultaneous initialized prefix and suffix from a one-prefix owner or arbitrary sparse bitmap, and prices direct bulk movement. | `K-SCALAR`, `ST-DENSE`, `ST-HOLE`, `OW-INIT`, `OW-MOVEOUT`, `OW-RELOCATE`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-INVALIDATE`, `FL-CAPACITY`, `FL-ALLOC`, `FL-ATOMIC`, `FT-STATE`, `AB-SEAL`, `AB-GENERIC`, `F-ALLOC` |
-| W-PIPE | W | An ordinary external library composes lazy sources, nested stateful transform/select adapters, a two-input adapter, and an early-stop or recoverable-error consumer over shared, unique, and owning affine inputs. Output order, callback order/count, progress, and exhaustion are exact. Every retained callable environment, separate State, and cached or queued Item in this witness is region-free and borrow-free; callbacks may observe call-scoped input borrows but may not retain them. Every early stop, error, and permitted abandonment leaves borrows valid and disposes each consumed and remaining owner exactly once. Every non-lending unique Item is disjoint from all still-live sibling Items. The affine cursor preserves an exact field/branch/epoch provenance map across moves: chain branches and zip fields retain their corresponding sources; shared inputs may use the same owner; the unique-input case uses separate owners and overlapping unique sources are rejected. An already yielded external shared borrow may outlive adapter destruction while its source remains live. Any borrow-bearing callable environment, State, or cached Item is rejected as outside W-PIPE rather than silently authorized. Advisory size hints never authorize unchecked access or uninitialized reads. | Separates reusable traversal composition from one hand-written loop and tests whether xlang can derive a zero-materialization pipeline without copying Rust's trait surface. | `K-SCALAR`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `BR-CURSOR`, `OW-MOVEOUT`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `FL-CALLBACK`, `AB-BEHAVIOR`, `AB-STATEFUL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ`, `IT-OWN`, `IT-COMPOSE` |
+| W-PIPE | W | An ordinary external library composes lazy sources, nested stateful transform/select adapters, a two-input adapter, and an early-stop or recoverable-error consumer over shared, unique, and owning affine inputs. Output order, callback order/count, progress, and exhaustion are exact. Every retained callable environment, separate State, and cached or queued Item in this witness is region-free and borrow-free; callbacks may observe call-scoped input borrows but may not retain them. Every early stop, error, and permitted abandonment leaves borrows valid and disposes each consumed and remaining owner exactly once. Every non-lending unique Item is disjoint from all still-live sibling Items. The affine cursor preserves an exact field/branch/epoch provenance map across moves: chain branches and zip fields retain their corresponding sources; shared inputs may use the same owner; the unique-input case uses separate owners and overlapping unique sources are rejected. An already yielded external shared borrow may outlive adapter destruction while its source remains live. Any borrow-bearing callable environment, State, or cached Item is rejected as outside W-PIPE rather than silently authorized. Advisory size hints never authorize unchecked access or uninitialized reads. | Separates reusable traversal composition from one hand-written loop and tests whether whitefoot can derive a zero-materialization pipeline without copying Rust's trait surface. | `K-SCALAR`, `BR-PROV`, `BR-REBORROW`, `BR-RESULT`, `BR-DISJOINT`, `BR-INVALIDATE`, `BR-CURSOR`, `OW-MOVEOUT`, `OW-DROP`, `EX-NORMAL`, `EX-ABANDON`, `EX-ABORT`, `FL-CALLBACK`, `AB-BEHAVIOR`, `AB-STATEFUL`, `AB-GENERIC`, `IT-SHARED`, `IT-UNIQ`, `IT-OWN`, `IT-COMPOSE` |
 
 W-ARENA is homogeneous: one arena instantiation and owner store one fixed `T`.
 The lock-frozen maximum aligned footprint of `T` selects the route for that
@@ -116,7 +116,7 @@ this witness budget.
 W-PIPE's structural gate rejects every intermediate collection, adapter heap
 allocation, per-element allocation, indirect behavior call, stronger-than-
 O(depth) live adapter state, and avoidable second source pass. It compares the
-ordinary-library composition with a hand-fused xlang loop and the equivalent
+ordinary-library composition with a hand-fused whitefoot loop and the equivalent
 idiomatic Rust 1.97.0 pipeline under matched callbacks and inputs. Code-size
 growth from monomorphization remains a charged output rather than a hidden
 cost.
@@ -290,7 +290,7 @@ freezes exact IR and machine-code byte ceilings before scoring.
   known-neighbor rewiring is required now; it does not claim address pinning.
 - **O-LAZY-DRAIN:** the lazy partially consumed form remains optional unless a
   family promotes it. Eager drain/compaction remains mandatory. The lazy form
-  cannot inherit correctness from Rust's `Drop` guards without an xlang exit
+  cannot inherit correctness from Rust's `Drop` guards without a whitefoot exit
   proof.
 
 ## 4. Exact held-out contracts
@@ -510,7 +510,7 @@ substitute for H-STORE.
 
 Every W and H witness must satisfy all of the following:
 
-1. Compile as an ordinary external xlang library with the same compiler
+1. Compile as an ordinary external whitefoot library with the same compiler
    artifact and public capability set used for unrelated programs.
 2. Import only its frozen dependency allowlist. No privileged module, hidden
    intrinsic, container-specific opcode, unchecked payload access, or
@@ -527,7 +527,7 @@ Every W and H witness must satisfy all of the following:
 
 A standard-library implementation may serve as a reviewed witness of API
 sealing, but it cannot alone close W or H. This gate is the difference between
-"xlang ships useful containers" and "ordinary libraries can build an unseen
+"whitefoot ships useful containers" and "ordinary libraries can build an unseen
 efficient structure."
 
 ## 6. Holdout custody and rotation

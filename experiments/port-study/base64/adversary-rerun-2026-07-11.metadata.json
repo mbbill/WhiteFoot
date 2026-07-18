@@ -12,7 +12,7 @@
       "-C codegen-units=1",
       "-C panic=abort"
     ],
-    "xlang_ir": "democ.compile_program(default facts; asserted 27 proved, 0 retained)"
+    "whitefoot_ir": "democ.compile_program(default facts; asserted 27 proved, 0 retained)"
   },
   "generated_at": "2026-07-11T15:05:04.649507-07:00",
   "git_commit": "adf2e3ebaf03277aa09690f64224de2265456aa8",

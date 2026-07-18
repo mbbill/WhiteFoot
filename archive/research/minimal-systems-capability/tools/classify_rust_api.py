@@ -1042,7 +1042,7 @@ def surface_evidence(
     if row["item_kind"] in {"macro", "keyword", "derive", "attr", "mod"}:
         return (
             "rust_surface_only",
-            "the Rust namespace or source spelling is evidence for an underlying need, not an xlang surface",
+            "the Rust namespace or source spelling is evidence for an underlying need, not a whitefoot surface",
         )
     if surface_route is not None and surface_route.route_kind == "redundant_surface":
         return (
@@ -1051,7 +1051,7 @@ def surface_evidence(
         )
     return (
         "safe_contract_anchor",
-        "the safe Rust declaration supplies caller-contract evidence without selecting xlang admission",
+        "the safe Rust declaration supplies caller-contract evidence without selecting whitefoot admission",
     )
 
 

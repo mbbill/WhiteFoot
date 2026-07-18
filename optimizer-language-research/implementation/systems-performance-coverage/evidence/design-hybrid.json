@@ -145,7 +145,7 @@
   {
    "name": "extern-C boundary records",
    "kind": "builtin-TCB (trusted-record mechanism)",
-   "contract": "An extern declaration names a C function with its ABI signature, repr(C) layouts, and a stated ownership/aliasing/lifetime contract per parameter (in/out/borrowed, pointer+len pairs from views, who frees); declarations live only in toolchain-gated, human-approved trusted record files \u2014 ordinary source cannot introduce them (no writer-suppliable trust); calls compile to a bare ABI call. Out-calls only (D4); xlang-called-from-C and callback in-calls are deferred.",
+   "contract": "An extern declaration names a C function with its ABI signature, repr(C) layouts, and a stated ownership/aliasing/lifetime contract per parameter (in/out/borrowed, pointer+len pairs from views, who frees); declarations live only in toolchain-gated, human-approved trusted record files \u2014 ordinary source cannot introduce them (no writer-suppliable trust); calls compile to a bare ABI call. Out-calls only (D4); whitefoot-called-from-C and callback in-calls are deferred.",
    "perf_mechanism": "The machine shape is identical to a C-to-C call (~1-2 ns: ABI registers, no pinning, no stack switch, no marshaling) \u2014 cgo's ~40-60 ns is the explicit anti-target; buffers cross as pointer+len derived from views with zero copies because layout is bit-compatible by the repr(C) rule.",
    "source_shape": "// in approved.trust: extern c fn BLAS_dgemm(a: cptr<f64> borrowed(len=an), ...) effects(io) ... // in source: BLAS_dgemm(av.as_cptr(), ...)"
   },
@@ -159,7 +159,7 @@
   {
    "name": "runtime allocator (not writer-facing)",
    "kind": "builtin-TCB",
-   "contract": "The single global allocator behind box/vec/map/pool/arena chunks: alloc/free/realloc any size from any thread, cross-thread free, size-class + per-thread heaps; writers never call it directly and cannot replace it from ordinary source. Authoring a NEW allocator in checked xlang is out of scope by design (its internals are the canonical type-changing-reuse shape).",
+   "contract": "The single global allocator behind box/vec/map/pool/arena chunks: alloc/free/realloc any size from any thread, cross-thread free, size-class + per-thread heaps; writers never call it directly and cannot replace it from ordinary source. Authoring a NEW allocator in checked whitefoot is out of scope by design (its internals are the canonical type-changing-reuse shape).",
    "perf_mechanism": "mimalloc-class internals: TLS heap, size-class free-list push/pop ~10-20 instructions, zero atomics on the fast path, batched remote frees \u2014 ~15-25 ns alloc+free pair and larson-class scaling; sealing it lets every container above inherit SOTA allocation without any writer-visible unsafety.",
    "source_shape": "(invisible: let b: box<T> = box.new(v); v.push(x); \u2014 all routed through it)"
   }
@@ -317,7 +317,7 @@
   {
    "scenario": "General-purpose allocator fast path (mimalloc/jemalloc class)",
    "verdict": "PAR",
-   "how": "n=1 sealed runtime allocator with mimalloc-class internals (TLS heaps, size-class freelists, batched remote frees, ~15-25 ns pair); all containers route through it invisibly. Honest residue stated: AUTHORING a new allocator in checked xlang is out of scope by design \u2014 its internals are the canonical type-changing-reuse shape and stay TCB."
+   "how": "n=1 sealed runtime allocator with mimalloc-class internals (TLS heaps, size-class freelists, batched remote frees, ~15-25 ns pair); all containers route through it invisibly. Honest residue stated: AUTHORING a new allocator in checked whitefoot is out of scope by design \u2014 its internals are the canonical type-changing-reuse shape and stay TCB."
   },
   {
    "scenario": "Arena / bump allocation with scope-lifetime free",
@@ -427,7 +427,7 @@
   {
    "scenario": "FFI call boundary (calling and being called by C)",
    "verdict": "PARTIAL",
-   "how": "Out-calls: PAR \u2014 bare ABI calls (~1-2 ns), repr(C) layouts, pointer+len from views, declarations confined to toolchain-gated human-approved trusted records with stated ownership contracts (the containment discipline the map demands). MISSING: C-calls-xlang entry points and long-lived callback registration \u2014 deferred; hot-loop out-call workloads (BLAS, codecs) are fully served, plugin-ABI hosting is not yet."
+   "how": "Out-calls: PAR \u2014 bare ABI calls (~1-2 ns), repr(C) layouts, pointer+len from views, declarations confined to toolchain-gated human-approved trusted records with stated ownership contracts (the containment discipline the map demands). MISSING: C-calls-whitefoot entry points and long-lived callback registration \u2014 deferred; hot-loop out-call workloads (BLAS, codecs) are fully served, plugin-ABI hosting is not yet."
   },
   {
    "scenario": "Process and OS services: spawn, time, entropy, signals",
@@ -451,7 +451,7 @@
  ],
  "first_experiments": [
   "EXP-1 (sealed associative par): implement the sealed map kernel (SwissTable internals, affine-token entry API) plus the checked foldhash-class default hasher; run the locked workload \u2014 1M uniform-random u64->u64, DRAM-resident, measuring lookup-hit ns/op, insert-with-growth amortized ns/op, and a get-or-insert counter loop via the entry token \u2014 against hashbrown 0.15+foldhash on the same host, same allocator class. PASS: all three within 1.10x of hashbrown. FAIL: any metric >1.25x, or the entry-token API cannot express one-probe get-or-insert (design fault, not tuning fault). Between bands: one rerun after fixing identified mechanical issues, then verdict. No tuning of the protocol from its result.",
-  "EXP-2 (checked-source SIMD par): write memchr (find-first, rare-needle) as CHECKED xlang source over the SIMD core: dispatch(avx2) kernel, 32B compares + movemask + tzcnt, margin-covered tail, requires-prologue hoisting the per-block bounds checks; verify by report that zero bounds checks remain in the main loop, then benchmark 16KB and 1MB random haystacks plus <=16B short inputs against memchr crate 2.7. PASS: >=0.85x memchr's GB/s on both long-haystack sizes AND <=2.0x its ns on short inputs AND the elision report confirms all main-loop checks discharged (not weakened \u2014 discharged). FAIL: <0.70x bulk throughput, or any main-loop check surviving undischarged while claiming the number.",
+  "EXP-2 (checked-source SIMD par): write memchr (find-first, rare-needle) as CHECKED whitefoot source over the SIMD core: dispatch(avx2) kernel, 32B compares + movemask + tzcnt, margin-covered tail, requires-prologue hoisting the per-block bounds checks; verify by report that zero bounds checks remain in the main loop, then benchmark 16KB and 1MB random haystacks plus <=16B short inputs against memchr crate 2.7. PASS: >=0.85x memchr's GB/s on both long-haystack sizes AND <=2.0x its ns on short inputs AND the elision report confirms all main-loop checks discharged (not weakened \u2014 discharged). FAIL: <0.70x bulk throughput, or any main-loop check surviving undischarged while claiming the number.",
   "EXP-3 (margin-buffer codec bet \u2014 the riskiest delta): implement an LZ4-block decompressor as checked source: output vec<u8> with margin 32, wild copies as margined 32B vector stores, overlapping matches via the defined copy_within, input as validated margin bytes with amortized cursor checks; benchmark single-core GB/s on the Silesia corpus against LZ4 1.9 reference decode, with malformed-input fuzzing (must error, never trap mid-buffer into corrupt state, never expose margin bytes). PASS: >=0.75x LZ4 1.9 GB/s with all fuzz properties holding. FAIL: <0.60x, or any fuzz property violation \u2014 preregistered consequence of FAIL: the margin delta is retained only if EXP-2 needed it for tails, and codecs move to sealed TCB kernels; the coverage row stays PARTIAL and says so."
  ]
 }

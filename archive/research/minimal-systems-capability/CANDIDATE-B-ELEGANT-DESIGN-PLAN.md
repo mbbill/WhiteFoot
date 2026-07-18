@@ -148,7 +148,7 @@ For every operation, record:
     code-shape requirement, or asymptotic change that would violate the route.
 
 Unknown source behavior stays `UNKNOWN`. Unsafe source code reveals an
-obligation; it does not transfer authority into xlang.
+obligation; it does not transfer authority into whitefoot.
 
 ## 6. Required definition for each alternative
 
@@ -285,7 +285,7 @@ This plan does not authorize:
 - a formal safety model, mechanized proof, prototype, candidate construction,
   execution, generated-code inspection, benchmark, measurement, or AI trial;
 - implementing mimalloc, SQLite, Crossbeam, Hashbrown, or any reclamation
-  policy in xlang;
+  policy in whitefoot;
 - Stage 2 of the Candidate C plan; or
 - selecting a production design.
 

@@ -174,7 +174,7 @@ Candidate A or Candidate C.
 
 ## 6. Important boundaries
 
-1. Unsafe source reveals an obligation; it does not justify an unchecked xlang
+1. Unsafe source reveals an obligation; it does not justify an unchecked whitefoot
    primitive.
 2. SQLite's B-tree logical correctness and crash consistency remain ordinary
    library properties. The language must make memory, owner, protocol, and

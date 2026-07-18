@@ -1,7 +1,7 @@
 # Rust 1.97.0 Data-Contract Census
 
 Status: manual semantic coverage and obligation clustering, 2026-07-14. This census selects
-no xlang syntax, storage representation, privileged transition, standard
+no whitefoot syntax, storage representation, privileged transition, standard
 container, optimizer fact, or production mechanism.
 
 ## Scope and provenance
@@ -28,7 +28,7 @@ cluster count.
 one exact primary refinement family or gate plus predecessor-family,
 predecessor-gate, and implicated/reopening targets under a closed classifier.
 That routing establishes applicability only; it does not turn a concrete
-implementation into an exact xlang member contract or a closed family result.
+implementation into an exact whitefoot member contract or a closed family result.
 For the four cross-family trait-operation clusters, topology alone is not the
 complete applicability authority. Evidence-universe policy v3 composes each
 concrete topology row with the closed owning-cluster operation-gate assignment
@@ -290,20 +290,20 @@ stored-borrow payload branch until a later safe fill/seal transition establishes
 a live `T`.
 
 `implementation_privilege_evidence` records what Rust uses or exposes; it is
-not a proposed xlang mechanism. In particular, safe Rust surfaces may rely on
+not a proposed whitefoot mechanism. In particular, safe Rust surfaces may rely on
 raw relocation, private uninitialized or sparse state, guard `Drop`, and unsafe
 reconstruction. A safe call that exports a pointer, `MaybeUninit`, or a leak
 obligation is classified separately from an ordinary safe-library derivation.
 
 The failure/destruction column preserves Rust panic-unwind behavior where that
 behavior is part of the source contract or implementation pressure. It is not
-silently imported into xlang. The derivation matrix translates a Rust unwind
-edge through current EFF-4: an xlang trap aborts without cleanup or a
+silently imported into whitefoot. The derivation matrix translates a Rust unwind
+edge through current EFF-4: a whitefoot trap aborts without cleanup or a
 recoverable post-state, while still forbidding an invalid read, double drop, or
 other undefined behavior before abort. Normal callback errors, early returns,
 and other non-trap exits retain their exact ownership and destruction duties.
 
-## Current-xlang status
+## Current-whitefoot status
 
 The status vocabulary is inherited from the owner-reviewed capability report:
 
@@ -318,7 +318,7 @@ The status vocabulary is inherited from the owner-reviewed capability report:
 
 Statuses are deliberately cluster-local screens. They describe whether the
 whole coarse envelope has a plausible current route; they do not authorize an
-exact member contract, experiment, or family closure. Current xlang directly supports
+exact member contract, experiment, or family closure. Current whitefoot directly supports
 checked metadata/index operations and some in-place operations for fixed,
 fully initialized Copy buffers; that does not promote a growable affine
 sequence contract. The measured append-only SoA pool remains a protected P
@@ -332,14 +332,14 @@ language.
 
 1. Lazy `drain`, `splice`, extraction, mutable heap peek, and dynamic-borrow
    guards are cleanup protocols, not iterator convenience. Rust repairs private
-   transient state in `Drop`; xlang cannot rely on a writer remembering a
+   transient state in `Drop`; whitefoot cannot rely on a writer remembering a
    `finish` call or on an affine token that may be abandoned.
 2. Rust's stable recoverable allocation surface is incomplete. Ten stable
    `try_reserve` methods cover six families, but `TryReserveError::kind` remains
    unstable, most fallible constructors remain unstable, and ordinary
    allocating methods may enter the divergent OOM handler. Capacity overflow,
    allocator failure, OOM, input ownership, and rollback therefore need an
-   independent xlang contract.
+   independent whitefoot contract.
 3. Sparse metadata and dynamic borrow flags are optimizer fact channels. A
    control byte or borrow flag authorizes payload access only while every
    mutation and invalidation rule preserves the relation. Green functional
@@ -352,7 +352,7 @@ language.
    oracle. Rust std omits generational pools, graphs, LRU caches, indexed
    priority queues, inline-small sequences, ropes, and other required
    generativity witnesses, while its safe library implementation has raw and
-   destructor privileges unavailable to an ordinary xlang library.
+   destructor privileges unavailable to an ordinary whitefoot library.
 6. Stable iteration is a composition contract, not just loop syntax. Lazy
    producers, adapters, and consumers must compose as direct monomorphized
    cursor state without an intermediate collection or per-item allocation;
@@ -375,7 +375,7 @@ language.
    authority, user `Clone`, generic callback, or behavior-effect relation.
    Half-open and inclusive stepping checks order before successor computation;
    inclusive iteration yields the maximum endpoint once without computing
-   `max + 1`. The unbounded route yields its maximum once, then xlang's next
+   `max + 1`. The unbounded route yields its maximum once, then whitefoot's next
    demanded step traps before cursor mutation and never wraps. The source anchor
    is Rust commit `2d8144b7880597b6e6d3dfd63a9a9efae3f533d3`, with
    `library/core/src/iter/range.rs` SHA-256

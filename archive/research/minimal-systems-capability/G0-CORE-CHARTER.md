@@ -8,7 +8,7 @@ run, or default teaching change.
 
 ## 1. Research question
 
-xlang is intended to be a general-purpose systems language. It may ship no
+whitefoot is intended to be a general-purpose systems language. It may ship no
 standard library, and it need not reproduce Rust's named types or APIs. It must,
 however, let checked ordinary libraries derive the everyday capabilities that a
 systems-language standard library provides, with competitive asymptotic and
@@ -18,7 +18,7 @@ compiler privilege.
 The research question is therefore:
 
 > What Pareto-small set of checked storage, ownership, lifetime, behavior,
-> boundary, and proof capabilities lets ordinary xlang libraries derive the
+> boundary, and proof capabilities lets ordinary whitefoot libraries derive the
 > required systems contracts efficiently while preserving the protected
 > zero-tax paths?
 
@@ -43,7 +43,7 @@ The primary completeness anchor is the stable public library surface of Rust
 
 Rust supplies a finite, independently maintained list of caller needs. It is
 not a design oracle. Rust names, traits, `Deref`, `Drop`, unsafe implementation
-techniques, and concrete representations are evidence, not defaults for xlang.
+techniques, and concrete representations are evidence, not defaults for whitefoot.
 The census extracts observable contracts: results and order, ownership and
 invalidation, failure and destruction, complexity, contiguity and address or
 identity guarantees, iteration and range behavior, allocation and memory
@@ -52,7 +52,7 @@ ceilings, behavior parameters, concurrency semantics, and platform boundaries.
 Stable safe caller operations form the primary contract anchor. Stable unsafe
 operations, nightly APIs, and unsafe standard-library implementation code are
 recorded separately as evidence of implementation requirements or privileged
-boundaries; they are never treated as an acceptable xlang surface merely
+boundaries; they are never treated as an acceptable whitefoot surface merely
 because Rust exposes or uses them.
 
 ## 3. Completeness accounting
@@ -329,7 +329,7 @@ because the G0 cluster groups them.
 An exact family operation contract is covered only when its Family Lock ledger
 contains all of the following:
 
-- an ordinary checked xlang library sketch using only an explicit dependency
+- an ordinary checked whitefoot library sketch using only an explicit dependency
   allowlist;
 - a normal-exit ownership and exact-destruction argument, including early
   return, checked failure, partial construction, and abandoned affine state;
@@ -371,7 +371,7 @@ G0-Core freezes two required controls:
 1. **same-shape attribution:** match algorithm, representation, capacity policy,
    allocator, payload, and trace against Rust where possible; compare facts on
    and off and count structural operations before timing; and
-2. **end-to-end contract comparison:** compare the selected canonical xlang
+2. **end-to-end contract comparison:** compare the selected canonical whitefoot
    route with the unmodified idiomatic Rust 1.97.0 standard-library route under
    the same observable contract.
 
@@ -395,7 +395,7 @@ G0-Core is complete only when the repository contains:
 5. a capability-basis registry separating caller contracts from candidate
    language mechanisms;
 6. a coarse cluster-to-capability derivation screen with gaps, structural-cost
-   envelopes, fact channels, and xlang evidence;
+   envelopes, fact channels, and whitefoot evidence;
 7. an exact per-cluster stored-borrow classification and generated
    cluster/branch overlay for every restricted base route;
 8. generated complete cluster evidence-key, cluster-to-family/gate, and exact

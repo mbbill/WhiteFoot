@@ -1,4 +1,4 @@
-// Shape-isolating control: the EXACT xlang algorithm (bottom-up levels,
+// Shape-isolating control: the EXACT whitefoot algorithm (bottom-up levels,
 // preallocated columns, manual count) written in Rust.
 struct Pool { l: Vec<u64>, r: Vec<u64>, cnt: usize }
 

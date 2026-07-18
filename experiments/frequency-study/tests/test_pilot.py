@@ -191,7 +191,7 @@ class PilotTests(unittest.TestCase):
             signals = result["projects"][0]["source_signals"]
             self.assertEqual(signals["candidate_count"], len(signals["records"]))
             self.assertEqual(signals["record_count"], len(signals["records"]))
-            self.assertEqual(signals["report"]["schema"], "xlang.frequency-study.pilot-signals.v1")
+            self.assertEqual(signals["report"]["schema"], "whitefoot.frequency-study.pilot-signals.v1")
             self.assertEqual(
                 result["summary"]["source_signals"]["records"], len(signals["records"])
             )

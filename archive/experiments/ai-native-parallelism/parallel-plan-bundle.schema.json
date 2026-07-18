@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xlang.local/schemas/parallel-plan-bundle.schema.json",
-  "title": "xlang AI-native parallel plan bundle",
+  "$id": "https://whitefoot.local/schemas/parallel-plan-bundle.schema.json",
+  "title": "whitefoot AI-native parallel plan bundle",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -33,7 +33,7 @@
         },
         "language": {
           "type": "string",
-          "enum": ["xlang", "rust", "pseudo"]
+          "enum": ["whitefoot", "rust", "pseudo"]
         },
         "source": {
           "type": "string",
@@ -175,7 +175,7 @@
         },
         "language": {
           "type": "string",
-          "enum": ["xlang", "rust", "pseudo"]
+          "enum": ["whitefoot", "rust", "pseudo"]
         },
         "source": {
           "type": "string",

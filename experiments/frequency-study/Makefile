@@ -1,6 +1,6 @@
 PYTHON ?= python3
 CARGO ?= cargo
-CARGO_TARGET_DIR ?= /tmp/xlang-frequency-reassociation-target
+CARGO_TARGET_DIR ?= /tmp/whitefoot-frequency-reassociation-target
 
 .PHONY: check pilot bounds alias effect reassociation clean
 

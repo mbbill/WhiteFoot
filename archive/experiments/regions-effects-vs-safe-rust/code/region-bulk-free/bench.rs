@@ -73,7 +73,7 @@ mod boxed {
 
 // ---------------------------------------------------------------------------
 // VERSION 2: BEST-EFFORT SAFE RUST — bumpalo arena, bulk reset (no per-node
-// free, no per-node drop glue). This is the adversary trying to tie xlang.
+// free, no per-node drop glue). This is the adversary trying to tie whitefoot.
 // Uses `reset()` to reuse the region across trees within a batch, then the
 // Bump is dropped once at batch end (single bulk free of the chunks).
 // ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ mod bump {
 }
 
 // ---------------------------------------------------------------------------
-// VERSION 3: XLANG-EQUIVALENT CEILING — what xlang's region+effect optimizer
+// VERSION 3: WHITEFOOT-EQUIVALENT CEILING — what whitefoot's region+effect optimizer
 // would emit automatically. A monomorphic bump arena over a Vec<Expr> pool:
 // nodes are POD (no Drop glue, region-local per the effect system), the whole
 // region is a contiguous Vec, and "free" is truncating the Vec (bulk, O(1),
@@ -215,7 +215,7 @@ fn main() {
     let a = bench("2 SAFE bumpalo (reset)", expect, || {
         bump::run_batch(DEPTH, TREES, seed)
     });
-    let r = bench("3 XLANG region (Vec pool)", expect, || {
+    let r = bench("3 WHITEFOOT region (Vec pool)", expect, || {
         region::run_batch(DEPTH, TREES, seed)
     });
 

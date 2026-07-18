@@ -60,7 +60,7 @@ prototype/democ/examples/*
 !prototype/democ/examples/*.xl
 !prototype/democ/examples/*.ll
 !prototype/democ/examples/*.md
-m3/submissions/reference/xlang/*
-!m3/submissions/reference/xlang/*.xl
-!m3/submissions/reference/xlang/*.ll
-!m3/submissions/reference/xlang/*.md
+m3/submissions/reference/whitefoot/*
+!m3/submissions/reference/whitefoot/*.xl
+!m3/submissions/reference/whitefoot/*.ll
+!m3/submissions/reference/whitefoot/*.md

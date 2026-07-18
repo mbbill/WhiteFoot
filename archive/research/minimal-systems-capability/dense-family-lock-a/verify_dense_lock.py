@@ -73,7 +73,7 @@ def verify_manifest() -> dict[str, object]:
         or manifest.get("family_name") != closure.FAMILY_NAME
         or manifest.get("lock_revision") != closure.LOCK_REVISION
         or manifest.get("schema")
-        != "xlang-dense-family-lock-a-closure-manifest-v4"
+        != "whitefoot-dense-family-lock-a-closure-manifest-v4"
     ):
         fail("lock identity or revision changed")
     if (
@@ -407,7 +407,7 @@ def verify_reference_pilot_stage_order() -> None:
         "CANDIDATE_FREEZE_B",
     ]
     if (
-        protocol.get("schema") != "xlang-dense-stage-prerequisites-v1"
+        protocol.get("schema") != "whitefoot-dense-stage-prerequisites-v1"
         or protocol.get("pipeline_stage_order") != stage_order
         or protocol.get("side_stages") != ["DESCRIPTIVE_COUNTER_REPORT"]
         or "transitively blocks every later" not in protocol.get(

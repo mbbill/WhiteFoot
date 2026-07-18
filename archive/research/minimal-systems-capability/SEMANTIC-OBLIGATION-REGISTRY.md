@@ -10,8 +10,8 @@ capability basis.
 
 The external source anchor is Rust 1.97.0, release tag `1.97.0`, peeled source
 commit `2d8144b7880597b6e6d3dfd63a9a9efae3f533d3`. Rust supplies finite caller
-needs and implementation witnesses, not default xlang mechanisms. The local
-xlang authority remains `CONSTITUTION.md`, D10-D12 in
+needs and implementation witnesses, not default whitefoot mechanisms. The local
+whitefoot authority remains `CONSTITUTION.md`, D10-D12 in
 `optimizer-language-research/notes/user-directives.md`, and the current
 specification. A conflict with those sources reopens this registry.
 
@@ -161,13 +161,13 @@ family's resource-accounting contract. Proof of the success path alone is not
 coverage.
 
 Deliberate resource-abandonment rows classified `BOUNDARY` do not instantiate
-this ordinary xlang law. `RAW-SAFE-LEAK-01` is the exact current exception: it
+this ordinary whitefoot law. `RAW-SAFE-LEAK-01` is the exact current exception: it
 records external demand for a separately gated process-lifetime transfer and is
 not an admissible ordinary cleanup mechanism.
 
 ### G-5: Affinity is not completion
 
-An affine value cannot be duplicated, but current xlang affinity permits it to
+An affine value cannot be duplicated, but current whitefoot affinity permits it to
 be abandoned. Therefore an affine cursor, guard, or rebuild token is not a
 must-finish proof. A candidate that requires completion must do one of the
 following and price that choice explicitly:
@@ -427,11 +427,11 @@ must erase.
 ## 5. Separating Rust 1.97.0 witnesses
 
 These source witnesses establish independent obligations. They do not select
-Rust's unsafe implementation techniques for xlang.
+Rust's unsafe implementation techniques for whitefoot.
 
 | Witness | Exact source evidence | Separating result |
 |---|---|---|
-| `MaybeUninit<T>` and partial arrays | [`maybe_uninit.rs` validity invariant](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L7-L16), [invalid-byte rules](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L42-L93), [partial-array accounting](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L119-L164), and [`write_iter` guard](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L1385-L1405) | Invalid bytes are not `T`; partial construction needs a live-count proof and exact partial drop. `MaybeUninit` is implementation evidence, not an admissible xlang writer surface. |
+| `MaybeUninit<T>` and partial arrays | [`maybe_uninit.rs` validity invariant](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L7-L16), [invalid-byte rules](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L42-L93), [partial-array accounting](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L119-L164), and [`write_iter` guard](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/maybe_uninit.rs#L1385-L1405) | Invalid bytes are not `T`; partial construction needs a live-count proof and exact partial drop. `MaybeUninit` is implementation evidence, not an admissible whitefoot writer surface. |
 | Array `IntoIter<T, N>` | [Public iterator construction and destruction, including the `needs_drop` gate](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/array/iter.rs#L54-L338) and [private live-interval invariant and transitions](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/array/iter/iter_inner.rs#L34-L256) | A sealed `[front, back)` interval is the exact live set; both exteriors are dead. Front/back move-out invalidates the previous interval fact. Destruction performs exactly `back-front` drops for drop-bearing `T`, while a statically no-drop `T` emits no scan or partial-drop code. This requires checked hole/live-state, invalidation, exact drop, and sealed fact authority, but no per-slot bitmap. |
 | `Vec<T>` | [`vec/mod.rs` representation guarantees](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L303-L410), [`push`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L1035-L1049), [`set_len`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L2138-L2222), and [`pop`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L2843-L2852) | Optimal growable affine sequence requires spare capacity that is not `T`, ordered state updates, move-out, relocation, and failure preservation. A fully initialized buffer cannot derive this contract for arbitrary `T` without dummy construction or hidden requirements. |
 | `Vec::Drain` | [`Drain` creation commits a shortened base vector](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/mod.rs#L2942-L3003) and [`Drain::drop` repairs the tail](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/vec/drain.rs#L173-L220) | Partial consumption exposes the difference between an always-valid base owner, cleanup/liveness restoration, and a must-finish protocol. |
@@ -440,13 +440,13 @@ Rust's unsafe implementation techniques for xlang.
 | `Iterator::Item` and `next` | [Rust 1.97.0 non-lending iterator signature](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/iter/traits/iterator.rs#L42-L78) | Ordinary yielded references carry pre-existing external provenance and may outlive adapter destruction. Receiver-bounded `peek`, `peek_mut`, and `by_ref` results are a separate reborrow layer; adapter state cannot be treated as the provenance of every `Item`. Multiple live unique yielded siblings additionally require proved disjointness, including when a consumer retains them in an accumulator, candidate, or destination. |
 | `VecDeque<T>` | [`VecDeque` ring representation](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/vec_deque/mod.rs#L75-L116) | A wrapped live set of at most two intervals is neither one prefix nor optimally represented by arbitrary per-slot occupancy. |
 | `BTreeMap<K,V>` nodes | [`node.rs` invariants and layout](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/btree/node.rs#L1-L93), [`split`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/btree/node.rs#L1221-L1307), and [`merge`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/btree/node.rs#L1392-L1454) | One node has dependent prefixes of `n` keys, `n` values, and `n+1` edges; split and merge require source/destination transition proofs across allocations. |
-| `hashbrown` raw table used by `std::collections::HashMap` | Rust 1.97 pins `hashbrown` 0.17.1; exact source commit [`c62a63a...`, table and control state](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L557-L580), [`prepare_insert_index`](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L1907-L1919), and [`set_ctrl`](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L2564-L2595) | Sparse control state authorizes payload access. Split control/payload mutation is a temporal unsafe obligation in Rust and must become one checked transition or an unforgeable relation in xlang. |
+| `hashbrown` raw table used by `std::collections::HashMap` | Rust 1.97 pins `hashbrown` 0.17.1; exact source commit [`c62a63a...`, table and control state](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L557-L580), [`prepare_insert_index`](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L1907-L1919), and [`set_ctrl`](https://github.com/rust-lang/hashbrown/blob/c62a63a61b7caf2de8f9ecb7b06a66b0ab6bdf3d/src/raw.rs#L2564-L2595) | Sparse control state authorizes payload access. Split control/payload mutation is a temporal unsafe obligation in Rust and must become one checked transition or an unforgeable relation in whitefoot. |
 | `String` | [`String` is a `Vec<u8>` plus an always-valid UTF-8 invariant](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/string.rs#L114-L117), [`from_utf8`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/string.rs#L515-L573), and unchecked-construction consequences at [lines 993-1005](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/string.rs#L993-L1005) | Live-byte topology does not imply a semantic refinement. Validation/sealing and boundary-preserving mutation are separate obligations. |
 | `Rc<T>` and `Weak<T>` | [`RcInner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L285-L289), [`new_cyclic_in`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L870-L910), [`try_unwrap`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L1054-L1067), [`get_mut` and the three `make_mut` branches](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L1935-L2132), and [`Weak::upgrade`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/rc.rs#L3545-L3558) | Payload-live and allocation-live are distinct states. `make_mut` mutates in place when uniquely strong with no external weak owner, dissociates weak handles by relocating under weak-only sharing, and performs arbitrary `CloneToUninit` work under strong sharing; `get_mut(None)` makes no destructive transition. The `Rc` path must charge its own strong/weak count loads and branches, while unrelated statically unique-owner structures pay no reference-count tax. OOM is the divergent OP-9 edge and a clone trap is an EFF-4 edge, not a recoverable `FL-ATOMIC` contract. |
 | `Arc<T>` and atomic weak ownership | [`ArcInner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L388-L397), [`Arc::clone`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L2399-L2432), [`Arc` destruction](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L2827-L2875), and [`Weak::upgrade`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/sync.rs#L3276-L3304) | Shared lifecycle becomes a synchronization proof: atomic memory order must publish initialization, prevent resurrection from zero, and order last-owner destruction. Unique-owner results cannot be generalized to concurrency. |
 | `Pin<T>` and intrusive structures | [`pin.rs` address-stability contract](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/pin.rs#L1-L28) and [drop guarantee](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/pin.rs#L513-L586) | Logical identity across relocation is weaker than a stable address plus notification before storage reuse. |
 | `RefCell<T>` owner and guards | [`RefCell` state](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L844-L858), [`new` and `into_inner`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L971-L1000), [`get_mut`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1310-L1335), guard release at [lines 1552-1603](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1552-L1603), shared [`map_split`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1750-L1792), mutable [`filter_map`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1875-L1920) and [`map_split`](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1967-L2007), and leaked-guard behavior at [lines 1814-1821](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/cell.rs#L1814-L1821) | Owner `new`, consuming `into_inner`, unique `get_mut`, and ordinary destruction require exact initialize/move-out/drop accounting. `RefMut::filter_map(None)` returns the original guard with callback mutation retained, so it is not `FL-ATOMIC`. Mutable split consumes its input and creates two member-scoped disjoint unique guards without a parent reborrow; shared split outputs may overlap. Guard bookkeeping provenance may differ from the mapped referent's storage provenance when the callback returns captured external storage. Memory safety can survive guard abandonment while usability is permanently lost, so safety, exact cleanup, and liveness remain separate choices. |
-| `mem::forget` and `ManuallyDrop<T>` | [`mem::forget` safety rationale](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/mod.rs#L73-L170) and [`ManuallyDrop` validity and derived-behavior hazards](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/manually_drop.rs#L8-L149) | Rust unsafe code may not rely on destructor execution, and derived behaviors must not inspect dead fields. xlang may deliberately require stronger exact normal-exit cleanup, but that is an explicit xlang law, not an inference from Rust. |
+| `mem::forget` and `ManuallyDrop<T>` | [`mem::forget` safety rationale](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/mod.rs#L73-L170) and [`ManuallyDrop` validity and derived-behavior hazards](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/core/src/mem/manually_drop.rs#L8-L149) | Rust unsafe code may not rely on destructor execution, and derived behaviors must not inspect dead fields. whitefoot may deliberately require stronger exact normal-exit cleanup, but that is an explicit whitefoot law, not an inference from Rust. |
 | `LinkedList<T>` | [`LinkedList` node topology](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/linked_list.rs#L50-L65) and [cursor operations](https://github.com/rust-lang/rust/blob/2d8144b7880597b6e6d3dfd63a9a9efae3f533d3/library/alloc/src/collections/linked_list.rs#L573-L610) | Doubly linked mutation combines stable nodes, non-owning links, multi-place access, deallocation, and cursor validity; unique recursive ownership alone does not cover it. |
 
 These witnesses establish at least four independent lower bounds:
@@ -460,7 +460,7 @@ These witnesses establish at least four independent lower bounds:
 4. identity, refinements, shared lifecycle, and address stability are
    independent of live-slot topology.
 
-## 6. Current xlang evidence and gaps
+## 6. Current whitefoot evidence and gaps
 
 This table records current evidence, not intended future semantics.
 
@@ -503,16 +503,16 @@ Three policies must not be conflated:
 
 - **memory safety:** abandonment cannot expose invalid memory;
 - **resource exactness:** normal exits release or transfer every owned resource
-  according to the frozen xlang contract; and
+  according to the frozen whitefoot contract; and
 - **continued usability:** abandonment may or may not restore capacity, unlock a
   logical borrow, or preserve every element.
 
 Rust permits safe resource leaks and permanently leaked `RefCell` borrow state;
-xlang's current STOR-3 instead intends compiler-derived exact normal-exit
+whitefoot's current STOR-3 instead intends compiler-derived exact normal-exit
 destruction. A family must state which usability guarantees accompany that
 stronger resource rule. It may not derive them merely from the word `affine`.
 The deliberate-leak contract remains classified `BOUNDARY`: it records an
-external need but does not instantiate ordinary xlang normal-exit or
+external need but does not instantiate ordinary whitefoot normal-exit or
 exact-destruction semantics.
 
 ## 8. Fact-channel registry schema
@@ -561,7 +561,7 @@ need for exact scope and invalidation: [Stacked Borrows](https://plv.mpi-sws.org
 models alias provenance needed by optimizations, while
 [Alive2](https://web.ist.utl.pt/nuno.lopes/pubs.php?id=alive2-pldi21) found
 optimizer errors through formal refinement checking. Neither source authorizes
-a particular xlang model.
+a particular whitefoot model.
 
 ## 9. Candidate proof and derivability criteria
 
@@ -637,7 +637,7 @@ shows that initialized, dead, and maybe-dead states can be represented in a
 formally safe core. [Vault](https://www.microsoft.com/en-us/research/wp-content/uploads/2001/05/pldi01.pdf)
 shows why exact-use keys and typestate are relevant when affinity does not
 guarantee protocol completion. These are proof techniques and mechanism
-evidence, not xlang selections.
+evidence, not whitefoot selections.
 
 [GhostCell](https://plv.mpi-sws.org/rustbelt/ghostcell/paper.pdf) demonstrates
 zero-runtime-cost separation of data and permission through generative brands
@@ -716,7 +716,7 @@ of the following:
 - a required proof dimension is absent or two recorded dimensions are not
   actually orthogonal;
 - a new stable caller contract or held-out topology separates the current laws;
-- a current xlang rule changes ownership, drop, trap, failure, borrow, or fact
+- a current whitefoot rule changes ownership, drop, trap, failure, borrow, or fact
   behavior relied on here;
 - a proposed mechanism exposes state or privilege spanning unlocked families;
 - a deferred domain becomes a dependency of an earlier family;
@@ -735,7 +735,7 @@ This registry does not establish:
 - that the proof dimensions require the same number of language primitives;
 - that dense, ring, sparse, and nested live sets require distinct public types;
 - that Rust's `MaybeUninit`, destructors, traits, pointers, or unsafe internals
-  are acceptable xlang mechanisms;
+  are acceptable whitefoot mechanisms;
 - that structural typestate, a checked storage object, a linear transaction,
   generative brands, or high-level atomic operations will win Family Lock A;
 - that generational handles are the only recyclable identity design;
@@ -744,6 +744,6 @@ This registry does not establish:
   pinning, resources, async cancellation, complete text, allocators, or target
   intrinsics;
 - that xlc should replace its fixed SoA tapes;
-- that any family is closed, implementable in current xlang, performance-
+- that any family is closed, implementable in current whitefoot, performance-
   optimal, or production-authorized; or
 - that G0-Core completion authorizes anything beyond the next owner review.

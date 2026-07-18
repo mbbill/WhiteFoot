@@ -42,7 +42,7 @@ PROHIBITED_DIRECT_USES = (
     "CAPABILITY_INHERITANCE;COST_INHERITANCE;FAMILY_LOCK_IMPORT;"
     "CANDIDATE_CONSTRUCTION;SCORED_EXPERIMENT;FAMILY_E;FAMILY_P"
 )
-POLICY_VERSION = "xlang-g0-coverage-cluster-policy-v1"
+POLICY_VERSION = "whitefoot-g0-coverage-cluster-policy-v1"
 
 
 def fail(message: str) -> None:

@@ -14,17 +14,17 @@ CANARY_ROOT = ROOT / "canaries"
 EXPECTED_VERSION = "rustc 1.97.0 (2d8144b78 2026-07-07)"
 EXPECTED_COMMIT = "2d8144b7880597b6e6d3dfd63a9a9efae3f533d3"
 POSITIVE = {
-    "xlang_range_step_stable_entrances.rs":
+    "whitefoot_range_step_stable_entrances.rs":
         "99a7243215ed384b2ba7fa0890bddbf3c05463e2c2b293552bda2f637da9208d",
 }
 NEGATIVE = {
-    "xlang_range_step_ascii_char_rejected.rs": {
+    "whitefoot_range_step_ascii_char_rejected.rs": {
         "source_sha256": "a98c1a8c266b173c219127931f44f7c170076127252310886e04440d8465437b",
         "diagnostic_sha256": "b1f432d1a91a1990bdba1d121664649a898cb5119322bc45af54ce7215c01f31",
         "predicate": "error[E0658]: use of unstable library feature `ascii_char`",
         "count": 3,
     },
-    "xlang_range_step_downstream_impl_rejected.rs": {
+    "whitefoot_range_step_downstream_impl_rejected.rs": {
         "source_sha256": "aa9f46fa6f2aea5a850cf569f7f87867cca4d197c9f221ea083e4830b06171ce",
         "diagnostic_sha256": "a55b984ed695332c1b2ffdcfafbe20d0fa632403a2f9e7cddfc6fdd017a96733",
         "predicate": "error[E0658]: use of unstable library feature `step_trait`",
@@ -80,7 +80,7 @@ def verify_hashes() -> None:
 
 
 def compile_canaries() -> None:
-    with tempfile.TemporaryDirectory(prefix="xlang-trait-impl-canaries-") as directory:
+    with tempfile.TemporaryDirectory(prefix="whitefoot-trait-impl-canaries-") as directory:
         output_root = Path(directory)
         for name in POSITIVE:
             output = output_root / Path(name).stem

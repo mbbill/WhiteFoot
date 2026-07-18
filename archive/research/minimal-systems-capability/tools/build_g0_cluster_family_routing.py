@@ -39,7 +39,7 @@ CENSUS_FIELDS = [
     "layout_identity_order",
     "behavior_parameter",
     "implementation_privilege_evidence",
-    "xlang_current_status",
+    "whitefoot_current_status",
     "required_obligations",
     "source_refs",
 ]
@@ -130,7 +130,7 @@ FIELDS = [
 ]
 
 ROUTE_STATES = ("ACTIVE", "SCOPED_LATER", "BOUNDARY", "PROTECTED", "DELEGATED")
-POLICY_VERSION = "xlang-g0-cluster-family-routing-v1"
+POLICY_VERSION = "whitefoot-g0-cluster-family-routing-v1"
 ROUTING_BASIS = (
     "EXPLICIT_PRIMARY_REFINEMENT_MAP_PLUS_EXACT_CAPABILITY_DIMENSION_AND_"
     "PAYLOAD_SCOPE_DIMENSION_MAPS_PLUS_EXACT_TRAIT_IMPL_TYPED_TOPOLOGY_ROUTES"

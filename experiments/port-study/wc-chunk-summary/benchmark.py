@@ -10,8 +10,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 TIME = re.compile(r"best_ns=(\d+)")
 VARIANTS = (
-    ("xlang-facts", HERE / "xchunkwc_facts"),
-    ("xlang-no-facts", HERE / "xchunkwc_nofacts"),
+    ("whitefoot-facts", HERE / "xchunkwc_facts"),
+    ("whitefoot-no-facts", HERE / "xchunkwc_nofacts"),
     ("C-control", HERE / "c_chunk_wc"),
     ("Rust-safe", HERE / "rust_chunk_wc"),
 )

@@ -2,11 +2,11 @@
 
 **Make-or-break R0 evidence. Headline: mostly NO.** Four kernels — the canonical cases where
 regions/effects should shine — with a safe-Rust adversary (rayon/bumpalo/iterators/fat-LTO, no
-`unsafe`) trying to reach the xlang-equivalent ceiling. Apple M4, rustc 1.91.1 `-C opt-level=3
-lto=fat`, clang 21. Method: natural safe Rust baseline → best-effort safe Rust → xlang-equivalent
+`unsafe`) trying to reach the whitefoot-equivalent ceiling. Apple M4, rustc 1.91.1 `-C opt-level=3
+lto=fat`, clang 21. Method: natural safe Rust baseline → best-effort safe Rust → whitefoot-equivalent
 ceiling; the residual best-effort-safe can't close = the structural win.
 
-| Kernel | Verdict | best-effort safe Rust vs xlang ceiling |
+| Kernel | Verdict | best-effort safe Rust vs whitefoot ceiling |
 |---|---|---|
 | Interprocedural pure-call LICM/CSE/DCE (across dylib) | **AUTOMATION** | 0% — bit-identical asm |
 | Region bulk-free vs per-node Drop | **AUTOMATION** | 0% — safe u32-index pool ties; bumpalo within 21% |
@@ -28,15 +28,15 @@ best-effort *safe* Rust also captures — not gaps safe Rust structurally fails 
 **Bottom line.** No general "regions+effects beat safe Rust on performance" claim survives. Three
 of four probes are parity-with-effort; the lone structural residual is 1.1–1.5× on a niche kernel.
 Combined with the already-conceded weak W1 (LLMs write Rust well) and marginal W3 (safe Rust + CI),
-**the raw-performance case for xlang as a general-purpose Rust competitor is not supported by this
+**the raw-performance case for whitefoot as a general-purpose Rust competitor is not supported by this
 evidence.**
 
 **The one surviving thread** is *shift-left/automation*, which is the project's actual stated goal
-(AI codegen + performance): xlang makes the *naive* form the *fast* form (auto-hoist across a dylib
+(AI codegen + performance): whitefoot makes the *naive* form the *fast* form (auto-hoist across a dylib
 LTO can't reach; auto bulk-free from a plain owned tree; auto-fuse from separate signatures), so
 code reaching for the obvious shape doesn't eat the 3–12,500× footguns. Real and AI-relevant — but
 undercut by "a good model writes the fast Rust form anyway," and only evaluable with the unbuilt M3
-AI-codegen harness (does an AI writer actually produce correct+fast code more reliably in xlang
+AI-codegen harness (does an AI writer actually produce correct+fast code more reliably in whitefoot
 than in Rust?). That is a different, narrower thesis than "beat Rust on speed."
 
 Evidence: `scratchpad/reperf/{interproc-effects,auto-parallel-regions,region-bulk-free,pure-fusion}/`.

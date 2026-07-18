@@ -8,7 +8,7 @@ later stage require separate owner authorization.
 
 ## 1. Objective
 
-Determine whether a finite Candidate C family set lets ordinary checked xlang
+Determine whether a finite Candidate C family set lets ordinary checked whitefoot
 libraries express mature standard-library and high-performance systems
 mechanisms without writer-accessible unsafe, project-name recognition, or
 forced initialization, zeroing, copying, allocation, metadata, indirection,

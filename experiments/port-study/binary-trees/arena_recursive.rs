@@ -1,5 +1,5 @@
 // Expert Rust: index arena, recursive build via &mut reborrowing (the shape
-// xlang cannot express — no reborrow), u64 indices to match the xlang port.
+// whitefoot cannot express — no reborrow), u64 indices to match the whitefoot port.
 struct Pool { l: Vec<u64>, r: Vec<u64> }
 
 impl Pool {

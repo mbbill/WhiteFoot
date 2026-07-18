@@ -8,7 +8,7 @@ default teaching change, or external model disclosure.
 
 ## 0. Executive finding
 
-xlang has not yet established the data-structure capability floor required of a
+whitefoot has not yet established the data-structure capability floor required of a
 general-purpose systems language. The current language can efficiently express
 fixed, fully initialized buffers of Copy elements and the measured append-only
 struct-of-arrays pool pattern. It cannot currently express a general growable
@@ -132,7 +132,7 @@ operations remains X. A U must be measured into P or the family substrate must
 change. Unrelated unresolved families still block the complete-floor claim, not
 that local selection.
 
-## 3. Current xlang evidence
+## 3. Current whitefoot evidence
 
 ### 3.1 Specification boundary
 
@@ -539,7 +539,7 @@ standard-library API; other topology witnesses may remain ordinary libraries.
 
 This opacity does not reject same-typed wrong-pool handles; their narrower
 standing contract is preserved in Section 9. “Sealed” must not mean unchecked:
-the witness remains checked xlang over the kernel transitions above. It does not
+the witness remains checked whitefoot over the kernel transitions above. It does not
 receive a private raw-memory, uninitialized-tail, `set_len`, or
 unchecked-payload privilege that an ordinary checked abstraction could never
 obtain.
@@ -1020,14 +1020,14 @@ Primary external sources:
 Local evidence:
 
 - `CONSTITUTION.md` — R2/R3 and the P0/W1/W3 ordering.
-- `PATTERNS.md` and `mcts_mem/xlang/pattern-doctrine.md` — COMPLETE and EFFICIENT
+- `PATTERNS.md` and `mcts_mem/whitefoot/pattern-doctrine.md` — COMPLETE and EFFICIENT
   catalog tests.
 - `spec/kernel-spec-v0.6.md` — TYPE-2, OWN-1/5/6/7/11, STOR-1/3, FN-2/3/5.
-- `mcts_mem/xlang/data-model.md` — fixed buffer and append-only pool/handle
+- `mcts_mem/whitefoot/data-model.md` — fixed buffer and append-only pool/handle
   direction.
-- `mcts_mem/xlang/ownership/no-reborrow.md` — current restriction and recorded
+- `mcts_mem/whitefoot/ownership/no-reborrow.md` — current restriction and recorded
   relief directions.
-- `mcts_mem/xlang/toolchain.md` — fixed-capacity xlc as a bootstrap decision.
+- `mcts_mem/whitefoot/toolchain.md` — fixed-capacity xlc as a bootstrap decision.
 - `experiments/data-layout-owning-sequence/BASELINE.md` — xlc capacity and live
   prefix accounting.
 - `experiments/data-layout-owning-sequence/RESEARCH_REPORT.md` — AoS, Copy,

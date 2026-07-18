@@ -1,4 +1,4 @@
-// Opaque-boundary driver for the xlang scoped-alias kernel: builds the Cols
+// Opaque-boundary driver for the whitefoot scoped-alias kernel: builds the Cols
 // struct ({ptr,i64} x 8), times K calls of kernel(&s), prints ns/elem and a
 // checksum. Linked against kernel_{facts,nofacts}.ll with no LTO, so the
 // kernel sees only its declared parameter facts -- the channel under test.

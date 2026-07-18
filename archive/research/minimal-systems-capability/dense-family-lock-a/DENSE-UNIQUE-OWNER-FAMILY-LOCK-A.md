@@ -39,7 +39,7 @@ capability until a separate production-adoption decision closes it.
 
 ## 1. Owner result
 
-The dense unique-owner gap is real. Current xlang cannot let an ordinary
+The dense unique-owner gap is real. Current whitefoot cannot let an ordinary
 checked library implement a contiguous growable sequence of arbitrary
 region-free, borrow-free affine values with spare capacity, exact move-out,
 direct relocation, live-prefix destruction, and failure-atomic growth. The
@@ -65,7 +65,7 @@ and the authorized reference-only pilot closes as feasible.
 
 A later successful experiment may establish only this claim:
 
-> Ordinary no-unsafe xlang libraries can implement the frozen sequential,
+> Ordinary no-unsafe whitefoot libraries can implement the frozen sequential,
 > unique-owner dense-prefix contracts for region-free, borrow-free,
 > non-address-sensitive affine payloads with the frozen ownership, failure,
 > destruction, asymptotic, structural, and target-local performance bounds,
