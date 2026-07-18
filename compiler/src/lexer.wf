@@ -305,12 +305,12 @@ fn lexer_scan_op_suffix ['s] (source: &'s buffer<u8>, dot: own u64, size: own u6
       return dot;
     }
   }
-  let suffix_end: own u64 = lexer_scan_ident(source: source, start: suffix_start, size: size);
+  let suffix_end: own u64 = lexer_scan_ident<'s>(source: source, start: suffix_start, size: size);
   let length: own u64 = isub.wrap<u64>(suffix_end, suffix_start);
   let length3: own Bool = ieq<u64>(length, 3_u64);
   match length3 {
     True() => {
-      let sat_mode: own Bool = lexer_match3(source: source, start: suffix_start, a: 115_u8, b: 97_u8, c: 116_u8);
+      let sat_mode: own Bool = lexer_match3<'s>(source: source, start: suffix_start, a: 115_u8, b: 97_u8, c: 116_u8);
       match sat_mode {
         True() => {
           return suffix_end;
@@ -325,8 +325,8 @@ fn lexer_scan_op_suffix ['s] (source: &'s buffer<u8>, dot: own u64, size: own u6
   let length4: own Bool = ieq<u64>(length, 4_u64);
   match length4 {
     True() => {
-      let wrap_mode: own Bool = lexer_match4(source: source, start: suffix_start, a: 119_u8, b: 114_u8, c: 97_u8, d: 112_u8);
-      let trap_mode: own Bool = lexer_match4(source: source, start: suffix_start, a: 116_u8, b: 114_u8, c: 97_u8, d: 112_u8);
+      let wrap_mode: own Bool = lexer_match4<'s>(source: source, start: suffix_start, a: 119_u8, b: 114_u8, c: 97_u8, d: 112_u8);
+      let trap_mode: own Bool = lexer_match4<'s>(source: source, start: suffix_start, a: 116_u8, b: 114_u8, c: 97_u8, d: 112_u8);
       let valid: own Bool = bor<Bool>(wrap_mode, trap_mode);
       match valid {
         True() => {
@@ -342,7 +342,7 @@ fn lexer_scan_op_suffix ['s] (source: &'s buffer<u8>, dot: own u64, size: own u6
   let length6: own Bool = ieq<u64>(length, 6_u64);
   match length6 {
     True() => {
-      let strict_mode: own Bool = lexer_match6(source: source, start: suffix_start, a: 115_u8, b: 116_u8, c: 114_u8, d: 105_u8, e: 99_u8, f: 116_u8);
+      let strict_mode: own Bool = lexer_match6<'s>(source: source, start: suffix_start, a: 115_u8, b: 116_u8, c: 114_u8, d: 105_u8, e: 99_u8, f: 116_u8);
       match strict_mode {
         True() => {
           return suffix_end;
@@ -357,7 +357,7 @@ fn lexer_scan_op_suffix ['s] (source: &'s buffer<u8>, dot: own u64, size: own u6
   let length7: own Bool = ieq<u64>(length, 7_u64);
   match length7 {
     True() => {
-      let checked_mode: own Bool = lexer_match7(source: source, start: suffix_start, a: 99_u8, b: 104_u8, c: 101_u8, d: 99_u8, e: 107_u8, f: 101_u8, g: 100_u8);
+      let checked_mode: own Bool = lexer_match7<'s>(source: source, start: suffix_start, a: 99_u8, b: 104_u8, c: 101_u8, d: 99_u8, e: 107_u8, f: 101_u8, g: 100_u8);
       match checked_mode {
         True() => {
           return suffix_end;
@@ -384,7 +384,7 @@ fn lexer_scan_word ['s] (source: &'s buffer<u8>, base_end: own u64, size: own u6
   let dot: own Bool = ieq<u8>(byte, 46_u8);
   match dot {
     True() => {
-      return lexer_scan_op_suffix(source: source, dot: base_end, size: size);
+      return lexer_scan_op_suffix<'s>(source: source, dot: base_end, size: size);
     }
     False() => {
       return base_end;

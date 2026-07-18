@@ -386,15 +386,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 488
+    assert len(functions) == 489
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        488,
+        489,
         15,
-        473,
+        474,
         0,
         functions[14],
         AST_NONE,
@@ -985,9 +985,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        488,
+        489,
         15,
-        473,
+        474,
         0,
         top_level_functions(case)[14],
         AST_NONE,
@@ -1035,7 +1035,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 488 total / 15 clean / 473 unsupported / "
+        "semantic unit: compiler 489 total / 15 clean / 474 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, structural rename, real reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "

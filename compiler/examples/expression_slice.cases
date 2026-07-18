@@ -13,3 +13,5 @@ ParserNodeResult(node: value, next: 1_u64)	AstConstructor
 iadd.trap<u64>(left, right)	AstTableCall
 len<u64>(deref(out).heads)	AstTableCall
 parser_word2(source: source, token: token)	AstUserCall
+parser_word2<'s>(source: source, token: token)	AstUserCall
+copy_pair<'left, 'right>(left: x, right: y)	AstUserCall

@@ -578,14 +578,77 @@ fn parser_parse_named_call_v2 ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t 
   }
 
   let left_paren_cursor: own u64 = iadd.trap<u64>(cursor, 1_u64);
+  let region_capable: own Bool = parser_kind_at_is<'t>(tokens: tokens, token: cursor, want: 1_u64);
+  let left_angle: own Bool = parser_symbol_is<'s, 't>(source: source, tokens: tokens, token: left_paren_cursor, want: 60_u8);
+  let region_shape: own Bool = band<Bool>(region_capable, left_angle);
+  match region_shape {
+    True() => {
+      let region_cursor: own u64 = iadd.trap<u64>(left_paren_cursor, 1_u64);
+      loop @v2_named_regions {
+        let region_ok: own Bool = parser_kind_at_is<'t>(tokens: tokens, token: region_cursor, want: 4_u64);
+        match region_ok {
+          True() => {
+          }
+          False() => {
+            region 'v2_named_region_error {
+              let parse_expected_region_atom_0900: own ParseStatus = ParseExpectedRegion();
+              parser_fail<'t, 'v2_named_region_error>(tokens: tokens, out: &uniq 'v2_named_region_error deref(out), status: parse_expected_region_atom_0900, token: region_cursor);
+            }
+            return ParserNodeResult(node: ast_none, next: region_cursor);
+          }
+        }
+        let region_node: own u64 = ast_none;
+        region 'v2_named_region_alloc {
+          let ast_region_argument_atom_0901: own AstKind = AstRegionArgument();
+          set region_node = parser_push_token<'t, 'v2_named_region_alloc>(tokens: tokens, out: &uniq 'v2_named_region_alloc deref(out), kind: ast_region_argument_atom_0901, token: region_cursor);
+        }
+        match ieq<u64>(region_node, ast_none) {
+          True() => {
+            return ParserNodeResult(node: ast_none, next: region_cursor);
+          }
+          False() => {
+          }
+        }
+        region 'v2_named_region_attach {
+          parser_append_child<'v2_named_region_attach>(out: &uniq 'v2_named_region_attach deref(out), parent: call_node, child: region_node);
+        }
+
+        let separator_cursor: own u64 = iadd.trap<u64>(region_cursor, 1_u64);
+        let comma: own Bool = parser_symbol_is<'s, 't>(source: source, tokens: tokens, token: separator_cursor, want: 44_u8);
+        match comma {
+          True() => {
+            set region_cursor = iadd.trap<u64>(separator_cursor, 1_u64);
+          }
+          False() => {
+            let right_angle: own Bool = parser_symbol_is<'s, 't>(source: source, tokens: tokens, token: separator_cursor, want: 62_u8);
+            match right_angle {
+              True() => {
+                set left_paren_cursor = iadd.trap<u64>(separator_cursor, 1_u64);
+                break @v2_named_regions;
+              }
+              False() => {
+                region 'v2_named_right_angle_error {
+                  let parse_expected_right_angle_atom_0902: own ParseStatus = ParseExpectedRightAngle();
+                  parser_fail<'t, 'v2_named_right_angle_error>(tokens: tokens, out: &uniq 'v2_named_right_angle_error deref(out), status: parse_expected_right_angle_atom_0902, token: separator_cursor);
+                }
+                return ParserNodeResult(node: ast_none, next: separator_cursor);
+              }
+            }
+          }
+        }
+      }
+    }
+    False() => {
+    }
+  }
   let left_paren: own Bool = parser_symbol_is(source: source, tokens: tokens, token: left_paren_cursor, want: 40_u8);
   match left_paren {
     True() => {
     }
     False() => {
       region 'v2_named_left_paren_error {
-        let parse_expected_left_paren_atom_0197: own ParseStatus = ParseExpectedLeftParen();
-        parser_fail(tokens: tokens, out: &uniq 'v2_named_left_paren_error deref(out), status: parse_expected_left_paren_atom_0197, token: left_paren_cursor);
+        let parse_expected_left_paren_atom_0903: own ParseStatus = ParseExpectedLeftParen();
+        parser_fail(tokens: tokens, out: &uniq 'v2_named_left_paren_error deref(out), status: parse_expected_left_paren_atom_0903, token: left_paren_cursor);
       }
       return ParserNodeResult(node: ast_none, next: left_paren_cursor);
     }
@@ -750,6 +813,42 @@ fn parser_parse_table_call_v2 ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t 
   }
 
   let type_cursor: own u64 = iadd.trap<u64>(left_angle_cursor, 1_u64);
+  let v2_table_leading_region: own Bool = parser_kind_at_is<'t>(tokens: tokens, token: type_cursor, want: 4_u64);
+  match v2_table_leading_region {
+    True() => {
+      let v2_table_region_node: own u64 = ast_none;
+      region 'v2_table_region_alloc {
+        let ast_region_argument_atom_0911: own AstKind = AstRegionArgument();
+        set v2_table_region_node = parser_push_token<'t, 'v2_table_region_alloc>(tokens: tokens, out: &uniq 'v2_table_region_alloc deref(out), kind: ast_region_argument_atom_0911, token: type_cursor);
+      }
+      match ieq<u64>(v2_table_region_node, ast_none) {
+        True() => {
+          return ParserNodeResult(node: ast_none, next: type_cursor);
+        }
+        False() => {
+        }
+      }
+      region 'v2_table_region_attach {
+        parser_append_child<'v2_table_region_attach>(out: &uniq 'v2_table_region_attach deref(out), parent: call_node, child: v2_table_region_node);
+      }
+      let v2_table_region_comma_cursor: own u64 = iadd.trap<u64>(type_cursor, 1_u64);
+      let v2_table_region_comma: own Bool = parser_symbol_is<'s, 't>(source: source, tokens: tokens, token: v2_table_region_comma_cursor, want: 44_u8);
+      match v2_table_region_comma {
+        True() => {
+          set type_cursor = iadd.trap<u64>(v2_table_region_comma_cursor, 1_u64);
+        }
+        False() => {
+          region 'v2_table_region_comma_error {
+            let parse_expected_right_angle_atom_0912: own ParseStatus = ParseExpectedRightAngle();
+            parser_fail<'t, 'v2_table_region_comma_error>(tokens: tokens, out: &uniq 'v2_table_region_comma_error deref(out), status: parse_expected_right_angle_atom_0912, token: v2_table_region_comma_cursor);
+          }
+          return ParserNodeResult(node: ast_none, next: v2_table_region_comma_cursor);
+        }
+      }
+    }
+    False() => {
+    }
+  }
   let type_node: own u64 = ast_none;
   let type_next: own u64 = type_cursor;
   region 'v2_table_type_parse {
@@ -920,6 +1019,16 @@ fn parser_parse_expression_v2 ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t 
       let generic_shape: own Bool = parser_symbol_is(source: source, tokens: tokens, token: after_word, want: 60_u8);
       match generic_shape {
         True() => {
+          let v2_region_table_name: own Bool = parser_is_region_table_callee<'s, 't>(source: source, tokens: tokens, token: cursor);
+          match v2_region_table_name {
+            True() => {
+              region 'v2_region_table_expression {
+                return parser_parse_table_call_v2<'s, 't, 'v2_region_table_expression>(source: source, tokens: tokens, out: &uniq 'v2_region_table_expression deref(out), cursor: cursor);
+              }
+            }
+            False() => {
+            }
+          }
           let index_word: own Bool = parser_v2_word_is_index(source: source, tokens: tokens, token: cursor);
           match index_word {
             True() => {
@@ -928,8 +1037,22 @@ fn parser_parse_expression_v2 ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t 
               }
             }
             False() => {
-              region 'v2_word_table_expression {
-                return parser_parse_table_call_v2(source: source, tokens: tokens, out: &uniq 'v2_word_table_expression deref(out), cursor: cursor);
+              let first_generic_cursor: own u64 = iadd.trap<u64>(after_word, 1_u64);
+              let region_generic: own Bool = parser_kind_at_is<'t>(tokens: tokens, token: first_generic_cursor, want: 4_u64);
+              let empty_generic: own Bool = parser_symbol_is<'s, 't>(source: source, tokens: tokens, token: first_generic_cursor, want: 62_u8);
+              let region_call_shape: own Bool = bor<Bool>(region_generic, empty_generic);
+              match region_call_shape {
+                True() => {
+                  region 'v2_region_user_expression {
+                    let ast_user_call_atom_0904: own AstKind = AstUserCall();
+                    return parser_parse_named_call_v2<'s, 't, 'v2_region_user_expression>(source: source, tokens: tokens, out: &uniq 'v2_region_user_expression deref(out), cursor: cursor, kind: ast_user_call_atom_0904);
+                  }
+                }
+                False() => {
+                  region 'v2_word_table_expression {
+                    return parser_parse_table_call_v2(source: source, tokens: tokens, out: &uniq 'v2_word_table_expression deref(out), cursor: cursor);
+                  }
+                }
               }
             }
           }

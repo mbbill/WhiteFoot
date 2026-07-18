@@ -34,6 +34,7 @@ INT_MIN = {"i8": -128, "i16": -32768, "i32": -2147483648,
            "i64": -9223372036854775808}
 INT_SUFFIXES = set(INT_LLTY)
 LIT_RE = re.compile(r'(-?)([0-9]+)_([iu](?:8|16|32|64))')
+REGIONID_RE = re.compile(r"'[a-z][a-z0-9_]*")
 
 def _is_signed(suf):
     return suf in INT_SUFFIXES and suf[0] == "i"
@@ -265,12 +266,50 @@ def binding_ident(p, context):
 
 def binding_region(p, context):
     token = p.eat()
+    if not REGIONID_RE.fullmatch(token):
+        raise CheckError("FORM-3",
+            f"{context} must use the apostrophe-prefixed REGIONID spelling, got '{token}'")
     return check_binding_ident(token[1:], context)
 
 def parse_mode(p):
-    if p.peek() == '&uniq': p.eat(); return {"kind": "ref", "region": p.eat()[1:], "uniq": True}
-    if p.peek() == '&': p.eat(); return {"kind": "ref", "region": p.eat()[1:], "uniq": False}
+    if p.peek() == '&uniq': p.eat(); return {"kind": "ref", "region": binding_region(p, "reference region"), "uniq": True}
+    if p.peek() == '&': p.eat(); return {"kind": "ref", "region": binding_region(p, "reference region"), "uniq": False}
     p.eat('own'); return {"kind": "own"}
+
+def parse_call_region_args(p):
+    """Retain an explicit user-call region list without filling an omission."""
+    p.eat('<')
+    if p.peek() == '>':
+        raise CheckError("GRAM-5", "a call region-argument list must not be empty")
+    regions = []
+    while True:
+        token = p.peek()
+        if token is None:
+            raise CheckError("GRAM-5",
+                "an explicit user-call region list must be closed by '>'")
+        if not REGIONID_RE.fullmatch(token):
+            if token in (',', '(', ')', ';', '}'):
+                raise CheckError("GRAM-5",
+                    "a call region-argument list expects a REGIONID")
+            raise SystemExit(
+                "democ: user-call type/const/mixed targs are outside the "
+                "stage-0 profile; only explicit REGIONID arguments are supported")
+        regions.append(binding_region(p, "call region argument"))
+        if p.peek() == '>':
+            p.eat('>')
+            return regions
+        if p.peek() is None:
+            raise CheckError("GRAM-5",
+                "an explicit user-call region list must be closed by '>'")
+        if p.peek() != ',':
+            raise CheckError("GRAM-5",
+                "call region arguments must be separated by ',' and closed by '>'")
+        p.eat(',')
+        if p.peek() is None:
+            raise CheckError("GRAM-5",
+                "an explicit user-call region list must not end after ','")
+        if p.peek() == '>':
+            raise CheckError("GRAM-5", "a call region-argument list must not have a trailing comma")
 
 def parse_type(p):
     base = p.eat()
@@ -324,7 +363,7 @@ def parse_expr(p):
     if t == 'move':                                    # "move" place — affine consumption [GRAM-5/OWN-1]
         p.eat(); return {"e": "move", "p": parse_place(p)}
     if t in ('&', '&uniq'):
-        uniq = p.eat() == '&uniq'; r = p.eat()[1:]
+        uniq = p.eat() == '&uniq'; r = binding_region(p, "borrow region")
         return {"e": "borrow", "uniq": uniq, "region": r, "place": parse_place(p)}
     if t == 'unit': p.eat(); return {"e": "unit"}
     m = LIT_RE.fullmatch(t)
@@ -351,6 +390,58 @@ def parse_expr(p):
         p.eat(')'); return {"e": "construct", "n": n, "fields": fields}
     if t == 'index':                                   # index is a PLACE, its sole home [GRAM-6/OP-4]
         return {"e": "place", "p": parse_place(p)}
+    table_base = t.partition('.')[0]
+    table_callee = ('.' in t or
+                    table_base in _KNOWN_OP_BASES or
+                    t in RESERVED_BINDING_IDENTS)
+    has_call_regions = False
+    if p.peek(1) == '<' and not table_callee:
+        first_targ = p.peek(2)
+        if first_targ is None:
+            raise CheckError("GRAM-5",
+                "an explicit user-call argument list must contain a targ and close with '>'")
+        if REGIONID_RE.fullmatch(first_targ) or first_targ == '>':
+            has_call_regions = True
+        else:
+            raise SystemExit(
+                "democ: user-call type/const/mixed targs are outside the "
+                "stage-0 profile; only explicit REGIONID arguments are supported")
+    if (p.peek(1) == '(' or has_call_regions) and t not in ('deref', 'index'):
+        # user call f<regions?>(param: atom, ...) [GRAM-5/GRAM-11]
+        n = p.eat()
+        region_args = parse_call_region_args(p) if p.peek() == '<' else None
+        if p.peek() != '(':
+            raise CheckError("GRAM-5",
+                "an explicit user-call region list must be followed by '('")
+        p.eat('('); args = []; argnames = []
+        while True:
+            if p.peek() is None:
+                raise CheckError("GRAM-11",
+                    "an unterminated user-fn call must end with ')'")
+            if p.peek() == ')':
+                p.eat(')')
+                return {"e": "ucall", "n": n, "args": args,
+                        "argnames": argnames, "region_args": region_args}
+            pname = binding_ident(p, "call-argument label")
+            if p.peek() != ':':                        # [GRAM-11] call args are named (param: atom), never positional
+                raise CheckError("GRAM-11", "a user-fn call must name its arguments (param: atom) in declared order; positional args are illegal")
+            p.eat(':')
+            if p.peek() is None:
+                raise CheckError("GRAM-11",
+                    "an unterminated user-fn call is missing its argument atom")
+            atom = parse_atom(p)
+            argnames.append(pname); args.append(atom)
+            if p.peek() == ',':
+                p.eat(',')
+                if p.peek() is None:
+                    raise CheckError("GRAM-11",
+                        "an unterminated user-fn call ends after ','")
+                if p.peek() == ')':
+                    raise CheckError("GRAM-11",
+                        "a user-fn call must not have a trailing argument comma")
+            elif p.peek() not in (')', None):
+                raise CheckError("GRAM-11",
+                    "user-fn call arguments must be separated by ',' and closed by ')'")
     if p.peek(1) == '<':                               # OPNAME<ty>(atoms) — every table op takes targs;
         op = p.eat()                                   # a dotted place token (base.field) never does
         if '.' in op and op.split('.', 1)[1] not in ("wrap", "trap", "checked", "sat", "strict"):
@@ -362,16 +453,6 @@ def parse_expr(p):
         args = [parse_atom(p)]                          # [GRAM-9] operands are atoms, not nested calls
         while p.peek() == ',': p.eat(); args.append(parse_atom(p))
         p.eat(')'); return {"e": "op", "op": op, "args": args, "tyargs": tyargs}
-    if p.peek(1) == '(' and t not in ('deref', 'index'):   # user call f(param: atom, ...) [GRAM-11]
-        n = p.eat(); p.eat('('); args = []; argnames = []
-        while p.peek() != ')':
-            pname = binding_ident(p, "call-argument label")
-            if p.peek() != ':':                        # [GRAM-11] call args are named (param: atom), never positional
-                raise CheckError("GRAM-11", "a user-fn call must name its arguments (param: atom) in declared order; positional args are illegal")
-            p.eat(':'); atom = parse_atom(p)
-            argnames.append(pname); args.append(atom)
-            if p.peek() == ',': p.eat()
-        p.eat(')'); return {"e": "ucall", "n": n, "args": args, "argnames": argnames}
     return {"e": "place", "p": parse_place(p)}
 
 def parse_atom(p):                                     # [GRAM-9] atom := literal | move place | place | borrow
@@ -606,7 +687,8 @@ def tplace(pl):
     return node
 def texpr(e):
     k = e["e"]
-    if k == "lit": return {"kind": "lit", "ty": {"kind": "prim", "name": e["ty"]}}
+    if k == "lit": return {"kind": "lit", "ty": {"kind": "prim", "name": e["ty"]},
+                           "value": e["v"]}
     if k == "unit": return {"kind": "lit", "ty": {"kind": "unit"}}
     if k == "place": return {"kind": "use", "place": tplace(e["p"])}
     if k == "move": return {"kind": "move", "place": tplace(e["p"])}
@@ -615,7 +697,8 @@ def texpr(e):
     if k == "construct": return {"kind": "construct", "name": e["n"],
         "fields": [{"name": f["name"], "atom": texpr(f["atom"])} for f in e["fields"]]}
     if k == "ucall": return {"kind": "call", "callee": e["n"],
-        "args": [texpr(a) for a in e["args"]], "argnames": e["argnames"]}
+        "args": [texpr(a) for a in e["args"]], "argnames": e["argnames"],
+        "region_args": e["region_args"]}
     if k == "op": return {"kind": "call", "callee": e["op"],
         "args": [texpr(a) for a in e["args"]], "argnames": None,
         "tyargs": [ttype(t) for t in e["tyargs"]]}
@@ -880,8 +963,8 @@ class Gen:
         """[F003 channel] provenance class of a place rooted at a borrow/own param, or None.
         Sound by OWN-1 (affine: distinct live buffer values have disjoint element memory),
         OWN-2/5 (&uniq excludes every other in-function path to its target for the whole
-        call), and T-A (no reborrow chains: a borrow param's target is caller-disjoint from
-        every other param's). All shared-borrow-rooted accesses share ONE class (two shared
+        call), and T-A (each explicit bounded-reborrow lineage retains one singleton root,
+        disjoint from every other live uniq-param lineage). All shared-borrow-rooted accesses share ONE class (two shared
         params may alias the same target), so no false claim is ever made between them."""
         mode = g.pmode.get(pl["base"])
         if mode is None: return None
@@ -1112,6 +1195,7 @@ class Gen:
                 return {"k": "struct", "v": slot, "st": n, "slot": True}
             return {"k": "i32", "v": str(g.vtag(n)), "signed": True}
         if k == "ucall":
+            # Region arguments are checker-only substitutions and never runtime ABI operands.
             args = [g.expr(a) for a in e["args"]]
             def _passarg(x):                           # pass aggregates (struct/enum) by value
                 if x["k"] == "struct": return {"k": "struct", "st": x["st"], "v": g.load_struct(x)}
@@ -1524,7 +1608,7 @@ class Gen:
         each &uniq-struct param root (struct memory) and each of its buffer fields
         (element memory), each own-buffer param, and ONE class for everything reached
         through shared borrows. Facts the checker proved (OWN-1 affine disjointness,
-        OWN-2/5 exclusivity, T-A no-reborrow) — rustc has no source channel for these
+        OWN-2/5 exclusivity, T-A singleton rooted lineages) — rustc has no source channel for these
         on loaded pointers, and LLVM cannot recover them from an opaque boundary."""
         eligible = []
         for q in g.f["params"]:

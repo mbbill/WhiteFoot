@@ -286,7 +286,7 @@
     "x-typ-let-shadows-param": "03fdd77ae5c28d93b1e264c33706333f9c6aa801b6404c4cc436929d4cc7b639",
     "x-typ-match-foreign-variant": "3e860dde9740a6b5d16663b7ab8995f6c301adb59379ec882ed82109a3b1b8c3",
     "x-typ-uniq-deref-write-roundtrip": "ccb942c1af6d9a0ca16968172d9fbac33e561b99ef20d4ac1aeb66b48d85dc4f",
-    "x-typ-value-where-borrow-param": "a3e2a9ea97ca7044e78bce1db528a0243869c3ab3cac56edff56262d31a1c3db",
+    "x-typ-value-where-borrow-param": "90040ee296058992f1b710c02c089eb05d86f50796a45776fc67f9a6469fed68",
     "xfail-own1-bare-affine-use": "f75a51a05d02e2f3bc6869fef1f5b6a76adb12f63dbbfa1ebed35df2c2665422"
   },
   "kernel_specs": {
@@ -426,7 +426,9 @@
       "var": "3e2e28b561b28be6070071b4990ac76e12444e841f45206cddfabd5b85523c99"
     },
     "prototype/democ/test_codegen.py": {
-      "compile_native": "ae2644b8d5832bc507c6ba24e842c00136e5f47f913c063fadc68042ac4b41de"
+      "compile_native": "ae2644b8d5832bc507c6ba24e842c00136e5f47f913c063fadc68042ac4b41de",
+      "expect_rule": "a73d531a5771e2d5dc1cc298406b3a780b9529cad642bcdb48c68189b5cf354f",
+      "expect_stage0_unsupported": "2938c07eb9981ad015bfb8485fd809a2d6992702505eea65cd15ce160af5c8de"
     }
   }
 }

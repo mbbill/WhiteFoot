@@ -58,6 +58,7 @@ enum AstKind {
   AstHeapStorage();
   AstArenaStorage();
   AstMove();
+  AstRegionArgument();
 }
 
 enum ParseStatus {
