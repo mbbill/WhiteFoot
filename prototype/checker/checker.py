@@ -1250,6 +1250,15 @@ class TypeChecker:
         if callee in self.P.fns:                       # user fn: GRAM-11 named args
             sig = self.P.fns[callee]
             params = sig["params"]
+            # [TYPE-5] explicit call-site region arguments, when stated, must
+            # match the callee's declared region parameters in count. Omission
+            # is the staged region-retention debt and is not checked here.
+            regions = sig.get("regions", [])
+            actuals = e.get("region_args")
+            if actuals is not None and len(actuals) != len(regions):
+                raise CheckError("TYPE-5",
+                    f"call to {callee} states {len(actuals)} region argument(s), "
+                    f"but {callee} declares {len(regions)} region parameter(s) {regions}")
             argnames = e.get("argnames")
             if argnames is None:
                 raise CheckError("GRAM-11",
