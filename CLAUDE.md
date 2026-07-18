@@ -40,6 +40,26 @@ proof discharges them — speed is earned by proof, never by weakening a check.
   non-English prose.
 - `CLAUDE.md` and `AGENTS.md` are repository-level agent instructions and must
   remain byte-identical. Update both in the same change.
+- Kernel-spec changes are owner-gated, in advance. Before modifying any numbered
+  kernel specification in any way, present the exact proposed delta to the owner
+  and get explicit approval; approval of a plan, phase, or checker task is never
+  approval to edit the spec. Every approved change bumps the specification
+  version and updates the filename, title, and all live references in the same
+  change — never revise a numbered specification in place. Record the owner's
+  approval in `governance/APPROVALS.md`; that logged approval is the
+  authorization to commit.
+- The semantics-bearing test surface is owner-gated the same way: conformance
+  expected verdicts (`conformance/manifest.jsonl` + `conformance/cases/**`),
+  frozen oracle digests, and the reference semantics tests
+  (`prototype/checker/test_checker.py`, `prototype/democ/test_codegen.py`). Add
+  new tests or conformance cases freely, but modifying, deleting, or weakening an
+  existing one — or regenerating a pinned oracle digest — needs the owner's
+  logged approval. Never make a failing check pass by changing what it expects
+  (W3). After approval, run `make approve-spec REASON="..."`.
+- `make check`'s `spec-guard` layer enforces both rules: a guarded change with no
+  matching approval in `governance/APPROVALS.md` fails the build. A red
+  spec-guard means stop and get the owner's approval — not regenerate the
+  baseline to go green.
 - Durability: commit + one `decision-gates.md` line per completed step.
   Sessions get rewound; git log + gates tail are how work resumes.
 - Fact channels (anything that lets the optimizer assume more) get hostile

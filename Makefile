@@ -1,10 +1,15 @@
 # whitefoot verification stack — `make check` runs every layer.
 PY=python3 -B
-check: project-state spec rules soundness perf parity conformance bootstrap
+check: project-state spec-guard spec rules soundness perf parity conformance bootstrap
 	@echo "== ALL VERIFICATION LAYERS GREEN =="
 project-state:             # repository structure: one plan, coherent design package
 	$(PY) tools/test_verify_project_state.py
 	$(PY) tools/verify_project_state.py
+spec-guard:                # owner-gated surfaces: kernel spec, conformance verdicts, oracle digests, reference tests
+	$(PY) tools/spec_guard.py --check
+	$(PY) tools/test_spec_guard.py
+approve-spec:              # regenerate the guard baseline + log an owner approval; approved changes ONLY
+	$(PY) tools/spec_guard.py --approve --reason "$(REASON)"
 spec:                      # layer 1: spec integrity (META rules, ledger coverage)
 	$(PY) tools/spec_ci.py
 rules:                     # layer 2: rule-keyed checker + stage-0 codegen correctness
@@ -27,4 +32,4 @@ bootstrap:                 # layer 7: permanent wfc components compiled by dispo
 	$(MAKE) -C compiler check
 examples:                  # smoke: compile & run the demo programs
 	cd prototype/democ && $(PY) democ.py examples/ex1.wf --run && $(PY) democ.py examples/ex2.wf --run
-.PHONY: check project-state spec rules soundness perf parity corpus conformance bootstrap examples
+.PHONY: check project-state spec-guard approve-spec spec rules soundness perf parity corpus conformance bootstrap examples
