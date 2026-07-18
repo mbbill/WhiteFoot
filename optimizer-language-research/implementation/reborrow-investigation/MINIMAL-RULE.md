@@ -181,14 +181,20 @@ pinned census evidence (GOV-2); the 1,206/1,279 figures over-count.
   derives from the other.
 
 **Eventual spec delta (owner-gated; drafted only, not applied).** Bump `kernel-spec-v0.6.md`
-→ `v0.7`, rename the file, update title and all live references in one change. Confined to:
-OWN-5 — a positive **carve-in** (child creation is the sole borrow admitted through a place
-overlapping `resolved(h)` while a child is live) and a **carve-out** (OWN-5's holder
-read/write allowance for `h` is suspended while a child is live); OWN-6 — the statement-scoped
-child definition, eligible-holder restriction, and suspension/resumption; OWN-12 — the
-ancestor-loan exemption in the effect-row check; PATTERNS P4 — no-reborrow → bounded
-statement-scoped reborrow. **No new numbered rule** (no OWN-14). Note: §3's non-escape
-argument relies on "structs hold no borrows," which is currently enforced empirically /
-via PATTERNS + TYPE-2 with **no cited numbered rule**; the delta should make this a cited
-rule (or add one) so the escape-freedom argument stands on the spec, not on convention.
-Record the approval and evidence pointer in `governance/APPROVALS.md` and `decision-gates.md`.
+→ `v0.7`, rename the file, update title and all live references in one change. The exact,
+review-conditioned delta and the binding conditions A–F are in `PACKET.md` (the owner-approval
+artifact). In summary: OWN-5 carve-in/carve-out realized as a structural SUSPENDED flag;
+OWN-6 statement-scoped child definition + eligible-holder restriction + suspension/resumption;
+OWN-12 ancestor-only effect-row exemption; PATTERNS P4 no-reborrow → bounded reborrow; and —
+correcting rev 2 — **one NEW numbered rule** promoting "no field/element/box-or-arena
+content/enum-payload may be borrow- or region-typed" from convention to cited spec (the
+own-wrapped-launder closure the fact-channel review surfaced). OWN-14 result-transfer stays
+deferred. Record the approval and evidence pointer in `governance/APPROVALS.md` and
+`decision-gates.md`.
+
+**Rev 3 (2026-07-18):** the FR reconciliation + hostile no-alias fact-channel review returned
+PASS-WITH-CONDITIONS (no attack broke `noalias`; performance preserved; FR-singleton-rooted for
+this fragment). It corrected rev 2's "no new numbered rule" plan (Condition A above) and
+requires the exclusivity assertion to ship UNCONDITIONALLY (no `derived_from` carve-out) with a
+lineage-aware alias-scope emitter. See `PACKET.md` for the binding conditions and the exact
+delta; that is the authoritative artifact for the owner-gated decision.
