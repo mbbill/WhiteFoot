@@ -1,20 +1,21 @@
 # wfc
 
-This directory contains the production Whitefoot compiler, written in Whitefoot. Python
-`prototype/democ` is stage 0 only: it compiles wfc until wfc can compile itself.
+This directory contains the production Whitefoot compiler, written in Whitefoot.
+Python `prototype/democ` bootstraps wfc through the facts-off self-hosting
+fixpoint. The project then freezes democ as an independent differential oracle;
+accepted-language growth continues in wfc.
 
 The compiler currently uses fixed-capacity structure-of-arrays tapes backed by
 primitive buffers. Token and node counts are bounded from the source size, so
 bootstrap does not require a Rust compiler, growable collections, `pool`, or
-general generics. This is the protected E0.1 performance baseline, not a ruling
-that every record workload must use SoA: fixed AoS and growable owning sequences
-are being evaluated as separate, factorially isolated capabilities before either
-can change the language or its taught defaults.
+general generics. This is the protected compiler baseline rather than a
+language-wide data-layout rule. Future container acceptance uses the current
+SoA compiler as its control and does not include a wfc migration.
 `sources.txt` is the deterministic declaration order for the current whole-program
 unit.
 
-Current milestone: the permanent lexer and parser cover the complete syntax used by
-the compiler itself: top-level declarations, modes and effect rows, nested types,
+The permanent lexer and parser cover the complete syntax used by the compiler
+itself: top-level declarations, modes and effect rows, nested types,
 places and borrows, constructors and calls, recursive blocks, loops, regions, and
 matches. Every AST node owns a distinct token, so node capacity is bounded by token
 count. `test_self_parse.py` concatenates the exact `sources.txt` unit, parses it twice,
@@ -22,17 +23,15 @@ requires identical token and AST tapes, and runs the kind-agnostic structural
 validator over every node. This is the permanent bootstrap grammar gate, not a sample
 fixture.
 
-The semantic layer now has exact-byte scoped symbols, atomic global and type-member
-indexing, structural type equality, and exact type-name/array-size resolution. Its
-whole-unit capability driver audits the real 477-function compiler unit in source
-order: 15 functions are clean in the current fact-producing profiles, 462 are
-explicitly unsupported, and none are semantic rejects. The first unsupported
-frontier is `lexer_scan_op_suffix`. A shared dispatcher keeps a legal profile miss
-separate from a real semantic error; the LLVM layer consumes the same classification
-and facts, so semantic coverage cannot silently drift from lowering coverage.
-This taxonomy is the measured compiler-unit baseline, not yet a claim about every
-legal arbitrary body shape; the next profile expansion must add a body capability
-recognizer alongside its new semantic rules. Type
+The semantic layer has exact-byte scoped symbols, atomic global and type-member
+indexing, structural type equality, and exact type-name/array-size resolution.
+Its whole-unit capability driver audits each compiler function in source order
+and classifies it as clean, legal but unsupported, or a semantic reject. A shared
+dispatcher keeps a legal profile miss separate from a real semantic error; the
+LLVM layer consumes the same classification and facts, so semantic coverage
+cannot drift from lowering coverage. This taxonomy measures compiler-unit
+coverage; each profile expansion adds a body capability recognizer with its new
+semantic rules. Type
 names and constructor names are deliberately separate namespaces: this permits the
 prelude's `Overflow` type and `Overflow()` constructor while still rejecting duplicate
 constructors across enums. The prelude names are recognized from exact bytes and cannot
@@ -97,5 +96,5 @@ wfc1  -> wfc2.ll
 wfc1.ll == wfc2.ll
 ```
 
-`PLAN.md` is the current staged route from this coverage baseline through whole-unit
-lowering, stage 1, and the byte-identical self-hosting fixpoint.
+`../THE-PLAN.md` is the sole source for execution order, phase gates, current
+coverage, and the route through self-hosting and later language work.

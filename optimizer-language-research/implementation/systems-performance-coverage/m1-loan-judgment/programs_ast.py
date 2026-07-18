@@ -1,4 +1,4 @@
-"""Hand-transcribed AST for the 48 M1 programs (../m1extract/programs.json).
+"""Hand-transcribed AST for the 97 M1 programs (`programs.json`).
 
 No parser: each program is built with the constructors from checker.py. Where a
 pseudo-code snippet is ambiguous, the reading chosen is the one matching the

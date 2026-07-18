@@ -720,8 +720,8 @@ The owner ruled on the five decisions surfaced by the concurrency kernel delta
    `par.for_chunks` combinator (which already gives runtime-N chunk parallelism
    internally). The OWN-11 capture carve-out that would allow user-written
    dynamic spawn loops capturing shared outer state is deferred and MUST be
-   tracked so it is not lost (owner's explicit instruction); recorded in
-   `systems-performance-coverage/FOLLOW-UPS.md`.
+   tracked so it is not lost (owner's explicit instruction); the re-entry
+   trigger now lives in root `THE-PLAN.md`.
 3. **Ratify AMD-5-carve-out / AMD-7 / AMD-8 — YES, all three.** The minimal
    amendments that make the concurrency mechanisms sound (par-slot capability
    premise; R15 concurrency schema; mutex guard interior-view carve-out).
@@ -743,3 +743,36 @@ These rulings settle the concurrency delta's design at the research level. No
 production language, specification, checker, compiler, runtime, or teaching
 change is authorized; the CONC-0 kernel landing, the amendment ratifications,
 and all production spec drafting remain gated on the separate landing review.
+
+## D20 (2026-07-17): Single execution plan and authorization through `seq`
+
+The owner approved consolidation of the project's current plans and authorized
+the resulting development sequence through phase 7:
+
+1. **One current plan.** Root `THE-PLAN.md` is the sole source for current
+   status, execution order, phase gates, stop conditions, and next work. Other
+   plan and handover files move to the archive as historical evidence. Design
+   dossiers, research registers, owner directives, and the decision log retain
+   technical evidence and rulings but do not define a competing work queue.
+2. **Authorization boundary.** Phases 1 through 7 in `THE-PLAN.md` are
+   authorized in their recorded order, ending when `seq` passes its complete
+   acceptance ledger. This authorization covers the production specification,
+   checker, compiler, runtime, conformance, testing, and review changes those
+   phases require. Each phase still obeys its entry gate, stop conditions,
+   hostile-review requirements, and both repository checks. This ruling
+   supersedes the no-production authorization boundaries in D16 through D19
+   only for those seven phases; their technical decisions remain binding.
+3. **Stage-0 role.** `prototype/democ` bootstraps wfc through the facts-off
+   byte-identical self-hosting fixpoint. The project freezes democ at that gate
+   and keeps it as an independent differential oracle. Post-fixpoint
+   accepted-language growth belongs in wfc, with conformance artifacts and
+   purpose-built reference checkers providing independent evidence. The project
+   will not grow democ as a second production compiler.
+4. **Work beyond `seq`.** Later sealed components and concurrency remain outside
+   this authorization. In particular, the concurrency memory model, sync
+   effect, sharing rules, runtime forms, and per-form safety models require a
+   new owner directive after phase 7 closes. Phase 6 therefore lands the
+   sequential projection of the loan/freeze judgment: R1 through R13 and the
+   sequential part of R15. R14 and R15's concurrent-invocation clause stay with
+   the later concurrency landing, along with their nine parallel research
+   cases.

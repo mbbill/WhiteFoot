@@ -1,18 +1,18 @@
 # Systems-Performance Coverage — package index
 
-Status: **COMPLETE and PARKED** (2026-07-17, D19). The design is finished and
-budget-verified; the production landing is a separate owner-gated phase not yet
-opened. This folder is the whole design package for the D15 systems-performance
-capability research. Nothing here authorizes a production change.
+Status: **COMPLETED RESEARCH EVIDENCE**. This folder preserves the design,
+reviews, and measurements from the systems-performance capability research.
+It does not set current status, execution order, or authorization.
+`../../../THE-PLAN.md` is the sole execution plan. Owner directive D20
+authorizes its phases through the complete `seq` acceptance ledger;
+concurrency and later catalog work remain outside that authorization.
 
 ## Start here
 
-- **`DESIGN-DOSSIER.md`** — the consolidated, owner-readable design document.
-  Read this first: goal, the ten sealed parts, the six kernel deltas with their
-  review histories, all the evidence, the five ruled decisions, what remains,
-  and honest limitations. Everything else is source material for it.
-- **`FOLLOW-UPS.md`** — durable register of deferred items (the OWN-11 loop-spawn
-  carve-out, the AMD-6/7/8 consolidation, the MM discharge-obligation relocation).
+- **`DESIGN-DOSSIER.md`** — the consolidated design record. Read this first for
+  the goal, ten sealed parts, six kernel deltas and their review histories,
+  evidence, owner decisions, unclosed production evidence, and limitations.
+  Everything else is source material for it.
 
 ## The design
 

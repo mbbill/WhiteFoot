@@ -3,6 +3,8 @@
 - Compilation is one whole-program unit in a deterministic declaration order; the target is LLVM IR text, and the external C compiler is driven by the build system, never spawned by the compiler.
 - Two standing verification gates guard every change: the conformance/model-check/perf-pin gate, and the codegen-parity gate over earned IR, opcode, and proof-site properties, with audit-versus-gate maturity keeping known debt visible without becoming contract.
 - Stage 0 builds wfc with optimizer facts disabled until wfc's own effect checking is complete.
+- The bootstrap first reaches a facts-off, byte-identical fixpoint over the compiler's source subset. wfc then closes the rest of the current language, enables fact channels one at a time, and re-establishes the fixpoint with facts on.
+- Stage 0 freezes after the first fixpoint and remains an independent oracle for the language it already supports. Later production-language changes land in wfc; focused reference checkers remain independent semantic oracles.
 
 ## Facts
 
@@ -10,7 +12,9 @@
 - 2026-07-07 pitfall: the performance-regression pin's first run caught a real parser regression that the smoke check had missed by testing tool exit status only — regression checks must assert the artifact, not the tool's exit code. (sourced)
 - 2026-07-12 (c6432014) pitfall: the parity gate broke silently during a repository restructure (pipeline exit-status masking — a trailing pipe swallowed the failure) and a live fixture was archived because a JSON manifest pin was missed; process rules recorded: never chain a commit after a piped gate, and grep every file type including JSON manifests before moving anything a gate might pin. (sourced)
 - 2026-07-12 statement: exact opcode parity in the gate is intentionally sensitive to toolchain upgrades — on an upgrade the diff is inspected and the gate updated in the same change, never weakened merely to restore green; runtime measurements are deliberately excluded from the gate as noise-unstable. (code)
+- 2026-07-17 owner ruling: `THE-PLAN.md` is the sole active roadmap, and its phases 1 through 7 are authorized through the complete `seq` acceptance battery. The authorization fixes the compiler order as subset fixpoint, current-language closure, facts-on fixpoint, loan/freeze, then `seq`. (sourced)
 
 ## Moves
 
 - 2026-07-12 (e8c8eeb1) replaced [[pool-based-wfc-plan]]: fixed-capacity structure-of-arrays tapes with token and node counts bounded from source size let stage-0 democ bootstrap wfc without growable collections, pool, handle, or general generics — none of which stage 0 implements (sourced)
+- 2026-07-17 replaced [[stage0-growth-after-fixpoint]]: freeze democ after the facts-off fixpoint, close current v0.6 and facts in wfc, and use focused reference checkers for later semantic differentials. This avoids maintaining two growing production compilers while retaining an independent oracle. (sourced)

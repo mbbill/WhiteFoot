@@ -8,7 +8,7 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Read order (do this before working)
 
-1. `THE-PLAN.md` — the current map: beliefs, evidence ledger, ranked bets.
+1. `THE-PLAN.md` — the sole roadmap: current state, execution order, and gates.
 2. Tail of `optimizer-language-research/implementation/decision-gates.md` —
    the append-only lab log; the last ~10 entries are the live context.
 3. `mcts_mem/` — the design-decision tree: before proposing any non-trivial
@@ -69,43 +69,13 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - `archive/` — superseded plans, the research-era record, shelved harnesses.
   Read-only context; nothing in it gates anything.
 
-## Current focus (2026-07-17)
+## Current authority and authorization
 
-- The D15 systems-performance-coverage capability research is COMPLETE and
-  PARKED at the owner's direction (2026-07-17, D19). The design package is
-  finished and budget-verified: a three-tier architecture (narrow language
-  core + sealed built-in parts + taught checked-source libraries/cards); ten
-  sealed parts; the ratified 15-rule loan/freeze judgment plus six
-  adversarially-reviewed kernel deltas (TAG-1, tbl_clone, byte-loads, DOM-1,
-  BRAND-1, concurrency/CONC-0..4); and the always-loaded manual fits at
-  ~46.4k of the 48k token budget. Owner rulings D16-D19 bind (explicit copy
-  struct; catalog minimality = 10 sealed kernels; per-kernel acceptance
-  ledgers; trap = process abort; generational pools; four v1 non-goals;
-  proof-gated admission per D17; the five concurrency-delta decisions). The
-  package lives under
-  `optimizer-language-research/implementation/systems-performance-coverage/`
-  (start at `DESIGN-DOSSIER.md`); deferred items are tracked in its
-  `FOLLOW-UPS.md`. NOTHING is authorized for production: the real-compiler
-  landing (loan/freeze rules into the prototype checker, then a sealed part
-  end-to-end measured on the deploy target), the per-part five-leg acceptance
-  batteries, and production spec drafting are a separate owner-gated phase
-  that is NOT yet opened. Do not begin landing work without an explicit owner
-  decision.
-- The superseded B-Strata / candidate capability-research era is archived at
-  `archive/research/minimal-systems-capability/` (historical evidence and
-  falsifiers; nothing gates it).
-- wfc self-hosting build in `compiler/` (SoA-tape architecture per P2) — a
-  separate track: front-end complete over its 477-function unit, LLVM codegen
-  at ~15/477 functions, still bootstrapped by `prototype/democ`; unaffected by
-  the parked capability research.
-- D9a is complete on two independently preregistered shipped-library targets.
-  First-green `gpt-5.6-terra`/medium Whitefoot beats `percent-encoding` 2.3.2 by
-  1.653x [1.631, 1.667] and one-shot `utf8parse` 0.2.2 by 1.098x
-  [1.085, 1.145]. Both retain every bounds site, so this is replicated
-  default-shape evidence, not proof-elision evidence. The utf8parse facts
-  control is statistically inconclusive, but facts-on/off reports and optimized
-  instruction bodies are identical. Do not tune either completed protocol
-  from its result.
-- Proof tier: PROOF-1/2 shipped and adversarially reviewed; the accounting
-  design's approved first slice is in
-  `optimizer-language-research/implementation/requires-check-accounting-REVIEW.md`.
+`THE-PLAN.md` is the sole source for current status, execution order, phase
+gates, and next work. Owner directives and the decision log preserve rulings
+and evidence. Design dossiers and archived plans do not authorize work.
+
+The owner has authorized phases 1 through 7 in `THE-PLAN.md`, in order, through
+the complete acceptance ledger for `seq`. Each phase keeps its written gates
+and stop conditions. Concurrency and later catalog work remain outside this
+authorization and require a new owner directive.

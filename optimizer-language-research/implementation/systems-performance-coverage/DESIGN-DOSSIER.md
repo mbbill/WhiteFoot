@@ -1,13 +1,14 @@
 # Systems-Performance Coverage — Consolidated Design Dossier
 
-Status: RESEARCH SYNTHESIS for owner review. This document assembles the whole
-systems-performance-coverage design in one place so it can be read deliberately
-and the five pending decisions taken. It authorizes nothing: every production
-language, specification, checker, compiler, runtime, standard-library, and
-teaching change remains separately gated (D15). All paths below are relative to
-`optimizer-language-research/implementation/systems-performance-coverage/` unless
-noted. Numbers are indicative research measurements, not deploy-target results;
-their limits are stated in §7.
+Status: COMPLETED RESEARCH EVIDENCE. This document preserves the consolidated
+systems-performance design, its reviews, and the owner decisions taken from it.
+It does not set current status, execution order, or authorization.
+`../../../THE-PLAN.md` is the sole execution plan. Owner directive D20
+authorizes that plan through the complete `seq` acceptance ledger; concurrency
+and later catalog work remain outside that authorization. All paths below are
+relative to `optimizer-language-research/implementation/systems-performance-coverage/`
+unless noted. Numbers are indicative research measurements, not deploy-target
+results; §7 states their limits.
 
 ---
 
@@ -215,7 +216,7 @@ found a FATAL — the checker accepted a `par` statement handing parallel bodies
 unique write-view and a shared view of the same place — which drove the AMD-1
 statement-local mint-disjointness amendment; four more amendments (AMD-2..5)
 followed. D18 ratified the consolidated 15-rule set. Current state (per the
-repo's `AGENTS.md` status line and `RULES-RATIFIED.md`): exactly 15 rules,
+owner directive D18 and `RULES-RATIFIED.md`): exactly 15 rules,
 machine-verified on a 97-program corpus with a 9/9 mutation-caught harness.
 **Review-clean / ratified.**
 
@@ -426,8 +427,9 @@ still owed (§5, decision 5).
 
 **RULED 2026-07-17 (D19).** (1) Land CONC-0 memory model as kernel text: **YES**
 (direction ratified; production landing still gated). (2) Loop-spawn: **option (a)**
-— fixed fan-out + sealed `par.for_chunks` for v1; the OWN-11 carve-out (b) is a
-**tracked follow-up** (`FOLLOW-UPS.md` FU-1). (3) Ratify AMD-5-carve-out/AMD-7/
+— fixed fan-out + sealed `par.for_chunks` for v1; the OWN-11 carve-out (b)
+remains deferred, with any live re-entry trigger held in
+`../../../THE-PLAN.md`. (3) Ratify AMD-5-carve-out/AMD-7/
 AMD-8: **YES, all three**. (4) Clone re-mode to `&uniq`: **YES** (already applied
 in the CONC v3 draft). (5) Concurrency spec-mass cut: **YES**, normative-only,
 governed by the principle that the always-loaded spec holds only what an AI agent
@@ -547,10 +549,11 @@ real token number to check against ~48k.
 
 ---
 
-## 6. What remains after the decisions
+## 6. Unclosed production evidence
 
-The five decisions unblock the program; they do not finish it. What follows, in
-dependency order:
+This inventory records gaps found when the research package closed. It neither
+orders nor authorizes implementation. `../../../THE-PLAN.md` owns the execution
+sequence and its gates.
 
 1. **Gated real-compiler integration — the true performance milestone.** Every
    number in §4 is a C or Rust dry run validating SHAPE. The actual par claim is
@@ -566,17 +569,17 @@ dependency order:
    residual io family) have member audits done but not their full batteries; the
    MM-9 abort-mid-scenario fault-injection battery (out-of-order async-io
    completion, not only torn-tail) is required before any WAL-durability claim.
-3. **The per-form safety-model / model-checking phase for concurrency.** CONC-0's
-   MM-1..MM-6 edges are OBLIGATIONS each sealed form must discharge via its fences
-   (MM-10 lowering) — the discharge is proved per form in a model phase that
-   follows adoption: MM-3 O1-O4 for the mutex, MM-4/MM-5 for every queue op at
-   memory-event granularity, MM-6 reclamation counting. The borrow-held loan entry
-   that `guard_uniq` introduces also needs its full R4/R7/R10(b) specification for
-   borrow results (it can only over-reject, never race).
-4. **Production spec drafting at the ratified budget.** With decision 5 taken, the
-   normative kernel text and the <=~48k catalog appendix are drafted and counted
-   for real, and the loan judgment plus the seven kernel deltas fold into the
-   production spec through the separate landing review.
+3. **Per-form safety models for concurrency.** CONC-0's MM-1..MM-6 edges are
+   obligations that each sealed form must discharge through its fences (MM-10
+   lowering): MM-3 O1-O4 for the mutex, MM-4/MM-5 for every queue operation at
+   memory-event granularity, and MM-6 reclamation counting. The borrow-held loan
+   entry that `guard_uniq` introduces also needs its full R4/R7/R10(b)
+   specification for borrow results; the current omission can over-reject but
+   cannot admit a race.
+4. **Production specification at the ratified budget.** The production spec
+   still lacks the normative kernel text and the measured <=~48k catalog
+   appendix. It must incorporate the loan judgment and seven kernel rule sets
+   through the landing review.
 5. **The preregistered validation ladder, remaining rungs.** M1 (loan judgment)
    is done and ratified; M2 (spec mass) is measured (and drove the cut); M3
    (seq/table shape) and M6 (SPSC) have dry-run passes. Still open with frozen
@@ -590,10 +593,10 @@ dependency order:
 
 ## 7. Honest limitations
 
-- **Everything here is research draft, not production.** No production language,
-  spec, checker, compiler, runtime, standard-library, or teaching change is
-  authorized; the whole dossier is gated on the five decisions and a separate
-  landing review (D15).
+- **This dossier remains research evidence.** Owner directive D20 authorizes
+  production work through `seq`, subject to the phases and gates in
+  `../../../THE-PLAN.md`. This dossier grants no separate authority.
+  Concurrency and later catalog work remain excluded.
 - **Graders, not compilers.** The writability trials (M5) were solved and scored
   by models against the spec, not compiled by `wfc`; the kernel-shape and SPSC
   numbers (M3/M6) are C/Rust dry runs of the pinned shapes, not `wfc` output. No
@@ -628,7 +631,7 @@ dependency order:
 `MEMBER-AUDIT-THREADS-IO.md`, `IO-ROW-ENUMERATION.md`. Kernel rules:
 `m1-loan-judgment/RULES-RATIFIED.md`, `m2-spec-mass/KERNEL-DELTAS-DRAFT.md`
 (+ `optables.md`, `cards.md`, `HANDOUT.md`). Directives:
-`../../notes/user-directives.md` (D15-D18). Evidence: `evidence/*.json`,
+`../../notes/user-directives.md` (D15-D20). Evidence: `evidence/*.json`,
 `m3a-kernel-dryrun/RESULTS.md`, `m6a-spsc-dryrun/RESULTS.md`,
 `evidence/microbench/RESULTS.md`. All cross-references above resolve to files
 present in the tree.

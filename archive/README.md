@@ -5,6 +5,15 @@ anything; no tool or test reads from this tree.
 
 - `DECISION_SPRINT.md`, `ROADMAP.md` — pre-consolidation plans, superseded by
   `/THE-PLAN.md` (2026-07-10). Kept because gates-log entries cite them.
+- `HANDOVER-2026-07-17.md` and `compiler/PLAN-2026-07-17.md` — the last
+  competing handover and compiler roadmap, retired when the owner made
+  `/THE-PLAN.md` the sole execution plan.
+- `research/validation-harness-plan.md` and
+  `research/systems-performance-coverage-FOLLOW-UPS-2026-07-17.md` — retired
+  policy and follow-up registers whose live requirements moved into
+  `/THE-PLAN.md`.
+- `tools/verify_performance_research_status.py` — the old duplicated-status
+  verifier, replaced by `/tools/verify_project_state.py`.
 - `research/` — the evidence-first research era: multi-agent debates
   (`debates/`), source papers (`sources/`), feature matrices, synthesis
   notes. This produced the corpus that CONSTITUTION.md and the spec derive
