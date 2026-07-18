@@ -14,7 +14,7 @@
   "cases": [
     {
       "id": "p01-mask-u32-widen-u64",
-      "source": "p01-mask-u32-widen-u64.xl",
+      "source": "p01-mask-u32-widen-u64.wf",
       "hypothesis": "The base64-shaped u32 mask range survives a total value-preserving cvt to the u64 index type.",
       "tags": ["positive", "masked-index", "unsigned-widening", "cvt", "base64-shape"],
       "maturity": "gate",
@@ -22,7 +22,7 @@
     },
     {
       "id": "p02-mask-u16-widen-u64",
-      "source": "p02-mask-u16-widen-u64.xl",
+      "source": "p02-mask-u16-widen-u64.wf",
       "hypothesis": "The same range propagation is width-generic for a direct total u16-to-u64 widening.",
       "tags": ["positive", "masked-index", "unsigned-widening", "cvt", "width-variant"],
       "maturity": "gate",
@@ -30,7 +30,7 @@
     },
     {
       "id": "p03-mask-chained-widening",
-      "source": "p03-mask-chained-widening.xl",
+      "source": "p03-mask-chained-widening.wf",
       "hypothesis": "A bounded unsigned value remains bounded through a chain of total value-preserving widenings.",
       "tags": ["positive", "masked-index", "unsigned-widening", "cvt", "widening-chain"],
       "maturity": "gate",
@@ -38,7 +38,7 @@
     },
     {
       "id": "p04-remainder-index-i",
-      "source": "p04-remainder-index-i.xl",
+      "source": "p04-remainder-index-i.wf",
       "hypothesis": "The canonical rem = n - i; rem < 3 exit guard proves src[i] on its fall-through path.",
       "tags": ["positive", "remainder-guard", "offset-0", "base64-shape"],
       "maturity": "gate",
@@ -46,7 +46,7 @@
     },
     {
       "id": "p05-remainder-index-i1",
-      "source": "p05-remainder-index-i1.xl",
+      "source": "p05-remainder-index-i1.wf",
       "hypothesis": "The canonical three-byte remainder guard proves the derived src[i + 1] access.",
       "tags": ["positive", "remainder-guard", "derived-index", "offset-1", "base64-shape"],
       "maturity": "gate",
@@ -54,7 +54,7 @@
     },
     {
       "id": "p06-remainder-index-i2",
-      "source": "p06-remainder-index-i2.xl",
+      "source": "p06-remainder-index-i2.wf",
       "hypothesis": "The canonical three-byte remainder guard proves the boundary src[i + 2] access.",
       "tags": ["positive", "remainder-guard", "derived-index", "offset-2", "base64-shape"],
       "maturity": "gate",
@@ -62,7 +62,7 @@
     },
     {
       "id": "p07-remainder-tail-one",
-      "source": "p07-remainder-tail-one.xl",
+      "source": "p07-remainder-tail-one.wf",
       "hypothesis": "After a canonical stride-three loop, tail equal to one proves the remaining src[i] access.",
       "tags": ["positive", "remainder-tail", "tail-1", "offset-0", "base64-shape"],
       "maturity": "gate",
@@ -70,7 +70,7 @@
     },
     {
       "id": "p08-remainder-tail-two",
-      "source": "p08-remainder-tail-two.xl",
+      "source": "p08-remainder-tail-two.wf",
       "hypothesis": "After a canonical stride-three loop, tail equal to two proves the boundary src[i + 1] access.",
       "tags": ["positive", "remainder-tail", "tail-2", "derived-index", "offset-1", "base64-shape"],
       "maturity": "gate",
@@ -78,7 +78,7 @@
     },
     {
       "id": "n01-narrow-then-widen",
-      "source": "n01-narrow-then-widen.xl",
+      "source": "n01-narrow-then-widen.wf",
       "hypothesis": "A checked narrowing followed by widening is not the direct total-widening proof shape and remains conservatively checked.",
       "tags": ["negative", "wrong-width", "narrowing", "cvt", "safe-near-miss", "conservative"],
       "maturity": "gate",
@@ -86,7 +86,7 @@
     },
     {
       "id": "n02-mutate-mask-before-widen",
-      "source": "n02-mutate-mask-before-widen.xl",
+      "source": "n02-mutate-mask-before-widen.wf",
       "hypothesis": "Mutating the masked temporary before widening invalidates its range fact.",
       "tags": ["negative", "masked-index", "mutation", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
@@ -94,7 +94,7 @@
     },
     {
       "id": "n03-mutate-wide-before-index",
-      "source": "n03-mutate-wide-before-index.xl",
+      "source": "n03-mutate-wide-before-index.wf",
       "hypothesis": "Mutating the widened temporary before indexing invalidates the propagated range fact.",
       "tags": ["negative", "unsigned-widening", "mutation", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
@@ -102,7 +102,7 @@
     },
     {
       "id": "n04-remainder-off-by-one",
-      "source": "n04-remainder-off-by-one.xl",
+      "source": "n04-remainder-off-by-one.wf",
       "hypothesis": "A rem >= 3 fall-through proves offsets through two, not the off-by-one src[i + 3].",
       "tags": ["negative", "remainder-guard", "derived-index", "offset-3", "off-by-one", "soundness"],
       "maturity": "gate",
@@ -110,7 +110,7 @@
     },
     {
       "id": "n05-remainder-wrong-buffer",
-      "source": "n05-remainder-wrong-buffer.xl",
+      "source": "n05-remainder-wrong-buffer.wf",
       "hypothesis": "A remainder derived from guarded cannot prove the same offset into a distinct target buffer.",
       "tags": ["negative", "remainder-guard", "wrong-buffer", "soundness"],
       "maturity": "gate",
@@ -118,7 +118,7 @@
     },
     {
       "id": "n06-remainder-wrong-bound",
-      "source": "n06-remainder-wrong-bound.xl",
+      "source": "n06-remainder-wrong-bound.wf",
       "hypothesis": "A remainder derived from an arbitrary limit cannot prove an access into src without the exact len provenance.",
       "tags": ["negative", "remainder-guard", "wrong-bound", "soundness"],
       "maturity": "gate",
@@ -126,7 +126,7 @@
     },
     {
       "id": "n07-remainder-nonzero-init",
-      "source": "n07-remainder-nonzero-init.xl",
+      "source": "n07-remainder-nonzero-init.wf",
       "hypothesis": "The wrapping subtraction guard is unsound without the canonical i = 0 loop invariant: n = 0 and i = u64::MAX - 2 makes rem equal three.",
       "tags": ["negative", "remainder-guard", "wrong-init", "unsigned-wrap", "soundness"],
       "maturity": "gate",
@@ -134,7 +134,7 @@
     },
     {
       "id": "n08-remainder-derived-mutation",
-      "source": "n08-remainder-derived-mutation.xl",
+      "source": "n08-remainder-derived-mutation.wf",
       "hypothesis": "Mutating the derived i + 2 temporary after the guard can turn it into the unsafe i + 3 access and must invalidate the fact.",
       "tags": ["negative", "remainder-guard", "derived-index", "mutation", "off-by-one", "soundness"],
       "maturity": "gate",
@@ -142,7 +142,7 @@
     },
     {
       "id": "n09-remainder-increment-before-access",
-      "source": "n09-remainder-increment-before-access.xl",
+      "source": "n09-remainder-increment-before-access.wf",
       "hypothesis": "The canonical stride increment establishes the next iteration's invariant but cannot license an access after the increment, where i may equal len.",
       "tags": ["negative", "remainder-guard", "mutation-order", "boundary", "soundness"],
       "maturity": "gate",
@@ -150,7 +150,7 @@
     },
     {
       "id": "n10-mask-uniq-alias-mutation",
-      "source": "n10-mask-uniq-alias-mutation.xl",
+      "source": "n10-mask-uniq-alias-mutation.wf",
       "hypothesis": "A write through a uniq-borrow holder invalidates the masked binding even though the set target names only the holder.",
       "tags": ["negative", "masked-index", "uniq-alias", "mutation", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
@@ -158,7 +158,7 @@
     },
     {
       "id": "n11-remainder-uniq-alias-bound-mutation",
-      "source": "n11-remainder-uniq-alias-bound-mutation.xl",
+      "source": "n11-remainder-uniq-alias-bound-mutation.wf",
       "hypothesis": "A write to the len-derived bound through a uniq-borrow holder invalidates the remainder invariant.",
       "tags": ["negative", "remainder-guard", "uniq-alias", "bound-mutation", "unsigned-wrap", "soundness"],
       "maturity": "gate",
@@ -166,7 +166,7 @@
     },
     {
       "id": "n12-mask-sibling-scope-name-reuse",
-      "source": "n12-mask-sibling-scope-name-reuse.xl",
+      "source": "n12-mask-sibling-scope-name-reuse.wf",
       "hypothesis": "A mask fact declared in one match arm must not escape into a sibling binding that legally reuses the same dead spelling.",
       "tags": ["negative", "masked-index", "lexical-scope", "sibling-arm", "name-reuse", "soundness"],
       "maturity": "gate",
@@ -174,7 +174,7 @@
     },
     {
       "id": "n13-remainder-detached-tail-wrap",
-      "source": "n13-remainder-detached-tail-wrap.xl",
+      "source": "n13-remainder-detached-tail-wrap.wf",
       "hypothesis": "A tail equality detached from the zero-based induction cannot prove safety: for empty src and i=u64::MAX, wrapped tail equals one.",
       "tags": ["negative", "remainder-tail", "wrong-init", "unsigned-wrap", "soundness"],
       "maturity": "gate",
@@ -182,7 +182,7 @@
     },
     {
       "id": "n14-remainder-tail-off-by-one",
-      "source": "n14-remainder-tail-off-by-one.xl",
+      "source": "n14-remainder-tail-off-by-one.wf",
       "hypothesis": "tail equal to one proves src[i], not the off-by-one src[i + 1].",
       "tags": ["negative", "remainder-tail", "tail-1", "derived-index", "off-by-one", "soundness"],
       "maturity": "gate",
@@ -190,7 +190,7 @@
     },
     {
       "id": "n15-remainder-tail-uniq-alias-mutation",
-      "source": "n15-remainder-tail-uniq-alias-mutation.xl",
+      "source": "n15-remainder-tail-uniq-alias-mutation.wf",
       "hypothesis": "Mutating tail through a uniq-borrow holder invalidates the equality-based remainder fact.",
       "tags": ["negative", "remainder-tail", "uniq-alias", "mutation", "soundness"],
       "maturity": "gate",
@@ -198,7 +198,7 @@
     },
     {
       "id": "n16-remainder-offset-uniq-alias-mutation",
-      "source": "n16-remainder-offset-uniq-alias-mutation.xl",
+      "source": "n16-remainder-offset-uniq-alias-mutation.wf",
       "hypothesis": "Mutating the derived i + 2 offset through a uniq alias can make it i + 3 and must retain the check.",
       "tags": ["negative", "remainder-guard", "derived-index", "uniq-alias", "mutation", "off-by-one", "soundness"],
       "maturity": "gate",
@@ -206,7 +206,7 @@
     },
     {
       "id": "n17-mask-wide-uniq-alias-mutation",
-      "source": "n17-mask-wide-uniq-alias-mutation.xl",
+      "source": "n17-mask-wide-uniq-alias-mutation.wf",
       "hypothesis": "Mutating the widened mask destination through a uniq alias invalidates propagated range provenance.",
       "tags": ["negative", "masked-index", "unsigned-widening", "uniq-alias", "mutation", "soundness"],
       "maturity": "gate",
@@ -214,7 +214,7 @@
     },
     {
       "id": "m01-one-proved-one-retained",
-      "source": "m01-one-proved-one-retained.xl",
+      "source": "m01-one-proved-one-retained.wf",
       "hypothesis": "Per-site accounting proves the exact widened masked index while retaining its offset sibling in the same function.",
       "tags": ["mixed", "masked-index", "unsigned-widening", "offset", "site-accounting"],
       "maturity": "gate",

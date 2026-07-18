@@ -1,8 +1,8 @@
-- The production compiler (xlc) is written in whitefoot itself; the Python prototype is stage 0 only, compiling xlc until xlc compiles itself, with self-hosting defined as a byte-identical emitted-IR fixpoint across stages.
-- xlc is built on fixed-capacity structure-of-arrays tapes backed by primitive buffers; token and node counts are bounded from source size, and the bootstrap needs no growable collections, no pool, and no general generics.
+- The production compiler (wfc) is written in whitefoot itself; the Python prototype is stage 0 only, compiling wfc until wfc compiles itself, with self-hosting defined as a byte-identical emitted-IR fixpoint across stages.
+- wfc is built on fixed-capacity structure-of-arrays tapes backed by primitive buffers; token and node counts are bounded from source size, and the bootstrap needs no growable collections, no pool, and no general generics.
 - Compilation is one whole-program unit in a deterministic declaration order; the target is LLVM IR text, and the external C compiler is driven by the build system, never spawned by the compiler.
 - Two standing verification gates guard every change: the conformance/model-check/perf-pin gate, and the codegen-parity gate over earned IR, opcode, and proof-site properties, with audit-versus-gate maturity keeping known debt visible without becoming contract.
-- Stage 0 builds xlc with optimizer facts disabled until xlc's own effect checking is complete.
+- Stage 0 builds wfc with optimizer facts disabled until wfc's own effect checking is complete.
 
 ## Facts
 
@@ -13,4 +13,4 @@
 
 ## Moves
 
-- 2026-07-12 (e8c8eeb1) replaced [[pool-based-xlc-plan]]: fixed-capacity structure-of-arrays tapes with token and node counts bounded from source size let stage-0 democ bootstrap xlc without growable collections, pool, handle, or general generics — none of which stage 0 implements (sourced)
+- 2026-07-12 (e8c8eeb1) replaced [[pool-based-wfc-plan]]: fixed-capacity structure-of-arrays tapes with token and node counts bounded from source size let stage-0 democ bootstrap wfc without growable collections, pool, handle, or general generics — none of which stage 0 implements (sourced)

@@ -73,14 +73,14 @@ def module_is_wired():
         for line in (HERE / "sources.txt").read_text().splitlines()
         if line.strip()
     }
-    return "src/semantic_buffer.xl" in entries
+    return "src/semantic_buffer.wf" in entries
 
 
 def build_focused_library(directory):
     if module_is_wired():
         return build_library(directory)
     source = compiler_source()
-    source += "\n" + (HERE / "src" / "semantic_buffer.xl").read_text()
+    source += "\n" + (HERE / "src" / "semantic_buffer.wf").read_text()
     ir = democ.compile_program(source, alias=False)
     ll = directory / "semantic_buffer.ll"
     library_path = directory / (
@@ -224,7 +224,7 @@ def assert_type_initializer(library):
 
 
 def real_match_source(width):
-    lexer = (HERE / "src" / "lexer.xl").read_bytes()
+    lexer = (HERE / "src" / "lexer.wf").read_bytes()
     start = lexer.index(f"fn lexer_match{width} ".encode())
     end = lexer.index(b"\nfn ", start)
     return lexer[start:end].rstrip() + b"\n"

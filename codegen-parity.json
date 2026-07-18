@@ -8,7 +8,7 @@
         "case": "base64-local-proof-accounting",
         "variant": "facts",
         "function": "encode",
-        "source": "experiments/port-study/base64/b64.xl",
+        "source": "experiments/port-study/base64/b64.wf",
         "source_sha256": "e3abbce3c8d1b24eba3471c5c0ea6800418d38c3d3d97ce64b7f15d2abfb9764",
         "scope": "closed-unit"
       }
@@ -24,7 +24,7 @@
         {
           "name": "whitefoot",
           "kind": "whitefoot",
-          "source": "experiments/codegen-vs-rust-c/xl/kernelA.xl",
+          "source": "experiments/codegen-vs-rust-c/xl/kernelA.wf",
           "function": "mix_n",
           "opt": "O3"
         },
@@ -66,14 +66,14 @@
         {
           "name": "facts",
           "kind": "whitefoot",
-          "source": "prototype/democ/examples/twice_read.xl",
+          "source": "prototype/democ/examples/twice_read.wf",
           "function": "twice_read",
           "opt": "O2"
         },
         {
           "name": "nofacts",
           "kind": "whitefoot",
-          "source": "prototype/democ/examples/twice_read.xl",
+          "source": "prototype/democ/examples/twice_read.wf",
           "function": "twice_read",
           "facts": false,
           "opt": "O2"
@@ -102,14 +102,14 @@
         {
           "name": "facts",
           "kind": "whitefoot",
-          "source": "prototype/democ/examples/soa_kernel.xl",
+          "source": "prototype/democ/examples/soa_kernel.wf",
           "function": "kernel",
           "opt": "O2"
         },
         {
           "name": "nofacts",
           "kind": "whitefoot",
-          "source": "prototype/democ/examples/soa_kernel.xl",
+          "source": "prototype/democ/examples/soa_kernel.wf",
           "function": "kernel",
           "facts": false,
           "opt": "O2"
@@ -150,14 +150,14 @@
         {
           "name": "facts",
           "kind": "whitefoot",
-          "source": "prototype/democ/examples/sat_reduce.xl",
+          "source": "prototype/democ/examples/sat_reduce.wf",
           "function": "reduce",
           "opt": "O2"
         },
         {
           "name": "nofacts",
           "kind": "whitefoot",
-          "source": "prototype/democ/examples/sat_reduce.xl",
+          "source": "prototype/democ/examples/sat_reduce.wf",
           "function": "reduce",
           "facts": false,
           "opt": "O2"
@@ -186,7 +186,7 @@
         {
           "name": "whitefoot",
           "kind": "whitefoot",
-          "source": "experiments/port-study/wc-chunk-summary/chunk_wc.xl",
+          "source": "experiments/port-study/wc-chunk-summary/chunk_wc.wf",
           "function": "summarize",
           "opt": "O3"
         },
@@ -227,7 +227,7 @@
         {
           "name": "facts",
           "kind": "whitefoot",
-          "source": "codegen-corpus/cases/requires-check-tautology.xl",
+          "source": "codegen-corpus/cases/requires-check-tautology.wf",
           "function": "guarded",
           "opt": "O3"
         }
@@ -261,14 +261,14 @@
         {
           "name": "facts",
           "kind": "whitefoot",
-          "source": "experiments/port-study/base64/b64.xl",
+          "source": "experiments/port-study/base64/b64.wf",
           "function": "encode",
           "opt": "O3"
         },
         {
           "name": "nofacts",
           "kind": "whitefoot",
-          "source": "experiments/port-study/base64/b64.xl",
+          "source": "experiments/port-study/base64/b64.wf",
           "function": "encode",
           "facts": false,
           "opt": "O3"
@@ -399,14 +399,14 @@
         {
           "name": "facts",
           "kind": "whitefoot",
-          "source": "experiments/port-study/base64/b64.xl",
+          "source": "experiments/port-study/base64/b64.wf",
           "function": "encode",
           "opt": "O3"
         },
         {
           "name": "ceiling",
           "kind": "whitefoot",
-          "source": "experiments/port-study/base64/b64.xl",
+          "source": "experiments/port-study/base64/b64.wf",
           "function": "encode",
           "elide_bounds": true,
           "opt": "O3"

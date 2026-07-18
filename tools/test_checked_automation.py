@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import codegen_parity as parity  # noqa: E402
 
-PROMOTED_SOURCE = "experiments/port-study/base64/b64.xl"
+PROMOTED_SOURCE = "experiments/port-study/base64/b64.wf"
 PROMOTED_DIGEST = "e3abbce3c8d1b24eba3471c5c0ea6800418d38c3d3d97ce64b7f15d2abfb9764"
 
 
@@ -341,7 +341,7 @@ class CheckedAutomationReportTests(unittest.TestCase):
     def test_fn4_generated_indexes_do_not_inherit_complete_analysis(self):
         democ = parity.load_democ()
         report = []
-        source = (ROOT / "prototype/democ/examples/sat_reduce.xl").read_text()
+        source = (ROOT / "prototype/democ/examples/sat_reduce.wf").read_text()
         democ.compile_program(source, alias=True, proof_report=report)
         parity.validate_proof_report(report)
         generated = report[:4]
@@ -360,7 +360,7 @@ class CheckedAutomationReportTests(unittest.TestCase):
         report = []
         source = (ROOT / (
             "codegen-corpus/cases/bounds/output-capacity-lockstep/"
-            "n33-indexed-borrow-output-escape.xl"
+            "n33-indexed-borrow-output-escape.wf"
         )).read_text()
         llvm = democ.compile_program(source, alias=True, proof_report=report)
         parity.validate_proof_report(report)

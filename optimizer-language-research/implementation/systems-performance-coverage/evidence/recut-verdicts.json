@@ -120,7 +120,7 @@
   "risks": [
    "Deque gap: the two-stack card covers FIFO only; a genuinely double-ended hot loop (sliding-window, work-stealing-adjacent local deques outside conc_queue) has no par route and would force a mid-cycle kernel admission.",
    "Sorted-map gap: B-tree nodes need uninit affine slot arrays, so no user BTreeMap at par exists; if a corpus-adjacent workload needs ordered iteration + point updates, the fallback (sorted seq, O(n) insert) fails at scale and a sealed btree becomes a forced late add.",
-   "seq-inline defer bets against compiler/AST-shaped workloads; if whitefoot's own self-hosted xlc is SmallVec-hungry, the 1.10x band will fail on the project's most visible program.",
+   "seq-inline defer bets against compiler/AST-shaped workloads; if whitefoot's own self-hosted wfc is SmallVec-hungry, the 1.10x band will fail on the project's most visible program.",
    "User-written sort/heap at par depends on the requires-prologue facts actually eliding swap-path bounds checks through seq's API swap; this is asserted from the base64 result, not yet measured on a permutation kernel.",
    "Tiny-map card correctness burden shifts to taught source: a modest-capability writer must get the SIMD compare card right from the spec alone; a wrong-but-checked linear scan is safe but silently below par, which the gate would not catch.",
    "Trim assumes re-admission of a knob later is purely additive; if seq's ABI (three-word header) gets frozen into extern boundaries or serialized layouts before the bench trigger fires, adding inline storage later becomes a breaking layout change."

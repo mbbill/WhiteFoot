@@ -625,7 +625,7 @@ def run_campaign(
         "binding": binding,
         "lock": lock_record,
         "source": {
-            "path": "compiler-source.xl",
+            "path": "compiler-source.wf",
             "bytes": len(source_bytes),
             "sha256": sha256_bytes(source_bytes),
         },
@@ -650,7 +650,7 @@ def run_campaign(
     write_json(manifest_path, manifest)
 
     try:
-        fsync_write(out_dir / "compiler-source.xl", source_bytes)
+        fsync_write(out_dir / "compiler-source.wf", source_bytes)
         fsync_write(
             out_dir / "compiler-source.sha256",
             (FROZEN_SOURCE_SHA256 + "\n").encode("ascii"),
@@ -662,7 +662,7 @@ def run_campaign(
 
         executable = out_dir / "build" / "fsoa_sample"
         executable_sha256 = build["executable"]["sha256"]
-        corpus = out_dir / "compiler-source.xl"
+        corpus = out_dir / "compiler-source.wf"
         observed_pids: set[int] = set()
         for index in range(sample_count):
             sample = run_one_sample(
@@ -750,7 +750,7 @@ def self_test() -> None:
         base_arguments = [
             str(executable),
             "--corpus",
-            str(campaign / "compiler-source.xl"),
+            str(campaign / "compiler-source.wf"),
             "--expected-source-sha256",
         ]
         rejected_source = subprocess.run(

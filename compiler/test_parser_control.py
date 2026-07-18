@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise xlc's recursive compiler-body statement and control grammar."""
+"""Exercise wfc's recursive compiler-body statement and control grammar."""
 
 import ctypes
 import tempfile

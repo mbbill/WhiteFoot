@@ -25,7 +25,7 @@ vectorizer recurrence kind; Rust has no channel to even state the law.
 
 ## Benchmark
 
-`kernel.xl` reduce: fold of `satadd` (u64 saturating add) over a buffer.
+`kernel.wf` reduce: fold of `satadd` (u64 saturating add) over a buffer.
 Opaque boundary (C driver, no LTO). Rust adversaries (`#[inline(never)]`,
 rustc -O3): `obvious` = `iter().fold(0, saturating_add)`; `expert` =
 hand-written 4-accumulator chunks_exact(4) — the human ASSERTS associativity,

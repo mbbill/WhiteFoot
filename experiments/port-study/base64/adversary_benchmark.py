@@ -43,7 +43,7 @@ def command_output(command: list[str]) -> str:
 def build(build_dir: Path) -> tuple[Path, dict[str, int]]:
     proof_report: list[dict] = []
     llvm_ir = democ.compile_program(
-        (HERE / "b64.xl").read_text(), proof_report=proof_report
+        (HERE / "b64.wf").read_text(), proof_report=proof_report
     )
     proof_summary = {
         "proved": sum(site["status"] == "proved" for site in proof_report),
@@ -277,7 +277,7 @@ def write_evidence(
     sources = (
         HERE / "paired_adversary.rs",
         HERE / "adversary_benchmark.py",
-        HERE / "b64.xl",
+        HERE / "b64.wf",
         ROOT / "prototype/democ/democ.py",
     )
     metadata = {

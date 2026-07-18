@@ -1,7 +1,7 @@
 # E0.1 research notes
 
 These notes separate facts from design inferences.  External results motivate
-controls; they do not substitute for measurements on xlc.
+controls; they do not substitute for measurements on wfc.
 
 ## Ownership and initialized-prefix storage
 
@@ -65,7 +65,7 @@ controls; they do not substitute for measurements on xlc.
   to “SoA always wins.”  <https://arxiv.org/abs/1806.05713>
 - SoCal (2026) studies serialized recursive data, including compiler-like tree
   workloads, and reports a geometric-mean gain from factored multi-buffer
-  layouts.  This makes xlc's AST SoA a particularly important consumer-side
+  layouts.  This makes wfc's AST SoA a particularly important consumer-side
   baseline rather than bootstrap debt to erase.  <https://arxiv.org/abs/2605.01140>
 
 The combined evidence supports only a workload-dependent conclusion: whitefoot

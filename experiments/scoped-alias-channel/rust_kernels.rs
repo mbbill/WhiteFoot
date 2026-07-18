@@ -1,5 +1,5 @@
 // Rust adversaries for the scoped-alias channel benchmark. Same semantics as
-// kernel.xl: two written columns, six read columns, loop to the min length.
+// kernel.wf: two written columns, six read columns, loop to the min length.
 // Three shapes: the obvious one, the header-rebind one, and the expert
 // inner-fn-with-slice-params one (the only shape that hands LLVM noalias).
 use std::time::Instant;

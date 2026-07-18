@@ -1218,7 +1218,7 @@ index b5a6656..0a5bfd9 100644
 +    if line.strip()
 +]
 +compiler_unit = "\n\n".join(path.read_text().rstrip("\n") for path in source_paths) + "\n"
-+soa_source = (Path(__file__).resolve().parent / "examples" / "soa_kernel.xl").read_text()
++soa_source = (Path(__file__).resolve().parent / "examples" / "soa_kernel.wf").read_text()
 +identity_pins = (
 +    (soa_source, False, 3069, "dfe27e6ac18799b2ac5e4d6f382fea3f979be04bd269ef64fe224c3c73d42d7c"),
 +    (soa_source, True, 3779, "fa80c462223036a8a2b67d0aabee4e232d326ee6c3327a8a8d6118cdbec20f5d"),

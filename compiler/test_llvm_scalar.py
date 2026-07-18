@@ -106,13 +106,13 @@ def compiler_source_isolated():
         if line.strip()
     ]
     excluded = {
-        "src/frontend.xl",
-        "src/semantic_body.xl",
-        "src/llvm_scalar.xl",
+        "src/frontend.wf",
+        "src/semantic_body.wf",
+        "src/llvm_scalar.wf",
     }
     paths = [HERE / name for name in names if name not in excluded]
-    paths.append(HERE / "src" / "semantic_body.xl")
-    paths.append(HERE / "src" / "llvm_scalar.xl")
+    paths.append(HERE / "src" / "semantic_body.wf")
+    paths.append(HERE / "src" / "llvm_scalar.wf")
     return "\n\n".join(path.read_text().rstrip("\n") for path in paths) + "\n"
 
 

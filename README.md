@@ -70,7 +70,7 @@ Highlights so far (each with a RESULTS.md under `experiments/`):
 | Work in this repo as an agent | `CLAUDE.md` |
 | Read the law / the doctrine | `CONSTITUTION.md` / `PATTERNS.md` |
 | Read the language spec | `spec/kernel-spec-v0.6.md` (+ `spec/derivation-ledger.md` for why each rule exists) |
-| The production compiler (xlc, self-hosting) | `compiler/` |
+| The production compiler (wfc, self-hosting) | `compiler/` |
 | The stage-0 compiler + checker | `prototype/` |
 | Run all verification | `make check` and `make -C compiler check` |
 | Measured evidence | `experiments/` (index in its README) |
@@ -81,7 +81,7 @@ Highlights so far (each with a RESULTS.md under `experiments/`):
 
 Two gates, both required green: `make check` (spec CI, rule tests, soundness
 probes, performance pins, codegen parity corpus, conformance suite) and
-`make -C compiler check` (the xlc test stack, including the self-parse gate).
+`make -C compiler check` (the wfc test stack, including the self-parse gate).
 Every completed unit of work commits with a one-line entry in the decision
 log — the repo is designed so that any fresh session can resume from
 `git log` plus the log tail alone.

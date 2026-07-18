@@ -51,7 +51,7 @@
           "type": "string",
           "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
         },
-        "source": {"type": "string", "pattern": "^[^/]+\\.xl$"},
+        "source": {"type": "string", "pattern": "^[^/]+\\.wf$"},
         "hypothesis": {"type": "string", "minLength": 1},
         "tags": {"$ref": "#/$defs/tags"},
         "maturity": {"enum": ["explore", "audit", "gate"]},

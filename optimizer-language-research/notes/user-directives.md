@@ -274,7 +274,7 @@ baselines remain non-regressed and every M, W, and H obligation is closed;
 optional O obligations block only if promoted or required by a mandatory
 contract. This ruling authorizes correction of the research boundary only. It
 does not authorize G0-Core work, a family lock, candidate or production
-implementation, specification changes, xlc migration, scored runs, or default
+implementation, specification changes, wfc migration, scored runs, or default
 teaching; the next step remains a separate owner discussion.
 
 ## D12 (2026-07-14): Complete the minimal systems-capability research before selecting mechanisms
@@ -319,7 +319,7 @@ G0-Core artifacts. This authorization permits source inspection, reproducible
 census tooling, contract normalization, derivation and cost ledgers, proof
 sketches, cross-ecosystem review, E0.1 traceability, and hostile review. It does
 not authorize a Family Lock A, candidate or production mechanism, language or
-specification change, compiler implementation, xlc migration, scored candidate
+specification change, compiler implementation, wfc migration, scored candidate
 run, E0.1 restart, or default teaching. The next production-relevant action
 after the research remains an owner review.
 
@@ -336,7 +336,7 @@ select a production implementation.
 
 This authorization does not permit candidate construction, Candidate Freeze
 B, scored or held-out execution, a language or specification decision,
-compiler implementation, production adoption, E0.1 restart, xlc migration, or
+compiler implementation, production adoption, E0.1 restart, wfc migration, or
 default teaching. Completing and reviewing the draft returns it to the owner.
 Any permission to construct candidates or make a language change requires a
 separate explicit decision after review of the frozen lock.
@@ -370,7 +370,7 @@ This ruling authorizes literature and production-language research, proof and
 derivability arguments, cost analysis, and hostile review. It does not
 authorize a language or specification change, compiler implementation,
 standard-library or container implementation, candidate construction or
-execution, E0.1 restart, xlc migration, production fact channel, or default
+execution, E0.1 restart, wfc migration, production fact channel, or default
 teaching. Any production design or implementation requires a later explicit
 owner decision.
 
@@ -515,7 +515,7 @@ needed to decide the B-Strata claims. It
 does not authorize another candidate, another project or operation, arbitrary
 writer predicates or proofs, project/container/reclamation-policy language
 forms, hidden runtime state, weakened checks, or production specification,
-checker, compiler, runtime, standard-library, container, xlc, migration,
+checker, compiler, runtime, standard-library, container, wfc, migration,
 default-teaching, or shipping changes. A final `STRATA-YES` returns an exact
 production landing proposal for owner review; it does not silently ship the
 design.
@@ -586,7 +586,7 @@ Recorded consequences for the active research:
 This ruling authorizes scenario-demand mapping, independent design derivation,
 hostile review, cross-design comparison, and durable recording of the results.
 Production language, specification, checker, compiler, runtime,
-standard-library, container, xlc, migration, fact-channel, teaching, and
+standard-library, container, wfc, migration, fact-channel, teaching, and
 shipping changes remain separately gated on later explicit owner decisions.
 
 ## D16 (2026-07-16): Copy declaration, catalog minimality, acceptance ledger, delegated execution

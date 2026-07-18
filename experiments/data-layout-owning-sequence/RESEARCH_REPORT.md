@@ -26,7 +26,7 @@ producer and consumer are therefore forced into parallel arrays. This constrains
 performance choices and scatters field additions and removals, length consistency,
 capacity checks, and API boundaries across several buffers.
 
-This does not mean that the current xlc should change from SoA to AoS. The existing
+This does not mean that the current wfc should change from SoA to AoS. The existing
 compiler has many consumers that scan only a kind, span, or child-link column. SoA's
 unit stride, lack of record padding, and per-column alias scope may all be superior
 for those consumers. Static accounting even shows that directly replacing only the
@@ -85,7 +85,7 @@ redecision, not an implementation detail.
 This report does not request a production implementation. Its former request to
 select one ownership/initialization prototype is superseded by D11. No G0-Core,
 family-lock, candidate, timing, or production work starts from this document.
-Even a later successful dense-family candidate would not imply that xlc should
+Even a later successful dense-family candidate would not imply that wfc should
 change layouts.
 
 ## 1. Scope
@@ -108,7 +108,7 @@ candidate.
 The superseded experimental boundary was the following. It grants no current
 permission:
 
-- Do not add E0.1 candidate semantics to the specification, checker, stage 0, xlc,
+- Do not add E0.1 candidate semantics to the specification, checker, stage 0, wfc,
   or teaching material in the main worktree. Independently authorized repairs that
   enforce existing rules remain ordinary mainline conformance work.
 - Keep an executable candidate only in a detached disposable worktree, with its
@@ -470,7 +470,7 @@ protocol rather than pretending the original serial boundary still holds.
    target-derived allocator/index/facts behavior.
 5. **Recursive projection parsing had drifted from the language surface.** Stage 0
    combined `inner.value` into one field in `index<Outer>(...).inner.value`.
-   Commit `50a1ddd` expands every suffix segment and pins stage 0 and xlc to the same
+   Commit `50a1ddd` expands every suffix segment and pins stage 0 and wfc to the same
    recursive projection. The historical bug is not a reason to exclude nested
    records or invent different syntax.
 6. **A recursive recipe conflicts with GRAM-9.** Nested ordinary construction is not
@@ -505,8 +505,8 @@ protocol rather than pretending the original serial boundary still holds.
     carry capacity across corpus inputs.
 16. **A feature flag creates two languages.** Rejected. Experiments use two isolated
     single-semantics toolchains.
-17. **A capability experiment can be misreported as xlc migration.** These require
-    different gates. A local AoS win cannot overturn SoA for column-heavy xlc.
+17. **A capability experiment can be misreported as wfc migration.** These require
+    different gates. A local AoS win cannot overturn SoA for column-heavy wfc.
 18. **The pattern doctrine is a production gate.** P2 currently teaches an
     append-only index-linked SoA pool. A production AoS capability needs an
     owner-reviewed PATTERNS disposition and evidence-backed selection guidance; an
@@ -550,7 +550,7 @@ other primary endpoint and guardrail must pass its preregistered non-inferiority
 bound. The exact workload set and margins still require owner review, so scoring
 cannot begin now.
 
-Even if the capability passes, xlc migration has a stricter gate. For both complete
+Even if the capability passes, wfc migration has a stricter gate. For both complete
 compiler cold and retained lanes, the 99% CI upper bound for candidate/S0 must be
 `<= 1.000`; lifecycle/destruction, phase, microkernel, scale, memory, and stack
 guardrails must all pass preregistered non-inferiority bounds; and there must be a
@@ -577,7 +577,7 @@ material to an external model.
 
 Supported:
 
-- `buffer<Record>` is a real expressiveness gap, not merely xlc implementation debt.
+- `buffer<Record>` is a real expressiveness gap, not merely wfc implementation debt.
 - Storage eligibility and Copy are distinct questions; the evidence does not require
   one predicate to grant both.
 - The previously carded declarative `copy struct` tier is distinct from automatic
@@ -603,7 +603,7 @@ Supported:
 
 Not supported:
 
-- Fixed AoS is faster for xlc.
+- Fixed AoS is faster for wfc.
 - The current detached candidate is semantically sound or production-ready.
 - `buffer_new<Record>(n, move seed)` is legal.
 - A derived Flat predicate is preferable to declarative `copy struct`, or vice versa.
@@ -614,7 +614,7 @@ Not supported:
 - Benefits of an initialized-prefix sequence come from AoS.
 - An opaque kernel `sequence<T>` is the only way to implement initialized-prefix
   ownership, or is already compatible with STOR-1.
-- xlc should migrate to AoS or growable storage.
+- wfc should migrate to AoS or growable storage.
 - `Flat` should enter the specification or production toolchain.
 - Floats are semantically ineligible for Flat storage; their prototype exclusion was
   only a disposable stage-0 limitation.
@@ -627,7 +627,7 @@ External research likewise shows only that layout depends on workload. SoAx repo
 SoA advantages in particle workloads; another Lennard-Jones study finds AoS better
 under a particular vectorization/padding scheme; and SoCal suggests that factored
 multi-buffer layouts can be strong for compiler-like recursive data. These results
-justify bidirectional microkernels and complete xlc measurements; they cannot replace
+justify bidirectional microkernels and complete wfc measurements; they cannot replace
 project data.
 
 ## 10. Superseded decision questions retained as dense-family inputs
@@ -657,7 +657,7 @@ supersede; none authorizes work by itself.
 7. Do you agree that the revised protocol must not be scored until the endpoint
    registry, lifetime lanes, and causal-control blockers are closed?
 8. Do you agree that production adoption requires an owner-reviewed PATTERNS
-   disposition, and that xlc migration and default teaching still require separate
+   disposition, and that wfc migration and default teaching still require separate
    approvals rather than following automatically from capability adoption?
 
 Production implementation remains frozen. The next step is a separate owner

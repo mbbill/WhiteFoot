@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """whitefoot conformance test system — spec-anchored, rule-keyed, toolchain-agnostic.
 
-Each case is a canonical `.xl` source (conformance/cases/<id>.xl) plus a manifest
+Each case is a canonical `.wf` source (conformance/cases/<id>.wf) plus a manifest
 entry (conformance/manifest.jsonl) declaring the rule id(s) it exercises and the
 expected verdict. Cases are driven through a TOOLCHAIN ADAPTER — democ today, any
 conformant whitefoot compiler (real, then self-hosted) tomorrow — and the verdict is
@@ -87,7 +87,7 @@ def run_cases(cases):
         if status == "pending":
             results.append((c, "SKIP", ("pending",)))
             continue
-        src = (CASES / f"{c['id']}.xl").read_text()
+        src = (CASES / f"{c['id']}.wf").read_text()
         v = ADAPTER(src, c["expect"]["kind"] in ("run", "trap"))
         m = matches(v, c["expect"])
         if status == "xfail":

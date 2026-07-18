@@ -28,7 +28,7 @@ typedef struct {
   uint64_t function_count;
 } FrontendReport;
 
-extern void xlc_frontend_run(Buffer source, FrontendReport *report);
+extern void wfc_frontend_run(Buffer source, FrontendReport *report);
 
 typedef struct {
   uint32_t state[8];
@@ -364,7 +364,7 @@ int main(int argc, char **argv) {
     free(corpus);
     return 2;
   }
-  xlc_frontend_run(source, &report);
+  wfc_frontend_run(source, &report);
   if (clock_gettime(SAMPLE_CLOCK, &after) != 0) {
     fputs("clock_gettime after failed\n", stderr);
     free(corpus);

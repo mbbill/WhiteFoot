@@ -51,14 +51,14 @@ def module_is_wired():
         for line in (HERE / "sources.txt").read_text().splitlines()
         if line.strip()
     }
-    return "src/semantic_prelude.xl" in entries
+    return "src/semantic_prelude.wf" in entries
 
 
 def build_focused_library(directory):
     if module_is_wired():
         return build_library(directory)
     source = compiler_source()
-    source += "\n" + (HERE / "src" / "semantic_prelude.xl").read_text()
+    source += "\n" + (HERE / "src" / "semantic_prelude.wf").read_text()
     ir = democ.compile_program(source, alias=False)
     ll = directory / "semantic_prelude.ll"
     library_path = directory / (

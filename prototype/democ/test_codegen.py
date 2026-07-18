@@ -31,7 +31,7 @@ def compile_native(source, run=False):
 
 
 recursive_projection = (
-    ROOT / "conformance" / "cases" / "gram5-pos-recursive-place-projection.xl"
+    ROOT / "conformance" / "cases" / "gram5-pos-recursive-place-projection.wf"
 ).read_text()
 _, _, projection_functions, _, _, _ = democ.parse_program(recursive_projection)
 projection_reader = next(

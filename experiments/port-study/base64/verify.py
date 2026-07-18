@@ -21,7 +21,7 @@ import democ  # noqa: E402
 def build(build_dir: Path, name: str, *, facts: bool) -> tuple[Path, list[dict]]:
     report: list[dict] = []
     ir = democ.compile_program(
-        (HERE / "b64.xl").read_text(), alias=facts, proof_report=report
+        (HERE / "b64.wf").read_text(), alias=facts, proof_report=report
     )
     ll = build_dir / f"{name}.ll"
     exe = build_dir / name
@@ -61,7 +61,7 @@ def verify_differential(build_dir: Path, facts: Path, nofacts: Path) -> None:
 def verify_foreign_boundary(build_dir: Path) -> None:
     """A direct C call cannot bypass the retained callee-entry requirement."""
     report: list[dict] = []
-    ir = democ.compile_program((HERE / "b64.xl").read_text(), proof_report=report)
+    ir = democ.compile_program((HERE / "b64.wf").read_text(), proof_report=report)
     if len(report) != 27 or sum(s["proof"] == "output-capacity-lockstep" for s in report) != 12:
         raise AssertionError("PROOF-2 site accounting changed")
     encode = ir[ir.index("define i64 @encode"):]

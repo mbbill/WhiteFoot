@@ -75,7 +75,7 @@ def validate(
 def assert_clean_parser_output(library):
     cases = [
         b"fn main () -> own unit pure { return unit; }\n",
-        (Path(__file__).resolve().parent / "examples" / "scalar_add.xl").read_bytes(),
+        (Path(__file__).resolve().parent / "examples" / "scalar_add.wf").read_bytes(),
     ]
     for data in cases:
         _, _, tokens, columns, ast = parse(library, data)

@@ -73,14 +73,14 @@ def module_is_wired():
         for line in (HERE / "sources.txt").read_text().splitlines()
         if line.strip()
     }
-    return "src/semantic_scanner.xl" in entries
+    return "src/semantic_scanner.wf" in entries
 
 
 def build_focused_library(directory):
     if module_is_wired():
         return build_library(directory)
     source = compiler_source()
-    source += "\n" + (HERE / "src" / "semantic_scanner.xl").read_text()
+    source += "\n" + (HERE / "src" / "semantic_scanner.wf").read_text()
     ir = democ.compile_program(source, alias=False)
     ll = directory / "semantic_scanner.ll"
     library_path = directory / (
@@ -134,7 +134,7 @@ def configure(library):
 
 
 def function_source(name):
-    lexer = (HERE / "src" / "lexer.xl").read_bytes()
+    lexer = (HERE / "src" / "lexer.wf").read_bytes()
     start = lexer.index(b"fn " + name + b" ")
     end = lexer.index(b"\nfn ", start)
     return lexer[start:end].rstrip() + b"\n"

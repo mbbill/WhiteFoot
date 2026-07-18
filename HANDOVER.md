@@ -83,7 +83,7 @@ unused rules, and rerun the earlier gates on the reduced core.
 
 The new ruling authorizes this decisive research sequence and conditional
 validation. It does not authorize production language, specification, checker,
-compiler, runtime, library, xlc, migration, teaching, or shipping changes. A
+compiler, runtime, library, wfc, migration, teaching, or shipping changes. A
 final `STRATA-YES` returns an exact landing proposal for separate owner review.
 
 ## Current execution snapshot
@@ -170,7 +170,7 @@ completed.
 - Phase 1 is a candidate upper bound, not a passed gate and not the final
   minimum.
 - No language, specification, compiler, checker, runtime, library, container,
-  xlc, migration, teaching, or shipping change is authorized.
+  wfc, migration, teaching, or shipping change is authorized.
 - Do not use a mind-expansion workflow or broaden the project/demand corpus.
 - Preserve the pre-existing owner edits in the worktree: the English-only
   wording in byte-identical `AGENTS.md`/`CLAUDE.md` and the `D10-R1` decision-log
@@ -426,9 +426,9 @@ The following work is outside the active research scope:
   human-facing ergonomics unrelated to the capability lower bound;
 - selecting final source spelling, keyword spelling, grammar, or diagnostics
   before the mechanism class and semantic need are selected;
-- changing `spec/kernel-spec-v0.6.md`, the checker, `prototype/democ`, `xlc`,
+- changing `spec/kernel-spec-v0.6.md`, the checker, `prototype/democ`, `wfc`,
   code generation, the runtime, or any production fact channel;
-- restarting E0.1, migrating xlc, changing default teaching, or running a
+- restarting E0.1, migrating wfc, changing default teaching, or running a
   scored/default-writer experiment;
 - fully designing concurrency, async, FFI, JIT, loader, or device subsystems in
   this pass; their categories are coverage tests, and an uncovered requirement
@@ -763,11 +763,11 @@ tables, validators, and active-status edits. It made no production language,
 specification, compiler, checker, runtime, container, or standard-library
 change.
 
-No capability-basis experiment, candidate construction, E0.1 restart, xlc
+No capability-basis experiment, candidate construction, E0.1 restart, wfc
 migration, or default-teaching change is authorized or in progress.
 
-The separate xlc self-hosting build track remains as described in
-`THE-PLAN.md`. Do not mix an unrelated xlc implementation slice into this
+The separate wfc self-hosting build track remains as described in
+`THE-PLAN.md`. Do not mix an unrelated wfc implementation slice into this
 research cleanup or mechanism study.
 
 ## 9. Active documents that are currently stale

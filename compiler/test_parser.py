@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile and exercise xlc's first token-anchored AST parser slice."""
+"""Compile and exercise wfc's first token-anchored AST parser slice."""
 
 import ctypes
 import tempfile
@@ -250,7 +250,7 @@ def assert_multiple_functions(library):
 
 
 def assert_scalar_add_tree(library):
-    data = (Path(__file__).resolve().parent / "examples" / "scalar_add.xl").read_bytes()
+    data = (Path(__file__).resolve().parent / "examples" / "scalar_add.wf").read_bytes()
     _, token_storage, tokens, columns, ast = parse(library, data)
     kinds, heads, starts, ends, _, _, _ = columns
     _, token_starts, token_ends = token_storage
@@ -340,7 +340,7 @@ def assert_scalar_add_tree(library):
 
 
 def assert_signature_tree(library):
-    data = (Path(__file__).resolve().parent / "examples" / "signature_slice.xl").read_bytes()
+    data = (Path(__file__).resolve().parent / "examples" / "signature_slice.wf").read_bytes()
     _, token_storage, tokens, columns, ast = parse(library, data)
     kinds, heads, starts, ends, _, _, _ = columns
     _, token_starts, token_ends = token_storage

@@ -6,7 +6,7 @@ PY=python3; CLANG=/usr/bin/clang
 $PY -c "
 import sys; sys.path.insert(0, '../../prototype/democ'); sys.path.insert(0, '../../prototype/checker')
 import democ
-src = open('kernel.xl').read()
+src = open('kernel.wf').read()
 open('kernel_facts.ll','w').write(democ.compile_program(src))
 open('kernel_nofacts.ll','w').write(democ.compile_program(src, alias=False))
 "

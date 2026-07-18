@@ -95,8 +95,8 @@ performance mechanism it preserves, and its acceptance-ledger status.
    containers are floor-forbidden; an Option-tag or default-init user route
    loses Vec parity mechanically (a tag+branch on the hot path, or an O(n)
    reserve). *Status:* the inline-keep resolves a FATAL contradiction (btree's
-   node representation and xlc both need embeddable inline seq); gates are an
-   embeddability demo and a tiny-vector xlc-shaped bench within 1.10x of
+   node representation and wfc both need embeddable inline seq); gates are an
+   embeddability demo and a tiny-vector wfc-shaped bench within 1.10x of
    SmallVec.
 
 2. **`table<K,V>` — SwissTable hash map.** SIMD group probe, one-load-one-compare
@@ -554,7 +554,7 @@ dependency order:
 
 1. **Gated real-compiler integration — the true performance milestone.** Every
    number in §4 is a C or Rust dry run validating SHAPE. The actual par claim is
-   only earned when the sealed kernels are built behind `xlc` with the pinned
+   only earned when the sealed kernels are built behind `wfc` with the pinned
    codegen contracts and measured on the Linux x86-64 deploy target. This is the
    milestone the dry runs de-risk, not replace.
 2. **Per-part five-leg acceptance batteries (D16 ledger).** Each sealed part must
@@ -595,8 +595,8 @@ dependency order:
   authorized; the whole dossier is gated on the five decisions and a separate
   landing review (D15).
 - **Graders, not compilers.** The writability trials (M5) were solved and scored
-  by models against the spec, not compiled by `xlc`; the kernel-shape and SPSC
-  numbers (M3/M6) are C/Rust dry runs of the pinned shapes, not `xlc` output. No
+  by models against the spec, not compiled by `wfc`; the kernel-shape and SPSC
+  numbers (M3/M6) are C/Rust dry runs of the pinned shapes, not `wfc` output. No
   measurement in this dossier came through the production toolchain.
 - **Indicative numbers, not deploy-target results.** All measurements are on an
   Apple M4 / macOS arm64; the deploy target is Linux x86-64. They validate the

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise xlc's token-anchored compiler-body expression grammar."""
+"""Exercise wfc's token-anchored compiler-body expression grammar."""
 
 import ctypes
 import re
@@ -18,7 +18,7 @@ class ParserNodeResult(ctypes.Structure):
 
 
 def enum_ordinals(enum_name):
-    text = (HERE / "src" / "ast.xl").read_text()
+    text = (HERE / "src" / "ast.wf").read_text()
     body = re.search(rf"enum {enum_name} \{{(.*?)\n\}}", text, re.S).group(1)
     return {
         name: ordinal

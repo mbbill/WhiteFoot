@@ -32,7 +32,7 @@ The candidate's green tests do not close E0.1a.  Known blockers include:
   32-bit/cross-architecture execution, complete internal-tape equivalence, and
   lifecycle/free gates have not run.
 
-No performance result, language adoption, xlc migration, or default-teaching
+No performance result, language adoption, wfc migration, or default-teaching
 claim exists.  `BASELINE.md` numbers are static accounting and harness smoke
 elapsed values are explicitly non-scoring.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise xlc's first non-function top-level item slice."""
+"""Exercise wfc's first non-function top-level item slice."""
 
 import ctypes
 import tempfile

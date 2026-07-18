@@ -2,7 +2,7 @@
 
 The corpus is organized into compact `cases.json` family manifests discovered
 recursively under `cases/`. Each family states one optimization hypothesis and
-a named-function metric; its nearby `.xl` sources vary one premise at a time.
+a named-function metric; its nearby `.wf` sources vary one premise at a time.
 Adding a family never requires editing one central manifest.
 
 Every positive proof case has near-identical negative controls. The facts-on
@@ -19,20 +19,20 @@ codegen-corpus/
     bounds/
       dominating-guard/
         cases.json
-        01-basic-read-positive.xl
-        05-wrong-buffer-negative.xl
+        01-basic-read-positive.wf
+        05-wrong-buffer-negative.wf
       masked-index/
         cases.json
-        p01-mask3-table4.xl
-        n02-oversized-mask.xl
+        p01-mask3-table4.wf
+        n02-oversized-mask.wf
       derived-range/
         cases.json
-        p04-remainder-index-i.xl
-        n07-remainder-nonzero-init.xl
+        p04-remainder-index-i.wf
+        n07-remainder-nonzero-init.wf
       output-capacity-lockstep/
         cases.json
-        p05-complete-groups.xl
-        n21-output-buffer-uniq-reborrow.xl
+        p05-complete-groups.wf
+        n21-output-buffer-uniq-reborrow.wf
 ```
 
 Run all families or select a tag:

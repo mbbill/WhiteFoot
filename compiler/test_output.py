@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise xlc's first capacity-aware byte output primitive through its C ABI."""
+"""Exercise wfc's first capacity-aware byte output primitive through its C ABI."""
 
 import ctypes
 import tempfile
@@ -11,7 +11,7 @@ from test_lexer import Buffer, build_library
 BYTE_CLEAN = 0
 BYTE_NEED_CAPACITY = 1
 BYTE_INVALID_STATE = 2
-PREFIX = b"xlc "
+PREFIX = b"wfc "
 U64_MAX = 18446744073709551615
 CHUNK = b"define i"
 

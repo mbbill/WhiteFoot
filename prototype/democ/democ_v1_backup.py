@@ -169,11 +169,11 @@ if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith('-')]
     flags = {a for a in sys.argv[1:] if a.startswith('-')}
     if not args:
-        print("usage: democ.py FILE.xl [--no-facts] [--asm]\n"
+        print("usage: democ.py FILE.wf [--no-facts] [--asm]\n"
               "  compiles kernel-subset source to FILE.ll (checker-gated);\n"
               "  --no-facts  omit ownership facts (noalias/readonly) for A/B\n"
               "  --asm       also run clang -O2 -S -> FILE.s\n"
-              "examples: examples/twice_read.xl examples/dangle.xl")
+              "examples: examples/twice_read.wf examples/dangle.wf")
         sys.exit(0)
     src_path = Path(args[0])
     try:

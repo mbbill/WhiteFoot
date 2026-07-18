@@ -20,7 +20,7 @@ for struct memory, one shared class for all shared-borrow-rooted access), plus
 
 ## Benchmark
 
-`kernel.xl`: struct-of-arrays update, 8 u64 columns, two written, six read,
+`kernel.wf`: struct-of-arrays update, 8 u64 columns, two written, six read,
 loop bounded by the imin of all lengths — the obvious source shape. Opaque
 boundary: kernel compiled alone, called from a C driver (no LTO). Rust
 adversaries (same semantics, `#[inline(never)]`): `obvious` (index via

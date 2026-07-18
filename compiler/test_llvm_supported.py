@@ -131,7 +131,7 @@ def output_bytes(storage, out):
 
 
 def analyze_case(library):
-    data = (HERE / "src" / "lexer.xl").read_bytes()
+    data = (HERE / "src" / "lexer.wf").read_bytes()
     case = parsed(library, data)
     nodes = tuple(
         find_function_by_text(data, case[4], case[5], name)

@@ -27,7 +27,7 @@ VARIANTS = (
 
 
 def build(build_dir: Path, name: str, options: dict[str, bool]) -> Path:
-    source = (HERE / "b64.xl").read_text()
+    source = (HERE / "b64.wf").read_text()
     ir = democ.compile_program(source, **options)
     ll = build_dir / f"{name}.ll"
     exe = build_dir / name

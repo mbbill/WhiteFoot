@@ -74,7 +74,7 @@ NODE_COLUMNS = (
 
 
 def enum_members(name):
-    source = (HERE / "src" / "semantic_facts.xl").read_text()
+    source = (HERE / "src" / "semantic_facts.wf").read_text()
     match = re.search(rf"enum {name} \{{(.*?)\n\}}", source, re.DOTALL)
     assert match is not None, name
     return tuple(re.findall(r"\b([A-Z][A-Za-z0-9_]*)\(\);", match.group(1)))

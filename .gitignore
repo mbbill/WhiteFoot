@@ -55,12 +55,12 @@ experiments/port-study/*/fuzz/
 
 # Extensionless executables emitted beside checked source/IR fixtures
 conformance/cases/*
-!conformance/cases/*.xl
+!conformance/cases/*.wf
 prototype/democ/examples/*
-!prototype/democ/examples/*.xl
+!prototype/democ/examples/*.wf
 !prototype/democ/examples/*.ll
 !prototype/democ/examples/*.md
 m3/submissions/reference/whitefoot/*
-!m3/submissions/reference/whitefoot/*.xl
+!m3/submissions/reference/whitefoot/*.wf
 !m3/submissions/reference/whitefoot/*.ll
 !m3/submissions/reference/whitefoot/*.md

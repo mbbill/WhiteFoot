@@ -245,10 +245,10 @@ Measured non-wins (equally load-bearing):
    After evidence, one passing route per demand determines the final reduced
    core and all earlier gates rerun. No additional candidate, project, or demand
    is authorized. Production language, specification, checker, compiler,
-   verifier, runtime, standard-library, container, xlc, migration,
+   verifier, runtime, standard-library, container, wfc, migration,
    fact-channel, selection, teaching, or shipping changes remain separately
    gated after a final `STRATA-YES`. Exact D-2/P-1 remain fail-closed, and the
-   separate xlc self-hosting build track must not be mixed into this research.
+   separate wfc self-hosting build track must not be mixed into this research.
 
    The completed research charter is
    `optimizer-language-research/implementation/minimal-systems-capability/
@@ -260,7 +260,7 @@ Measured non-wins (equally load-bearing):
    `CANDIDATE-B-ELEGANT-DESIGN-PLAN.md`; its authorization is exhausted at the
    `B-REVISE` Design Gate. Their old authorization boundaries remain historical
    facts rather than constraints on the new decisive plan.
-2. **xlc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
+2. **wfc self-hosting build track** — ACTIVE BUILD TRACK. The production compiler
    now parses, validates, indexes, and resolves all types in its own 477-function
    unit. The first S1 baseline is established: a pure whole-unit semantic driver
    deterministically reports 15 clean, 462 legal-unsupported, and zero semantic
@@ -338,7 +338,7 @@ Measured non-wins (equally load-bearing):
    deterministic first-missing-fact / first-failed-premise site diagnostics,
    and gates those diagnostics in both facts modes across all 44 cases. The
    reporting path is byte-transparent in 190/190 report/no-report compilations
-   over all 95 corpus `.xl` files in both facts modes. CHECKED-AUTOMATION
+   over all 95 corpus `.wf` files in both facts modes. CHECKED-AUTOMATION
    BOUNDS-V1 IMPLEMENTED 2026-07-11: the facts-on site report carries complete
    schema-versioned analyzer provenance; the B2 classifier passes proved and
    affirmatively intrinsic-dynamic sites, fails
@@ -376,7 +376,7 @@ targets. Default Terra whitefoot beats shipped `percent-encoding` 2.3.2 by 1.653
 and shipped `utf8parse` 0.2.2 by 1.098x on their locked workloads. Neither win
 comes from proof-elided bounds checks. This supports a replicated default-shape
 thesis while remaining limited to these implementations, corpora, and machine.
-THE BUILD TRACK IS ACTIVE: `compiler/` hosts xlc, the production compiler
+THE BUILD TRACK IS ACTIVE: `compiler/` hosts wfc, the production compiler
 written in whitefoot itself (the current baseline remains the P2 SoA-tape
 architecture with fixed-capacity buffers and no generics), bootstrapped by
 prototype/democ as stage 0,

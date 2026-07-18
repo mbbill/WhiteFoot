@@ -909,7 +909,7 @@ def assert_space_failures(library):
 
 
 def assert_symbol_clean_facts(library):
-    data = (Path(__file__).resolve().parent / "src" / "lexer.xl").read_bytes()
+    data = (Path(__file__).resolve().parent / "src" / "lexer.wf").read_bytes()
     case = parsed(library, data)
     function = find_function_by_text(
         data, case[4], case[5], b"lexer_is_symbol"
@@ -1159,7 +1159,7 @@ def assert_symbol_clean_facts(library):
 
 
 def assert_symbol_failures(library):
-    data = (Path(__file__).resolve().parent / "src" / "lexer.xl").read_bytes()
+    data = (Path(__file__).resolve().parent / "src" / "lexer.wf").read_bytes()
 
     def rejected(mutate):
         case = parsed(library, data)

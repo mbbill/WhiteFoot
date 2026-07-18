@@ -14,7 +14,7 @@
   "cases": [
     {
       "id": "p01-mask3-table4",
-      "source": "p01-mask3-table4.xl",
+      "source": "p01-mask3-table4.wf",
       "hypothesis": "The minimal N=4 direct mask idiom is proven.",
       "tags": ["positive", "power-of-two", "mask-3", "baseline"],
       "maturity": "gate",
@@ -22,7 +22,7 @@
     },
     {
       "id": "p02-mask3-benign-doc",
-      "source": "p02-mask3-benign-doc.xl",
+      "source": "p02-mask3-benign-doc.wf",
       "hypothesis": "A doc statement between mask and access does not invalidate the proof.",
       "tags": ["positive", "power-of-two", "metamorphic", "benign-doc"],
       "maturity": "gate",
@@ -30,7 +30,7 @@
     },
     {
       "id": "p03-mask3-benign-independent-let",
-      "source": "p03-mask3-benign-independent-let.xl",
+      "source": "p03-mask3-benign-independent-let.wf",
       "hypothesis": "Independent wrapped arithmetic between mask and access does not invalidate the proof.",
       "tags": ["positive", "power-of-two", "metamorphic", "benign-let"],
       "maturity": "gate",
@@ -38,7 +38,7 @@
     },
     {
       "id": "p04-mask7-table8",
-      "source": "p04-mask7-table8.xl",
+      "source": "p04-mask7-table8.wf",
       "hypothesis": "The direct idiom scales from N=4 to N=8.",
       "tags": ["positive", "power-of-two", "mask-7", "scale"],
       "maturity": "gate",
@@ -46,7 +46,7 @@
     },
     {
       "id": "p05-mask7-two-reads",
-      "source": "p05-mask7-two-reads.xl",
+      "source": "p05-mask7-two-reads.wf",
       "hypothesis": "One valid mask temporary proves accesses to multiple same-sized const arrays.",
       "tags": ["positive", "power-of-two", "mask-7", "multiple-accesses", "metamorphic"],
       "maturity": "gate",
@@ -54,7 +54,7 @@
     },
     {
       "id": "p06-mask15-table16",
-      "source": "p06-mask15-table16.xl",
+      "source": "p06-mask15-table16.wf",
       "hypothesis": "The direct idiom scales from N=8 to N=16.",
       "tags": ["positive", "power-of-two", "mask-15", "scale"],
       "maturity": "gate",
@@ -62,7 +62,7 @@
     },
     {
       "id": "n01-undersized-mask",
-      "source": "n01-undersized-mask.xl",
+      "source": "n01-undersized-mask.wf",
       "hypothesis": "PROOF-1 v1 rejects a safe but non-canonical smaller mask because it is not exactly N - 1.",
       "tags": ["negative", "wrong-mask", "safe-near-miss", "conservative"],
       "maturity": "gate",
@@ -70,7 +70,7 @@
     },
     {
       "id": "n02-oversized-mask",
-      "source": "n02-oversized-mask.xl",
+      "source": "n02-oversized-mask.wf",
       "hypothesis": "A mask larger than N - 1 can produce an out-of-bounds index and must remain checked.",
       "tags": ["negative", "wrong-mask", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
@@ -78,7 +78,7 @@
     },
     {
       "id": "n03-mask5-table6",
-      "source": "n03-mask5-table6.xl",
+      "source": "n03-mask5-table6.wf",
       "hypothesis": "A non-power-of-two table remains checked even when this particular bitmask happens to select only valid indices.",
       "tags": ["negative", "non-power-of-two", "safe-near-miss", "conservative"],
       "maturity": "gate",
@@ -86,7 +86,7 @@
     },
     {
       "id": "n04-offset-after-mask",
-      "source": "n04-offset-after-mask.xl",
+      "source": "n04-offset-after-mask.wf",
       "hypothesis": "Adding an offset after masking can produce N and must break the direct-mask proof.",
       "tags": ["negative", "offset", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
@@ -94,7 +94,7 @@
     },
     {
       "id": "n05-mutated-mask-temporary",
-      "source": "n05-mutated-mask-temporary.xl",
+      "source": "n05-mutated-mask-temporary.wf",
       "hypothesis": "Mutating the masked temporary before indexing invalidates its range fact.",
       "tags": ["negative", "mutation", "unsafe-near-miss", "soundness"],
       "maturity": "gate",
@@ -102,7 +102,7 @@
     },
     {
       "id": "n06-copied-mask-temporary",
-      "source": "n06-copied-mask-temporary.xl",
+      "source": "n06-copied-mask-temporary.wf",
       "hypothesis": "PROOF-1 v1 does not propagate a range fact through a copy temporary.",
       "tags": ["negative", "copy", "safe-near-miss", "conservative"],
       "maturity": "gate",

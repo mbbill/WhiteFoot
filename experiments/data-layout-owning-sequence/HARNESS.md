@@ -7,7 +7,7 @@ implementation, comparison, or performance verdict.
 ## Timing boundary
 
 Every sample is a new native process and contains exactly one call to
-`xlc_frontend_run`.  The two monotonic clock reads immediately surround that
+`wfc_frontend_run`.  The two monotonic clock reads immediately surround that
 call.  Reading and hashing the corpus and executable, computing the correctness
 digest, serializing JSON, process startup, and process-exit reclamation are
 outside the interval.
@@ -60,7 +60,7 @@ A completed campaign directory contains:
 ```text
 manifest.json
 raw.jsonl
-compiler-source.xl
+compiler-source.wf
 compiler-source.sha256
 build/
   build.json

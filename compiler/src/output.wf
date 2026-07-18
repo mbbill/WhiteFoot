@@ -129,7 +129,7 @@ fn byte_tape_emit_chunk ['o] (out: &uniq 'o ByteTape, count: own u64, b0: own u8
 
 fn byte_tape_emit_prefix ['o] (out: &uniq 'o ByteTape) -> own unit reads('o), writes('o), traps {
   region 'prefix_chunk {
-    byte_tape_emit_chunk(out: &uniq 'prefix_chunk deref(out), count: 4_u64, b0: 120_u8, b1: 108_u8, b2: 99_u8, b3: 32_u8, b4: 32_u8, b5: 32_u8, b6: 32_u8, b7: 32_u8);
+    byte_tape_emit_chunk(out: &uniq 'prefix_chunk deref(out), count: 4_u64, b0: 119_u8, b1: 102_u8, b2: 99_u8, b3: 32_u8, b4: 32_u8, b5: 32_u8, b6: 32_u8, b7: 32_u8);
   }
   return unit;
 }

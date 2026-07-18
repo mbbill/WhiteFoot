@@ -97,7 +97,7 @@ not generated or inspected until every scheduled task/arm trajectory has a Run
 Freeze and the campaign receives a Campaign Freeze. Before then, operators can
 see only the deterministic correctness diagnostics registered for repair.
 
-### B5: the xlc contrast could admit candidate-only arrays
+### B5: the wfc contrast could admit candidate-only arrays
 
 Resolution: an AST-level allowlist permits only the declaration marker, the
 exact registered initialization region, and ownership-mandated `move` tokens.
@@ -176,7 +176,7 @@ The final protocol also retains the earlier review dispositions that:
 ## 6. Historical verdict and superseded next stop
 
 The exact final protocol is fit for owner review. It deliberately selects
-neither bundle. No candidate code, timing, profiling, xlc migration, pattern
+neither bundle. No candidate code, timing, profiling, wfc migration, pattern
 change, production semantics, or external model call is authorized.
 
 The next-stop paragraph in the reviewed snapshot proposed a concrete Lock A for

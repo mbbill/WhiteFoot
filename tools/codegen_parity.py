@@ -61,7 +61,7 @@ REVIEW_PINNED_PROMOTION_ROOTS = (
         "case": "base64-local-proof-accounting",
         "variant": "facts",
         "function": "encode",
-        "source": "experiments/port-study/base64/b64.xl",
+        "source": "experiments/port-study/base64/b64.wf",
         "source_sha256": (
             "e3abbce3c8d1b24eba3471c5c0ea6800418d38c3d3d97ce64b7f15d2abfb9764"
         ),
@@ -70,7 +70,7 @@ REVIEW_PINNED_PROMOTION_ROOTS = (
 )
 REVIEW_PINNED_POLICY_ORACLE_COUNT = 15
 REVIEW_PINNED_POLICY_ORACLE_SHA256 = (
-    "c5e7640bb3c3e7c933d4b8c33d6ca84f9ab2492f03faedbad65ae1647b75ec57"
+    "a38929bb5742518b398ad3a16ab352ef94f9c406d8cd34347fd575fd26e0077e"
 )
 
 

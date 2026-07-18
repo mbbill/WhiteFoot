@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile the first self-hosted xlc component and compare it with stage 0."""
+"""Compile the first self-hosted wfc component and compare it with stage 0."""
 
 import ctypes
 import re
@@ -256,7 +256,7 @@ def corpus_paths():
     paths = set()
     for root in roots:
         if root.exists():
-            paths.update(root.rglob("*.xl"))
+            paths.update(root.rglob("*.wf"))
     return sorted(paths)
 
 
@@ -372,8 +372,8 @@ def main():
         if compared < 200:
             failures.append(f"corpus discovery regression: compared only {compared} sources")
         expected_skips = {
-            "conformance/cases/form4-neg-comment.xl",
-            "conformance/cases/x-form-form4-block-comment.xl",
+            "conformance/cases/form4-neg-comment.wf",
+            "conformance/cases/x-form-form4-block-comment.wf",
         }
         if set(skipped_paths) != expected_skips:
             failures.append(

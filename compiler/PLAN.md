@@ -1,20 +1,20 @@
-# xlc — plan to self-hosting and beyond
+# wfc — plan to self-hosting and beyond
 
 Status: CURRENT (2026-07-13). Supersedes the 2026-07-08 pool/handle bootstrap
 sketch — that architecture is preserved as a rejected alternative in
-`mcts_mem/whitefoot/toolchain.alt/pool-based-xlc-plan.md` with the reasons it
+`mcts_mem/whitefoot/toolchain.alt/pool-based-wfc-plan.md` with the reasons it
 lost. What survived from it: the whole-program single-unit model, the
 LLVM-IR-text target, the trusted-shim I/O boundary, and the byte-identical
 fixpoint definition. What replaced it: fixed-capacity structure-of-arrays
 tapes bounded by source size (pattern P2), which is why stage 0 needs no
 growable collections, no pool, and no generics.
 
-## Where xlc stands (measured, not aspired)
+## Where wfc stands (measured, not aspired)
 
 - 32 whitefoot source files, 23,962 lines and 477 functions, compiled by stage 0
   (`prototype/democ`). The exact unit currently parses to 211,374 tokens and
   105,550 AST nodes.
-- Frontend COMPLETE for xlc's own source: lexer (canonical OPNAME
+- Frontend COMPLETE for wfc's own source: lexer (canonical OPNAME
   discipline), full parser, AST structural validation, symbol tables with
   type/constructor namespace separation, whole-unit type resolution,
   function-scope indexing. Permanent gate: the exact `sources.txt` unit
@@ -26,7 +26,7 @@ growable collections, no pool, and no generics.
 - LLVM lowering: by capability family — scalar, linear, buffer, checked
   scanner loops WITH proof facts — currently composing a 15-function module
   that compiles through clang and passes native-execution tests.
-- Facts are OFF in stage-0-compiled xlc until xlc's own effect checking is
+- Facts are OFF in stage-0-compiled wfc until wfc's own effect checking is
   complete (conservative ordering; the parity corpus guards democ's facts).
 
 ## E0 — expressiveness validation behind the capability-floor gate
@@ -139,7 +139,7 @@ Every E0 phase uses the same non-regression discipline:
 - **Hostile review before landing.** The reviewer sees the protocol and artifacts,
   not a prose summary, and must audit equivalence, fairness, default-writer risk,
   ABI/copy/drop behavior, and every claimed attribution. Accepted changes land
-  atomically across spec, stage 0, xlc, conformance, derivation record, teaching
+  atomically across spec, stage 0, wfc, conformance, derivation record, teaching
   material, and code-shape pins; dual old/new canonical spellings never coexist.
 
 The earlier surface observations remain recorded but are parked: 1,186 explicit
@@ -152,10 +152,10 @@ nesting do not run ahead of E0.1-E0.5.
 ## Stages to the fixpoint (each gated; no stage starts before the prior gate)
 
 **S1 — body semantics parity on the compiler unit.**
-Grow ownership/effect/type body checks until xlc's semantic layer renders a
+Grow ownership/effect/type body checks until wfc's semantic layer renders a
 verdict on every function in `sources.txt`.
 The coverage baseline is complete. After the owner decides how the staged
-capability work interleaves with xlc and any prerequisite family decision
+capability work interleaves with wfc and any prerequisite family decision
 closes, the next functional slice is an
 independent acyclic-decision semantic family (not an enlargement of the loop
 scanner profile) covering `lexer_scan_op_suffix` and `lexer_scan_word` together.
@@ -167,26 +167,26 @@ whitefoot helper also enters the audited unit. The next expected source-order
 frontier is `lexer_ampuniq_at`.
 GATE: differential accept/reject parity with the stage-0 checker over (a) the
 whole compiler unit and (b) every conformance case whose constructs fall
-inside xlc's own subset — zero verdict disagreements; every disagreement
-found on the way is either an xlc bug fixed or a documented stage-0 bug with
+inside wfc's own subset — zero verdict disagreements; every disagreement
+found on the way is either a wfc bug fixed or a documented stage-0 bug with
 a conformance case added.
 
 **S2 — lowering coverage of the compiler's own source.**
 Extend the `llvm_*` families until every function in `sources.txt` lowers.
 The tracker is `llvm_supported`: its composed-module count climbs from 15 to
 all functions in the unit.
-GATE: `xlc_compile(sources)` under stage 0 emits one complete `.ll` for the
+GATE: `wfc_compile(sources)` under stage 0 emits one complete `.ll` for the
 whole unit; clang accepts it; the emitted module's functions execute their
 existing native tests.
 
 **S3 — stage 1 runs.**
-The stage-0-compiled xlc binary compiles real programs.
-GATE: the conformance runner gains an xlc adapter and the full suite runs
-through stage-1 xlc with verdicts identical to democ's (the suite is the
+The stage-0-compiled wfc binary compiles real programs.
+GATE: the conformance runner gains a wfc adapter and the full suite runs
+through stage-1 wfc with verdicts identical to democ's (the suite is the
 acceptance oracle, as always). Differences triaged exactly as in S1.
 
 **S4 — the fixpoint.**
-xlc1 (stage-0-built) compiles `sources.txt` -> IR2 -> build xlc2; xlc2
+wfc1 (stage-0-built) compiles `sources.txt` -> IR2 -> build wfc2; wfc2
 compiles `sources.txt` -> IR3.
 GATE: IR2 == IR3, byte-identical. This is the self-hosting definition and it
 is deliberately byte-level: canonical form end to end, no tolerance band.
@@ -195,13 +195,13 @@ oracle (independent implementations disagreeing is how soundness bugs
 surface), but it stops growing.
 
 **S5 — facts on.**
-Complete xlc's effect checking; enable the fact channels in xlc's output.
+Complete wfc's effect checking; enable the fact channels in wfc's output.
 GATE: the codegen-parity corpus (bounds cases + channel pins) runs against
-xlc-emitted IR with the same per-site proof accounting results as democ, and
+wfc-emitted IR with the same per-site proof accounting results as democ, and
 the byte-identical fixpoint is re-established WITH facts on.
 
 **S6 — beyond subset S.**
-Only after S5: grow the accepted language beyond what xlc's own source needed
+Only after S5: grow the accepted language beyond what wfc's own source needed
 — in evidence order, not wish order. Standing queue with recorded triggers:
 reborrow deltas OWN-6/OWN-14 not selected by E0.3 (re-run the binary-trees pilot
 if they land), the region arena, the gated I/O frame (first D4 boundary
@@ -212,8 +212,8 @@ and Result<aggregate, E> lowering (unlocks the streaming DecodeStep shape).
 
 - Every stage lands in small commits, each keeping BOTH gates green
   (`make check` at root, `make check` here).
-- Dogfood ergonomics changes are language changes, not opportunistic xlc
-  refactors: update spec, stage 0, xlc parsing/semantics, conformance, and the
+- Dogfood ergonomics changes are language changes, not opportunistic wfc
+  refactors: update spec, stage 0, wfc parsing/semantics, conformance, and the
   derivation record together, one surface axis per commit.
 - The self-parse gate and the byte-identical report/no-report property are
   never waived.

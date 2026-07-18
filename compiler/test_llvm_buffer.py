@@ -106,7 +106,7 @@ BAND_PLANS = {
 
 
 def real_matcher_source(width):
-    lexer = (HERE / "src" / "lexer.xl").read_bytes()
+    lexer = (HERE / "src" / "lexer.wf").read_bytes()
     marker = f"fn lexer_match{width} ".encode()
     start = lexer.index(marker)
     end = lexer.index(b"\nfn ", start)

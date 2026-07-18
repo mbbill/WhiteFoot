@@ -726,7 +726,7 @@ def assert_runtime_traps(library_path):
 
 def main():
     assert_ir_shape()
-    data = (HERE / "src" / "lexer.xl").read_bytes()
+    data = (HERE / "src" / "lexer.wf").read_bytes()
     with tempfile.TemporaryDirectory() as raw_directory:
         directory = Path(raw_directory)
         library = build_library(directory)

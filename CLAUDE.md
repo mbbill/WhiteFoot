@@ -23,7 +23,7 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 - `make check` — root gate: spec CI, rule tests, soundness, perf pins,
   codegen parity + corpus, conformance. Must be green.
-- `make -C compiler check` — xlc (the production compiler, written in whitefoot,
+- `make -C compiler check` — wfc (the production compiler, written in whitefoot,
   bootstrapped by `prototype/democ`). Must be green.
 
 ## Standing rules (owner-ratified; do not relitigate)
@@ -54,7 +54,7 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 
 ## Layout
 
-- `compiler/` — xlc, the self-hosting compiler (whitefoot sources, Python-run
+- `compiler/` — wfc, the self-hosting compiler (whitefoot sources, Python-run
   stage-0 tests). The active build track.
 - `prototype/` — democ (stage-0 compiler) + checker; reference semantics.
 - `spec/` — kernel spec, derivation ledger, FR reconciliation.
@@ -94,7 +94,7 @@ proof discharges them — speed is earned by proof, never by weakening a check.
 - The superseded B-Strata / candidate capability-research era is archived at
   `archive/research/minimal-systems-capability/` (historical evidence and
   falsifiers; nothing gates it).
-- xlc self-hosting build in `compiler/` (SoA-tape architecture per P2) — a
+- wfc self-hosting build in `compiler/` (SoA-tape architecture per P2) — a
   separate track: front-end complete over its 477-function unit, LLVM codegen
   at ~15/477 functions, still bootstrapped by `prototype/democ`; unaffected by
   the parked capability research.

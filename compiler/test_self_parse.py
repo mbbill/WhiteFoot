@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require xlc's permanent lexer/parser to reproduce its complete source unit."""
+"""Require wfc's permanent lexer/parser to reproduce its complete source unit."""
 
 import ctypes
 import tempfile

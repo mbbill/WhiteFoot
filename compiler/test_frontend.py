@@ -47,8 +47,8 @@ class FrontendReport(ctypes.Structure):
 
 
 def configure(library):
-    library.xlc_frontend_run.argtypes = [Buffer, ctypes.POINTER(FrontendReport)]
-    library.xlc_frontend_run.restype = None
+    library.wfc_frontend_run.argtypes = [Buffer, ctypes.POINTER(FrontendReport)]
+    library.wfc_frontend_run.restype = None
 
 
 def run_frontend(library, data):
@@ -57,7 +57,7 @@ def run_frontend(library, data):
         storage[index] = byte
     source = Buffer(ctypes.cast(storage, ctypes.c_void_p), len(data))
     report = FrontendReport(*([0x5A] * 11))
-    library.xlc_frontend_run(source, ctypes.byref(report))
+    library.wfc_frontend_run(source, ctypes.byref(report))
     assert storage
     return report
 

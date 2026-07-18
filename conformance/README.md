@@ -10,7 +10,7 @@ It is the production artifact of the toolchain. The checker and democ are dispos
 the guarantees this suite pins are not.
 
 ## Layout
-- `cases/<id>.xl` — one canonical whitefoot program per case (also a FORM-1/2 byte-exact fixture).
+- `cases/<id>.wf` — one canonical whitefoot program per case (also a FORM-1/2 byte-exact fixture).
 - `manifest.jsonl` — one JSON object per case: the rule id(s) it exercises + the expected verdict + status.
 - `runner.py` — the runner (a toolchain **adapter**) + the coverage tracker.
 
@@ -41,7 +41,7 @@ make conformance                         # the same, as make-check layer 5
 ```
 
 ## Adding a case
-Write `cases/<id>.xl` in canonical form, add a manifest line tagging the rule(s) and the
+Write `cases/<id>.wf` in canonical form, add a manifest line tagging the rule(s) and the
 expected verdict. Prefer one rule per negative case (so the coverage map is precise). To
 close a coverage gap, target a rule from the `untested` list the coverage report prints.
 

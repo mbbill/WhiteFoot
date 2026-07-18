@@ -18,7 +18,7 @@
  "cases": [
   {
    "id": "p01-full-loop-o",
-   "source": "p01-full-loop-o.xl",
+   "source": "p01-full-loop-o.wf",
    "hypothesis": "The checked 3:4 capacity relation plus exact i/o lockstep proves the full-loop out[o] store.",
    "tags": [
     "positive",
@@ -38,7 +38,7 @@
   },
   {
    "id": "p02-full-loop-o3",
-   "source": "p02-full-loop-o3.xl",
+   "source": "p02-full-loop-o3.wf",
    "hypothesis": "The same induction proves the boundary full-loop out[o+3] store.",
    "tags": [
     "positive",
@@ -59,7 +59,7 @@
   },
   {
    "id": "p03-tail-one",
-   "source": "p03-tail-one.xl",
+   "source": "p03-tail-one.wf",
    "hypothesis": "The exact tail==1 arm inherits one final output group from the checked capacity relation.",
    "tags": [
     "positive",
@@ -79,7 +79,7 @@
   },
   {
    "id": "p04-tail-two",
-   "source": "p04-tail-two.xl",
+   "source": "p04-tail-two.wf",
    "hypothesis": "The exact tail==2 arm proves its boundary out[o+3] store.",
    "tags": [
     "positive",
@@ -100,7 +100,7 @@
   },
   {
    "id": "p05-complete-groups",
-   "source": "p05-complete-groups.xl",
+   "source": "p05-complete-groups.wf",
    "hypothesis": "The base64-shaped four full-loop, four tail-1, and four tail-2 stores are all proved.",
    "tags": [
     "positive",
@@ -128,7 +128,7 @@
   },
   {
    "id": "m01-o3-o4",
-   "source": "m01-o3-o4.xl",
+   "source": "m01-o3-o4.wf",
    "hypothesis": "Per-site accounting proves o+3 and retains the off-by-one o+4 store in one canonical loop.",
    "tags": [
     "mixed",
@@ -170,7 +170,7 @@
   },
   {
    "id": "m02-sibling-offset-mutation",
-   "source": "m02-sibling-offset-mutation.xl",
+   "source": "m02-sibling-offset-mutation.wf",
    "hypothesis": "Sibling tail arms have lexical offset facts: the stable slot is proved and the same-spelled mutated sibling is retained.",
    "tags": [
     "mixed",
@@ -205,7 +205,7 @@
   },
   {
    "id": "n01-missing-relation",
-   "source": "n01-missing-relation.xl",
+   "source": "n01-missing-relation.wf",
    "hypothesis": "No checked signature relation means the output store remains checked despite exact lockstep.",
    "tags": [
     "negative",
@@ -239,7 +239,7 @@
   },
   {
    "id": "n02-wrong-relation-comparator",
-   "source": "n02-wrong-relation-comparator.xl",
+   "source": "n02-wrong-relation-comparator.wf",
    "hypothesis": "A strict comparison is outside the one normalized capacity predicate and is retained conservatively.",
    "tags": [
     "negative",
@@ -279,7 +279,7 @@
   },
   {
    "id": "n03-wrong-output-buffer",
-   "source": "n03-wrong-output-buffer.xl",
+   "source": "n03-wrong-output-buffer.wf",
    "hypothesis": "Capacity checked for a distinct buffer cannot prove a store through out.",
    "tags": [
     "negative",
@@ -306,7 +306,7 @@
   },
   {
    "id": "n04-wrong-source-buffer",
-   "source": "n04-wrong-source-buffer.xl",
+   "source": "n04-wrong-source-buffer.wf",
    "hypothesis": "A relation using another source length cannot bound the loop driven by src.",
    "tags": [
     "negative",
@@ -334,7 +334,7 @@
   },
   {
    "id": "n05-nonzero-output-init",
-   "source": "n05-nonzero-output-init.xl",
+   "source": "n05-nonzero-output-init.wf",
    "hypothesis": "The o=4k induction requires literal zero initialization.",
    "tags": [
     "negative",
@@ -355,7 +355,7 @@
   },
   {
    "id": "n06-wrong-input-stride",
-   "source": "n06-wrong-input-stride.xl",
+   "source": "n06-wrong-input-stride.wf",
    "hypothesis": "i+=2 can execute more output groups than the 3:4 relation funds.",
    "tags": [
     "negative",
@@ -376,7 +376,7 @@
   },
   {
    "id": "n07-wrong-output-stride",
-   "source": "n07-wrong-output-stride.xl",
+   "source": "n07-wrong-output-stride.wf",
    "hypothesis": "o+=5 breaks the exact output lockstep and may cross capacity.",
    "tags": [
     "negative",
@@ -404,7 +404,7 @@
   },
   {
    "id": "n08-input-increment-before-store",
-   "source": "n08-input-increment-before-store.xl",
+   "source": "n08-input-increment-before-store.wf",
    "hypothesis": "Moving the input synchronization point before the store is outside the exact paired-final-increment shape.",
    "tags": [
     "negative",
@@ -425,7 +425,7 @@
   },
   {
    "id": "n09-output-increment-before-store",
-   "source": "n09-output-increment-before-store.xl",
+   "source": "n09-output-increment-before-store.wf",
    "hypothesis": "A store after o+=4 may begin at capacity and must remain checked.",
    "tags": [
     "negative",
@@ -446,7 +446,7 @@
   },
   {
    "id": "n10-output-offset-four",
-   "source": "n10-output-offset-four.xl",
+   "source": "n10-output-offset-four.wf",
    "hypothesis": "The funded group covers offsets zero through three, never o+4.",
    "tags": [
     "negative",
@@ -467,7 +467,7 @@
   },
   {
    "id": "n11-conditional-output-increment",
-   "source": "n11-conditional-output-increment.xl",
+   "source": "n11-conditional-output-increment.wf",
    "hypothesis": "A conditional extra output increment desynchronizes i and o and invalidates the induction.",
    "tags": [
     "negative",
@@ -488,7 +488,7 @@
   },
   {
    "id": "n12-output-index-uniq-alias-mutation",
-   "source": "n12-output-index-uniq-alias-mutation.xl",
+   "source": "n12-output-index-uniq-alias-mutation.wf",
    "hypothesis": "Mutating o through a uniq-borrow holder invalidates the zero-based output induction.",
    "tags": [
     "negative",
@@ -510,7 +510,7 @@
   },
   {
    "id": "n13-tail-zero-output",
-   "source": "n13-tail-zero-output.xl",
+   "source": "n13-tail-zero-output.wf",
    "hypothesis": "tail==0 funds no additional group, so a post-tail store at o remains checked.",
    "tags": [
     "negative",
@@ -531,7 +531,7 @@
   },
   {
    "id": "n14-duplicate-tail-one",
-   "source": "n14-duplicate-tail-one.xl",
+   "source": "n14-duplicate-tail-one.wf",
    "hypothesis": "A duplicate tail==1 block runs after the canonical arm has advanced o and cannot spend a second group.",
    "tags": [
     "negative",
@@ -552,7 +552,7 @@
   },
   {
    "id": "n15-tail-mutation-between-arms",
-   "source": "n15-tail-mutation-between-arms.xl",
+   "source": "n15-tail-mutation-between-arms.wf",
    "hypothesis": "Mutating tail between its equality arms destroys their mutual exclusion and invalidates all output proofs.",
    "tags": [
     "negative",
@@ -574,7 +574,7 @@
   },
   {
    "id": "n16-false-tail-arm-mutates-output",
-   "source": "n16-false-tail-arm-mutates-output.xl",
+   "source": "n16-false-tail-arm-mutates-output.wf",
    "hypothesis": "An o mutation in a False tail arm can advance the later True arm beyond capacity.",
    "tags": [
     "negative",
@@ -596,7 +596,7 @@
   },
   {
    "id": "n17-wrong-tail-expression",
-   "source": "n17-wrong-tail-expression.xl",
+   "source": "n17-wrong-tail-expression.wf",
    "hypothesis": "A tail detached from n-i cannot connect loop exit to the final output group.",
    "tags": [
     "negative",
@@ -617,7 +617,7 @@
   },
   {
    "id": "n18-output-offset-uniq-alias-mutation",
-   "source": "n18-output-offset-uniq-alias-mutation.xl",
+   "source": "n18-output-offset-uniq-alias-mutation.wf",
    "hypothesis": "Mutating an o+3 temporary through a uniq alias can turn it into o+4 and must retain the store.",
    "tags": [
     "negative",
@@ -640,7 +640,7 @@
   },
   {
    "id": "n19-wrong-relation-multiplier",
-   "source": "n19-wrong-relation-multiplier.xl",
+   "source": "n19-wrong-relation-multiplier.wf",
    "hypothesis": "Using four input bytes per output group overcredits capacity; only the exact multiplier three relation is admitted.",
    "tags": [
     "negative",
@@ -668,7 +668,7 @@
   },
   {
    "id": "n20-user-call-mentions-output",
-   "source": "n20-user-call-mentions-output.xl",
+   "source": "n20-user-call-mentions-output.wf",
    "hypothesis": "The v1 proof is intraprocedural and fail-closed: even a pure helper call mentioning out invalidates the capacity dependency.",
    "tags": [
     "negative",
@@ -689,7 +689,7 @@
   },
   {
    "id": "n21-output-buffer-uniq-reborrow",
-   "source": "n21-output-buffer-uniq-reborrow.xl",
+   "source": "n21-output-buffer-uniq-reborrow.wf",
    "hypothesis": "A uniq reborrow of the checked output buffer invalidates the direct-place capacity fact and every output access remains checked.",
    "tags": [
     "negative",
@@ -730,7 +730,7 @@
   },
   {
    "id": "n23-wrong-guard-literal-low",
-   "source": "n23-wrong-guard-literal-low.xl",
+   "source": "n23-wrong-guard-literal-low.wf",
    "hypothesis": "A loop guard of rem < 2 breaks the i<=n wrap-safety invariant; the prover must pin the guard literal to the input stride (3) and retain.",
    "tags": [
     "negative",
@@ -751,7 +751,7 @@
   },
   {
    "id": "n24-wrong-guard-literal-high",
-   "source": "n24-wrong-guard-literal-high.xl",
+   "source": "n24-wrong-guard-literal-high.wf",
    "hypothesis": "A loop guard of rem < 4 desynchronizes tail accounting from the capacity relation; retained.",
    "tags": [
     "negative",
@@ -772,7 +772,7 @@
   },
   {
    "id": "n25-wrong-requires-shift",
-   "source": "n25-wrong-requires-shift.xl",
+   "source": "n25-wrong-requires-shift.wf",
    "hypothesis": "groups = out_len >> 1 credits ~1.5x the real output capacity; the shift amount is part of the pinned relation and must retain.",
    "tags": [
     "negative",
@@ -801,7 +801,7 @@
   },
   {
    "id": "p06-funded-read-write",
-   "source": "p06-funded-read-write.xl",
+   "source": "p06-funded-read-write.wf",
    "hypothesis": "A funded out[o] access is independent of access mode: the read and following write both derive the same equivalent capacity obligation and are proved.",
    "tags": [
     "positive",
@@ -822,7 +822,7 @@
   },
   {
    "id": "m03-unrelated-aux",
-   "source": "m03-unrelated-aux.xl",
+   "source": "m03-unrelated-aux.wf",
    "hypothesis": "The canonical out[o] store is proved while an unrelated aux[0] store remains a not-applicable retained site without poisoning the output obligation.",
    "tags": [
     "mixed",
@@ -861,7 +861,7 @@
   },
   {
    "id": "p07-unrelated-counter",
-   "source": "p07-unrelated-counter.xl",
+   "source": "p07-unrelated-counter.wf",
    "hypothesis": "An unrelated scalar count+=1 in the straight-line group does not mutate a lockstep dependency and preserves the canonical output proof.",
    "tags": [
     "positive",
@@ -882,7 +882,7 @@
   },
   {
    "id": "n26-harmless-anchor-prefix",
-   "source": "n26-harmless-anchor-prefix.xl",
+   "source": "n26-harmless-anchor-prefix.wf",
    "hypothesis": "A harmless let before the canonical remainder/guard anchor is a recognized near-family failure, reported as body.supported-control rather than laundered as not-applicable.",
    "tags": [
     "negative",
@@ -903,7 +903,7 @@
   },
   {
    "id": "n27-double-remainder-decoy",
-   "source": "n27-double-remainder-decoy.xl",
+   "source": "n27-double-remainder-decoy.wf",
    "hypothesis": "Two harmless remainder-shaped lets cannot launder a variable-index unique-output candidate into affirmative not-applicability.",
    "tags": [
     "negative",
@@ -931,7 +931,7 @@
   },
   {
    "id": "n28-cursor-field-escape",
-   "source": "n28-cursor-field-escape.xl",
+   "source": "n28-cursor-field-escape.wf",
    "hypothesis": "Moving the output cursor into a struct field cannot evade the conservative capacity-candidate frontier.",
    "tags": [
     "negative",
@@ -959,7 +959,7 @@
   },
   {
    "id": "n29-aggregate-output-path-escape",
-   "source": "n29-aggregate-output-path-escape.xl",
+   "source": "n29-aggregate-output-path-escape.wf",
    "hypothesis": "Placing the output buffer behind a unique aggregate path cannot evade the conservative capacity-candidate frontier.",
    "tags": [
     "negative",
@@ -987,7 +987,7 @@
   },
   {
    "id": "n30-owned-output-escape",
-   "source": "n30-owned-output-escape.xl",
+   "source": "n30-owned-output-escape.wf",
    "hypothesis": "Changing the output parameter from a unique reference to an owned buffer cannot evade the conservative capacity-candidate frontier.",
    "tags": [
     "negative",
@@ -1015,7 +1015,7 @@
   },
   {
    "id": "n31-helper-return-alias-escape",
-   "source": "n31-helper-return-alias-escape.xl",
+   "source": "n31-helper-return-alias-escape.wf",
    "hypothesis": "A unique buffer alias returned by a helper cannot evade the conservative capacity-candidate frontier.",
    "tags": [
     "negative",
@@ -1043,7 +1043,7 @@
   },
   {
    "id": "n32-moved-owned-output-escape",
-   "source": "n32-moved-owned-output-escape.xl",
+   "source": "n32-moved-owned-output-escape.wf",
    "hypothesis": "Moving an owned output buffer into a local binding cannot evade the conservative capacity-candidate frontier.",
    "tags": [
     "negative",
@@ -1071,7 +1071,7 @@
   },
   {
    "id": "n33-indexed-borrow-output-escape",
-   "source": "n33-indexed-borrow-output-escape.xl",
+   "source": "n33-indexed-borrow-output-escape.wf",
    "hypothesis": "Borrowing a dynamic output element for a helper call must emit and report the same OP-4 bounds origin as a direct access.",
    "tags": [
     "negative",
@@ -1100,7 +1100,7 @@
   },
   {
    "id": "p08-preempted-complete-groups",
-   "source": "p08-preempted-complete-groups.xl",
+   "source": "p08-preempted-complete-groups.wf",
    "hypothesis": "All twelve funded output stores may remain proved after explicit trapping checks, but preemption makes the obligation only sufficient and never exact in any region.",
    "tags": [
     "positive",
@@ -1129,7 +1129,7 @@
   },
   {
    "id": "p09-dotless-allocation-preemption",
-   "source": "p09-dotless-allocation-preemption.xl",
+   "source": "p09-dotless-allocation-preemption.wf",
    "hypothesis": "A dotless buffer_new allocation can trap on byte-size overflow before each funded region; all twelve output sites remain proved, but the obligation is sufficient and never exact.",
    "tags": [
     "positive",

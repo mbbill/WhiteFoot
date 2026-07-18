@@ -4,7 +4,7 @@ Reproducible sources for the 2026-07-08 head-to-head. **Findings & verdict:**
 `../../optimizer-language-research/notes/codegen-vs-rust-c-2026-07-08.md`.
 
 ## Layout
-- `xl/`  — whitefoot kernels (`.xl`) + democ-emitted `.ll` (note the auto `noalias`/`readonly`).
+- `xl/`  — whitefoot kernels (`.wf`) + democ-emitted `.ll` (note the auto `noalias`/`readonly`).
 - `c/ cpp/ rs/` — the same kernels in C / C++ / Rust.
 - `kb/` — Kernel-B accumulate/reduction variants (naive vs `restrict` vs whitefoot vs Rust) + shared `driver.c`.
 - `asm/` — `-O2` hot-loop assembly for every version (the codegen evidence).
@@ -17,7 +17,7 @@ Reproducible sources for the 2026-07-08 head-to-head. **Findings & verdict:**
   - `B-add` affine reduction `*acc += *addend` → whitefoot == C-restrict == Rust codegen; noalias collapses O(n)→O(1) (`madd`), ~22x vs naive C.
 
 ## Reproduce
-whitefoot: `python3 ../../prototype/democ/democ.py xl/kernelA.xl` → `.ll`, then `/usr/bin/clang -O2 xl/kernelA.ll -o A`.
+whitefoot: `python3 ../../prototype/democ/democ.py xl/kernelA.wf` → `.ll`, then `/usr/bin/clang -O2 xl/kernelA.ll -o A`.
 C/C++: `/usr/bin/clang[++] -O2 c/kernelA.c -o A`. Rust: `rustc -C opt-level=3 rs/kernelA.rs -o A`; Kernel-B Rust variants live in `kb/acc.rs` and `kb/add.rs`.
 Assembly: add `-S` (or `rustc --emit asm`). Timing: `python3 time_it.py`.
 Note: democ hard-codes `/usr/bin/clang` (Apple clang 21); the default PATH `clang` here is a WASI cross-compiler — use `/usr/bin/clang` for an apples-to-apples LLVM 21 comparison.

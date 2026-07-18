@@ -47,7 +47,7 @@ PRELUDE_FALSE = 2
 
 
 def real_profile_source():
-    data = (HERE / "src" / "lexer.xl").read_bytes()
+    data = (HERE / "src" / "lexer.wf").read_bytes()
     return data[: data.index(b"\nfn lexer_scan_ident")]
 
 
@@ -177,9 +177,9 @@ def compiler_source_isolated():
         for line in (HERE / "sources.txt").read_text().splitlines()
         if line.strip()
     ]
-    excluded = {"src/frontend.xl", "src/llvm_scalar.xl", "src/llvm_linear.xl"}
+    excluded = {"src/frontend.wf", "src/llvm_scalar.wf", "src/llvm_linear.wf"}
     paths = [HERE / name for name in names if name not in excluded]
-    paths.append(HERE / "src" / "llvm_linear.xl")
+    paths.append(HERE / "src" / "llvm_linear.wf")
     return "\n\n".join(path.read_text().rstrip("\n") for path in paths) + "\n"
 
 

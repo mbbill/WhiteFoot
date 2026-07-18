@@ -2,7 +2,7 @@
 
 Status: superseded non-normative research proposal retained as historical input.
 D11 authorizes no further isolated experiment, production implementation,
-specification change, xlc migration, scored timing, or default teaching. A
+specification change, wfc migration, scored timing, or default teaching. A
 future dense-family Lock A must explicitly retain, revise, or supersede these
 alternatives; this document selects none and does not restart automatically.
 
@@ -29,7 +29,7 @@ must be archived durably. The first rejected candidate is preserved as the
 57,547-byte [`DETACHED_CANDIDATE.patch`](DETACHED_CANDIDATE.patch) at commit
 `68a55e4`, with the base and SHA-256 recorded in the review. A later production
 change would require explicit owner confirmation and atomic updates to the
-specification, checker, stage 0, xlc, conformance, teaching, pattern doctrine, and
+specification, checker, stage 0, wfc, conformance, teaching, pattern doctrine, and
 code-shape pins. Baseline and candidate semantics never coexist in one tool.
 
 ## What the prototype did and did not establish
@@ -193,7 +193,7 @@ result is retained. D11 supersedes the former direct owner-selection step. The
 next state is a separate owner discussion about whether to authorize bounded
 G0-Core work; G0-Core and a later dense-family lock do not automatically restart
 this proposal. No experiment, production work, specification delta, scored
-timing, xlc migration, pattern change, or external model run is authorized by
+timing, wfc migration, pattern change, or external model run is authorized by
 this document.
 
 The design tree remains unchanged because no production route has been selected.

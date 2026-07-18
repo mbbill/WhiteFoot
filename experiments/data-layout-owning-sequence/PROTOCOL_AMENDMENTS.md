@@ -11,7 +11,7 @@ facts-off IR: 1,860,733 bytes, SHA-256
 `23baa6cce795a7c8c21b66af2c2c01dbbeade8e40b5fe7dda64966db9f8e615a`.
 With the default 8 MiB Mach-O main stack, it deterministically reached the stack
 guard in `lexer_scan_one`; the crash backtrace continued through `lexer_run`,
-`frontend_analyze_parts`, and `xlc_frontend_run`.
+`frontend_analyze_parts`, and `wfc_frontend_run`.
 
 A non-timed threshold probe relinked the identical IR and driver.  A 9 MiB
 reservation still failed; 10, 12, and 16 MiB returned the frozen report and

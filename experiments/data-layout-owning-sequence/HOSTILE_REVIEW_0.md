@@ -44,7 +44,7 @@ implementation artifact.  It is intentionally written against adoption.
 11. **Unsafe allocation arithmetic.**  `u64` multiplication overflow is not
     enough for target `inbounds GEP`.  The gate also checks layout rounding,
     alignment, and the pointer-index/`isize` maximum.
-12. **Result cherry-picks a new xlc default.**  Capability adoption, xlc layout
+12. **Result cherry-picks a new wfc default.**  Capability adoption, wfc layout
     migration, and default-writer teaching have separate thresholds.  A local
     row-centric AoS win cannot migrate column-centric compiler tapes.
 13. **Affine row read creates a fixed-buffer hole.**  A whole-element
@@ -66,7 +66,7 @@ implementation artifact.  It is intentionally written against adoption.
 ## Boundary before any production E0.1a implementation
 
 - Obtain owner review and explicit confirmation before touching production
-  spec/checker/stage 0/xlc/teaching.
+  spec/checker/stage 0/wfc/teaching.
 - Experimental candidate code uses a disposable branch/worktree; never add a
   flag or candidate semantics to the main checker/stage 0.
 

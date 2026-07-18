@@ -10,7 +10,7 @@ requires a builder:
    path?
 
 It does **not** assume that AoS should replace the compiler's current SoA tapes.
-The present compiler is the protected baseline.  Capability adoption and xlc
+The present compiler is the protected baseline.  Capability adoption and wfc
 layout migration have separate decision gates.
 
 Current status: historical research evidence; no work is authorized. D11
@@ -26,7 +26,7 @@ hostile review on affine-fill semantics despite green repository tests. Its exac
 reviewed source is now archived here; no executable candidate semantics entered the
 production toolchain. Separately authorized repairs at `7438e17` (checker) and
 `50a1ddd` (parser) enforce existing language rules and do not select an E0.1 design.
-The specification, xlc layout, and teaching remain unchanged until explicit owner
+The specification, wfc layout, and teaching remain unchanged until explicit owner
 confirmation. Code-shape and raw-IR identity were compared, but no scored timing or
 performance comparison exists.
 

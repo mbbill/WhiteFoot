@@ -709,7 +709,7 @@ fn frontend_analyze_into ['s, 'u, 'r] (source: &'s buffer<u8>, analyzed: &uniq '
   return unit;
 }
 
-fn xlc_frontend_run ['s, 'r] (source: &'s buffer<u8>, report: &uniq 'r FrontendReport) -> own unit reads('s 'r), writes('r), allocates(heap), traps {
+fn wfc_frontend_run ['s, 'r] (source: &'s buffer<u8>, report: &uniq 'r FrontendReport) -> own unit reads('s 'r), writes('r), allocates(heap), traps {
   let source_length: own u64 = len<u8>(deref(source));
   let capacity: own u64 = iadd.trap<u64>(source_length, 1_u64);
   let analyzed: own AnalyzedUnit = frontend_unit_new(capacity: capacity);

@@ -33,7 +33,7 @@
    "Close the diagnostic blind spot: the e2 reborrow defect was never surfaced by the cycle. Extend the feedback generator to flag reborrow-out-of-borrowed-struct and WRONG_CHOICE (perf anti-pattern) classes, not just locally-fixable spelling/derivation errors."
   ],
   "caveats": [
-   "Grader-not-compiler: 'green' is adjudicated by a grader, not the production xlc checker. Rejections and par verdicts are the grader's best judgment; a real checker could disagree at the margin in either direction.",
+   "Grader-not-compiler: 'green' is adjudicated by a grader, not the production wfc checker. Rejections and par verdicts are the grader's best judgment; a real checker could disagree at the margin in either direction.",
    "Diagnostic quality is almost certainly better than a real compiler's would be \u2014 the feedback is expert-written and targets the actual defect. So the 70% final-green (and the +30pp cure delta) is plausibly an UPPER bound on what a real compiler's diagnostics would deliver; discount accordingly when projecting to shipped tooling.",
    "Diagnostics also have a demonstrated blind spot: e2's real defect (reborrow, T-A) predated and survived the cycle uncaught while three correct-but-irrelevant fixes were applied. High cure rate does not mean diagnostics see everything.",
    "Small n=20 with wide CIs; single round. 70% sits exactly on the PASS threshold \u2014 a one- or two-task swing crosses it, so treat the PASS as provisional, not comfortable.",

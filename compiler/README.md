@@ -1,7 +1,7 @@
-# xlc
+# wfc
 
 This directory contains the production whitefoot compiler, written in whitefoot. Python
-`prototype/democ` is stage 0 only: it compiles xlc until xlc can compile itself.
+`prototype/democ` is stage 0 only: it compiles wfc until wfc can compile itself.
 
 The compiler currently uses fixed-capacity structure-of-arrays tapes backed by
 primitive buffers. Token and node counts are bounded from the source size, so
@@ -38,8 +38,8 @@ prelude's `Overflow` type and `Overflow()` constructor while still rejecting dup
 constructors across enums. The prelude names are recognized from exact bytes and cannot
 be redeclared. Body semantics now begin with a deliberately narrow, fact-producing
 scalar profile; the remaining expression, ownership, and effect checks grow from those
-pieces. `src/source_names.xl` compares
-names byte-for-byte without hashes. `src/output.xl` is the capacity-aware, two-pass
+pieces. `src/source_names.wf` compares
+names byte-for-byte without hashes. `src/output.wf` is the capacity-aware, two-pass
 byte sink used by the LLVM emitters. `make check` compiles the whole compiler with
 stage 0 and exercises these native C ABIs, including hostile capacities and malformed
 internal tapes. The lexer oracle normalizes stage 0's obsolete broad dotted-word token
@@ -60,7 +60,7 @@ tapes needed by later compilation stages. `frontend_unit_new` allocates those ta
 once and `frontend_analyze_into` resets and reuses them across lexing, parsing,
 structural validation, global and type-member indexing, whole-unit type resolution,
 and function-scope indexing. Type and node-fact tapes intentionally remain empty until
-the body-semantic pass populates them. `xlc_frontend_run(source, report)` remains the
+the body-semantic pass populates them. `wfc_frontend_run(source, report)` remains the
 public convenience seam by allocating an `AnalyzedUnit` and forwarding to the retained
 pipeline.
 Its report identifies the first failed stage and preserves spans, node references, and
@@ -68,7 +68,7 @@ the counts completed so far. `test_frontend.py` drives both a mixed unit and the
 compiler source through this one ABI and checks deterministic counts;
 `test_frontend_retained.py` proves successful and failed analyses leave reusable,
 guarded internal tapes accessible to the next compiler stage. The final public
-ABI remains `xlc_compile(source, output, report)`, which will add LLVM output without
+ABI remains `wfc_compile(source, output, report)`, which will add LLVM output without
 accepting caller-forged internal tapes.
 
 `semantic_body_run` now resolves and types the compiler's scalar byte predicates into
@@ -79,7 +79,7 @@ checks all 256 possible `u8` inputs. The same fact-driven path also emits the an
 uppercase predicate, while hostile names, types, links, facts, and asymmetric tape
 capacities fail closed.
 
-Stage 0 is invoked with optimizer facts disabled for xlc builds until xlc's effect
+Stage 0 is invoked with optimizer facts disabled for wfc builds until wfc's effect
 checking is complete. Parsing now expands grammar slice by slice; semantic checking and
 LLVM emission follow. The self-hosting fixpoint uses an in-memory library ABI first, so
 runtime I/O, a standalone launcher, and drops do not block it.
@@ -91,10 +91,10 @@ surface.
 Bootstrap target:
 
 ```text
-democ -> xlc0
-xlc0  -> xlc1.ll -> xlc1
-xlc1  -> xlc2.ll
-xlc1.ll == xlc2.ll
+democ -> wfc0
+wfc0  -> wfc1.ll -> wfc1
+wfc1  -> wfc2.ll
+wfc1.ll == wfc2.ll
 ```
 
 `PLAN.md` is the current staged route from this coverage baseline through whole-unit

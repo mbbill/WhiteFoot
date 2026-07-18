@@ -37,7 +37,7 @@
       "type": "object",
       "required": ["path", "bytes", "sha256"],
       "properties": {
-        "path": { "const": "compiler-source.xl" },
+        "path": { "const": "compiler-source.wf" },
         "bytes": { "const": 1029044 },
         "sha256": {
           "const": "17c28914ec3cd109f0411cc8a83423623c1541be239e753e91144a66bea93f65"

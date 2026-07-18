@@ -9,7 +9,7 @@ automatically.
 
 This protocol is intentionally stricter than a normal feature benchmark.  E0.1
 may add an explicit capability only if it is zero-tax for programs that do not
-use it.  It may change xlc's taught or source-level default only if the default
+use it.  It may change wfc's taught or source-level default only if the default
 shape is also non-regressing on the complete compiler workload.  A capability
 win is not evidence for a default migration.
 
@@ -273,7 +273,7 @@ multiple-comparison family/hierarchical gate.  Every guardrail uses a confidence
 bound against its registered margin, never “not statistically significant.”
 The 64 MiB Darwin virtual stack reservation is equal across arms but cannot hide
 stack growth: static frame and measured high-water are hard guardrails, and an
-xlc-migration claim must also pass the target's production/default stack limit.
+wfc-migration claim must also pass the target's production/default stack limit.
 
 ## 7. Zero-tax generated-code gate
 
@@ -337,7 +337,7 @@ boundary.  It may not be substituted with an informal readability claim.
 Passing makes the capability explicit and non-default.  It does not authorize
 teaching it as the universal record/collection shape.
 
-### xlc layout migration
+### wfc layout migration
 
 Replacing current Token/Ast SoA requires the candidate/S0 99% CI upper bound to
 be `<= 1.000` for both exact-compiler cold full frontend and retained full
@@ -378,5 +378,5 @@ Three independent attack rounds are mandatory:
 3. after timing: blind recomputation from raw logs and claim review.
 
 Every blocker is recorded with a resolution or the candidate is rejected or
-deferred.  No normative specification, default teaching, or xlc migration lands
+deferred.  No normative specification, default teaching, or wfc migration lands
 from a prose summary or an unresolved review.

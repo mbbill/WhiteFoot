@@ -1058,11 +1058,11 @@ caveats live in each RESULTS file; nothing here is quotable without them.
 | Pre-proof checked loop (asm) | `experiments/port-study/base64/b64.s` |
 | Proof-build IR (asm regenerable with `clang -O2 -S b64.ll`) | `experiments/port-study/base64/b64.ll` |
 | Adversary table: whitefoot 4.285 GB/s; Rust obvious 1.60x; assert 1.604x; chunks tie 0.997; unsafe 1.040 | `experiments/port-study/base64/RESULTS.md`, `adversary_benchmark.py`, pinned CSV + metadata |
-| Effect rows: 1.47 s → 0.00 s across opaque boundary; Rust no-LTO 1.49 s; fat LTO ties | `experiments/effect-attrs-channel/RESULTS.md`, `main_attr.s`, `main_plain.s`, `kernel.xl` |
+| Effect rows: 1.47 s → 0.00 s across opaque boundary; Rust no-LTO 1.49 s; fat LTO ties | `experiments/effect-attrs-channel/RESULTS.md`, `main_attr.s`, `main_plain.s`, `kernel.wf` |
 | Naive C vs borrow-derived noalias; ≈22x additive variant; Rust parity | `experiments/codegen-vs-rust-c/SUMMARY.md`, `asm/kernelB_c.s`, `asm/kernelB_xl_acc.s` |
-| Vectorization: 0 guards/121 lines vs 29 guards/2,132 lines; short-trip 2.0x; long-trip tie; 16-column scaling | `experiments/scoped-alias-channel/RESULTS.md`, `kernel.xl`, `kernel_facts.s`, `rust_kernels.rs`, `rust_kernels.s` |
-| Checked laws: 3.3x over obvious fold; ties expert; signed-law refuted at compile time | `experiments/checked-law-channel/RESULTS.md`, `kernel.xl`, `kernel.s`, `rust_reduce.rs`; conformance case `fn4-neg-law-refuted-signedness` |
-| Boolean dataflow: width 16 vs 2×4; 1.6–1.8x closed to parity | `experiments/port-study/wc-chunk-summary/RESULTS.md`, `chunk_wc.xl`, `chunk_wc.s` |
+| Vectorization: 0 guards/121 lines vs 29 guards/2,132 lines; short-trip 2.0x; long-trip tie; 16-column scaling | `experiments/scoped-alias-channel/RESULTS.md`, `kernel.wf`, `kernel_facts.s`, `rust_kernels.rs`, `rust_kernels.s` |
+| Checked laws: 3.3x over obvious fold; ties expert; signed-law refuted at compile time | `experiments/checked-law-channel/RESULTS.md`, `kernel.wf`, `kernel.s`, `rust_reduce.rs`; conformance case `fn4-neg-law-refuted-signedness` |
+| Boolean dataflow: width 16 vs 2×4; 1.6–1.8x closed to parity | `experiments/port-study/wc-chunk-summary/RESULTS.md`, `chunk_wc.wf`, `chunk_wc.s` |
 | Shipped-library floor: 1.653x [1.631, 1.667] vs `percent-encoding` 2.3.2; 1.098x [1.085, 1.145] vs `utf8parse` 0.2.2; bounds retained | `experiments/default-floor/RESULTS.md` |
 | Kernel-shape dry runs (C mockups vs `Vec`/hashbrown; bands) | `optimizer-language-research/implementation/systems-performance-coverage/m3a-kernel-dryrun/RESULTS.md` |
 | Queue: exhaustive model check, all 4 weakened-ordering mutants caught; zero-RMW hot path; latency vs throughput vs `rtrb` | `.../systems-performance-coverage/m6a-spsc-dryrun/RESULTS.md` |

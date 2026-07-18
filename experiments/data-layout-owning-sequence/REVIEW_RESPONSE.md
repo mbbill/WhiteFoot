@@ -5,7 +5,7 @@ cross-project design history, conformance classification, and decision framing.
 
 Status: complete historical non-normative review disposition. D11 supersedes its
 former owner-decision surface and authorizes no G0-Core work, family-lock work,
-experiment, production implementation, specification change, scored timing, xlc
+experiment, production implementation, specification change, scored timing, wfc
 migration, PATTERNS change, default teaching, or external model disclosure. The
 alternatives remain inputs to a future dense-family lock; this response selects
 none and does not restart automatically.
@@ -145,7 +145,7 @@ boundary, and META-5 delta before implementation.
   is closed by `7438e17`. It provides no evidence for an
   E0.1 ownership route.
 - Recursive projection tokenization was implementation drift from the intended
-  projection surface. Commit `50a1ddd` repairs and pins it in stage 0 and xlc; the
+  projection surface. Commit `50a1ddd` repairs and pins it in stage 0 and wfc; the
   historical drift cannot justify excluding nested record storage or inventing a
   new design.
 
@@ -215,13 +215,13 @@ justified; they are not silently promoted into language law.
 The following evidence survives the revisions:
 
 - whitefoot currently cannot express fixed `buffer<Record>` AoS storage;
-- xlc's current SoA has plausible workload and memory advantages and remains the
+- wfc's current SoA has plausible workload and memory advantages and remains the
   protected baseline;
 - natural fixed AoS would increase Token/Ast requested bytes by 11.1% and total
   frontend requested bytes by 3.85% under the same capacity policy;
 - the 64-bit row/field/scalar lowering shape is feasible without changing frozen SoA
   raw LLVM;
-- no scored performance, capability-adoption, xlc-migration, or default-writer claim
+- no scored performance, capability-adoption, wfc-migration, or default-writer claim
   exists;
 - layout, allocation shape, initialization policy, capacity trajectory, and owner
   lifetime must remain separately attributed;
@@ -245,7 +245,7 @@ select a kernel sequence or establish a runtime win.
    route would require deliberate coupling.
 6. Scored timing remains blocked on endpoint, lifetime, attribution, correctness,
    and hostile-review gates.
-7. Capability adoption, xlc migration, pattern doctrine, and default teaching remain
+7. Capability adoption, wfc migration, pattern doctrine, and default teaching remain
    independent approvals.
 
 At the time of this review, items 2-5 required owner selection. D11 supersedes
@@ -262,7 +262,7 @@ separately authorized conformance repair:
 - retain the independently authorized checker and parser repairs as enforcement of
   current rules, not as E0.1 candidate semantics;
 - do not start scored timing;
-- do not open a production E0.1/STOR-1, PATTERNS, specification, stage-0, xlc, or
+- do not open a production E0.1/STOR-1, PATTERNS, specification, stage-0, wfc, or
   teaching change from this response.
 
 The conformance repairs remain complete current-language work. D11 supersedes

@@ -8,7 +8,7 @@ must close before an owner may reconsider the pause, but they do not
 automatically restart this narrowing. The dense-family lock must explicitly
 retain, revise, or supersede every relevant arm and measurement below. This
 document authorizes no G0-Core work, family-lock work, candidate
-implementation, execution, scored timing, production change, xlc migration,
+implementation, execution, scored timing, production change, wfc migration,
 pattern change, default teaching, or external disclosure. The locks below are
 historical draft requirements and may not be entered while the suspension is in
 force.
@@ -16,7 +16,7 @@ force.
 This protocol answers an upstream question left open by `PROTOCOL.md`: which of
 two concrete ownership mechanisms is worth carrying into the fixed-record
 storage experiment? It does not decide whether AoS should replace any existing
-SoA tape. Capability adoption, xlc layout migration, and default teaching remain
+SoA tape. Capability adoption, wfc layout migration, and default teaching remain
 separate decisions.
 
 ## 1. Decision question and non-arms
@@ -60,7 +60,7 @@ For this paired screening run, this document replaces `PROTOCOL.md`'s old
 pre-repair baseline, its requirement to select an ownership route before
 constructing an F-AOS arm, and its serial E0.1a/E0.1b treatment of a builder.
 It imports that document's fixed-storage-applicable correctness, workload,
-zero-tax, capability-adoption, xlc-migration, pattern, and default-teaching
+zero-tax, capability-adoption, wfc-migration, pattern, and default-teaching
 gates unless this document tightens them. Reserve/grow, arbitrary-drop, and R/D
 sequence gates remain closed and are not silently imported into the transient
 builder screen.
@@ -445,7 +445,7 @@ must pass its exact-byte reviews before any candidate code exists.
 ## 5. Pre-implementation corpus census
 
 Before candidate code, freeze a repository corpus containing production whitefoot
-sources, the current xlc unit, and the two completed first-green default-floor
+sources, the current wfc unit, and the two completed first-green default-floor
 artifacts. Tests written to exercise a proposed route are excluded from
 prevalence counts.
 
@@ -462,7 +462,7 @@ record:
 
 Disagreements are resolved before candidate implementation and the frozen table
 is archived. Declaration count alone is not prevalence evidence. The existing
-manual observation that roughly 13 of 23 xlc records have only Copy leaves is a
+manual observation that roughly 13 of 23 wfc records have only Copy leaves is a
 prior to verify, not a registered result.
 
 A synthetic scalar protocol token is always permitted as an adversarial checker
@@ -479,7 +479,7 @@ The verified census and a `CURRENT` semantic-event trace freeze the weights for
 repeated fill, independent construction, field-only, whole-row, and replacement
 cells. If no defensible event weight exists, every atomic cell remains a separate
 guardrail under an intersection rule; no ungrounded pooled average is allowed.
-Because current xlc is SoA, Lock A must freeze a machine-readable mapping from
+Because current wfc is SoA, Lock A must freeze a machine-readable mapping from
 column events to logical row events, including temporal grouping, corpus
 identity, and an independently audited trace. An ambiguous mapping invokes the
 unweighted intersection fallback rather than an inferred row weight.
@@ -589,7 +589,7 @@ from leak assertions.
 ## 8. Zero-tax and aggregate-code-shape gates
 
 Before a new-feature result is considered, `CURRENT` and both candidate
-toolchains compile the complete unchanged-source fixture set and current xlc.
+toolchains compile the complete unchanged-source fixture set and current wfc.
 For each candidate, all of the following must be identical to `CURRENT`:
 
 - checker verdict and diagnostic bytes;
@@ -649,7 +649,7 @@ Lock A contains an explicit contrast registry:
 - unchanged programs compare each candidate to `CURRENT` by exact identity;
 - common new-feature mechanism and writer lanes use the direct paired contrast
   `AFFINE_FIXED_BUILDER / DECLARATIVE_COPY`;
-- the xlc-shaped lane uses that direct candidate contrast for route screening
+- the wfc-shaped lane uses that direct candidate contrast for route screening
   and reports each candidate versus current SoA descriptively for the later
   absolute capability gate.
 
@@ -677,7 +677,7 @@ not a primary memory metric. Atomic cells are guardrails unless their weights
 were derived from the pre-implementation census and event trace; repeated fill
 and independent construction are never pooled with preference-selected weights.
 
-### 9.2 Frozen xlc-shaped lane
+### 9.2 Frozen wfc-shaped lane
 
 On the locked native 64-bit timing target, the exact TokenRow and AstRow logical
 workloads use the existing 24- and 56-byte strides, current fixed capacities,
@@ -690,7 +690,7 @@ allocator, optimization flags, and all other tapes remain identical.
 This lane is a total-route comparison. It reports full eager initialization,
 lexing/parsing access, cold frontend, retained frontend, and lifecycle
 separately. It may not attribute a total difference solely to ownership,
-locality, allocation count, or checks. A later full xlc layout migration still
+locality, allocation count, or checks. A later full wfc layout migration still
 requires the independent migration gate in `PROTOCOL.md`.
 
 The original protocol's token-dense, AST-dense, whitespace-heavy, early/mid/late
@@ -818,7 +818,7 @@ The result is always named for the complete `DECLARATIVE_COPY` or
 `AFFINE_FIXED_BUILDER` bundle; it cannot claim that Copy or affinity wins under
 a different initializer. It can intrinsically reject both bundles. It cannot
 select automatic structural Copy,
-an opaque initialized-prefix sequence, xlc migration, an AoS default, a PATTERNS
+an opaque initialized-prefix sequence, wfc migration, an AoS default, a PATTERNS
 change, or production semantics.
 
 ## 12. Review and stop points

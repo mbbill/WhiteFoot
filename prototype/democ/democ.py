@@ -136,7 +136,7 @@ def _validate_erased_prelude_payloads(type_spellings, enums):
                 raise SystemExit(
                     "democ: aggregate Result/Option payloads are outside the "
                     f"stage-0 word-erased profile ({spelling}: {', '.join(bad)}); "
-                    "compile this shape with xlc"
+                    "compile this shape with wfc"
                 )
             for arg in args:
                 inspect(arg)
@@ -3301,7 +3301,7 @@ if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith('-')]
     flags = {a for a in sys.argv[1:] if a.startswith('-')}
     if not args:
-        print("usage: democ.py FILE.xl [--no-facts] [--asm] [--run] [--totality]"); sys.exit(0)
+        print("usage: democ.py FILE.wf [--no-facts] [--asm] [--run] [--totality]"); sys.exit(0)
     src_path = Path(args[0])
     try:
         ir = compile_program(src_path.read_text(), alias='--no-facts' not in flags,

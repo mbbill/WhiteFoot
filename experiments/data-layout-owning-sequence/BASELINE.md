@@ -22,8 +22,8 @@ Before any stage-0 prototype edit, the unchanged-source generated-IR pins were:
 |---|---|---:|---|
 | canonical full compiler unit | off | 1,860,733 | `23baa6cce795a7c8c21b66af2c2c01dbbeade8e40b5fe7dda64966db9f8e615a` |
 | canonical full compiler unit | on | 2,229,127 | `0cde7c30e63ea4e60277ed76fb50940012b9b900d04abfc4385ceb4816e95001` |
-| `prototype/democ/examples/soa_kernel.xl` | off | 3,069 | `dfe27e6ac18799b2ac5e4d6f382fea3f979be04bd269ef64fe224c3c73d42d7c` |
-| `prototype/democ/examples/soa_kernel.xl` | on | 3,779 | `fa80c462223036a8a2b67d0aabee4e232d326ee6c3327a8a8d6118cdbec20f5d` |
+| `prototype/democ/examples/soa_kernel.wf` | off | 3,069 | `dfe27e6ac18799b2ac5e4d6f382fea3f979be04bd269ef64fe224c3c73d42d7c` |
+| `prototype/democ/examples/soa_kernel.wf` | on | 3,779 | `fa80c462223036a8a2b67d0aabee4e232d326ee6c3327a8a8d6118cdbec20f5d` |
 
 These are hard byte-identity gates for codegen changes, not benchmark values.
 The pre-prototype `prototype/democ/democ.py` SHA-256 was
@@ -31,7 +31,7 @@ The pre-prototype `prototype/democ/democ.py` SHA-256 was
 
 ## Current allocation and utilization
 
-`frontend_unit_new` creates 30 fixed buffers.  `xlc_frontend_run` uses
+`frontend_unit_new` creates 30 fixed buffers.  `wfc_frontend_run` uses
 `source_length + 1`, or `1,029,045` elements for the canonical compiler unit,
 as every column's capacity.
 
