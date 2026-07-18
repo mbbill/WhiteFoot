@@ -1,0 +1,192 @@
+# Whitefoot idea bank
+
+Status: NON-AUTHORITATIVE.
+
+`THE-PLAN.md` alone controls current work, order, gates, and authorization.
+This file preserves ideas that may deserve a bounded experiment after an owner
+promotes one. An entry here does not open a project phase or change a language,
+compiler, runtime, or deployment contract.
+
+Whitefoot keeps facts in source that other languages discard. LLVM optimization
+is one consumer of those facts. The ideas below ask whether the same checked
+facts can also buy portability, automated tuning, stronger testing, safer
+interop, or tighter deployment controls.
+
+## A portable C backend
+
+Whitefoot could emit C from the same checked typed IR that feeds the LLVM
+backend. Users would write Whitefoot, retain Whitefoot's safety rules, and use
+C toolchains to reach platforms that lack a supported LLVM path.
+
+Standard C cannot express all LLVM properties. Per-instruction alias scopes,
+`dereferenceable`, precise memory effects, `willreturn`, and several arithmetic
+facts have no exact portable-C spelling. A sound backend therefore needs one
+recorded disposition for each fact:
+
+1. consume the fact while generating C;
+2. encode it in portable C;
+3. encode it in a reviewed compiler profile such as Clang, GCC, or MSVC; or
+4. retain the runtime check and accept the missed optimization.
+
+The backend must generate defined C. It must avoid signed overflow before a
+check, out-of-bounds pointer formation, invalid shifts, unjustified `restrict`,
+padding reads, alignment violations, and assumptions that can become undefined
+behavior. The portable profile would promise correct compilation. Named
+compiler profiles could make separate, measured performance claims.
+
+First experiment: lower a small corpus that covers bounds discharge, exclusive
+borrows, checked arithmetic, and effect attributes. Compile it with two C
+compilers, compare results and traps with the LLVM backend, run C sanitizers,
+and inspect both assembly and throughput. Stop if the backend needs an
+unreviewable undefined-behavior assumption or cannot provide a checked fallback.
+
+## Proof-guided autotuning
+
+An autotuner could generate several implementations of one checked operation:
+different data layouts, unroll factors, SIMD widths, branch structures, or
+specializations. The checker would admit variants after proving that they
+preserve the source contract. A target benchmark would choose among them.
+
+This separates semantic authority from cost selection. The benchmark runner
+may choose the fastest proved variant, but benchmark noise cannot make an
+unsafe variant legal.
+
+First experiment: choose one bounded kernel with a scalar reference and two
+plausible fast shapes. Freeze the input distribution and target, verify every
+variant against the same differential corpus, then measure whether target
+selection beats a fixed compiler choice without expanding the trusted base.
+
+## A proof-gap performance coach
+
+The compiler could explain each retained check and missed optimization in
+terms the writer can act on. A report might say that an index check remains
+because no dominating fact proves `offset + 16 <= len`, or that a loop cannot
+vectorize because two live places may overlap.
+
+An automated tool could propose a rewrite constrained to the canonical
+patterns, run the checker and performance protocol, and present the source
+diff, proof delta, and measurement for human approval. The tool would never add
+an assumption or weaken a check. It would change source structure until the
+checker derives the needed fact.
+
+First experiment: use the observational proof reports planned for the
+facts-on compiler. Select ten retained bounds or alias checks, generate one
+mechanical suggestion for each, and measure suggestion validity, proof closure,
+code-shape change, and runtime change. Preserve every failed suggestion as a
+regression for the diagnostic or rewrite rule that produced it.
+
+## Multiple backends as mutual oracles
+
+Independent LLVM, C, and future WebAssembly backends could compile the same
+checked program. A differential runner would compare values, traps, external
+effects, and resource teardown. Each disagreement would produce the smallest
+practical regression before a backend fix closes.
+
+This approach can catch a lowering defect that source conformance misses. It
+also gives the C backend value before its generated code reaches the LLVM
+backend's performance.
+
+First experiment: run the existing codegen corpus through LLVM and portable C.
+Compile the C at low and high optimization levels with two compilers. Require
+the same result and trap class for valid and adversarial inputs, including
+failure paths.
+
+## Safe C ABI capsules
+
+Whitefoot could package a module as generated C plus a generated header. The
+header would expose opaque validated handles, constructors, operations, and
+drop functions instead of internal pointers or layouts. Boundary code would
+validate lengths, tags, handle generations, ownership transitions, and error
+paths before Whitefoot code receives authority.
+
+This would let a C program consume a Whitefoot library without asking the C
+caller to reproduce Whitefoot's lifetime and alias rules. Arbitrary C code can
+still corrupt its own process, so stronger isolation would require a process or
+sandbox boundary.
+
+First experiment: export one stateful component through an opaque-handle API.
+Generate misuse tests for stale handles, double drop, overlapping buffers,
+short outputs, and allocation failure. Require deterministic rejection and no
+partial mutation on each failing call.
+
+## A C-to-Whitefoot assumption extractor
+
+A migration tool could ingest a restricted C kernel and identify the
+assumptions that make it work: bounds assertions, `restrict`, signed-overflow
+expectations, alignment, object lifetime, and unchecked pointer arithmetic.
+The tool would translate supported code into Whitefoot and turn each assumption
+into an explicit checked obligation. It would reject code whose behavior
+depends on an assumption Whitefoot cannot state or prove.
+
+The extractor should favor an incomplete translation over invented semantics.
+Its main artifact would be an assumption ledger that a reviewer can inspect
+before approving the translated Whitefoot source.
+
+First experiment: select a small, defined-behavior C loop with one bounds
+contract and one alias contract. Mutate the contracts one at a time and require
+the extractor or Whitefoot checker to reject the corresponding program.
+
+## Resource certificates
+
+The compiler could emit a machine-readable resource certificate beside an
+artifact. Depending on the program and its entry contracts, the certificate
+could record stack and heap bounds, allocation counts, remaining trap sites,
+input-size constraints, external effects, and proved loop bounds.
+
+Embedded, real-time, and serverless systems could check the certificate against
+a deployment budget before running the program. Unknown bounds must remain
+unknown; the certificate must not turn a profile observation into a guarantee.
+
+First experiment: certify a fixed-capacity, allocation-free kernel. Compare the
+reported stack and memory bounds with instrumented executions at all boundary
+sizes, then use mutations to ensure an added allocation or enlarged buffer
+invalidates the certificate.
+
+## Effect-derived sandbox policies
+
+Once Whitefoot has production I/O and FFI, the compiler could derive a sandbox
+manifest from checked effect rows. A deployment tool could translate that
+manifest into a WASI capability set, syscall policy, filesystem allowlist, or
+network policy for a named platform.
+
+The effect system would remain the source of authority. Platform policy
+generators would consume its output and fail closed when the platform cannot
+represent a restriction.
+
+First experiment: define a tiny abstract effect set and one sandbox target.
+Generate policies for pure, read-only, and network-using fixtures. Mutation
+tests should add one hidden effect at a time and require either a broader
+manifest or compiler rejection.
+
+## Optimization receipts
+
+A release artifact could carry a compact receipt for each removed safety
+check. Each row would connect a source site to the proved proposition, proof
+producer, invalidators, backend consumer, emitted IR, and final code location.
+Reviewers could inspect why an operation has no runtime guard without
+reconstructing the optimizer's reasoning.
+
+Receipts must describe the frozen artifact rather than a nearby build. Source,
+proof report, IR, object, and receipt hashes would need to agree.
+
+First experiment: emit receipts for one bounds-proof family. Break each
+premise in turn and require the check to return, the receipt row to disappear,
+and the program to retain correct checked behavior.
+
+## Common admission questions
+
+Before an owner promotes one of these ideas, its experiment should answer:
+
+- Which checked proposition does the idea consume?
+- Does the consumer affect correctness, performance, or both?
+- Which producer and invalidators govern the proposition?
+- What safe behavior remains when the target cannot represent the fact?
+- Which hostile mutation demonstrates that the consumer fails closed?
+- Which correctness, code-shape, and performance observations decide the
+  experiment?
+- Which result stops the work instead of expanding its scope?
+
+Most entries depend on the stable proposition, provenance, consumer, and
+invalidator ledger described by phase 4 of `THE-PLAN.md`. Until that ledger and
+its hostile reviews exist, these entries remain design prompts rather than
+compiler work.
