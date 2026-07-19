@@ -391,8 +391,8 @@ def canonical_path(columns, root, target):
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 24, 30, 31, 102, 105, 106, 110, 123, 124, 125, 126, 298,
-    328, 329, 330, 331, 332, 333, 334, 399, 410, 411, 425, 488,
+    21, 24, 30, 31, 96, 102, 105, 106, 110, 123, 124, 125, 126, 287,
+    298, 328, 329, 330, 331, 332, 333, 334, 399, 410, 411, 425, 488,
 )
 
 
@@ -407,8 +407,8 @@ def assert_compiler_coverage(library):
     expected = (
         UNIT_CLEAN,
         535,
-        43,
-        492,
+        45,
+        490,
         0,
         functions[18],
         AST_NONE,
@@ -1068,6 +1068,24 @@ def assert_reader_struct_field_and_typed_index(library):
     assert_unsupported(
         b"fn probe ['s] (src: &'s buffer<u8>, i: own u64) -> own u64 reads('s), traps {\n  return index<u64>(deref(src), i);\n}\n"
     )
+    # len<u8|u64> over a buffer field/param: reads(region) with NO trap.
+    assert_clean(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 reads('s) {\n  return len<u64>(deref(t).data);\n}\n"
+    )
+    assert_clean(
+        b"fn probe ['s] (b: &'s buffer<u8>) -> own u64 reads('s) {\n  return len<u8>(deref(b));\n}\n"
+    )
+    # len exhibits reads -> declaring pure is under-declared -> reject
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 pure {\n  return len<u64>(deref(t).data);\n}\n"
+    )
+    # len element must match the buffer element; non-buffer operand -> reject
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 reads('s) {\n  return len<u8>(deref(t).data);\n}\n"
+    )
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 reads('s) {\n  return len<u64>(deref(t).count);\n}\n"
+    )
 
 
 def assert_structural_profile_and_real_reject(library):
@@ -1545,8 +1563,8 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
         535,
-        43,
-        492,
+        45,
+        490,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -1598,7 +1616,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 535 total / 43 clean / 492 unsupported / "
+        "semantic unit: compiler 535 total / 45 clean / 490 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, multi-region effectful-call rejection, general signatures "

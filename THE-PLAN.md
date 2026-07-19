@@ -298,9 +298,9 @@ before publishing a source span or root-to-primary node path, and commits no
 partial diagnostic on invalid input or insufficient capacity. Hostile cases
 for stale validation, malformed topology, invalid related nodes, one-short
 buffers, and late publication failure are automated regressions. The current
-unit has 535 functions: 43 clean, 492 legal but unsupported, and zero rejected.
-Its self-parse is deterministic at 1,321,014 source bytes, 262,850 tokens, and
-131,144 unique-head AST nodes. LLVM support remains the same byte-identical
+unit has 535 functions: 45 clean, 490 legal but unsupported, and zero rejected.
+Its self-parse is deterministic at 1,328,189 source bytes, 264,137 tokens, and
+131,753 unique-head AST nodes. LLVM support remains the same byte-identical
 15-function module.
 
 The region-retention checkpoint and the acyclic-decision admissions are
@@ -336,8 +336,11 @@ pending region retention. F1 slice 2 landed the borrowed-struct-tape reads —
 shared `&'r Struct` params, `deref(p).field` typing for scalar/enum fields, and
 typed `index<u8|u64>(deref(p).field, i)` over buffer fields with an exact element
 match (reads-no-trap field effect; passed an independent hostile review) — taking
-37 -> 43 clean. Enum-element index (`index<AstKind>`) is deferred to slice 2b-ii.
-Next is F2 loops; `lexer_scan_string` (aggregate return + loop) is the
+37 -> 43 clean. A follow-on field-`len` extension (`len<u8|u64>(deref(p).field)`
+and `len<u8>(deref(bufparam))`, a reads-no-trap table-call op reusing the index
+base resolution) took 43 -> 45 clean. Enum-element index and `len` (`index`/`len`
+over `buffer<enum>` fields, e.g. the tape shape-validators) are the next small
+field extension; then F2 loops; `lexer_scan_string` (aggregate return + loop) is the
 source-order frontier held for F2/F5. Whole-unit LLVM lowering remains the separate
 Phase-2 step-2 track.
 
