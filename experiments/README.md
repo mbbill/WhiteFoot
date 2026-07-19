@@ -36,7 +36,7 @@ and gitignored. Chronology and decisions live in
   `default-floor/RESULTS.md` and the two target-specific reports beneath it.
 - `port-study/binary-trees/` — floor-raising result: the slow shape is
   unrepresentable; ~11% checked-semantics tax vs identical-shape Rust.
-- `port-study/wc/` — full-counts 0.23s vs GNU 0.48 / uutils-Rust 0.56 on a
+- `port-study/wc/` — full-counts 0.27s vs GNU 0.48 / uutils-Rust 0.56 on a
   426MB corpus (regenerate: see RESULTS); -l honest gap vs memchr/bytecount.
 - `port-study/wc-chunk-summary/` — ordered-monoid parallel wc. NEGATIVE
   result for channel attribution (Rust expresses the same algebra); reached

@@ -1,33 +1,16 @@
 # Whitefoot
 
-Whitefoot is an experimental systems language for AI-written, human-approved code. It makes memory corruption, data races, uninitialized reads, and accidental overflow unrepresentable, then reuses the same proofs to optimize checked code.
+Whitefoot is an experimental systems language built around a question: what changes when the code writer is an AI and the human's job is to approve the result?
 
-The project is aimed at compiler and programming-language work, not application development yet. The production compiler, `wfc`, is being written in Whitefoot and is not self-hosting or available as a general-purpose command-line tool. The current roadmap is in [THE-PLAN.md](THE-PLAN.md).
+Most languages bargain with a human writer. They trade away information for convenience: do not make me state which pointers overlap, what a function can touch, or which algebraic laws an operation obeys. Compilers then spend enormous effort trying to recover those facts through alias analysis, escape analysis, and speculation. Some of the most valuable facts cannot be recovered safely at all.
 
-## Try the current toolchain
+An AI writer changes that bargain. It does not mind verbosity, need familiar syntax, or benefit from an escape hatch. Whitefoot uses that freedom to make memory corruption, data races, uninitialized reads, and accidental overflow unrepresentable, then reuses the same proofs to optimize checked code. The full design argument, including comparisons with Rust, measured wins, losses, and open questions, is in [Why Whitefoot?](docs/why-whitefoot.md).
 
-The shortest runnable path uses `prototype/democ`, the stage-0 compiler. From the repository root:
+This is a programming-language research and compiler project under construction, not an application-development tool. The production compiler, `wfc`, is being written in Whitefoot and is not yet self-hosting or available as a general-purpose command-line tool. The current implementation sequence is in [THE-PLAN.md](THE-PLAN.md).
 
-```sh
-make examples
-```
+## The idea underneath
 
-This compiles and runs two small Whitefoot programs that exercise checked arithmetic, exhaustive `match`, regions, loops, and traps.
-
-Run the full repository gate with:
-
-```sh
-make check
-make -C compiler check
-```
-
-The first command checks the specification, reference semantics, soundness model, optimizer facts, codegen parity, conformance suite, and compiler bootstrap. The second reruns the focused `wfc` gate, including the whole-compiler self-parse.
-
-## The core idea
-
-Optimizers are only as good as the facts they can prove. Source code often discards facts the writer already knew: two pointers do not overlap, a function only reads one region, or an operation is associative. Compilers then spend substantial effort trying to recover those facts through alias analysis, escape analysis, and speculation.
-
-Whitefoot asks an AI writer to state those facts explicitly in forms the checker can verify. The optimizer may trust a fact only after the checker proves it. This creates one chain of evidence:
+An optimizer is only as fast as the facts it can prove. Whitefoot asks the writer to state those facts in forms the checker can verify, then preserves them all the way to machine code. The optimizer may trust a fact only after the checker proves it. This creates one chain of evidence:
 
 ```text
 source declaration -> checker proof -> optimizer fact -> machine code
@@ -64,7 +47,9 @@ A separate balanced comparison measured the proved Whitefoot loop against four R
 
 This is one kernel on one machine. Expert safe Rust ties it after restructuring the loop; the narrower result is that Whitefoot's direct indexed shape reaches the same performance class once its checked relation becomes a proof. The full methodology and caveats are in the [base64 results](experiments/port-study/base64/RESULTS.md).
 
-## What the language makes explicit
+## What follows from the bet
+
+Keeping those facts turns into a set of unusual language decisions.
 
 **Ownership is the aliasing model.** An exclusive borrow, `&uniq`, means no other usable path reaches that memory. There is no `unsafe` escape and no interior-mutability exception that makes the optimizer's `noalias` fact conditional.
 
@@ -76,6 +61,25 @@ This is one kernel on one machine. Expert safe Rust ties it after restructuring 
 
 **The syntax and architecture vocabulary are closed.** `match` is the conditional form, `loop` plus `break` is the iteration form, and canonical source has one byte-level spelling. Larger programs use the documented shapes in [PATTERNS.md](PATTERNS.md), such as command buffers, structure-of-arrays pools, linear threading, and checked-law reductions.
 
+## Try the current toolchain
+
+The shortest runnable path uses `prototype/democ`, the stage-0 compiler. From the repository root:
+
+```sh
+make examples
+```
+
+This compiles and runs two small Whitefoot programs that exercise checked arithmetic, exhaustive `match`, regions, loops, and traps.
+
+Run the full repository gate with:
+
+```sh
+make check
+make -C compiler check
+```
+
+The first command checks the specification, reference semantics, soundness model, optimizer facts, codegen parity, conformance suite, and compiler bootstrap. The second reruns the focused `wfc` gate, including the whole-compiler self-parse.
+
 ## Current status and evidence
 
 Whitefoot is a research prototype with measured pieces, not a finished language implementation.
@@ -84,10 +88,10 @@ Whitefoot is a research prototype with measured pieces, not a finished language 
 - `prototype/checker` provides the reference semantic checker and generative soundness model.
 - `compiler/` contains `wfc`, the production compiler under construction. Its current whole-program unit has 535 functions: 45 classify clean, 490 are legal but not yet supported by body semantics, and none are semantic rejects. LLVM lowering currently emits 15 functions.
 - The repository records two preregistered weak-writer comparisons against released Rust crates: 1.653x for percent decoding and 1.098x for one-shot UTF-8 parsing. These are two data points, not a general trend.
-- The checked-law experiment measured a 3.3x improvement over the serial reduction shape. The `wc` port measured 0.23 seconds against GNU's 0.48 seconds and uutils Rust's 0.56 seconds on its pinned 426 MB workload, while documenting a separate `-l` weakness.
+- The checked-law experiment measured a 3.3x improvement over the serial reduction shape. The `wc` port measured 0.27 seconds against GNU's 0.48 seconds and uutils Rust's 0.56 seconds on its pinned 426 MB workload, while documenting a separate `-l` weakness.
 - Proposed sealed components and concurrency work remain research evidence outside the current implementation scope. They are not shipped language features.
 
-Each experiment is self-contained and records its setup, results, and limitations under [experiments/](experiments/README.md). The longer design argument, including negative results and open questions, is in [Why Whitefoot?](docs/why-whitefoot.md).
+Each experiment is self-contained and records its setup, results, and limitations under [experiments/](experiments/README.md).
 
 ## Repository guide
 
