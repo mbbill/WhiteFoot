@@ -383,19 +383,32 @@ def canonical_path(columns, root, target):
     return tuple(reversed(reverse))
 
 
+# Source ordinals of the functions the classifier admits CLEAN over the wfc
+# corpus. 0-17 are the original fixed-width/scanner/linear/reader-Bool set; the
+# remainder are the F1 general-signature + general-enum-match slice (general
+# `own` scalar/enum params, shared buffer borrows, pure or reads+traps effects,
+# exhaustive/exact multi-variant enum matches, primitive returns). Every listed
+# function is validated legal by the stage-0 reference checker at build time.
+COMPILER_CLEAN_ORDINALS = (
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+    21, 102, 105, 106, 110, 123, 124, 125, 126, 293,
+    323, 324, 325, 326, 327, 328, 329, 420, 483,
+)
+
+
 def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 510
+    assert len(functions) == 530
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        510,
-        18,
-        492,
+        530,
+        37,
+        493,
         0,
         functions[18],
         AST_NONE,
@@ -429,7 +442,7 @@ def assert_compiler_coverage(library):
                 report.function,
                 report.related,
             )
-    assert tuple(clean_ordinals) == tuple(range(18))
+    assert tuple(clean_ordinals) == COMPILER_CLEAN_ORDINALS
 
     second = invoke_unit(library, case, work)
     assert unit_report_tuple(second) == unit_report_tuple(first)
@@ -439,9 +452,15 @@ def assert_compiler_coverage(library):
 
 
 def assert_legal_nonprofile_is_unsupported(library):
+    # A legal function outside every capability profile stays unsupported. The F1
+    # general-signature slice admits read-only acyclic bodies, so this witness
+    # uses local mutation (`set`), which no read-only profile accepts and which
+    # the acyclic reader deliberately rejects fail-closed.
     data = (
-        b"fn passthrough (value: own u64) -> own u64 pure {\n"
-        b"  return value;\n"
+        b"fn accumulate (value: own u64) -> own u64 traps {\n"
+        b"  let total: own u64 = value;\n"
+        b"  set total = iadd.trap<u64>(total, 1_u64);\n"
+        b"  return total;\n"
         b"}\n"
     )
     case = parsed(library, data)
@@ -477,7 +496,7 @@ def assert_legal_nonprofile_is_unsupported(library):
     assert_no_unit_diagnostic(unit)
     assert_output_guards(work)
 
-    name_collision = data.replace(b"passthrough", b"lexer_match3")
+    name_collision = data.replace(b"accumulate", b"lexer_match3")
     collision_case = parsed(library, name_collision)
     (collision_function,) = top_level_functions(collision_case)
     collision_work = make_work(library, collision_case[5].count)
@@ -520,10 +539,14 @@ def assert_reader_bool_equality_rejected(library):
     # carrying `ieq<Bool>` walked to a false CLEAN. The branch now pins the operand
     # to a scalar, exactly like the ordered-comparison branch.
     def reader_probe(third_let):
+        # The head load reads 's and bounds-traps, so the exhibited effect row
+        # equals the declared reads('s), traps -- keeping the fixture EFF-2-valid
+        # and isolating the Bool-equality operand as the only reason to reject.
         return (
             b"fn reader_probe ['s] (source: &'s buffer<u8>, start: own u64, "
             b"size: own u64) -> own u64 reads('s), traps {\n"
-            b"  let flag_a: own Bool = ige<u64>(start, size);\n"
+            b"  let head: own u8 = index<u8>(deref(source), start);\n"
+            b"  let flag_a: own Bool = ige<u8>(head, 32_u8);\n"
             b"  let flag_b: own Bool = ilt<u64>(start, size);\n"
             + third_let
             + b"  match bad {\n"
@@ -593,19 +616,8 @@ def assert_reader_bool_equality_rejected(library):
     # Legal integer equality/inequality -> clean acyclic, proving ieq/ine remain
     # admitted on the integer operands OP-1 allows (the fix narrows, not removes).
     for legal_op in (b"ieq", b"ine"):
-        integer_eq = (
-            b"fn reader_probe ['s] (source: &'s buffer<u8>, start: own u64, "
-            b"size: own u64) -> own u64 reads('s), traps {\n"
+        integer_eq = reader_probe(
             b"  let bad: own Bool = " + legal_op + b"<u64>(start, size);\n"
-            b"  match bad {\n"
-            b"    True() => {\n"
-            b"      return start;\n"
-            b"    }\n"
-            b"    False() => {\n"
-            b"      return size;\n"
-            b"    }\n"
-            b"  }\n"
-            b"}\n"
         )
         integer_case = parsed(library, integer_eq)
         (integer_function,) = top_level_functions(integer_case)
@@ -742,8 +754,10 @@ def assert_reader_bool_returns_admitted(library):
     )
     assert_output_guards(non_returning_work)
 
-    # Negative: u8 returns remain outside the profile (fail-closed) even though
-    # the body is otherwise admissible -- only own u64 and own Bool are gated in.
+    # Positive: the F1 general-signature slice widens the admitted return set to
+    # own u64, own u8, and own Bool. A u8-returning reader whose body returns a
+    # bounds-checked byte load is now clean acyclic (own u8 is type-checked end to
+    # end: the index place types u8 and the return type-id equality holds).
     u8_return = (
         b"fn reader_bool_probe ['s] (source: &'s buffer<u8>, start: own u64, "
         b"size: own u64) -> own u8 reads('s), traps {\n"
@@ -755,11 +769,237 @@ def assert_reader_bool_returns_admitted(library):
     u8_work = make_work(library, u8_case[5].count)
     kind, report = invoke_dispatch(library, u8_case, u8_function, u8_work)
     assert (kind, report.status, report.function) == (
-        CAPABILITY_UNSUPPORTED,
-        BODY_UNSUPPORTED,
+        CAPABILITY_ACYCLIC,
+        BODY_CLEAN,
         u8_function,
     )
     assert_output_guards(u8_work)
+
+
+def assert_reader_general_signature_and_enum_match(library):
+    # F1 first slice: the acyclic reader admits general signatures (any number of
+    # own scalar params u8/u64/Bool, by-value own <Enum> params, shared buffer
+    # borrows, multiple region params; pure OR reads(<declared>)+traps; primitive
+    # own u64/u8/Bool return) and general multi-variant enum matches that are
+    # EXHAUSTIVE and EXACT over the scrutinee enum's declared variants. Positives
+    # admit; every negative fails closed (never a false CLEAN).
+    def under_test(source):
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        work = make_work(library, case[5].count)
+        (kind, report) = invoke_dispatch(library, case, function, work)
+        return kind, report, function
+
+    def assert_clean(source):
+        kind, report, function = under_test(source)
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_ACYCLIC,
+            BODY_CLEAN,
+            function,
+        ), (kind, report.status)
+        assert (
+            report.rule,
+            report.fix,
+            report.primary_node,
+            report.related_node,
+            report.path_count,
+        ) == (RULE_NONE, FIX_NONE, AST_NONE, AST_NONE, 0)
+        assert_path_guard(report)
+
+    def assert_unsupported(source):
+        kind, report, function = under_test(source)
+        assert report.status == BODY_UNSUPPORTED, (kind, report.status)
+        assert kind in (CAPABILITY_ACYCLIC, CAPABILITY_UNSUPPORTED), kind
+
+    sig = b"enum Sig {\n  SigLo();\n  SigMid();\n  SigHi();\n}\n\n"
+    other = b"enum Other {\n  OtherA();\n  OtherB();\n}\n\n"
+
+    def rank(arms):
+        return sig + b"fn rank (s: own Sig) -> own u64 pure {\n" + arms + b"}\n"
+
+    lo = b"    SigLo() => {\n      return 0_u64;\n    }\n"
+    mid = b"    SigMid() => {\n      return 1_u64;\n    }\n"
+    hi = b"    SigHi() => {\n      return 2_u64;\n    }\n"
+
+    # Positive: general signature -- several own scalar params (u8/u64/Bool) plus
+    # a shared buffer borrow, reads+traps, u64 return, acyclic read-only body. The
+    # exhibited row equals the declared reads('s), traps (the byte load reads 's
+    # and bounds-traps).
+    assert_clean(
+        b"fn probe ['s] (source: &'s buffer<u8>, start: own u64, "
+        b"a: own u8, b: own u8, flag: own Bool) -> own u64 reads('s), traps {\n"
+        b"  let byte: own u8 = index<u8>(deref(source), start);\n"
+        b"  let hit: own Bool = ieq<u8>(byte, a);\n"
+        b"  let same: own Bool = ieq<u8>(a, b);\n"
+        b"  let both: own Bool = band<Bool>(hit, same);\n"
+        b"  let gate: own Bool = bor<Bool>(both, flag);\n"
+        b"  match gate {\n"
+        b"    True() => {\n      return start;\n    }\n"
+        b"    False() => {\n      return 0_u64;\n    }\n"
+        b"  }\n"
+        b"}\n"
+    )
+
+    # Positive: multiple region params + multiple shared buffers, own u8 return.
+    # The declared reads('a 'b) EQUALS the exhibited row -- the body reads both
+    # 'a (via x) and 'b (via y) and traps (bounds-checked index).
+    assert_clean(
+        b"fn two ['a, 'b] (x: &'a buffer<u8>, y: &'b buffer<u8>, i: own u64) "
+        b"-> own u8 reads('a 'b), traps {\n"
+        b"  let bx: own u8 = index<u8>(deref(x), i);\n"
+        b"  let by: own u8 = index<u8>(deref(y), i);\n"
+        b"  let same: own Bool = ieq<u8>(bx, by);\n"
+        b"  match same {\n"
+        b"    True() => {\n      return bx;\n    }\n"
+        b"    False() => {\n      return by;\n    }\n"
+        b"  }\n"
+        b"}\n"
+    )
+
+    # Regression: until buffer arguments retain their region identity, an
+    # effectful user call in a multi-region function cannot soundly attribute
+    # the callee's read to the call's explicit region argument. `hole` passes
+    # the 'b buffer while spelling 'a, so it must fail closed.
+    witness = (
+        b"fn c1 ['r] (source: &'r buffer<u8>, at: own u64) -> own u8 "
+        b"reads('r), traps {\n"
+        b"  return index<u8>(deref(source), at);\n"
+        b"}\n"
+        b"fn hole ['a, 'b] (a: &'a buffer<u8>, b: &'b buffer<u8>, "
+        b"at: own u64) -> own u8 reads('a), traps {\n"
+        b"  return c1<'a>(source: b, at: at);\n"
+        b"}\n"
+    )
+    kind, report, function = under_test(witness)
+    assert (kind, report.status, report.function) == (
+        CAPABILITY_UNSUPPORTED,
+        BODY_UNSUPPORTED,
+        function,
+    ), (kind, report.status)
+
+    # Positive: general 3-variant enum match; every declared variant appears
+    # exactly once, tag-only, and every arm returns.
+    assert_clean(rank(b"  match s {\n" + lo + mid + hi + b"  }\n"))
+
+    # Negative: non-exhaustive (SigHi missing) -> Unsupported.
+    assert_unsupported(rank(b"  match s {\n" + lo + mid + b"  }\n"))
+
+    # Negative: foreign variant (OtherA is a different enum's variant) with the
+    # correct arm count -> not an exact bijection -> Unsupported.
+    foreign = b"    OtherA() => {\n      return 2_u64;\n    }\n"
+    assert_unsupported(
+        other + b"fn rank (s: own Sig) -> own u64 pure {\n"
+        b"  match s {\n" + lo + mid + foreign + b"  }\n}\n"
+    )
+
+    # Negative: duplicate variant (SigLo twice, SigHi missing) with the correct
+    # arm count -> Unsupported.
+    assert_unsupported(
+        rank(b"  match s {\n" + lo + lo.replace(b"0_u64", b"1_u64") + mid + b"  }\n")
+    )
+
+    # Negative: exhaustive match but the SigMid arm falls through -> not all paths
+    # return -> Unsupported.
+    assert_unsupported(
+        rank(b"  match s {\n" + lo + b"    SigMid() => {\n    }\n" + hi + b"  }\n")
+    )
+
+    # Negative: exclusive (&uniq) borrow parameter is deferred -> Unsupported.
+    assert_unsupported(
+        b"fn probe ['s] (source: &uniq 's buffer<u8>, start: own u64) "
+        b"-> own u64 reads('s), traps {\n"
+        b"  return start;\n"
+        b"}\n"
+    )
+
+    # Negative: local mutation (set) -> Unsupported.
+    assert_unsupported(
+        b"fn probe (x: own u64) -> own u64 traps {\n"
+        b"  let y: own u64 = x;\n"
+        b"  set y = iadd.trap<u64>(y, 1_u64);\n"
+        b"  return y;\n"
+        b"}\n"
+    )
+
+    # Negative: loop -> Unsupported.
+    assert_unsupported(
+        b"fn probe (x: own u64) -> own u64 traps {\n"
+        b"  loop @scan {\n"
+        b"    break @scan;\n"
+        b"  }\n"
+        b"  return x;\n"
+        b"}\n"
+    )
+
+    # Negative: aggregate (struct) return -> Unsupported.
+    assert_unsupported(
+        b"struct Pair {\n  lo: u64;\n  hi: u64;\n}\n\n"
+        b"fn probe (x: own u64) -> own Pair pure {\n"
+        b"  return Pair(lo: x, hi: x);\n"
+        b"}\n"
+    )
+
+    # Negative: writes effect is outside the read-only slice -> Unsupported.
+    assert_unsupported(
+        b"fn probe ['s] (buf: &uniq 's buffer<u8>, i: own u64) "
+        b"-> own u64 writes('s), traps {\n"
+        b"  return i;\n"
+        b"}\n"
+    )
+
+    # EFF-2 effect-row reconciliation: the DECLARED row must EQUAL the row the
+    # body EXHIBITS (both ways). The classifier trusts the declared row as an
+    # optimizer fact (EFF-3), so an under-declared effect is a soundness hole.
+    # Every mismatch below must be Unsupported (never a false CLEAN).
+
+    # Body reads 'a and bounds-traps, but declares `pure`.
+    assert_unsupported(
+        b"fn probe ['a] (x: &'a buffer<u8>, i: own u64) -> own u8 pure {\n"
+        b"  return index<u8>(deref(x), i);\n"
+        b"}\n"
+    )
+
+    # Body traps (iadd.trap), but declares `pure`.
+    assert_unsupported(
+        b"fn probe (start: own u64, size: own u64) -> own u64 pure {\n"
+        b"  let s: own u64 = iadd.trap<u64>(start, size);\n"
+        b"  return s;\n"
+        b"}\n"
+    )
+
+    # Body reads 'a, but declares reads('b) -- undeclared read of 'a.
+    assert_unsupported(
+        b"fn probe ['a, 'b] (x: &'a buffer<u8>, y: &'b buffer<u8>, i: own u64) "
+        b"-> own u8 reads('b), traps {\n"
+        b"  return index<u8>(deref(x), i);\n"
+        b"}\n"
+    )
+
+    # Body reads only 's, but declares reads('t) -- undeclared read of 's.
+    assert_unsupported(
+        b"fn probe ['s, 't] (a: &'s buffer<u8>, b: &'t buffer<u8>, i: own u64) "
+        b"-> own u8 reads('t), traps {\n"
+        b"  return index<u8>(deref(a), i);\n"
+        b"}\n"
+    )
+
+    # Over-declared reads: body reads only 'a, but declares reads('a 'b) --
+    # declared-but-unexhibited 'b is an EFF-2 error too.
+    assert_unsupported(
+        b"fn probe ['a, 'b] (x: &'a buffer<u8>, y: &'b buffer<u8>, i: own u64) "
+        b"-> own u8 reads('a 'b), traps {\n"
+        b"  return index<u8>(deref(x), i);\n"
+        b"}\n"
+    )
+
+    # Over-declared traps: body is a pure enum map (no index/.trap/call) but
+    # declares reads('a), traps -- both directions of the row are wrong.
+    assert_unsupported(
+        sig +
+        b"fn rank ['a] (x: &'a buffer<u8>, s: own Sig) -> own u64 reads('a), "
+        b"traps {\n"
+        b"  match s {\n" + lo + mid + hi + b"  }\n}\n"
+    )
 
 
 def assert_structural_profile_and_real_reject(library):
@@ -1236,9 +1476,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        510,
-        18,
-        492,
+        530,
+        37,
+        493,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -1278,6 +1518,7 @@ def main():
         assert_legal_nonprofile_is_unsupported(library)
         assert_reader_bool_equality_rejected(library)
         assert_reader_bool_returns_admitted(library)
+        assert_reader_general_signature_and_enum_match(library)
         assert_structural_profile_and_real_reject(library)
         assert_diagnostic_path_capacity(library)
         assert_site_specific_rule_ids(library)
@@ -1288,10 +1529,12 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 510 total / 18 clean / 492 unsupported / "
+        "semantic unit: compiler 530 total / 37 clean / 493 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
-        "admission, structural rename, real "
+        "admission, multi-region effectful-call rejection, general signatures "
+        "and multi-variant enum matches, "
+        "structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "
         "dynamic/hostile capacities, inputs, and guards pass"

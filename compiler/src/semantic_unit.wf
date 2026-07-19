@@ -582,7 +582,7 @@ fn semantic_unit_classify_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'
     }
   }
 
-  let reader_signature: own Bool = semantic_reader_signature_valid(source: source, tokens: tokens, ast: ast, function: function);
+  let reader_signature: own Bool = semantic_reader_signature_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
   match reader_signature {
     True() => {
       region 'semantic_unit_dispatch_reader {

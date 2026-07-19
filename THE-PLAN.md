@@ -298,9 +298,9 @@ before publishing a source span or root-to-primary node path, and commits no
 partial diagnostic on invalid input or insufficient capacity. Hostile cases
 for stale validation, malformed topology, invalid related nodes, one-short
 buffers, and late publication failure are automated regressions. The current
-unit has 510 functions: 18 clean, 492 legal but unsupported, and zero rejected.
-Its self-parse is deterministic at 1,242,113 source bytes, 245,780 tokens, and
-123,022 unique-head AST nodes. LLVM support remains the same byte-identical
+unit has 530 functions: 37 clean, 493 legal but unsupported, and zero rejected.
+Its self-parse is deterministic at 1,301,048 source bytes, 258,976 tokens, and
+129,266 unique-head AST nodes. LLVM support remains the same byte-identical
 15-function module.
 
 The region-retention checkpoint and the acyclic-decision admissions are
@@ -328,8 +328,13 @@ through `&uniq` (`writes`), F4 the bounded statement-scoped reborrow analyzer
 highest-risk unlock, ~194 functions), F5 aggregate return and construction, and
 F6 the `allocates`/`move` tail — recorded with evidence in the decision log
 (PHASE2-COVERAGE-PLAN); no new spec decision is needed (zero borrow returns, no
-box/arena). The active slice is F1; `lexer_scan_string` follows as the first
-loop-and-aggregate proving ground. Whole-unit LLVM lowering remains the separate
+box/arena). F1 is underway: slice 1 landed the general-signature gate (arbitrary
+`own` scalar/enum params, shared buffer borrows, multiple regions) with an exact
+EFF-2 effect-reconciliation pass and general multi-variant enum `match`, taking
+18 -> 37 clean; a multi-region function that makes an effectful call fails closed
+pending region retention. F1 slice 2 (reading fields of a borrowed aggregate) is
+next, then F2 loops; `lexer_scan_string` (aggregate return + loop) is the
+source-order frontier held for F2/F5. Whole-unit LLVM lowering remains the separate
 Phase-2 step-2 track.
 
 ## Work outside the seven-phase scope
