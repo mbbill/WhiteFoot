@@ -316,10 +316,21 @@ operator and `True()`/`False()` constructors; named multi-argument calls; and
 effect containment. Each admission passed a pre-merge hostile soundness review
 (the first found and fixed a Bool-equality false-clean, `ieq`/`ine` being
 integer-only per OP-1, pinned by a non-vacuous regression). This slice adds no
-LLVM lowering. The next checkpoint advances the frontier to `lexer_scan_string`,
-which returns the aggregate `own ScannedToken` and uses a loop — outside the
-loop-free, primitive-return acyclic profile — so it needs loop and
-aggregate-return support.
+LLVM lowering.
+
+The remaining classification coverage (18 -> 510) follows six general capability
+families in dependency order — F1 general signatures and effect rows with a
+read-only general body (+~190, subsuming the reader/linear/scanner signature
+gates and folding the Bool/u64 return special-cases into general typing), F2
+loops (`loop @label` + `break`) and local mutation, F3 unit-returning writers
+through `&uniq` (`writes`), F4 the bounded statement-scoped reborrow analyzer
+(the analyzer side of the landed v0.7 OWN-5/6 rule — the largest and
+highest-risk unlock, ~194 functions), F5 aggregate return and construction, and
+F6 the `allocates`/`move` tail — recorded with evidence in the decision log
+(PHASE2-COVERAGE-PLAN); no new spec decision is needed (zero borrow returns, no
+box/arena). The active slice is F1; `lexer_scan_string` follows as the first
+loop-and-aggregate proving ground. Whole-unit LLVM lowering remains the separate
+Phase-2 step-2 track.
 
 ## Work outside the seven-phase scope
 
