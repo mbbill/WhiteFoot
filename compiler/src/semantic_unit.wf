@@ -120,7 +120,7 @@ fn semantic_diagnostic_find_parent ['a] (ast: &'a AstTape, current: own u64) -> 
     let last: own u64 = index<u64>(deref(ast).last_children, candidate);
     let first_none: own Bool = ieq<u64>(first, ast_none);
     let last_none: own Bool = ieq<u64>(last, ast_none);
-    match ieq<Bool>(first_none, last_none) {
+    match eeq<Bool>(first_none, last_none) {
       True() => {
       }
       False() => {
@@ -398,7 +398,7 @@ fn semantic_unit_classify_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'
     }
   }
   let ast_validation_clean_atom_0412: own AstValidationStatus = AstValidationClean();
-  let validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0412);
+  let validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0412);
   match validation_clean {
     True() => {
     }
@@ -520,13 +520,13 @@ fn semantic_unit_classify_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'
       set deref(report).primary_node = body.node;
       set deref(report).related_node = body.related_node;
       let semantic_body_clean_atom_0415: own SemanticBodyStatus = SemanticBodyClean();
-      match ieq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_0415) {
+      match eeq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_0415) {
         True() => {
           return SemanticCapabilityFixedWidth();
         }
         False() => {
           let semantic_body_unsupported_atom_0416: own SemanticBodyStatus = SemanticBodyUnsupported();
-          match ieq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_0416) {
+          match eeq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_0416) {
             True() => {
               return SemanticCapabilityUnsupported();
             }
@@ -561,13 +561,13 @@ fn semantic_unit_classify_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'
       set deref(report).primary_node = body.node;
       set deref(report).related_node = body.related_node;
       let semantic_body_clean_atom_0417: own SemanticBodyStatus = SemanticBodyClean();
-      match ieq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_0417) {
+      match eeq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_0417) {
         True() => {
           return SemanticCapabilityScanner();
         }
         False() => {
           let semantic_body_unsupported_atom_0418: own SemanticBodyStatus = SemanticBodyUnsupported();
-          match ieq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_0418) {
+          match eeq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_0418) {
             True() => {
               return SemanticCapabilityUnsupported();
             }
@@ -596,13 +596,13 @@ fn semantic_unit_classify_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'
       set deref(report).primary_node = body.node;
       set deref(report).related_node = body.related_node;
       let semantic_body_clean_atom_reader: own SemanticBodyStatus = SemanticBodyClean();
-      match ieq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_reader) {
+      match eeq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_reader) {
         True() => {
           return SemanticCapabilityAcyclic();
         }
         False() => {
           let semantic_body_unsupported_atom_reader: own SemanticBodyStatus = SemanticBodyUnsupported();
-          match ieq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_reader) {
+          match eeq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_reader) {
             True() => {
               return SemanticCapabilityUnsupported();
             }
@@ -699,13 +699,13 @@ fn semantic_unit_classify_validated ['c, 'w] (source: &'c buffer<u8>, tokens: &'
   set deref(report).primary_node = body.node;
   set deref(report).related_node = body.related_node;
   let semantic_body_clean_atom_0427: own SemanticBodyStatus = SemanticBodyClean();
-  match ieq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_0427) {
+  match eeq<SemanticBodyStatus>(body.status, semantic_body_clean_atom_0427) {
     True() => {
       return SemanticCapabilityLinear();
     }
     False() => {
       let semantic_body_unsupported_atom_0428: own SemanticBodyStatus = SemanticBodyUnsupported();
-      match ieq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_0428) {
+      match eeq<SemanticBodyStatus>(body.status, semantic_body_unsupported_atom_0428) {
         True() => {
           return SemanticCapabilityUnsupported();
         }
@@ -751,7 +751,7 @@ fn semantic_unit_classify ['c, 'v, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
     ast_validate(source_length: source_length, token_count: deref(tokens).count, ast: ast, report: &uniq 'semantic_unit_refresh_validation deref(validation));
   }
   let validation_clean: own AstValidationStatus = AstValidationClean();
-  match ieq<AstValidationStatus>(deref(validation).status, validation_clean) {
+  match eeq<AstValidationStatus>(deref(validation).status, validation_clean) {
     True() => {
     }
     False() => {
@@ -783,7 +783,7 @@ fn semantic_diagnostic_publish_capability ['a, 'v, 'r, 'w] (source_length: own u
   set deref(report).path_count = 0_u64;
 
   let no_rule: own SemanticRuleId = SemanticRuleNone();
-  match ieq<SemanticRuleId>(deref(result).rule, no_rule) {
+  match eeq<SemanticRuleId>(deref(result).rule, no_rule) {
     True() => {
       return SemanticDiagnosticNone();
     }
@@ -881,7 +881,7 @@ fn semantic_diagnostic_publish_unit ['a, 'v, 'r, 'w] (source_length: own u64, to
   set deref(report).diagnostic_path_count = 0_u64;
 
   let no_rule: own SemanticRuleId = SemanticRuleNone();
-  match ieq<SemanticRuleId>(deref(result).rule, no_rule) {
+  match eeq<SemanticRuleId>(deref(result).rule, no_rule) {
     True() => {
       return SemanticDiagnosticNone();
     }
@@ -972,7 +972,7 @@ fn semantic_unit_run ['c, 'v, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
     ast_validate(source_length: source_length, token_count: deref(tokens).count, ast: ast, report: &uniq 'semantic_unit_run_refresh_validation deref(validation));
   }
   let ast_validation_clean_atom_0430: own AstValidationStatus = AstValidationClean();
-  match ieq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0430) {
+  match eeq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0430) {
     True() => {
     }
     False() => {
@@ -1162,7 +1162,7 @@ fn semantic_unit_run ['c, 'v, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
   loop @semantic_unit_functions {
     let kind: own AstKind = index<AstKind>(deref(ast).kinds, cursor);
     let ast_function_atom_0431: own AstKind = AstFunction();
-    match ieq<AstKind>(kind, ast_function_atom_0431) {
+    match eeq<AstKind>(kind, ast_function_atom_0431) {
       True() => {
         set total = iadd.trap<u64>(total, 1_u64);
         let semantic_body_invalid_function_atom_0432: own SemanticBodyStatus = SemanticBodyInvalidFunction();
@@ -1243,7 +1243,7 @@ fn semantic_unit_run ['c, 'v, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
         match source_rejection {
           True() => {
             let no_rule: own SemanticRuleId = SemanticRuleNone();
-            match ieq<SemanticRuleId>(capability_report.rule, no_rule) {
+            match eeq<SemanticRuleId>(capability_report.rule, no_rule) {
               True() => {
                 set deref(report).status = SemanticUnitInfrastructureFailure();
                 return unit;

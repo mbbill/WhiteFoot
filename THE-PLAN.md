@@ -292,57 +292,38 @@ the authorized seven-phase scope.
 
 ## Execution cursor
 
-Phase 2 is active. The canonical rejection-ABI checkpoint is complete. wfc now
-produces rule and fix codes at the rejection site, validates the complete AST
-before publishing a source span or root-to-primary node path, and commits no
-partial diagnostic on invalid input or insufficient capacity. Hostile cases
-for stale validation, malformed topology, invalid related nodes, one-short
-buffers, and late publication failure are automated regressions. The current
-unit has 535 functions: 45 clean, 490 legal but unsupported, and zero rejected.
-Its self-parse is deterministic at 1,328,189 source bytes, 264,137 tokens, and
-131,753 unique-head AST nodes. LLVM support remains the same byte-identical
-15-function module.
+Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
+and arbitrary-arity exact call substitution are complete. The current unit has
+537 functions: 75 clean, 462 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,368,342 source bytes, 271,668 tokens, and
+135,307 unique-head AST nodes. The parser census is 3,472 regionful calls: 123
+explicit and 3,349 staged omissions. LLVM support remains the same
+byte-identical 15-function module.
 
-The region-retention checkpoint and the acyclic-decision admissions are
-complete. Calls retain the explicit region arguments required by TYPE-5 and
-consumed by OWN-12 (the six regionful calls in `lexer_scan_op_suffix` and the
-one in `lexer_scan_word` are migrated; remaining call families migrate as
-semantic coverage reaches them, with no omissions by the phase-2 fixpoint). The
-acyclic-decision (reader) body-semantics profile admits `own u64`- and
-`own Bool`-returning acyclic functions — `lexer_scan_op_suffix`,
-`lexer_scan_word`, and `lexer_ampuniq_at` — covering nested `let`, `match`, and
-early-return flow; primitive expression typing including the unary `bnot`
-operator and `True()`/`False()` constructors; named multi-argument calls; and
-effect containment. Each admission passed a pre-merge hostile soundness review
-(the first found and fixed a Bool-equality false-clean, `ieq`/`ine` being
-integer-only per OP-1, pinned by a non-vacuous regression). This slice adds no
-LLVM lowering.
+Kernel v0.8 and its tag-only enum equality implementation are complete.
+Stage 0 and the wfc reader recognize only exact nominal tag-only `eeq`/`ene`;
+`ieq`/`ine` remain integer-only. Stage 0 lowers both enum operations directly
+at the selected tag width, including i1 for `Bool` and two-variant enums. The
+complete compiler-source migration has 255 `eeq` sites in 92 functions across
+18 files and 22 tag-only types, with zero non-integer `ieq`/`ine` sites. The
+approved 16-case additive conformance surface passes, and hostile tests cover
+same-width nominal confusion, payload enums, malformed symbol/type topology,
+declaration collisions, missing explicit type arguments, all bounded truth
+tables, and direct raw/optimized code shape. Five source functions move to
+CLEAN through the repaired equality domain: `semantic_body_kind_is`,
+`llvm_scalar_node_is`, `llvm_scalar_type_is`, `llvm_scalar_mode_is`, and
+`llvm_scalar_operation_is`.
 
-The remaining classification coverage (18 -> 510) follows six general capability
-families in dependency order — F1 general signatures and effect rows with a
-read-only general body (+~190, subsuming the reader/linear/scanner signature
-gates and folding the Bool/u64 return special-cases into general typing), F2
-loops (`loop @label` + `break`) and local mutation, F3 unit-returning writers
-through `&uniq` (`writes`), F4 the bounded statement-scoped reborrow analyzer
-(the analyzer side of the landed v0.7 OWN-5/6 rule — the largest and
-highest-risk unlock, ~194 functions), F5 aggregate return and construction, and
-F6 the `allocates`/`move` tail — recorded with evidence in the decision log
-(PHASE2-COVERAGE-PLAN); no new spec decision is needed (zero borrow returns, no
-box/arena). F1 is underway: slice 1 landed the general-signature gate (arbitrary
-`own` scalar/enum params, shared buffer borrows, multiple regions) with an exact
-EFF-2 effect-reconciliation pass and general multi-variant enum `match`, taking
-18 -> 37 clean; a multi-region function that makes an effectful call fails closed
-pending region retention. F1 slice 2 landed the borrowed-struct-tape reads —
-shared `&'r Struct` params, `deref(p).field` typing for scalar/enum fields, and
-typed `index<u8|u64>(deref(p).field, i)` over buffer fields with an exact element
-match (reads-no-trap field effect; passed an independent hostile review) — taking
-37 -> 43 clean. A follow-on field-`len` extension (`len<u8|u64>(deref(p).field)`
-and `len<u8>(deref(bufparam))`, a reads-no-trap table-call op reusing the index
-base resolution) took 43 -> 45 clean. Enum-element index and `len` (`index`/`len`
-over `buffer<enum>` fields, e.g. the tape shape-validators) are the next small
-field extension; then F2 loops; `lexer_scan_string` (aggregate return + loop) is the
-source-order frontier held for F2/F5. Whole-unit LLVM lowering remains the separate
-Phase-2 step-2 track.
+The F1 acyclic read-only tranche now covers general signatures and exact effect
+rows, general tag-only enum matches and values, shared struct fields, typed
+scalar and tag-only-enum buffer `index`, and field/buffer `len`. The next
+body-semantics capability is F2 loops (`loop @label` plus `break`) and local
+mutation. `lexer_scan_string` remains the source-order frontier, held jointly
+for F2 and F5 aggregate return. F3 writers, F4 bounded statement-scoped
+reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in
+that order. Whole-unit LLVM lowering, including production emission of general
+`eeq`/`ene` calls after revalidating their domain, remains the separate Phase-2
+step-2 track and may not treat CLEAN classification as emission authority.
 
 ## Work outside the seven-phase scope
 

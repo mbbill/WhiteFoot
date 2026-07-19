@@ -1,4 +1,4 @@
-"""Checker-core prototype (kernel-spec-v0.6).
+"""Checker-core prototype (growing kernel-spec-v0.8 subset).
 
 Implements the v0.6 ownership calculus (OWN-1..13 incl. the 2026-07-10 tag-only-copy
 amendment, CONST-2, GIVE-1, ERR-3 flow, EFF-1/2 rows-and-exhibits)
@@ -37,6 +37,7 @@ from typing import Optional
 # the source parser and direct checker clients one closed source of truth.
 DOTLESS_OPERATION_IDENTS = frozenset({
     "ieq", "ine", "ilt", "ile", "igt", "ige",
+    "eeq", "ene",
     "feq", "flt", "fle", "fgt", "fge", "fne",
     "band", "bor", "bxor", "bnot",
     "cvt", "len", "slice_of", "box_new", "arena_new", "array_new", "buffer_new",
@@ -619,7 +620,9 @@ def check_fn(fn: dict):
 #      | {"kind":"index","place":PLACE,"elem":TY,"atom":EXPR}
 # ===========================================================================
 
-PRIMS = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64"}
+INT_PRIMS = {"i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64"}
+FLOAT_PRIMS = {"f32", "f64"}
+PRIMS = INT_PRIMS | FLOAT_PRIMS
 NAMED_BOOL = {"kind": "named", "name": "Bool"}
 NAMED_RESULT = {"kind": "named", "name": "Result"}
 U64_TY = {"kind": "prim", "name": "u64"}
@@ -705,15 +708,54 @@ def _cvt_total(src: str, dst: str) -> bool:
     return False
 
 
-def op_type(callee: str, tyargs):
+def _single_explicit_tyarg(callee, tyargs):
+    """Return the sole explicit type argument for an operation-table call."""
+    if not tyargs:
+        raise CheckError("FN-2", f"{callee} requires one explicit type argument")
+    if len(tyargs) != 1:
+        raise CheckError("OP-1", f"{callee} requires exactly one type argument")
+    return tyargs[0]
+
+
+def _tag_only_enum_ty(ty, enums) -> bool:
+    """Exact v0.8 eeq/ene domain: one nominal enum with only nullary variants."""
+    if (not isinstance(ty, dict) or ty.get("kind") != "named"
+            or ty.get("args") is not None):
+        return False
+    variants = enums.get(ty.get("name")) if isinstance(enums, dict) else None
+    return (isinstance(variants, list)
+            and all(isinstance(variant, dict)
+                    and isinstance(variant.get("fields"), list)
+                    and not variant["fields"]
+                    for variant in variants))
+
+
+def op_type(callee: str, tyargs, enums=None):
     """Return (param_specs, result_spec) for a table op, or None if unknown
     (unknown ops are typed leniently). Each spec is (cat, TY) with cat 'val'."""
     T = tyargs[0] if tyargs else ANY
     parts = callee.split(".")
     base, mode = parts[0], (parts[1] if len(parts) > 1 else None)
-    cmps = {"ieq", "ine", "ilt", "ile", "igt", "ige",
-            "feq", "flt", "fle", "fgt", "fge", "fne"}
-    if callee in cmps:
+    int_cmps = {"ieq", "ine", "ilt", "ile", "igt", "ige"}
+    float_cmps = {"feq", "flt", "fle", "fgt", "fge", "fne"}
+    if callee in int_cmps:
+        T = _single_explicit_tyarg(callee, tyargs)
+        if (not isinstance(T, dict) or T.get("kind") != "prim"
+                or T.get("name") not in INT_PRIMS):
+            raise CheckError("OP-1", f"{callee} is defined only for integer types")
+        return ([("val", T), ("val", T)], ("val", NAMED_BOOL))
+    if callee in float_cmps:
+        T = _single_explicit_tyarg(callee, tyargs)
+        if (not isinstance(T, dict) or T.get("kind") != "prim"
+                or T.get("name") not in FLOAT_PRIMS):
+            raise CheckError("OP-1", f"{callee} is defined only for float types")
+        return ([("val", T), ("val", T)], ("val", NAMED_BOOL))
+    if callee in {"eeq", "ene"}:
+        T = _single_explicit_tyarg(callee, tyargs)
+        if not _tag_only_enum_ty(T, enums):
+            raise CheckError(
+                "OP-1",
+                f"{callee} requires one exact nominal tag-only enum type, including Bool")
         return ([("val", T), ("val", T)], ("val", NAMED_BOOL))
     bin_int = {"iadd", "isub", "imul", "idiv", "irem", "iand", "ior", "ixor",
                "imin", "imax", "imulhi",
@@ -765,6 +807,7 @@ FN8_TOTAL_VALUE_OPS = frozenset({
     "iadd.wrap", "isub.wrap", "imul.wrap",
     "iadd.sat", "isub.sat",
     "ieq", "ine", "ilt", "ile", "igt", "ige",
+    "eeq", "ene",
     "band", "bor", "bxor", "bnot",
     "len",
     "iand", "ior", "ixor",
@@ -825,7 +868,7 @@ def _fn8_atom(expr, available, fnname):
             f"{fnname}: requires operand '{name}' is not a parameter or earlier clause local")
 
 
-def _fn8_expr(expr, available, params, fnname, require_call=False):
+def _fn8_expr(expr, available, params, enums, fnname, require_call=False):
     if not isinstance(expr, dict):
         raise CheckError("FN-8", f"{fnname}: malformed requires expression")
     if expr.get("kind") != "call":
@@ -843,7 +886,7 @@ def _fn8_expr(expr, available, params, fnname, require_call=False):
     if expr.get("argnames") is not None:
         raise CheckError("FN-8",
             f"{fnname}: requires permits table operations only, never user-function calls")
-    sig = op_type(callee, expr.get("tyargs", []))
+    sig = op_type(callee, expr.get("tyargs", []), enums)
     if sig is None or not _fn8_copy_result_ty(sig[1][1]):
         raise CheckError("FN-8",
             f"{fnname}: requires operation '{callee}' lacks an exact copy-result signature")
@@ -858,7 +901,7 @@ def _fn8_expr(expr, available, params, fnname, require_call=False):
         _fn8_atom(arg, available, fnname)
 
 
-def check_requires(fn):
+def check_requires(fn, enums=None):
     """[FN-8] Validate the closed, checked precondition-prologue fragment.
 
     Type agreement is intentionally left to TypeChecker so ordinary TYPE/OWN
@@ -889,9 +932,10 @@ def check_requires(fn):
         if stmt.get("mode", {}).get("kind") != "own" or not _fn8_copy_result_ty(stmt.get("ty")):
             raise CheckError("FN-8",
                 f"{fnname}: requires let '{name}' must bind an own primitive or Bool")
-        _fn8_expr(stmt.get("init"), available, params, fnname, require_call=True)
+        _fn8_expr(
+            stmt.get("init"), available, params, enums, fnname, require_call=True)
         available.add(name)
-    _fn8_expr(requirements[-1].get("expr"), available, params, fnname)
+    _fn8_expr(requirements[-1].get("expr"), available, params, enums, fnname)
 
 
 class Program:
@@ -1282,18 +1326,24 @@ class TypeChecker:
                 f"table op {callee} takes positional operands, not named")
         self._place_read_operand = callee in ("len", "slice_of")
         try:
-            sig = op_type(callee, e.get("tyargs", []))
+            sig = op_type(callee, e.get("tyargs", []), self.P.enums)
             if sig is None:                            # unknown op: lenient
                 for arg in e["args"]:
                     self.expr_desc(arg)
                 return {"cat": "val", "ty": ANY}
             params, (rcat, rty) = sig
             if len(e["args"]) != len(params):
-                raise CheckError("GRAM-11",
+                rule = "OP-1" if callee in ("eeq", "ene") else "GRAM-11"
+                raise CheckError(rule,
                     f"op {callee} expects {len(params)} operand(s), got {len(e['args'])}")
             for arg, (_cat, ty) in zip(e["args"], params):
                 d = self.expr_desc(arg)
                 self.expect_value(d, ty, f"operand of {callee}")
+                if callee in ("eeq", "ene") and d.get("ty") != ty:
+                    raise CheckError(
+                        "TYPE-5",
+                        f"operand of {callee}: exact nominal type {_ty_str(ty)} required, "
+                        f"got {_ty_str(d.get('ty'))}")
             return {"cat": rcat, "ty": rty}
         finally:
             self._place_read_operand = False
@@ -1560,6 +1610,24 @@ def _check_reserved_bindings(prog):
         _check_reserved_block(fn.get("body", []))
 
 
+def _check_type_declaration_namespace(prog):
+    """TYPE-6: user structs/enums share one namespace with prelude types."""
+    structs = set(prog.get("structs", {}))
+    enums = set(prog.get("enums", {}))
+    user_collision = sorted(structs & enums)
+    if user_collision:
+        name = user_collision[0]
+        raise CheckError(
+            "TYPE-6",
+            f"type name '{name}' is declared as both a struct and an enum")
+    prelude_collision = sorted((structs | enums) & set(PRELUDE_ENUMS))
+    if prelude_collision:
+        name = prelude_collision[0]
+        raise CheckError(
+            "TYPE-6",
+            f"type name '{name}' redeclares a prelude enum")
+
+
 def check_program(prog: dict):
     """Type layer + ownership over a whole program.
 
@@ -1569,10 +1637,11 @@ def check_program(prog: dict):
                              "rmode","rty","body":[STMT]}}}
     Returns None on acceptance; raises CheckError(rule_id, msg) on rejection.
     """
+    _check_type_declaration_namespace(prog)
     _check_reserved_bindings(prog)
     P = Program(prog)
     for name, fn in prog["fns"].items():
-        check_requires({**fn, "name": name})         # FN-8 checked parameter-only prologue
+        check_requires({**fn, "name": name}, P.enums)  # FN-8 checked parameter-only prologue
         tc = TypeChecker(fn, P)
         tc.check()                             # GRAM-8/10/11, TYPE-5/6/7, GIVE-1
         ch = Checker(fn)

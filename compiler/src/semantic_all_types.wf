@@ -37,7 +37,7 @@ fn semantic_resolve_all_types ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   }
 
   let parse_clean_tag: own ParseStatus = ParseClean();
-  let parse_clean: own Bool = ieq<ParseStatus>(deref(ast).status, parse_clean_tag);
+  let parse_clean: own Bool = eeq<ParseStatus>(deref(ast).status, parse_clean_tag);
   match parse_clean {
     True() => {
     }
@@ -49,13 +49,13 @@ fn semantic_resolve_all_types ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   }
 
   let validation_clean_tag: own AstValidationStatus = AstValidationClean();
-  let validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, validation_clean_tag);
+  let validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, validation_clean_tag);
   match validation_clean {
     True() => {
     }
     False() => {
       let scratch_tag: own AstValidationStatus = AstValidationScratchCapacity();
-      let scratch_error: own Bool = ieq<AstValidationStatus>(deref(validation).status, scratch_tag);
+      let scratch_error: own Bool = eeq<AstValidationStatus>(deref(validation).status, scratch_tag);
       match scratch_error {
         True() => {
           set deref(report).resolve_status = SemanticTypeResolveInvalidScratch();
@@ -108,7 +108,7 @@ fn semantic_resolve_all_types ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
     set symbol_columns_valid = symbol_tape_columns_valid(symbols: &uniq 'all_types_symbol_columns deref(symbols));
   }
   let symbol_clean_tag: own SymbolStatus = SymbolClean();
-  let symbol_clean: own Bool = ieq<SymbolStatus>(deref(symbols).status, symbol_clean_tag);
+  let symbol_clean: own Bool = eeq<SymbolStatus>(deref(symbols).status, symbol_clean_tag);
   let symbols_valid: own Bool = band<Bool>(symbol_columns_valid, symbol_clean);
   match symbols_valid {
     True() => {
@@ -145,7 +145,7 @@ fn semantic_resolve_all_types ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
           semantic_resolve_type(source: source, tokens: tokens, ast: ast, symbols: &uniq 'all_types_resolve_one deref(symbols), type_node: cursor, validation: &uniq 'all_types_resolve_one deref(validation), report: &uniq 'all_types_resolve_one nested);
         }
         let clean_tag: own SemanticTypeResolveStatus = SemanticTypeResolveClean();
-        let clean: own Bool = ieq<SemanticTypeResolveStatus>(nested.status, clean_tag);
+        let clean: own Bool = eeq<SemanticTypeResolveStatus>(nested.status, clean_tag);
         match clean {
           True() => {
             set resolved = iadd.trap<u64>(resolved, 1_u64);

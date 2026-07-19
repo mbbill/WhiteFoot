@@ -26,7 +26,7 @@ fn semantic_type_resolve_set_report ['w] (report: &uniq 'w SemanticTypeResolveRe
 
 fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
   let return_tag: own AstKind = AstReturnType();
-  match ieq<AstKind>(kind, return_tag) {
+  match eeq<AstKind>(kind, return_tag) {
     True() => {
       return True();
     }
@@ -34,7 +34,7 @@ fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
     }
   }
   let parameter_tag: own AstKind = AstParameterType();
-  match ieq<AstKind>(kind, parameter_tag) {
+  match eeq<AstKind>(kind, parameter_tag) {
     True() => {
       return True();
     }
@@ -42,7 +42,7 @@ fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
     }
   }
   let binding_tag: own AstKind = AstBindingType();
-  match ieq<AstKind>(kind, binding_tag) {
+  match eeq<AstKind>(kind, binding_tag) {
     True() => {
       return True();
     }
@@ -50,7 +50,7 @@ fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
     }
   }
   let argument_tag: own AstKind = AstTypeArgument();
-  match ieq<AstKind>(kind, argument_tag) {
+  match eeq<AstKind>(kind, argument_tag) {
     True() => {
       return True();
     }
@@ -58,7 +58,7 @@ fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
     }
   }
   let nested_tag: own AstKind = AstNestedType();
-  match ieq<AstKind>(kind, nested_tag) {
+  match eeq<AstKind>(kind, nested_tag) {
     True() => {
       return True();
     }
@@ -66,7 +66,7 @@ fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
     }
   }
   let field_tag: own AstKind = AstFieldType();
-  match ieq<AstKind>(kind, field_tag) {
+  match eeq<AstKind>(kind, field_tag) {
     True() => {
       return True();
     }
@@ -74,7 +74,7 @@ fn semantic_type_resolve_kind_valid (kind: own AstKind) -> own Bool pure {
     }
   }
   let const_tag: own AstKind = AstConstType();
-  return ieq<AstKind>(kind, const_tag);
+  return eeq<AstKind>(kind, const_tag);
 }
 
 fn semantic_type_resolve_prelude_leaf_allowed (code: own PreludeTypeCode) -> own Bool pure {
@@ -279,7 +279,7 @@ fn semantic_type_resolve_integer_const_decl ['s, 't, 'a] (source: &'s buffer<u8>
   }
   let declaration_kind: own AstKind = index<AstKind>(deref(ast).kinds, declaration);
   let declaration_tag: own AstKind = AstConstDecl();
-  match ieq<AstKind>(declaration_kind, declaration_tag) {
+  match eeq<AstKind>(declaration_kind, declaration_tag) {
     True() => {
     }
     False() => {
@@ -333,10 +333,10 @@ fn semantic_type_resolve_integer_const_decl ['s, 't, 'a] (source: &'s buffer<u8>
   }
   let name_kind: own AstKind = index<AstKind>(deref(ast).kinds, name_node);
   let name_tag: own AstKind = AstConstName();
-  let name_ok: own Bool = ieq<AstKind>(name_kind, name_tag);
+  let name_ok: own Bool = eeq<AstKind>(name_kind, name_tag);
   let type_kind: own AstKind = index<AstKind>(deref(ast).kinds, type_node);
   let type_tag: own AstKind = AstConstType();
-  let type_ok: own Bool = ieq<AstKind>(type_kind, type_tag);
+  let type_ok: own Bool = eeq<AstKind>(type_kind, type_tag);
   let roles_ok: own Bool = band<Bool>(name_ok, type_ok);
   match roles_ok {
     True() => {
@@ -381,7 +381,7 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
   }
 
   let parse_clean_tag: own ParseStatus = ParseClean();
-  let parse_clean: own Bool = ieq<ParseStatus>(deref(ast).status, parse_clean_tag);
+  let parse_clean: own Bool = eeq<ParseStatus>(deref(ast).status, parse_clean_tag);
   match parse_clean {
     True() => {
     }
@@ -395,13 +395,13 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
   }
 
   let validation_clean_tag: own AstValidationStatus = AstValidationClean();
-  let validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, validation_clean_tag);
+  let validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, validation_clean_tag);
   match validation_clean {
     True() => {
     }
     False() => {
       let scratch_tag: own AstValidationStatus = AstValidationScratchCapacity();
-      let scratch_error: own Bool = ieq<AstValidationStatus>(deref(validation).status, scratch_tag);
+      let scratch_error: own Bool = eeq<AstValidationStatus>(deref(validation).status, scratch_tag);
       match scratch_error {
         True() => {
           region 'type_scratch_error {
@@ -461,7 +461,7 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
     set symbols_columns_valid = symbol_tape_columns_valid(symbols: &uniq 'type_validate_symbol_columns deref(symbols));
   }
   let symbols_clean_tag: own SymbolStatus = SymbolClean();
-  let symbols_clean: own Bool = ieq<SymbolStatus>(deref(symbols).status, symbols_clean_tag);
+  let symbols_clean: own Bool = eeq<SymbolStatus>(deref(symbols).status, symbols_clean_tag);
   let symbols_valid: own Bool = band<Bool>(symbols_columns_valid, symbols_clean);
   match symbols_valid {
     True() => {
@@ -589,7 +589,7 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
             }
             let child_kind: own AstKind = index<AstKind>(deref(ast).kinds, child);
             let nested_tag: own AstKind = AstNestedType();
-            let nested: own Bool = ieq<AstKind>(child_kind, nested_tag);
+            let nested: own Bool = eeq<AstKind>(child_kind, nested_tag);
             let child_next: own u64 = index<u64>(deref(ast).next_siblings, child);
             let chain_end: own Bool = ieq<u64>(child_next, ast_none);
             let child_shape: own Bool = band<Bool>(nested, chain_end);
@@ -650,10 +650,10 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
                 }
                 let nested_kind: own AstKind = index<AstKind>(deref(ast).kinds, nested_child);
                 let nested_tag: own AstKind = AstNestedType();
-                let nested_ok: own Bool = ieq<AstKind>(nested_kind, nested_tag);
+                let nested_ok: own Bool = eeq<AstKind>(nested_kind, nested_tag);
                 let const_kind: own AstKind = index<AstKind>(deref(ast).kinds, const_child);
                 let const_tag: own AstKind = AstConstArgument();
-                let const_kind_ok: own Bool = ieq<AstKind>(const_kind, const_tag);
+                let const_kind_ok: own Bool = eeq<AstKind>(const_kind, const_tag);
                 let const_next: own u64 = index<u64>(deref(ast).next_siblings, const_child);
                 let chain_end: own Bool = ieq<u64>(const_next, ast_none);
                 let roles_ok: own Bool = band<Bool>(nested_ok, const_kind_ok);
@@ -752,7 +752,7 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
                     }
                     let declaration_kind: own AstKind = index<AstKind>(deref(ast).kinds, const_declaration);
                     let const_declaration_tag: own AstKind = AstConstDecl();
-                    match ieq<AstKind>(declaration_kind, const_declaration_tag) {
+                    match eeq<AstKind>(declaration_kind, const_declaration_tag) {
                       True() => {
                       }
                       False() => {
@@ -811,7 +811,7 @@ fn semantic_resolve_type ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape
                   }
                   False() => {
                     let prelude_unknown_tag: own PreludeTypeCode = PreludeTypeUnknown();
-                    let prelude_unknown: own Bool = ieq<PreludeTypeCode>(prelude_type_code, prelude_unknown_tag);
+                    let prelude_unknown: own Bool = eeq<PreludeTypeCode>(prelude_type_code, prelude_unknown_tag);
                     match prelude_unknown {
                       True() => {
                         let type_slot: own u64 = symbol_none;

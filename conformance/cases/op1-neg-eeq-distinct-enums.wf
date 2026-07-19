@@ -1,0 +1,6 @@
+enum LeftEq { LeftFirst(); LeftSecond(); }
+enum RightEq { RightFirst(); RightSecond(); }
+
+fn compare (left: own LeftEq, right: own RightEq) -> own Bool pure {
+  return eeq<LeftEq>(left, right);
+}

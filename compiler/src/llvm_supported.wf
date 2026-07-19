@@ -226,7 +226,7 @@ fn llvm_supported_append_kind ['c, 'w, 'o] (source: &'c buffer<u8>, tokens: &'c 
     }
   }
   let byte_invalid_state_atom_0729: own ByteStatus = ByteInvalidState();
-  match ieq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0729) {
+  match eeq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0729) {
     True() => {
       region 'llvm_supported_append_invalid {
         let llvm_supported_codegen_failure_atom_0730: own LlvmSupportedStatus = LlvmSupportedCodegenFailure();
@@ -275,7 +275,7 @@ fn llvm_supported_emit_module ['c, 'v, 'w, 'o] (source: &'c buffer<u8>, tokens: 
     ast_validate(source_length: source_length, token_count: deref(tokens).count, ast: ast, report: &uniq 'llvm_supported_refresh_validation deref(validation));
   }
   let ast_validation_clean_atom_0733: own AstValidationStatus = AstValidationClean();
-  match ieq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0733) {
+  match eeq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0733) {
     True() => {
     }
     False() => {
@@ -353,7 +353,7 @@ fn llvm_supported_emit_module ['c, 'v, 'w, 'o] (source: &'c buffer<u8>, tokens: 
       set kind = llvm_supported_analyze_kind_validated(source: source, tokens: tokens, ast: ast, validation: &'llvm_supported_validate_analyze deref(validation), symbols: symbols, function: function, types: &uniq 'llvm_supported_validate_analyze deref(types), facts: &uniq 'llvm_supported_validate_analyze deref(facts), scratch: &uniq 'llvm_supported_validate_analyze deref(scratch), report: &uniq 'llvm_supported_validate_analyze deref(report));
     }
     let llvm_supported_clean_atom_0739: own LlvmSupportedStatus = LlvmSupportedClean();
-    match ieq<LlvmSupportedStatus>(deref(report).status, llvm_supported_clean_atom_0739) {
+    match eeq<LlvmSupportedStatus>(deref(report).status, llvm_supported_clean_atom_0739) {
       True() => {
       }
       False() => {
@@ -403,7 +403,7 @@ fn llvm_supported_emit_module ['c, 'v, 'w, 'o] (source: &'c buffer<u8>, tokens: 
     llvm_buffer_emit_prelude(out: &uniq 'llvm_supported_module_prelude deref(out));
   }
   let byte_invalid_state_atom_0742: own ByteStatus = ByteInvalidState();
-  match ieq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0742) {
+  match eeq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0742) {
     True() => {
       region 'llvm_supported_prelude_failure {
         let llvm_supported_codegen_failure_atom_0743: own LlvmSupportedStatus = LlvmSupportedCodegenFailure();
@@ -430,7 +430,7 @@ fn llvm_supported_emit_module ['c, 'v, 'w, 'o] (source: &'c buffer<u8>, tokens: 
       set emitted_kind = llvm_supported_analyze_kind_validated(source: source, tokens: tokens, ast: ast, validation: &'llvm_supported_emit_analyze deref(validation), symbols: symbols, function: emitted_function, types: &uniq 'llvm_supported_emit_analyze deref(types), facts: &uniq 'llvm_supported_emit_analyze deref(facts), scratch: &uniq 'llvm_supported_emit_analyze deref(scratch), report: &uniq 'llvm_supported_emit_analyze deref(report));
     }
     let llvm_supported_clean_atom_0744: own LlvmSupportedStatus = LlvmSupportedClean();
-    match ieq<LlvmSupportedStatus>(deref(report).status, llvm_supported_clean_atom_0744) {
+    match eeq<LlvmSupportedStatus>(deref(report).status, llvm_supported_clean_atom_0744) {
       True() => {
       }
       False() => {

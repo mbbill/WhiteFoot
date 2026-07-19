@@ -1502,7 +1502,7 @@ fn semantic_buffer_fixed_width_run_for ['c, 'w] (source: &'c buffer<u8>, tokens:
     }
   }
   let ast_validation_clean_atom_0354: own AstValidationStatus = AstValidationClean();
-  let run_validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0354);
+  let run_validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0354);
   match run_validation_clean {
     True() => {
     }

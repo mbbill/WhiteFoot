@@ -592,8 +592,8 @@ fn llvm_scanner_tapes_valid ['a, 'y, 'f] (ast: &'a AstTape, types: &'y TypeTape,
   let type_shape: own Bool = semantic_type_tape_shape_valid(types: types);
   let fact_shape: own Bool = semantic_node_facts_shape_valid(facts: facts);
   let clean_tag: own SemanticFactsStatus = SemanticFactsClean();
-  let types_clean: own Bool = ieq<SemanticFactsStatus>(deref(types).status, clean_tag);
-  let facts_clean: own Bool = ieq<SemanticFactsStatus>(deref(facts).status, clean_tag);
+  let types_clean: own Bool = eeq<SemanticFactsStatus>(deref(types).status, clean_tag);
+  let facts_clean: own Bool = eeq<SemanticFactsStatus>(deref(facts).status, clean_tag);
   let facts_dense: own Bool = ieq<u64>(deref(facts).count, deref(ast).count);
   let type_node_clean: own Bool = ieq<u64>(deref(types).node, semantic_facts_none);
   let type_related_clean: own Bool = ieq<u64>(deref(types).related, semantic_facts_none);
@@ -861,7 +861,7 @@ fn llvm_scanner_emit_validated_function ['s, 't, 'a, 'f, 'o] (source: &'s buffer
 
 fn llvm_scanner_append_function ['s, 't, 'a, 'm, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, symbols: &'m SymbolTape, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'm 'y 'f 'o), writes('o), traps {
   let byte_invalid_state_atom_0719: own ByteStatus = ByteInvalidState();
-  match ieq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0719) {
+  match eeq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0719) {
     True() => {
       return unit;
     }

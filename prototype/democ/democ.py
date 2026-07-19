@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""democ: demo compiler for a growing subset of kernel-spec v0.6.
+"""democ: demo compiler for a growing subset of kernel-spec v0.8.
 source -> parse -> program check (type + ownership) -> LLVM IR (-> native).
 Subset (2026-07-10): all int widths x {wrap,trap,checked,sat}, Bool/tag-only
 enums as copy i1, buffers (incl. in-struct + buffer<Bool>), structs, payload
@@ -186,7 +186,8 @@ _MODE_OPS = {"iadd": {"wrap", "trap", "checked", "sat"}, "isub": {"wrap", "trap"
              "ishr": {"wrap", "trap"}}
 _DOTLESS_OPS = {"buffer_new", "len", "imin", "imax", "iand", "ior", "ixor", "irotl", "irotr",
                 "band", "bor", "bxor", "bnot",
-                "ieq", "ine", "ilt", "ile", "igt", "ige", "cvt", "reinterpret"}
+                "ieq", "ine", "ilt", "ile", "igt", "ige", "eeq", "ene",
+                "cvt", "reinterpret"}
 _KNOWN_OP_BASES = set(_MODE_OPS) | _DOTLESS_OPS
 
 def _resolve_op(op, tyargs):
@@ -208,8 +209,8 @@ def _resolve_op(op, tyargs):
                                  "(no sound modular semantics for a zero divisor); the axis is {trap, checked}")
             raise CheckError("OP-8", f"'{op}': mode '{mode}' is not on this op's mode axis")
         return
-    if any((pre + base) in _KNOWN_OP_BASES for pre in ("i", "f", "b")):
-        raise CheckError("OP-7", f"'{op}' lacks its domain prefix (i/f/b); "
+    if any((pre + base) in _KNOWN_OP_BASES for pre in ("i", "f", "b", "e")):
+        raise CheckError("OP-7", f"'{op}' lacks its domain prefix (i/f/b/e); "
                          f"'{base}' names no table op")
 
 def _check_form2(src):
@@ -406,6 +407,21 @@ def parse_expr(p):
             raise SystemExit(
                 "democ: user-call type/const/mixed targs are outside the "
                 "stage-0 profile; only explicit REGIONID arguments are supported")
+    if p.peek(1) == '(' and t in ("eeq", "ene"):
+        # Preserve the reserved operation identity when its mandatory explicit
+        # type argument is absent. The type layer owns the canonical FN-2
+        # diagnostic; treating this spelling as a positional user call would
+        # incorrectly report GRAM-11 before operation resolution.
+        op = p.eat()
+        p.eat('(')
+        args = []
+        if p.peek() != ')':
+            args.append(parse_atom(p))
+            while p.peek() == ',':
+                p.eat(',')
+                args.append(parse_atom(p))
+        p.eat(')')
+        return {"e": "op", "op": op, "args": args, "tyargs": []}
     if (p.peek(1) == '(' or has_call_regions) and t not in ('deref', 'index'):
         # user call f<regions?>(param: atom, ...) [GRAM-5/GRAM-11]
         n = p.eat()
@@ -526,6 +542,13 @@ def parse_stmt_block(p):
     p.eat('}')
     return body
 
+def _reserve_type_declaration(name, structs, enums):
+    """Reject TYPEID redeclaration before the parser's maps can overwrite it."""
+    if name in PRELUDE_ENUMS:
+        raise CheckError("TYPE-6", f"type name '{name}' redeclares a prelude enum")
+    if name in structs or name in enums:
+        raise CheckError("TYPE-6", f"type name '{name}' is already declared")
+
 def parse_program(src):
     p = P(toks(src)); structs = {}; enums = {}; fns = []; contracts = {}; conforms = []; consts = []
     while p.peek():
@@ -597,6 +620,7 @@ def parse_program(src):
             p.eat(); name = p.eat()
             if not is_typeid(name):                    # [FORM-3] a struct name is a TYPEID ([A-Z]...)
                 raise CheckError("FORM-3", f"struct name must be a TYPEID ([A-Z]...), got '{name}'")
+            _reserve_type_declaration(name, structs, enums)
             if p.peek() == '<':                        # region-generic / generic aggregates: later step
                 raise SystemExit("democ: generic/region-parameterized structs are not in the subset yet")
             p.eat('{'); fields = []                    # field := IDENT ":" type ";" (declared order)
@@ -610,6 +634,7 @@ def parse_program(src):
             p.eat(); name = p.eat()
             if not is_typeid(name):                    # [FORM-3] an enum name is a TYPEID ([A-Z]...)
                 raise CheckError("FORM-3", f"enum name must be a TYPEID ([A-Z]...), got '{name}'")
+            _reserve_type_declaration(name, structs, enums)
             p.eat('{'); vs = []
             while p.peek() != '}':
                 vn = p.eat(); p.eat('('); fields = []      # vfield := IDENT ":" type
@@ -842,6 +867,16 @@ def _enum_payw(variants):
         w = sum(1 if f["ty"] == "Bool" else INT_WIDTH.get(f["ty"], 32) for f in flds)
         best = max(best, w)
     return best
+
+def _is_tag_only_enum_spelling(name, enums):
+    """Validate democ's exact nominal eeq/ene domain before LLVM emission."""
+    if name == "Bool":
+        return True
+    variants = enums.get(name) if isinstance(enums, dict) else None
+    return (isinstance(variants, list)
+            and all(isinstance(variant, tuple) and len(variant) == 2
+                    and isinstance(variant[1], list) and not variant[1]
+                    for variant in variants))
 
 def _field_ll(tyname, structs):
     """LLVM type for a struct field: int width, i1 for Bool, %Sub for a nested struct,
@@ -1358,6 +1393,14 @@ class Gen:
             return {"k": "i1", "v": t}
         if base == "bnot":
             t = g.tmp(); g.emit(f"  {t} = xor i1 {a[0]['v']}, true")
+            return {"k": "i1", "v": t}
+        if base in ("eeq", "ene"):                   # nominal tag-only equality [OP-1/7/8]
+            if len(ty) != 1 or not _is_tag_only_enum_spelling(ty[0], g.enums):
+                raise CheckError(
+                    "OP-1",
+                    f"{base} requires one exact nominal tag-only enum type, including Bool")
+            pred = "eq" if base == "eeq" else "ne"
+            t = g.tmp(); g.emit(f"  {t} = icmp {pred} {w} {a[0]['v']}, {a[1]['v']}")
             return {"k": "i1", "v": t}
         CMP_S = {"ieq": "eq", "ine": "ne", "ilt": "slt", "ile": "sle", "igt": "sgt", "ige": "sge"}
         CMP_U = {"ieq": "eq", "ine": "ne", "ilt": "ult", "ile": "ule", "igt": "ugt", "ige": "uge"}

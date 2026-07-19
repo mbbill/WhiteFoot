@@ -390,4 +390,237 @@ for source in aggregate_payloads:
     else:
         raise AssertionError("aggregate prelude payload reached stage-0 LLVM codegen")
 
+
+def test_enum_equality_direct_lowering_and_truth_tables():
+    enum_specs = [
+        ("EmptyEq", []),
+        ("OneEq", ["OneOnly"]),
+        ("PairEq", ["PairFirst", "PairSecond"]),
+        ("TrioEq", ["TrioFirst", "TrioSecond", "TrioThird"]),
+        ("ManyEq", ["ManyZero", "ManyOne", "ManyTwo", "ManyThree", "ManyFour"]),
+    ]
+    declarations = []
+    for enum_name, variants in enum_specs:
+        body = "\n".join(f"  {variant}();" for variant in variants)
+        declarations.append(f"enum {enum_name} {{\n{body}\n}}")
+
+    comparison_functions = []
+    for enum_name, _variants in enum_specs:
+        for operation in ("eeq", "ene"):
+            comparison_functions.append(
+                f"fn compare_{enum_name.lower()}_{operation} "
+                f"(left: own {enum_name}, right: own {enum_name}) -> own Bool pure {{\n"
+                f"  return {operation}<{enum_name}>(left, right);\n"
+                "}"
+            )
+
+    main_lines = []
+    value_sets = [("Bool", ["False", "True"])] + enum_specs[1:]
+    value_names = {}
+    for enum_name, variants in value_sets:
+        for index, variant in enumerate(variants):
+            local = f"value_{enum_name.lower()}_{index}"
+            value_names[(enum_name, index)] = local
+            main_lines.append(f"  let {local}: own {enum_name} = {variant}();")
+
+    comparison_index = 0
+    for enum_name, variants in value_sets:
+        for left_index in range(len(variants)):
+            for right_index in range(len(variants)):
+                left = value_names[(enum_name, left_index)]
+                right = value_names[(enum_name, right_index)]
+                eq_name = f"eq_result_{comparison_index}"
+                ne_name = f"ne_result_{comparison_index}"
+                main_lines.append(
+                    f"  let {eq_name}: own Bool = eeq<{enum_name}>({left}, {right});")
+                main_lines.append(
+                    f"  let {ne_name}: own Bool = ene<{enum_name}>({left}, {right});")
+                if left_index == right_index:
+                    main_lines.append(
+                        f"  check {eq_name} else trap \"eeq diagonal mismatch\";")
+                    complement = f"not_ne_result_{comparison_index}"
+                    main_lines.append(
+                        f"  let {complement}: own Bool = bnot<Bool>({ne_name});")
+                    main_lines.append(
+                        f"  check {complement} else trap \"ene diagonal mismatch\";")
+                else:
+                    complement = f"not_eq_result_{comparison_index}"
+                    main_lines.append(
+                        f"  let {complement}: own Bool = bnot<Bool>({eq_name});")
+                    main_lines.append(
+                        f"  check {complement} else trap \"eeq off-diagonal mismatch\";")
+                    main_lines.append(
+                        f"  check {ne_name} else trap \"ene off-diagonal mismatch\";")
+                comparison_index += 1
+    main_lines.append("  return unit;")
+    main_function = "fn main () -> own unit traps {\n" + "\n".join(main_lines) + "\n}"
+    source = "\n\n".join(declarations + comparison_functions + [main_function]) + "\n"
+
+    ir = compile_native(source, run=True)
+
+    def function_ir(name):
+        return ir.split(f" @{name}(", 1)[1].split("\n}", 1)[0]
+
+    assert "icmp eq i1" in function_ir("compare_paireq_eeq")
+    assert "icmp ne i1" in function_ir("compare_paireq_ene")
+    assert "icmp eq i32" in function_ir("compare_trioeq_eeq")
+    assert "icmp ne i32" in function_ir("compare_manyeq_ene")
+    assert "icmp eq i32" in function_ir("compare_emptyeq_eeq")
+    assert "icmp ne i32" in function_ir("compare_oneeq_ene")
+
+
+def test_enum_equality_domain_rejections():
+    declarations = """enum AlphaEq {
+  AlphaFirst();
+  AlphaSecond();
+}
+
+enum BetaEq {
+  BetaFirst();
+  BetaSecond();
+}
+
+enum PayloadEq {
+  PayloadEmpty();
+  PayloadValue(value: u32);
+}
+"""
+
+    def compare_source(operation, type_argument, left_type, right_type=None):
+        right = right_type or left_type
+        return declarations + f"""
+fn compare (left: own {left_type}, right: own {right}) -> own Bool pure {{
+  return {operation}<{type_argument}>(left, right);
+}}
+"""
+
+    cases = [
+        ("OP-1", compare_source("ieq", "AlphaEq", "AlphaEq")),
+        ("OP-1", compare_source("ine", "Bool", "Bool")),
+        ("OP-1", compare_source("ilt", "AlphaEq", "AlphaEq")),
+        ("OP-1", compare_source("eeq", "u32", "u32")),
+        ("OP-1", compare_source("ene", "u32", "u32")),
+        ("OP-1", compare_source("eeq", "PayloadEq", "PayloadEq")),
+        ("OP-1", compare_source("eeq", "MissingEq", "MissingEq")),
+        ("TYPE-5", compare_source("eeq", "AlphaEq", "AlphaEq", "BetaEq")),
+    ]
+    for expected_rule, source in cases:
+        try:
+            democ.compile_program(source, alias=False)
+        except democ.CheckError as error:
+            assert error.rule == expected_rule, error
+        else:
+            raise AssertionError(
+                f"enum comparison outside its exact domain escaped {expected_rule}")
+
+
+def test_fn8_enum_equality_exact_domain():
+    positive = """enum ClauseEq {
+  ClauseFirst();
+  ClauseSecond();
+  ClauseThird();
+}
+
+fn guarded (left: own ClauseEq, right: own ClauseEq) -> own unit traps requires {
+  let same: own Bool = eeq<ClauseEq>(left, right);
+  check same else trap "enum precondition failed";
+} {
+  return unit;
+}
+
+fn main () -> own unit traps {
+  let left: own ClauseEq = ClauseSecond();
+  let right: own ClauseEq = ClauseSecond();
+  guarded(left: left, right: right);
+  return unit;
+}
+"""
+    ir = compile_native(positive, run=True)
+    guarded_ir = ir.split(" @guarded(", 1)[1].split("\n}", 1)[0]
+    assert "icmp eq i32" in guarded_ir
+
+    negative_integer = """fn guarded (left: own u32, right: own u32) -> own unit traps requires {
+  let same: own Bool = eeq<u32>(left, right);
+  check same else trap "integer precondition escaped";
+} {
+  return unit;
+}
+"""
+    negative_payload = """enum ClausePayloadEq {
+  ClausePayloadValue(value: u32);
+}
+
+fn guarded (left: own ClausePayloadEq, right: own ClausePayloadEq) -> own unit traps requires {
+  let different: own Bool = ene<ClausePayloadEq>(left, right);
+  check different else trap "payload precondition escaped";
+} {
+  return unit;
+}
+"""
+    for source in (negative_integer, negative_payload):
+        try:
+            democ.compile_program(source, alias=False)
+        except democ.CheckError as error:
+            assert error.rule == "OP-1", error
+        else:
+            raise AssertionError("out-of-domain enum equality entered an FN-8 clause")
+
+
+def test_enum_equality_missing_type_argument_precedence():
+    source = """enum MissingTypeEq {
+  MissingTypeFirst();
+  MissingTypeSecond();
+}
+
+fn compare (left: own MissingTypeEq, right: own MissingTypeEq) -> own Bool pure {
+  return eeq(left, right);
+}
+"""
+    try:
+        democ.compile_program(source, alias=False)
+    except democ.CheckError as error:
+        assert error.rule == "FN-2", error
+    else:
+        raise AssertionError("eeq without its explicit type argument escaped FN-2")
+
+
+def test_enum_equality_type_namespace_cannot_replace_nominal_metadata():
+    sources = [
+        """enum Bool {
+  Rebound();
+}
+""",
+        """struct Result {
+}
+""",
+        """enum CollisionEq {
+  CollisionOnly();
+}
+
+struct CollisionEq {
+}
+""",
+        """struct ReverseCollisionEq {
+}
+
+enum ReverseCollisionEq {
+  ReverseCollisionOnly();
+}
+""",
+    ]
+    for source in sources:
+        try:
+            democ.compile_program(source, alias=False)
+        except democ.CheckError as error:
+            assert error.rule == "TYPE-6", error
+        else:
+            raise AssertionError("a colliding type declaration replaced nominal metadata")
+
+
+test_enum_equality_direct_lowering_and_truth_tables()
+test_enum_equality_domain_rejections()
+test_enum_equality_missing_type_argument_precedence()
+test_enum_equality_type_namespace_cannot_replace_nominal_metadata()
+test_fn8_enum_equality_exact_domain()
+
 print("stage-0 codegen: aggregates, region-call retention, native fixtures, and payload profile pass")

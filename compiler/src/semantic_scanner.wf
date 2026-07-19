@@ -242,7 +242,7 @@ fn semantic_scanner_arm_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTap
     False() => {
     }
   }
-  match ieq<PreludeConstructorCode>(scanner_arm_code, scanner_arm_expected) {
+  match eeq<PreludeConstructorCode>(scanner_arm_code, scanner_arm_expected) {
     True() => {
     }
     False() => {
@@ -768,7 +768,7 @@ fn semantic_scanner_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape,
     }
   }
   let ast_validation_clean_atom_0397: own AstValidationStatus = AstValidationClean();
-  let scanner_run_validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0397);
+  let scanner_run_validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, ast_validation_clean_atom_0397);
   match scanner_run_validation_clean {
     True() => {
     }

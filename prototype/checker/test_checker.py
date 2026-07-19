@@ -1346,6 +1346,27 @@ class ProgramLayer(unittest.TestCase):
                               "B": [{"variant": "Dup", "fields": []}]},
                     "fns": {"g": pfn([{"kind": "return", "expr": lit(UNIT)}])}})
 
+    def test_type6_type_namespace_rejects_user_and_prelude_collisions(self):
+        body = {"g": pfn([{"kind": "return", "expr": lit(UNIT)}])}
+        self.expect("TYPE-6", {
+            "structs": {"Collision": []},
+            "enums": {"Collision": []},
+            "fns": body,
+        })
+        for prelude_name in ("Bool", "Option", "Result"):
+            with self.subTest(prelude_enum=prelude_name):
+                self.expect("TYPE-6", {
+                    "structs": {},
+                    "enums": {prelude_name: []},
+                    "fns": body,
+                })
+            with self.subTest(prelude_struct=prelude_name):
+                self.expect("TYPE-6", {
+                    "structs": {prelude_name: []},
+                    "enums": {},
+                    "fns": body,
+                })
+
     def test_give_type_mismatch(self):
         self.expect("TYPE-5", {"structs": {}, "enums": {}, "fns": {"g": pfn([
             value_match("v", UNIT, [
@@ -1355,6 +1376,118 @@ class ProgramLayer(unittest.TestCase):
                  "body": [{"kind": "return", "expr": lit(UNIT)}]},
             ]),
             {"kind": "return", "expr": lit(UNIT)}])}})
+
+    def test_op1_enum_equality_has_exact_nominal_tag_only_domain(self):
+        enums = {
+            "EmptyTag": [],
+            "OneTag": [{"variant": "OnlyTag", "fields": []}],
+            "StateTag": [
+                {"variant": "StateLow", "fields": []},
+                {"variant": "StateMid", "fields": []},
+                {"variant": "StateHigh", "fields": []},
+            ],
+            "OtherTag": [
+                {"variant": "OtherLow", "fields": []},
+                {"variant": "OtherMid", "fields": []},
+                {"variant": "OtherHigh", "fields": []},
+            ],
+            "PayloadTag": [
+                {"variant": "PayloadNone", "fields": []},
+                {"variant": "PayloadSome", "fields": [
+                    {"name": "value", "ty": I32},
+                ]},
+            ],
+        }
+
+        def comparison(callee, declared_ty, left_ty=None, right_ty=None,
+                       tyargs=None, args=None):
+            operands = args if args is not None else [use(var("left")), use(var("right"))]
+            return pfn([
+                {"kind": "return", "expr": op(
+                    callee, operands,
+                    tyargs=[declared_ty] if tyargs is None else tyargs)},
+            ], params=[
+                {"name": "left", "mode": own(), "ty": left_ty or declared_ty},
+                {"name": "right", "mode": own(), "ty": right_ty or declared_ty},
+            ], rmode=own(), rty=named("Bool"))
+
+        for enum_name in ("EmptyTag", "OneTag", "StateTag", "Bool"):
+            for callee in ("eeq", "ene"):
+                with self.subTest(accepted=(callee, enum_name)):
+                    enum_ty = named(enum_name)
+                    self.ok({"structs": {}, "enums": enums,
+                             "fns": {"compare": comparison(callee, enum_ty)}})
+
+        rejected = [
+            ("ieq-user-enum", "OP-1", comparison("ieq", named("StateTag"))),
+            ("ine-bool", "OP-1", comparison("ine", named("Bool"))),
+            ("enum-ordering", "OP-1", comparison("ilt", named("StateTag"))),
+            ("eeq-integer", "OP-1", comparison("eeq", I32)),
+            ("ene-integer", "OP-1", comparison("ene", I32)),
+            ("eeq-payload", "OP-1", comparison("eeq", named("PayloadTag"))),
+            ("eeq-unresolved", "OP-1", comparison("eeq", named("MissingTag"))),
+            ("eeq-distinct-nominal", "TYPE-5", comparison(
+                "eeq", named("StateTag"), right_ty=named("OtherTag"))),
+            ("eeq-implicit-type", "FN-2", comparison(
+                "eeq", named("StateTag"), tyargs=[])),
+            ("eeq-extra-type", "OP-1", comparison(
+                "eeq", named("StateTag"), tyargs=[named("StateTag"), named("OtherTag")])),
+            ("eeq-one-operand", "OP-1", comparison(
+                "eeq", named("StateTag"), args=[use(var("left"))])),
+            ("eeq-malformed-type", "OP-1", comparison(
+                "eeq", named("StateTag"), tyargs=["StateTag"])),
+            ("eeq-parameterized-type", "OP-1", comparison(
+                "eeq", named("StateTag"), tyargs=[{
+                    "kind": "named", "name": "StateTag", "args": [I32],
+                }])),
+            ("eeq-malformed-operand-type", "TYPE-5", comparison(
+                "eeq", named("StateTag"), right_ty={
+                    "kind": "named", "name": "StateTag", "args": [I32],
+                })),
+            ("ieq-malformed-type", "OP-1", comparison(
+                "ieq", I32, tyargs=["i32"])),
+        ]
+        for label, rule, compare_fn in rejected:
+            with self.subTest(rejected=label):
+                self.expect(rule, {"structs": {}, "enums": enums,
+                                   "fns": {"compare": compare_fn}})
+
+    def test_fn8_enum_equality_is_whitelisted_only_for_exact_domain(self):
+        enums = {
+            "ClauseTag": [
+                {"variant": "ClauseFirst", "fields": []},
+                {"variant": "ClauseSecond", "fields": []},
+                {"variant": "ClauseThird", "fields": []},
+            ],
+            "ClausePayload": [{"variant": "ClauseValue", "fields": [
+                {"name": "value", "ty": I32},
+            ]}],
+        }
+
+        def guarded(callee, operand_ty):
+            function = pfn(
+                [{"kind": "return", "expr": lit(UNIT)}],
+                params=[
+                    {"name": "left", "mode": own(), "ty": operand_ty},
+                    {"name": "right", "mode": own(), "ty": operand_ty},
+                ])
+            function["requires"] = [
+                {"kind": "let", "name": "result", "mode": own(),
+                 "ty": named("Bool"), "init": op(
+                     callee, [use(var("left")), use(var("right"))],
+                     tyargs=[operand_ty])},
+                {"kind": "check", "expr": use(var("result"))},
+            ]
+            return function
+
+        for callee in ("eeq", "ene"):
+            with self.subTest(accepted=callee):
+                self.ok({"structs": {}, "enums": enums,
+                         "fns": {"guarded": guarded(callee, named("ClauseTag"))}})
+        self.expect("OP-1", {"structs": {}, "enums": enums,
+                    "fns": {"guarded": guarded("eeq", I32)}})
+        self.expect("OP-1", {"structs": {}, "enums": enums,
+                    "fns": {"guarded": guarded("ene", named("ClausePayload"))}})
 
 
 if __name__ == "__main__":

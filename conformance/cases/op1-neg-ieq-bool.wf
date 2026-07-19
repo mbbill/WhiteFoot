@@ -1,0 +1,3 @@
+fn compare (left: own Bool, right: own Bool) -> own Bool pure {
+  return ieq<Bool>(left, right);
+}

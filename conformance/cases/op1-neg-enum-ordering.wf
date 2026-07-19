@@ -1,0 +1,5 @@
+enum TagEq { TagFirst(); TagSecond(); TagThird(); }
+
+fn compare (left: own TagEq, right: own TagEq) -> own Bool pure {
+  return ilt<TagEq>(left, right);
+}

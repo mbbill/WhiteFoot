@@ -13,7 +13,7 @@ fn llvm_scalar_node_is ['a] (ast: &'a AstTape, node: own u64, expected: own AstK
     }
   }
   let observed: own AstKind = index<AstKind>(deref(ast).kinds, node);
-  return ieq<AstKind>(observed, expected);
+  return eeq<AstKind>(observed, expected);
 }
 
 fn llvm_scalar_leaf ['a] (ast: &'a AstTape, node: own u64) -> own Bool reads('a), traps {
@@ -91,12 +91,12 @@ fn llvm_scalar_type_is ['y] (types: &'y TypeTape, type_id: own u64, expected: ow
     }
   }
   let observed: own SemanticTypeKind = index<SemanticTypeKind>(deref(types).kinds, type_id);
-  return ieq<SemanticTypeKind>(observed, expected);
+  return eeq<SemanticTypeKind>(observed, expected);
 }
 
 fn llvm_scalar_tokens_valid ['t] (tokens: &'t TokenTape) -> own Bool reads('t) {
   let clean_tag: own LexStatus = LexClean();
-  let clean: own Bool = ieq<LexStatus>(deref(tokens).status, clean_tag);
+  let clean: own Bool = eeq<LexStatus>(deref(tokens).status, clean_tag);
   match clean {
     True() => {
     }
@@ -126,7 +126,7 @@ fn llvm_scalar_name_token_valid ['s, 't] (source: &'s buffer<u8>, tokens: &'t To
   }
   let observed_kind: own TokenKind = index<TokenKind>(deref(tokens).kinds, token);
   let word_tag: own TokenKind = TokWord();
-  let is_word: own Bool = ieq<TokenKind>(observed_kind, word_tag);
+  let is_word: own Bool = eeq<TokenKind>(observed_kind, word_tag);
   match is_word {
     True() => {
     }
@@ -197,7 +197,7 @@ fn llvm_scalar_mode_is ['f] (facts: &'f NodeFacts, node: own u64, expected: own 
     }
   }
   let observed: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, node);
-  return ieq<SemanticValueMode>(observed, expected);
+  return eeq<SemanticValueMode>(observed, expected);
 }
 
 fn llvm_scalar_operation_is ['f] (facts: &'f NodeFacts, node: own u64, expected: own SemanticOperation) -> own Bool reads('f), traps {
@@ -210,7 +210,7 @@ fn llvm_scalar_operation_is ['f] (facts: &'f NodeFacts, node: own u64, expected:
     }
   }
   let observed: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, node);
-  return ieq<SemanticOperation>(observed, expected);
+  return eeq<SemanticOperation>(observed, expected);
 }
 
 fn llvm_scalar_operation_is_compare ['f] (facts: &'f NodeFacts, node: own u64) -> own Bool reads('f), traps {
@@ -225,8 +225,8 @@ fn llvm_scalar_operation_is_compare ['f] (facts: &'f NodeFacts, node: own u64) -
   let observed: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, node);
   let ige_tag: own SemanticOperation = SemanticOperationIge();
   let ile_tag: own SemanticOperation = SemanticOperationIle();
-  let is_ige: own Bool = ieq<SemanticOperation>(observed, ige_tag);
-  let is_ile: own Bool = ieq<SemanticOperation>(observed, ile_tag);
+  let is_ige: own Bool = eeq<SemanticOperation>(observed, ige_tag);
+  let is_ile: own Bool = eeq<SemanticOperation>(observed, ile_tag);
   return bor<Bool>(is_ige, is_ile);
 }
 
@@ -281,7 +281,7 @@ fn llvm_scalar_emit_resolved_operand ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f 
   let declaration_kind: own AstKind = index<AstKind>(deref(ast).kinds, declaration);
   let ordinal: own u64 = index<u64>(deref(facts).ordinals, declaration);
   let parameter_tag: own AstKind = AstParameter();
-  let is_parameter: own Bool = ieq<AstKind>(declaration_kind, parameter_tag);
+  let is_parameter: own Bool = eeq<AstKind>(declaration_kind, parameter_tag);
   match is_parameter {
     True() => {
       region 'parameter_operand {
@@ -293,7 +293,7 @@ fn llvm_scalar_emit_resolved_operand ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f 
     }
   }
   let let_tag: own AstKind = AstLet();
-  let is_let: own Bool = ieq<AstKind>(declaration_kind, let_tag);
+  let is_let: own Bool = eeq<AstKind>(declaration_kind, let_tag);
   match is_let {
     True() => {
       region 'let_operand {
@@ -328,7 +328,7 @@ fn llvm_scalar_emit_compare ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts
 
   let operation: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, call);
   let uge_tag: own SemanticOperation = SemanticOperationIge();
-  let is_uge: own Bool = ieq<SemanticOperation>(operation, uge_tag);
+  let is_uge: own Bool = eeq<SemanticOperation>(operation, uge_tag);
   match is_uge {
     True() => {
       region 'compare_uge {
@@ -337,7 +337,7 @@ fn llvm_scalar_emit_compare ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts
     }
     False() => {
       let ule_tag: own SemanticOperation = SemanticOperationIle();
-      let is_ule: own Bool = ieq<SemanticOperation>(operation, ule_tag);
+      let is_ule: own Bool = eeq<SemanticOperation>(operation, ule_tag);
       match is_ule {
         True() => {
           region 'compare_ule {
@@ -384,7 +384,7 @@ fn llvm_scalar_emit_compare ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts
 fn llvm_scalar_emit_band ['a, 'f, 'o] (ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, left: own u64, right: own u64, value: own u64, out: &uniq 'o ByteTape) -> own unit reads('a 'f 'o), writes('o), traps {
   let operation: own SemanticOperation = index<SemanticOperation>(deref(facts).operations, call);
   let band_tag: own SemanticOperation = SemanticOperationBand();
-  let is_band: own Bool = ieq<SemanticOperation>(operation, band_tag);
+  let is_band: own Bool = eeq<SemanticOperation>(operation, band_tag);
   match is_band {
     True() => {
     }
@@ -450,8 +450,8 @@ fn llvm_scalar_emit_function ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, t
   let types_valid: own Bool = semantic_type_tape_shape_valid(types: types);
   let facts_valid: own Bool = semantic_node_facts_shape_valid(facts: facts);
   let facts_clean_tag: own SemanticFactsStatus = SemanticFactsClean();
-  let types_clean: own Bool = ieq<SemanticFactsStatus>(deref(types).status, facts_clean_tag);
-  let facts_clean: own Bool = ieq<SemanticFactsStatus>(deref(facts).status, facts_clean_tag);
+  let types_clean: own Bool = eeq<SemanticFactsStatus>(deref(types).status, facts_clean_tag);
+  let facts_clean: own Bool = eeq<SemanticFactsStatus>(deref(facts).status, facts_clean_tag);
   let fact_count_exact: own Bool = ieq<u64>(deref(facts).count, deref(ast).count);
   let syntax_valid: own Bool = band<Bool>(ast_valid, tokens_valid);
   let first_valid: own Bool = band<Bool>(syntax_valid, types_valid);

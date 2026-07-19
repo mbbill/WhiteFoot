@@ -18,7 +18,7 @@ struct SemanticGlobalsReport {
 
 fn semantic_globals_ast_tape_valid ['a] (ast: &'a AstTape) -> own Bool reads('a), traps {
   let clean_status: own ParseStatus = ParseClean();
-  let clean: own Bool = ieq<ParseStatus>(deref(ast).status, clean_status);
+  let clean: own Bool = eeq<ParseStatus>(deref(ast).status, clean_status);
   match clean {
     True() => {
     }
@@ -76,56 +76,56 @@ fn semantic_globals_ast_tape_valid ['a] (ast: &'a AstTape) -> own Bool reads('a)
 fn semantic_globals_is_value_declaration (kind: own AstKind) -> own Bool pure {
   let function_tag: own AstKind = AstFunction();
   let const_tag: own AstKind = AstConstDecl();
-  let function_kind: own Bool = ieq<AstKind>(kind, function_tag);
-  let const_kind: own Bool = ieq<AstKind>(kind, const_tag);
+  let function_kind: own Bool = eeq<AstKind>(kind, function_tag);
+  let const_kind: own Bool = eeq<AstKind>(kind, const_tag);
   return bor<Bool>(function_kind, const_kind);
 }
 
 fn semantic_globals_is_type_declaration (kind: own AstKind) -> own Bool pure {
   let enum_tag: own AstKind = AstEnumDecl();
   let struct_tag: own AstKind = AstStructDecl();
-  let enum_kind: own Bool = ieq<AstKind>(kind, enum_tag);
-  let struct_kind: own Bool = ieq<AstKind>(kind, struct_tag);
+  let enum_kind: own Bool = eeq<AstKind>(kind, enum_tag);
+  let struct_kind: own Bool = eeq<AstKind>(kind, struct_tag);
   return bor<Bool>(enum_kind, struct_kind);
 }
 
 fn semantic_globals_name_kind_valid (declaration_kind: own AstKind, name_kind: own AstKind) -> own Bool pure {
   let function_tag: own AstKind = AstFunction();
-  let function_kind: own Bool = ieq<AstKind>(declaration_kind, function_tag);
+  let function_kind: own Bool = eeq<AstKind>(declaration_kind, function_tag);
   match function_kind {
     True() => {
       let function_name_tag: own AstKind = AstFunctionName();
-      return ieq<AstKind>(name_kind, function_name_tag);
+      return eeq<AstKind>(name_kind, function_name_tag);
     }
     False() => {
     }
   }
   let enum_tag: own AstKind = AstEnumDecl();
-  let enum_kind: own Bool = ieq<AstKind>(declaration_kind, enum_tag);
+  let enum_kind: own Bool = eeq<AstKind>(declaration_kind, enum_tag);
   match enum_kind {
     True() => {
       let enum_name_tag: own AstKind = AstEnumName();
-      return ieq<AstKind>(name_kind, enum_name_tag);
+      return eeq<AstKind>(name_kind, enum_name_tag);
     }
     False() => {
     }
   }
   let struct_tag: own AstKind = AstStructDecl();
-  let struct_kind: own Bool = ieq<AstKind>(declaration_kind, struct_tag);
+  let struct_kind: own Bool = eeq<AstKind>(declaration_kind, struct_tag);
   match struct_kind {
     True() => {
       let struct_name_tag: own AstKind = AstStructName();
-      return ieq<AstKind>(name_kind, struct_name_tag);
+      return eeq<AstKind>(name_kind, struct_name_tag);
     }
     False() => {
     }
   }
   let const_tag: own AstKind = AstConstDecl();
-  let const_kind: own Bool = ieq<AstKind>(declaration_kind, const_tag);
+  let const_kind: own Bool = eeq<AstKind>(declaration_kind, const_tag);
   match const_kind {
     True() => {
       let const_name_tag: own AstKind = AstConstName();
-      return ieq<AstKind>(name_kind, const_name_tag);
+      return eeq<AstKind>(name_kind, const_name_tag);
     }
     False() => {
     }
@@ -153,7 +153,7 @@ fn semantic_globals_prior_duplicate ['c] (source: &'c buffer<u8>, tokens: &'c To
     }
     let prior_kind: own AstKind = index<AstKind>(deref(ast).kinds, prior);
     let prior_is_type: own Bool = semantic_globals_is_type_declaration(kind: prior_kind);
-    let same_namespace: own Bool = ieq<Bool>(prior_is_type, current_is_type);
+    let same_namespace: own Bool = eeq<Bool>(prior_is_type, current_is_type);
     match same_namespace {
       True() => {
         let prior_name_node: own u64 = index<u64>(deref(ast).first_children, prior);
@@ -222,7 +222,7 @@ fn semantic_index_globals ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTap
   let root: own u64 = deref(ast).root;
   let root_kind: own AstKind = index<AstKind>(deref(ast).kinds, root);
   let program_tag: own AstKind = AstProgram();
-  let is_program: own Bool = ieq<AstKind>(root_kind, program_tag);
+  let is_program: own Bool = eeq<AstKind>(root_kind, program_tag);
   match is_program {
     True() => {
     }
@@ -252,7 +252,7 @@ fn semantic_index_globals ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTap
   let last_global: own u64 = index<u64>(deref(ast).last_children, root);
   let first_none: own Bool = ieq<u64>(first_global, ast_none);
   let last_none: own Bool = ieq<u64>(last_global, ast_none);
-  let child_pair_valid: own Bool = ieq<Bool>(first_none, last_none);
+  let child_pair_valid: own Bool = eeq<Bool>(first_none, last_none);
   match child_pair_valid {
     True() => {
     }
@@ -377,7 +377,7 @@ fn semantic_index_globals ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTap
       True() => {
         let prelude_type_code: own PreludeTypeCode = semantic_prelude_type_code(source: source, tokens: tokens, token: name_token);
         let prelude_type_unknown_tag: own PreludeTypeCode = PreludeTypeUnknown();
-        let prelude_type_unknown: own Bool = ieq<PreludeTypeCode>(prelude_type_code, prelude_type_unknown_tag);
+        let prelude_type_unknown: own Bool = eeq<PreludeTypeCode>(prelude_type_code, prelude_type_unknown_tag);
         match prelude_type_unknown {
           True() => {
           }

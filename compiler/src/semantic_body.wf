@@ -93,7 +93,7 @@ fn semantic_body_mark_failure ['w] (types: &uniq 'w TypeTape, facts: &uniq 'w No
 
 fn semantic_body_ast_columns_valid ['c] (tokens: &'c TokenTape, ast: &'c AstTape) -> own Bool reads('c) {
   let parse_tag: own ParseStatus = ParseClean();
-  let parse_clean: own Bool = ieq<ParseStatus>(deref(ast).status, parse_tag);
+  let parse_clean: own Bool = eeq<ParseStatus>(deref(ast).status, parse_tag);
   match parse_clean {
     True() => {
     }
@@ -137,7 +137,7 @@ fn semantic_body_kind_is ['a] (ast: &'a AstTape, node: own u64, want: own AstKin
     }
   }
   let observed: own AstKind = index<AstKind>(deref(ast).kinds, node);
-  return ieq<AstKind>(observed, want);
+  return eeq<AstKind>(observed, want);
 }
 
 fn semantic_body_exact_children ['a] (ast: &'a AstTape, node: own u64, want: own u64) -> own Bool reads('a), traps {
@@ -729,7 +729,7 @@ fn semantic_body_analyze_atom ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   }
   let atom_kind: own AstKind = index<AstKind>(deref(ast).kinds, node);
   let place_tag: own AstKind = AstPlaceUse();
-  let is_place: own Bool = ieq<AstKind>(atom_kind, place_tag);
+  let is_place: own Bool = eeq<AstKind>(atom_kind, place_tag);
   match is_place {
     True() => {
       let place_leaf: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 0_u64);
@@ -773,7 +773,7 @@ fn semantic_body_analyze_atom ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Toke
   }
 
   let number_tag: own AstKind = AstNumericLiteral();
-  let is_number: own Bool = ieq<AstKind>(atom_kind, number_tag);
+  let is_number: own Bool = eeq<AstKind>(atom_kind, number_tag);
   match is_number {
     True() => {
       let number_leaf: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 0_u64);
@@ -1039,7 +1039,7 @@ fn semantic_body_validate_callee ['c, 'w] (source: &'c buffer<u8>, tokens: &'c T
   }
   let callee_kind: own AstKind = index<AstKind>(deref(ast).kinds, callee);
   let function_tag: own AstKind = AstFunction();
-  match ieq<AstKind>(callee_kind, function_tag) {
+  match eeq<AstKind>(callee_kind, function_tag) {
     True() => {
     }
     False() => {
@@ -1331,7 +1331,7 @@ fn semantic_body_analyze_user_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c
   let last_argument: own u64 = index<u64>(deref(ast).last_children, node);
   let first_none: own Bool = ieq<u64>(first_argument, ast_none);
   let last_none: own Bool = ieq<u64>(last_argument, ast_none);
-  let pair_valid: own Bool = ieq<Bool>(first_none, last_none);
+  let pair_valid: own Bool = eeq<Bool>(first_none, last_none);
   match pair_valid {
     True() => {
     }
@@ -1555,7 +1555,7 @@ fn semantic_body_analyze_expression ['c, 'w] (source: &'c buffer<u8>, tokens: &'
   }
   let kind: own AstKind = index<AstKind>(deref(ast).kinds, node);
   let table_tag: own AstKind = AstTableCall();
-  match ieq<AstKind>(kind, table_tag) {
+  match eeq<AstKind>(kind, table_tag) {
     True() => {
       let table_result: own u64 = semantic_facts_none;
       region 'semantic_body_dispatch_table {
@@ -1567,7 +1567,7 @@ fn semantic_body_analyze_expression ['c, 'w] (source: &'c buffer<u8>, tokens: &'
     }
   }
   let user_tag: own AstKind = AstUserCall();
-  match ieq<AstKind>(kind, user_tag) {
+  match eeq<AstKind>(kind, user_tag) {
     True() => {
       let user_result: own u64 = semantic_facts_none;
       region 'semantic_body_dispatch_user {
@@ -1686,9 +1686,9 @@ fn semantic_body_analyze_bool_match ['c, 'w] (source: &'c buffer<u8>, tokens: &'
   let constructor_code: own PreludeConstructorCode = semantic_prelude_constructor_code(source: source, tokens: tokens, token: constructor_head);
   let true_tag: own PreludeConstructorCode = PreludeConstructorTrue();
   let false_tag: own PreludeConstructorCode = PreludeConstructorFalse();
-  let true_pattern: own Bool = ieq<PreludeConstructorCode>(true_code, true_tag);
-  let false_pattern: own Bool = ieq<PreludeConstructorCode>(false_code, false_tag);
-  let return_true: own Bool = ieq<PreludeConstructorCode>(constructor_code, true_tag);
+  let true_pattern: own Bool = eeq<PreludeConstructorCode>(true_code, true_tag);
+  let false_pattern: own Bool = eeq<PreludeConstructorCode>(false_code, false_tag);
+  let return_true: own Bool = eeq<PreludeConstructorCode>(constructor_code, true_tag);
   let patterns: own Bool = band<Bool>(true_pattern, false_pattern);
   match band<Bool>(patterns, return_true) {
     True() => {
@@ -1708,7 +1708,7 @@ fn semantic_body_analyze_bool_match ['c, 'w] (source: &'c buffer<u8>, tokens: &'
   let scrutinee_declaration: own u64 = index<u64>(deref(facts).resolved_declarations, scrutinee);
   let scrutinee_mode: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, scrutinee);
   let semantic_mode_own_atom_0293: own SemanticValueMode = SemanticModeOwn();
-  let scrutinee_own: own Bool = ieq<SemanticValueMode>(scrutinee_mode, semantic_mode_own_atom_0293);
+  let scrutinee_own: own Bool = eeq<SemanticValueMode>(scrutinee_mode, semantic_mode_own_atom_0293);
   let declaration_matches: own Bool = ieq<u64>(scrutinee_declaration, expected_let);
   let declaration_ordinal: own u64 = index<u64>(deref(facts).ordinals, expected_let);
   let ordinal_dominates: own Bool = ilt<u64>(declaration_ordinal, value_ordinal);
@@ -1802,7 +1802,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
   }
 
   let body_validation_tag: own AstValidationStatus = AstValidationClean();
-  let body_validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, body_validation_tag);
+  let body_validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, body_validation_tag);
   match body_validation_clean {
     True() => {
     }
@@ -2064,11 +2064,11 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
     }
     let body_scan_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_scan_statement);
     let ast_let_atom_0303: own AstKind = AstLet();
-    let body_scan_is_let: own Bool = ieq<AstKind>(body_scan_kind, ast_let_atom_0303);
+    let body_scan_is_let: own Bool = eeq<AstKind>(body_scan_kind, ast_let_atom_0303);
     let ast_match_atom_0304: own AstKind = AstMatch();
-    let body_scan_is_match: own Bool = ieq<AstKind>(body_scan_kind, ast_match_atom_0304);
+    let body_scan_is_match: own Bool = eeq<AstKind>(body_scan_kind, ast_match_atom_0304);
     let ast_return_atom_0305: own AstKind = AstReturn();
-    let body_scan_is_return: own Bool = ieq<AstKind>(body_scan_kind, ast_return_atom_0305);
+    let body_scan_is_return: own Bool = eeq<AstKind>(body_scan_kind, ast_return_atom_0305);
     let body_scan_at_last: own Bool = ieq<u64>(body_scan_statement, body_last_statement);
     match body_scan_is_let {
       True() => {
@@ -2325,7 +2325,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
   loop @semantic_body_analyze_statements {
     let body_statement_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_statement);
     let ast_let_atom_0311: own AstKind = AstLet();
-    let body_statement_is_let: own Bool = ieq<AstKind>(body_statement_kind, ast_let_atom_0311);
+    let body_statement_is_let: own Bool = eeq<AstKind>(body_statement_kind, ast_let_atom_0311);
     match body_statement_is_let {
       True() => {
         let body_let_arity: own Bool = semantic_body_exact_children(ast: ast, node: body_statement, want: 4_u64);
@@ -2461,7 +2461,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
       }
       False() => {
         let ast_match_atom_0316: own AstKind = AstMatch();
-        let body_statement_is_match: own Bool = ieq<AstKind>(body_statement_kind, ast_match_atom_0316);
+        let body_statement_is_match: own Bool = eeq<AstKind>(body_statement_kind, ast_match_atom_0316);
         match body_statement_is_match {
           True() => {
             let body_match_continuation: own u64 = index<u64>(deref(ast).next_siblings, body_statement);
@@ -2501,7 +2501,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
             let body_return_value: own u64 = semantic_body_child_at(ast: ast, node: body_statement, ordinal: 0_u64);
             let body_return_value_kind: own AstKind = index<AstKind>(deref(ast).kinds, body_return_value);
             let ast_place_use_atom_0317: own AstKind = AstPlaceUse();
-            let body_return_is_place: own Bool = ieq<AstKind>(body_return_value_kind, ast_place_use_atom_0317);
+            let body_return_is_place: own Bool = eeq<AstKind>(body_return_value_kind, ast_place_use_atom_0317);
             let body_return_value_type: own u64 = semantic_facts_none;
             let body_return_ordinal: own u64 = semantic_facts_none;
             match body_return_is_place {
@@ -2512,7 +2512,7 @@ fn semantic_body_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, as
                 let body_return_declaration: own u64 = index<u64>(deref(facts).resolved_declarations, body_return_value);
                 let body_return_mode: own SemanticValueMode = index<SemanticValueMode>(deref(facts).modes, body_return_value);
                 let semantic_mode_own_atom_0318: own SemanticValueMode = SemanticModeOwn();
-                let body_return_own: own Bool = ieq<SemanticValueMode>(body_return_mode, semantic_mode_own_atom_0318);
+                let body_return_own: own Bool = eeq<SemanticValueMode>(body_return_mode, semantic_mode_own_atom_0318);
                 match ilt<u64>(body_return_declaration, body_count) {
                   True() => {
                     set body_return_ordinal = index<u64>(deref(facts).ordinals, body_return_declaration);

@@ -46,7 +46,7 @@ fn semantic_function_kind_is ['a] (ast: &'a AstTape, node: own u64, want: own As
     }
   }
   let observed_kind: own AstKind = index<AstKind>(deref(ast).kinds, node);
-  return ieq<AstKind>(observed_kind, want);
+  return eeq<AstKind>(observed_kind, want);
 }
 
 fn semantic_function_head_token_valid ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, node: own u64, want_kind: own u64) -> own Bool reads('s 't 'a), traps {
@@ -96,9 +96,9 @@ fn semantic_function_mode_valid ['s, 't, 'a] (source: &'s buffer<u8>, tokens: &'
   let own_tag: own AstKind = AstOwnMode();
   let shared_tag: own AstKind = AstSharedMode();
   let uniq_tag: own AstKind = AstUniqMode();
-  let own_mode: own Bool = ieq<AstKind>(mode_kind, own_tag);
-  let shared_mode: own Bool = ieq<AstKind>(mode_kind, shared_tag);
-  let uniq_mode: own Bool = ieq<AstKind>(mode_kind, uniq_tag);
+  let own_mode: own Bool = eeq<AstKind>(mode_kind, own_tag);
+  let shared_mode: own Bool = eeq<AstKind>(mode_kind, shared_tag);
+  let uniq_mode: own Bool = eeq<AstKind>(mode_kind, uniq_tag);
   match own_mode {
     True() => {
       let own_leaf: own Bool = semantic_function_leaf_valid(ast: ast, node: node);
@@ -214,7 +214,7 @@ fn semantic_function_region_children_valid ['s, 't, 'a] (source: &'s buffer<u8>,
   let region_last: own u64 = index<u64>(deref(ast).last_children, parent);
   let region_first_none: own Bool = ieq<u64>(region_first, ast_none);
   let region_last_none: own Bool = ieq<u64>(region_last, ast_none);
-  let region_pair_valid: own Bool = ieq<Bool>(region_first_none, region_last_none);
+  let region_pair_valid: own Bool = eeq<Bool>(region_first_none, region_last_none);
   match region_pair_valid {
     True() => {
     }
@@ -457,8 +457,8 @@ fn semantic_function_allocation_children_valid ['s, 't, 'a] (source: &'s buffer<
     let storage_kind: own AstKind = index<AstKind>(deref(ast).kinds, storage_cursor);
     let heap_tag: own AstKind = AstHeapStorage();
     let arena_tag: own AstKind = AstArenaStorage();
-    let heap_storage: own Bool = ieq<AstKind>(storage_kind, heap_tag);
-    let arena_storage: own Bool = ieq<AstKind>(storage_kind, arena_tag);
+    let heap_storage: own Bool = eeq<AstKind>(storage_kind, heap_tag);
+    let arena_storage: own Bool = eeq<AstKind>(storage_kind, arena_tag);
     match heap_storage {
       True() => {
         let heap_leaf_valid: own Bool = semantic_function_leaf_valid(ast: ast, node: storage_cursor);
@@ -698,7 +698,7 @@ fn semantic_index_function_symbols ['c, 'w] (source: &'c buffer<u8>, tokens: &'c
 
   let first_direct_kind: own AstKind = index<AstKind>(deref(ast).kinds, direct_cursor);
   let region_parameters_tag: own AstKind = AstRegionParameters();
-  let have_region_parameters: own Bool = ieq<AstKind>(first_direct_kind, region_parameters_tag);
+  let have_region_parameters: own Bool = eeq<AstKind>(first_direct_kind, region_parameters_tag);
   match have_region_parameters {
     True() => {
       set region_parameters = direct_cursor;
@@ -806,7 +806,7 @@ fn semantic_index_function_symbols ['c, 'w] (source: &'c buffer<u8>, tokens: &'c
     }
     let direct_kind: own AstKind = index<AstKind>(deref(ast).kinds, direct_cursor);
     let parameter_tag: own AstKind = AstParameter();
-    let is_parameter: own Bool = ieq<AstKind>(direct_kind, parameter_tag);
+    let is_parameter: own Bool = eeq<AstKind>(direct_kind, parameter_tag);
     match is_parameter {
       True() => {
       }
@@ -924,7 +924,7 @@ fn semantic_index_function_symbols ['c, 'w] (source: &'c buffer<u8>, tokens: &'c
     }
     let effect_kind: own AstKind = index<AstKind>(deref(ast).kinds, effect_cursor);
     let block_tag: own AstKind = AstBlock();
-    let at_block: own Bool = ieq<AstKind>(effect_kind, block_tag);
+    let at_block: own Bool = eeq<AstKind>(effect_kind, block_tag);
     match at_block {
       True() => {
         break @validate_function_effects;
@@ -937,11 +937,11 @@ fn semantic_index_function_symbols ['c, 'w] (source: &'c buffer<u8>, tokens: &'c
     let writes_tag: own AstKind = AstWritesEffect();
     let allocates_tag: own AstKind = AstAllocatesEffect();
     let traps_tag: own AstKind = AstTrapsEffect();
-    let is_pure_effect: own Bool = ieq<AstKind>(effect_kind, pure_tag);
-    let is_reads_effect: own Bool = ieq<AstKind>(effect_kind, reads_tag);
-    let is_writes_effect: own Bool = ieq<AstKind>(effect_kind, writes_tag);
-    let is_allocates_effect: own Bool = ieq<AstKind>(effect_kind, allocates_tag);
-    let is_traps_effect: own Bool = ieq<AstKind>(effect_kind, traps_tag);
+    let is_pure_effect: own Bool = eeq<AstKind>(effect_kind, pure_tag);
+    let is_reads_effect: own Bool = eeq<AstKind>(effect_kind, reads_tag);
+    let is_writes_effect: own Bool = eeq<AstKind>(effect_kind, writes_tag);
+    let is_allocates_effect: own Bool = eeq<AstKind>(effect_kind, allocates_tag);
+    let is_traps_effect: own Bool = eeq<AstKind>(effect_kind, traps_tag);
     match is_pure_effect {
       True() => {
         let pure_stage_valid: own Bool = ieq<u64>(effect_stage, 0_u64);
@@ -1167,7 +1167,7 @@ fn semantic_index_function_symbols ['c, 'w] (source: &'c buffer<u8>, tokens: &'c
           True() => {
             let next_commit_kind: own AstKind = index<AstKind>(deref(ast).kinds, next_commit_parameter);
             let commit_parameter_tag: own AstKind = AstParameter();
-            let next_is_parameter: own Bool = ieq<AstKind>(next_commit_kind, commit_parameter_tag);
+            let next_is_parameter: own Bool = eeq<AstKind>(next_commit_kind, commit_parameter_tag);
             match next_is_parameter {
               True() => {
                 set commit_parameter = next_commit_parameter;

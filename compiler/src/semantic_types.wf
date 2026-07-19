@@ -129,8 +129,8 @@ fn semantic_types_equal ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape,
     let left_last_none: own Bool = ieq<u64>(left_last, ast_none);
     let right_first_none: own Bool = ieq<u64>(right_first, ast_none);
     let right_last_none: own Bool = ieq<u64>(right_last, ast_none);
-    let left_pair_ok: own Bool = ieq<Bool>(left_first_none, left_last_none);
-    let right_pair_ok: own Bool = ieq<Bool>(right_first_none, right_last_none);
+    let left_pair_ok: own Bool = eeq<Bool>(left_first_none, left_last_none);
+    let right_pair_ok: own Bool = eeq<Bool>(right_first_none, right_last_none);
     let child_pairs_ok: own Bool = band<Bool>(left_pair_ok, right_pair_ok);
     match child_pairs_ok {
       True() => {
@@ -139,7 +139,7 @@ fn semantic_types_equal ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape,
         return False();
       }
     }
-    let same_leaf_shape: own Bool = ieq<Bool>(left_first_none, right_first_none);
+    let same_leaf_shape: own Bool = eeq<Bool>(left_first_none, right_first_none);
     match same_leaf_shape {
       True() => {
       }
@@ -180,7 +180,7 @@ fn semantic_types_equal ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape,
 
           let left_at_last: own Bool = ieq<u64>(left_child, left_last);
           let right_at_last: own Bool = ieq<u64>(right_child, right_last);
-          let same_chain_end: own Bool = ieq<Bool>(left_at_last, right_at_last);
+          let same_chain_end: own Bool = eeq<Bool>(left_at_last, right_at_last);
           match same_chain_end {
             True() => {
             }

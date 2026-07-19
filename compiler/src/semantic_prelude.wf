@@ -41,7 +41,7 @@ fn semantic_prelude_typeid_width ['s, 't] (source: &'s buffer<u8>, tokens: &'t T
   }
   let observed_kind: own TokenKind = index<TokenKind>(deref(tokens).kinds, token);
   let typeid_kind: own TokenKind = TokTypeId();
-  let correct_kind: own Bool = ieq<TokenKind>(observed_kind, typeid_kind);
+  let correct_kind: own Bool = eeq<TokenKind>(observed_kind, typeid_kind);
   match correct_kind {
     True() => {
     }

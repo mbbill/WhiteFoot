@@ -829,11 +829,11 @@ fn llvm_buffer_fact_row_valid ['f] (facts: &'f NodeFacts, node: own u64, type_id
   let type_ok: own Bool = ieq<u64>(index<u64>(deref(facts).type_ids, node), type_id);
   let resolution_ok: own Bool = ieq<u64>(index<u64>(deref(facts).resolved_declarations, node), resolution);
   let ordinal_ok: own Bool = ieq<u64>(index<u64>(deref(facts).ordinals, node), ordinal);
-  let operation_ok: own Bool = ieq<SemanticOperation>(index<SemanticOperation>(deref(facts).operations, node), operation);
+  let operation_ok: own Bool = eeq<SemanticOperation>(index<SemanticOperation>(deref(facts).operations, node), operation);
   let constant_ok: own Bool = ieq<u64>(index<u64>(deref(facts).constant_values, node), constant);
   let target_ok: own Bool = ieq<u64>(index<u64>(deref(facts).control_targets, node), target);
-  let mode_ok: own Bool = ieq<SemanticValueMode>(index<SemanticValueMode>(deref(facts).modes, node), mode);
-  let prelude_ok: own Bool = ieq<PreludeConstructorCode>(index<PreludeConstructorCode>(deref(facts).prelude_constructors, node), prelude);
+  let mode_ok: own Bool = eeq<SemanticValueMode>(index<SemanticValueMode>(deref(facts).modes, node), mode);
+  let prelude_ok: own Bool = eeq<PreludeConstructorCode>(index<PreludeConstructorCode>(deref(facts).prelude_constructors, node), prelude);
   let p0: own Bool = band<Bool>(type_ok, resolution_ok);
   let p1: own Bool = band<Bool>(ordinal_ok, operation_ok);
   let p2: own Bool = band<Bool>(constant_ok, target_ok);
@@ -979,13 +979,13 @@ fn llvm_buffer_type_rows_valid ['y] (types: &'y TypeTape) -> own Bool reads('y),
     }
   }
   let semantic_type_u8_atom_0645: own SemanticTypeKind = SemanticTypeU8();
-  let kind0: own Bool = ieq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 0_u64), semantic_type_u8_atom_0645);
+  let kind0: own Bool = eeq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 0_u64), semantic_type_u8_atom_0645);
   let semantic_type_bool_atom_0646: own SemanticTypeKind = SemanticTypeBool();
-  let kind1: own Bool = ieq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 1_u64), semantic_type_bool_atom_0646);
+  let kind1: own Bool = eeq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 1_u64), semantic_type_bool_atom_0646);
   let semantic_type_u64_atom_0647: own SemanticTypeKind = SemanticTypeU64();
-  let kind2: own Bool = ieq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 2_u64), semantic_type_u64_atom_0647);
+  let kind2: own Bool = eeq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 2_u64), semantic_type_u64_atom_0647);
   let semantic_type_buffer_atom_0648: own SemanticTypeKind = SemanticTypeBuffer();
-  let kind3: own Bool = ieq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 3_u64), semantic_type_buffer_atom_0648);
+  let kind3: own Bool = eeq<SemanticTypeKind>(index<SemanticTypeKind>(deref(types).kinds, 3_u64), semantic_type_buffer_atom_0648);
   let kinds01: own Bool = band<Bool>(kind0, kind1);
   let kinds23: own Bool = band<Bool>(kind2, kind3);
   let kinds: own Bool = band<Bool>(kinds01, kinds23);
@@ -1033,7 +1033,7 @@ fn llvm_buffer_type_rows_valid ['y] (types: &'y TypeTape) -> own Bool reads('y),
       False() => {
       }
     }
-    match ieq<PreludeTypeCode>(index<PreludeTypeCode>(deref(types).prelude_types, row), expected_prelude) {
+    match eeq<PreludeTypeCode>(index<PreludeTypeCode>(deref(types).prelude_types, row), expected_prelude) {
       True() => {
       }
       False() => {
@@ -1199,8 +1199,8 @@ fn llvm_buffer_fixed_width_facts_valid_at ['s, 't, 'a, 'y, 'f] (source: &'s buff
   let type_shape: own Bool = semantic_type_tape_shape_valid(types: types);
   let fact_shape: own Bool = semantic_node_facts_shape_valid(facts: facts);
   let clean_tag: own SemanticFactsStatus = SemanticFactsClean();
-  let types_clean: own Bool = ieq<SemanticFactsStatus>(deref(types).status, clean_tag);
-  let facts_clean: own Bool = ieq<SemanticFactsStatus>(deref(facts).status, clean_tag);
+  let types_clean: own Bool = eeq<SemanticFactsStatus>(deref(types).status, clean_tag);
+  let facts_clean: own Bool = eeq<SemanticFactsStatus>(deref(facts).status, clean_tag);
   let facts_dense: own Bool = ieq<u64>(deref(facts).count, deref(ast).count);
   let type_node_clean: own Bool = ieq<u64>(deref(types).node, semantic_facts_none);
   let type_related_clean: own Bool = ieq<u64>(deref(types).related, semantic_facts_none);
@@ -1500,7 +1500,7 @@ fn llvm_buffer_emit_validated_fixed_width_function ['s, 't, 'a, 'f, 'o] (source:
 
 fn llvm_buffer_append_fixed_width_at ['s, 't, 'a, 'y, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, function: own u64, width: own u64, types: &'y TypeTape, facts: &'f NodeFacts, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'y 'f 'o), writes('o), traps {
   let byte_invalid_state_atom_0661: own ByteStatus = ByteInvalidState();
-  match ieq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0661) {
+  match eeq<ByteStatus>(deref(out).status, byte_invalid_state_atom_0661) {
     True() => {
       return unit;
     }

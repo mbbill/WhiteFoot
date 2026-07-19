@@ -294,3 +294,19 @@
 {"id": "form3-neg-region-param-missing-apostrophe", "rules": ["FORM-3"], "expect": {"kind": "reject", "rule": "FORM-3"}, "status": "runnable", "doc": "A region parameter must use the apostrophe-prefixed REGIONID spelling; an IDENT in the region-parameter slot is rejected [FORM-3]."}
 {"id": "own3-neg-undeclared-signature-region", "rules": ["OWN-3"], "expect": {"kind": "reject", "rule": "OWN-3"}, "status": "runnable", "doc": "An uncalled function signature cannot cite an undeclared region; declaration checking rejects it under OWN-3."}
 {"id": "type5-neg-wrong-region-arg-count", "rules": ["TYPE-5"], "expect": {"kind": "reject", "rule": "TYPE-5"}, "status": "runnable", "doc": "Explicit call-site region arguments must match the callee's declared region-parameter count [TYPE-5]."}
+{"id":"op1-pos-tag-enum-equality","rules":["OP-1","OP-7","OP-8"],"expect":{"kind":"run","exit":0},"status":"runnable","doc":"Tag-only enum equality is direct, nominal, and complement-correct for zero-, one-, and three-variant enums."}
+{"id":"op1-pos-bool-enum-equality","rules":["OP-1","OP-7","OP-8","PRE-1"],"expect":{"kind":"run","exit":0},"status":"runnable","doc":"Bool participates in the exact tag-only eeq/ene domain for all four ordered operand pairs."}
+{"id":"op1-neg-eeq-distinct-enums","rules":["OP-1","TYPE-5"],"expect":{"kind":"reject","rule":"TYPE-5"},"status":"runnable","doc":"Equal-width tag-only enum types remain nominally distinct operands of eeq."}
+{"id":"op1-neg-eeq-payload-enum","rules":["OP-1","TYPE-5"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"A payload-carrying enum is outside the exact eeq domain."}
+{"id":"op1-neg-eeq-integer","rules":["OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"eeq does not accept an integer type argument."}
+{"id":"op1-neg-ene-integer","rules":["OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"ene does not accept an integer type argument."}
+{"id":"op1-neg-ieq-tag-enum","rules":["OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"ieq remains integer-only and does not admit a user tag-only enum."}
+{"id":"op1-neg-ieq-bool","rules":["OP-1","PRE-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"ieq remains integer-only and does not admit Bool."}
+{"id":"op1-neg-ine-tag-enum","rules":["OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"ine remains integer-only and does not admit a user tag-only enum."}
+{"id":"op1-neg-ine-bool","rules":["OP-1","PRE-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"ine remains integer-only and does not admit Bool."}
+{"id":"op1-neg-enum-ordering","rules":["OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"The enum equality family does not introduce enum ordering."}
+{"id":"fn2-neg-eeq-implicit-type","rules":["FN-2","OP-1"],"expect":{"kind":"reject","rule":"FN-2"},"status":"runnable","doc":"eeq requires its one explicit nominal enum type argument."}
+{"id":"op1-neg-eeq-arity","rules":["OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"eeq has exactly two operands."}
+{"id":"fn8-pos-requires-eeq","rules":["FN-8","OP-1","OP-8"],"expect":{"kind":"run","exit":0},"status":"runnable","doc":"Exact-domain enum equality is pure and total and may appear in a checked requires clause."}
+{"id":"fn8-neg-requires-eeq-integer","rules":["FN-8","OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"A requires clause cannot widen eeq to the integer domain."}
+{"id":"fn8-neg-requires-eeq-payload-enum","rules":["FN-8","OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"A requires clause cannot widen eeq to payload-carrying enums."}

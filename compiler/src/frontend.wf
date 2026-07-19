@@ -509,7 +509,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
   }
   set deref(report).token_count = deref(tokens).count;
   let lex_clean_tag: own LexStatus = LexClean();
-  let lex_clean: own Bool = ieq<LexStatus>(deref(tokens).status, lex_clean_tag);
+  let lex_clean: own Bool = eeq<LexStatus>(deref(tokens).status, lex_clean_tag);
   match lex_clean {
     True() => {
     }
@@ -528,7 +528,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
   }
   set deref(report).node_count = deref(ast).count;
   let parse_clean_tag: own ParseStatus = ParseClean();
-  let parse_clean: own Bool = ieq<ParseStatus>(deref(ast).status, parse_clean_tag);
+  let parse_clean: own Bool = eeq<ParseStatus>(deref(ast).status, parse_clean_tag);
   match parse_clean {
     True() => {
     }
@@ -546,7 +546,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
     ast_validate(source_length: source_length, token_count: deref(tokens).count, ast: &'frontend_validate deref(ast), report: &uniq 'frontend_validate deref(validation));
   }
   let validation_clean_tag: own AstValidationStatus = AstValidationClean();
-  let validation_clean: own Bool = ieq<AstValidationStatus>(deref(validation).status, validation_clean_tag);
+  let validation_clean: own Bool = eeq<AstValidationStatus>(deref(validation).status, validation_clean_tag);
   match validation_clean {
     True() => {
     }
@@ -570,7 +570,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
   }
   set deref(report).symbol_count = deref(symbols).count;
   let globals_clean_tag: own SemanticGlobalsStatus = SemanticGlobalsClean();
-  let globals_clean: own Bool = ieq<SemanticGlobalsStatus>(globals_report.status, globals_clean_tag);
+  let globals_clean: own Bool = eeq<SemanticGlobalsStatus>(globals_report.status, globals_clean_tag);
   match globals_clean {
     True() => {
     }
@@ -594,7 +594,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
   }
   set deref(report).symbol_count = deref(symbols).count;
   let type_members_clean_tag: own SemanticTypeMembersStatus = SemanticTypeMembersClean();
-  let type_members_clean: own Bool = ieq<SemanticTypeMembersStatus>(type_members_report.status, type_members_clean_tag);
+  let type_members_clean: own Bool = eeq<SemanticTypeMembersStatus>(type_members_report.status, type_members_clean_tag);
   match type_members_clean {
     True() => {
     }
@@ -620,7 +620,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
   set deref(report).type_count = types_report.resolved_count;
   set deref(report).symbol_count = deref(symbols).count;
   let types_clean_tag: own SemanticAllTypesStatus = SemanticAllTypesClean();
-  let types_clean: own Bool = ieq<SemanticAllTypesStatus>(types_report.status, types_clean_tag);
+  let types_clean: own Bool = eeq<SemanticAllTypesStatus>(types_report.status, types_clean_tag);
   match types_clean {
     True() => {
     }
@@ -649,7 +649,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
     }
     let function_kind: own AstKind = index<AstKind>(deref(ast).kinds, function_cursor);
     let function_tag: own AstKind = AstFunction();
-    let is_function: own Bool = ieq<AstKind>(function_kind, function_tag);
+    let is_function: own Bool = eeq<AstKind>(function_kind, function_tag);
     match is_function {
       True() => {
         let semantic_function_symbols_expected_function_atom_0499: own SemanticFunctionSymbolsStatus = SemanticFunctionSymbolsExpectedFunction();
@@ -658,7 +658,7 @@ fn frontend_analyze_parts ['s, 't, 'a, 'v, 'y, 'r] (source: &'s buffer<u8>, toke
           semantic_index_function_symbols(source: source, tokens: &'frontend_function_symbols deref(tokens), ast: &'frontend_function_symbols deref(ast), function: function_cursor, symbols: &uniq 'frontend_function_symbols deref(symbols), report: &uniq 'frontend_function_symbols function_report);
         }
         let function_clean_tag: own SemanticFunctionSymbolsStatus = SemanticFunctionSymbolsClean();
-        let function_clean: own Bool = ieq<SemanticFunctionSymbolsStatus>(function_report.status, function_clean_tag);
+        let function_clean: own Bool = eeq<SemanticFunctionSymbolsStatus>(function_report.status, function_clean_tag);
         match function_clean {
           True() => {
             set indexed_functions = iadd.trap<u64>(indexed_functions, 1_u64);

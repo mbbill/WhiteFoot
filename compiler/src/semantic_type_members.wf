@@ -32,7 +32,7 @@ fn semantic_type_members_kind_is ['a] (ast: &'a AstTape, node: own u64, want: ow
     }
   }
   let member_observed_kind: own AstKind = index<AstKind>(deref(ast).kinds, node);
-  return ieq<AstKind>(member_observed_kind, want);
+  return eeq<AstKind>(member_observed_kind, want);
 }
 
 fn semantic_type_members_leaf_valid ['a] (ast: &'a AstTape, node: own u64) -> own Bool reads('a), traps {
@@ -85,7 +85,7 @@ fn semantic_type_members_prior_variant ['s, 't, 'a] (source: &'s buffer<u8>, tok
     }
     let variant_top_kind: own AstKind = index<AstKind>(deref(ast).kinds, variant_top);
     let variant_enum_tag: own AstKind = AstEnumDecl();
-    let variant_is_enum: own Bool = ieq<AstKind>(variant_top_kind, variant_enum_tag);
+    let variant_is_enum: own Bool = eeq<AstKind>(variant_top_kind, variant_enum_tag);
     match variant_is_enum {
       True() => {
         let variant_name_node: own u64 = index<u64>(deref(ast).first_children, variant_top);
@@ -264,7 +264,7 @@ fn semantic_index_type_members ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
   let members_root: own u64 = deref(ast).root;
   let members_root_kind: own AstKind = index<AstKind>(deref(ast).kinds, members_root);
   let members_program_tag: own AstKind = AstProgram();
-  let members_is_program: own Bool = ieq<AstKind>(members_root_kind, members_program_tag);
+  let members_is_program: own Bool = eeq<AstKind>(members_root_kind, members_program_tag);
   match members_is_program {
     True() => {
     }
@@ -280,7 +280,7 @@ fn semantic_index_type_members ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
   let members_last_top: own u64 = index<u64>(deref(ast).last_children, members_root);
   let members_first_none: own Bool = ieq<u64>(members_first_top, ast_none);
   let members_last_none: own Bool = ieq<u64>(members_last_top, ast_none);
-  let members_top_pair_valid: own Bool = ieq<Bool>(members_first_none, members_last_none);
+  let members_top_pair_valid: own Bool = eeq<Bool>(members_first_none, members_last_none);
   match members_top_pair_valid {
     True() => {
     }
@@ -335,10 +335,10 @@ fn semantic_index_type_members ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
     let members_struct_tag: own AstKind = AstStructDecl();
     let members_function_tag: own AstKind = AstFunction();
     let members_const_tag: own AstKind = AstConstDecl();
-    let members_is_enum: own Bool = ieq<AstKind>(members_top_kind, members_enum_tag);
-    let members_is_struct: own Bool = ieq<AstKind>(members_top_kind, members_struct_tag);
-    let members_is_function: own Bool = ieq<AstKind>(members_top_kind, members_function_tag);
-    let members_is_const: own Bool = ieq<AstKind>(members_top_kind, members_const_tag);
+    let members_is_enum: own Bool = eeq<AstKind>(members_top_kind, members_enum_tag);
+    let members_is_struct: own Bool = eeq<AstKind>(members_top_kind, members_struct_tag);
+    let members_is_function: own Bool = eeq<AstKind>(members_top_kind, members_function_tag);
+    let members_is_const: own Bool = eeq<AstKind>(members_top_kind, members_const_tag);
     let members_is_type: own Bool = bor<Bool>(members_is_enum, members_is_struct);
     let members_is_value: own Bool = bor<Bool>(members_is_function, members_is_const);
     let members_top_recognized: own Bool = bor<Bool>(members_is_type, members_is_value);
@@ -455,7 +455,7 @@ fn semantic_index_type_members ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
           }
           let prelude_constructor_code: own PreludeConstructorCode = semantic_prelude_constructor_code(source: source, tokens: tokens, token: enum_variant_token);
           let prelude_constructor_unknown_tag: own PreludeConstructorCode = PreludeConstructorUnknown();
-          let prelude_constructor_unknown: own Bool = ieq<PreludeConstructorCode>(prelude_constructor_code, prelude_constructor_unknown_tag);
+          let prelude_constructor_unknown: own Bool = eeq<PreludeConstructorCode>(prelude_constructor_code, prelude_constructor_unknown_tag);
           match prelude_constructor_unknown {
             True() => {
             }
@@ -725,8 +725,8 @@ fn semantic_index_type_members ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
     let commit_top_kind: own AstKind = index<AstKind>(deref(ast).kinds, commit_top);
     let commit_enum_tag: own AstKind = AstEnumDecl();
     let commit_struct_tag: own AstKind = AstStructDecl();
-    let commit_is_enum: own Bool = ieq<AstKind>(commit_top_kind, commit_enum_tag);
-    let commit_is_struct: own Bool = ieq<AstKind>(commit_top_kind, commit_struct_tag);
+    let commit_is_enum: own Bool = eeq<AstKind>(commit_top_kind, commit_enum_tag);
+    let commit_is_struct: own Bool = eeq<AstKind>(commit_top_kind, commit_struct_tag);
     match commit_is_enum {
       True() => {
         let commit_enum_name: own u64 = index<u64>(deref(ast).first_children, commit_top);

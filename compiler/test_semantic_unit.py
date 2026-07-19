@@ -33,7 +33,7 @@ from test_semantic_body import (
     user_call_fixture,
 )
 from test_semantic_facts import NodeFacts, TypeTape
-from test_symbols import SymbolTape
+from test_symbols import SYMBOL_NONE, SYMBOL_TYPE, SymbolTape
 
 
 UNIT_CLEAN = 0
@@ -407,9 +407,9 @@ COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
     21, 22, 23, 24, 29, 30, 31, 63, 64, 65, 96, 98, 102, 104, 105, 106,
     110, 111,
-    123, 124, 125, 126, 144, 145, 147, 148, 158, 159, 185, 204, 207, 208,
-    209, 214, 216, 289, 300, 330, 331, 332, 333, 334, 335, 336, 401, 408,
-    412, 413, 414, 427, 490, 508,
+    123, 124, 125, 126, 144, 145, 147, 148, 152, 158, 159, 185, 204, 207, 208,
+    209, 214, 216, 289, 300, 330, 331, 332, 333, 334, 335, 336, 399, 401,
+    405, 408, 409, 410, 412, 413, 414, 427, 490, 508,
 )
 
 
@@ -424,8 +424,8 @@ def assert_compiler_coverage(library):
     expected = (
         UNIT_CLEAN,
         537,
-        70,
-        467,
+        75,
+        462,
         0,
         functions[18],
         AST_NONE,
@@ -551,10 +551,10 @@ def assert_legal_nonprofile_is_unsupported(library):
 def assert_reader_bool_equality_rejected(library):
     # Regression: the acyclic (reader) profile must reject integer-only equality
     # and inequality (ieq/ine, defined by OP-1 over "all int T") applied to Bool
-    # operands. There is no Bool equality op -- ieq<Bool> is ill-typed. An earlier
-    # revision set operation_ok unconditionally in the equality branch, so a reader
-    # carrying `ieq<Bool>` walked to a false CLEAN. The branch now pins the operand
-    # to a scalar, exactly like the ordered-comparison branch.
+    # operands. Bool equality uses eeq/ene; ieq<Bool> remains ill-typed. An earlier
+    # revision set operation_ok unconditionally in the integer-equality branch, so
+    # a reader carrying `ieq<Bool>` walked to a false CLEAN. The branch now pins the
+    # operand to a scalar, exactly like the ordered-comparison branch.
     def reader_probe(third_let):
         # The head load reads 's and bounds-traps, so the exhibited effect row
         # equals the declared reads('s), traps -- keeping the fixture EFF-2-valid
@@ -648,6 +648,42 @@ def assert_reader_bool_equality_rejected(library):
             integer_function,
         ), legal_op
         assert_output_guards(integer_work)
+
+    # v0.8 tag-only equality and inequality include Bool and use the distinct
+    # eeq/ene family. The otherwise-identical reader shape must be CLEAN.
+    for legal_op in (b"eeq", b"ene"):
+        bool_eq = reader_probe(
+            b"  let bad: own Bool = " + legal_op + b"<Bool>(flag_a, flag_b);\n"
+        )
+        bool_case = parsed(library, bool_eq)
+        (bool_function,) = top_level_functions(bool_case)
+        bool_work = make_work(library, bool_case[5].count)
+        kind, report = invoke_dispatch(
+            library, bool_case, bool_function, bool_work
+        )
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_ACYCLIC,
+            BODY_CLEAN,
+            bool_function,
+        ), legal_op
+        assert_output_guards(bool_work)
+
+    # eeq/ene do not widen to integers; ieq/ine remain their sole equality
+    # family even when both operands have the explicit integer type argument.
+    for illegal_op in (b"eeq", b"ene"):
+        source = reader_probe(
+            b"  let bad: own Bool = " + illegal_op + b"<u64>(start, size);\n"
+        )
+        case = parsed(library, source)
+        (function,) = top_level_functions(case)
+        work = make_work(library, case[5].count)
+        kind, report = invoke_dispatch(library, case, function, work)
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+            function,
+        ), illegal_op
+        assert_output_guards(work)
 
 
 def assert_reader_bool_returns_admitted(library):
@@ -1902,6 +1938,48 @@ def assert_reader_struct_field_and_typed_index(library):
         kind, report = under_test(source)
         assert report.status == BODY_UNSUPPORTED, (kind, report.status)
 
+    def assert_type_declaration_redirect_unsupported(source, query, target):
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        baseline_work = make_work(library, case[5].count)
+        baseline_kind, baseline = invoke_dispatch(
+            library, case, function, baseline_work
+        )
+        assert (baseline_kind, baseline.status) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+        ), (query, target, baseline_kind, baseline.status)
+
+        type_slots = {}
+        token_starts = case[2][1]
+        token_ends = case[2][2]
+        for slot in range(case[9].count):
+            if (
+                case[7][0][slot] != SYMBOL_TYPE
+                or case[7][1][slot] != SYMBOL_NONE
+            ):
+                continue
+            name_token = case[7][2][slot]
+            spelling = source[
+                token_starts[name_token] : token_ends[name_token]
+            ]
+            if spelling in (query, target):
+                assert spelling not in type_slots, (query, target, spelling)
+                type_slots[spelling] = slot
+        assert set(type_slots) == {query, target}, (query, target, type_slots)
+        case[7][3][type_slots[query]] = case[7][3][type_slots[target]]
+
+        redirected_work = make_work(library, case[5].count)
+        redirected_kind, redirected = invoke_dispatch(
+            library, case, function, redirected_work
+        )
+        assert (redirected_kind, redirected.status) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+        ), (query, target, redirected_kind, redirected.status)
+        assert_output_guards(baseline_work)
+        assert_output_guards(redirected_work)
+
     tape = b"struct Tape {\n  count: u64;\n  data: buffer<u64>;\n  bytes: buffer<u8>;\n}\n\n"
     # scalar field read declaring reads('s) (no trap) -> CLEAN
     assert_clean(
@@ -1962,6 +2040,33 @@ def assert_reader_struct_field_and_typed_index(library):
         tape + b"fn probe ['s] (t: &'s Tape) -> own u64 reads('s) {\n  return len<u64>(deref(t).count);\n}\n"
     )
 
+    # A structurally valid type-symbol row cannot redirect a queried struct
+    # name to a different declaration and expose fields of that other nominal
+    # type. The reader binds the lookup result back to its AstStructName.
+    assert_type_declaration_redirect_unsupported(
+        b"struct AlphaStruct {\n  value: u64;\n}\n\n"
+        b"struct BetaStruct {\n  other: u64;\n}\n\n"
+        b"fn probe ['s] (item: &'s BetaStruct) -> own u64 reads('s) {\n"
+        b"  return deref(item).value;\n"
+        b"}\n",
+        b"BetaStruct",
+        b"AlphaStruct",
+    )
+
+    # Enum-typed fields use the same canonical leaf-enum resolver as params,
+    # locals, returns, and type arguments; a redirected field type must not be
+    # reinterpreted as a same-width distinct nominal enum.
+    assert_type_declaration_redirect_unsupported(
+        b"enum AlphaTag {\n  AlphaLow();\n  AlphaHigh();\n}\n\n"
+        b"enum BetaTag {\n  BetaLow();\n  BetaHigh();\n}\n\n"
+        b"struct Holder {\n  tag: BetaTag;\n}\n\n"
+        b"fn probe ['s] (item: &'s Holder) -> own AlphaTag reads('s) {\n"
+        b"  return deref(item).tag;\n"
+        b"}\n",
+        b"BetaTag",
+        b"AlphaTag",
+    )
+
 
 def assert_reader_enum_values_and_buffers(library):
     # F1 enum-value slice: tag-only enum buffer elements may flow through typed
@@ -2006,6 +2111,84 @@ def assert_reader_enum_values_and_buffers(library):
         + other
         + b"struct TagTape {\n  tags: buffer<Tag>;\n}\n\n"
     )
+
+    # v0.8 enum equality is admitted only through eeq/ene on one exact
+    # tag-only nominal type. Both operations return Bool.
+    for legal_op in (b"eeq", b"ene"):
+        assert_clean(
+            tag
+            + b"fn compare (left: own Tag, right: own Tag) -> own Bool pure {\n"
+            b"  return " + legal_op + b"<Tag>(left, right);\n"
+            b"}\n"
+        )
+
+    # A same-width but distinct enum cannot be smuggled through the explicit
+    # Tag type argument: both operands must have that exact nominal type.
+    for illegal_op in (b"eeq", b"ene"):
+        assert_unsupported(
+            tag
+            + other
+            + b"fn wrong (left: own Tag, right: own OtherTag) -> own Bool pure {\n"
+            b"  return " + illegal_op + b"<Tag>(left, right);\n"
+            b"}\n"
+        )
+
+    # A structurally valid SymbolTape must not redirect one nominal type name
+    # to another declaration. The lookup columns and stored name token remain
+    # valid in this witness; only OtherTag's declaration ordinal is forged to
+    # point at Tag. The reader must bind each resolved declaration back to its
+    # canonical AstEnumName before it can classify equality as CLEAN.
+    for hostile_op in (b"eeq", b"ene"):
+        source = (
+            tag
+            + other
+            + b"fn wrong (left: own Tag, right: own OtherTag) -> own Bool pure {\n"
+            b"  return " + hostile_op + b"<Tag>(left, right);\n"
+            b"}\n"
+        )
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        baseline_work = make_work(library, case[5].count)
+        baseline_kind, baseline = invoke_dispatch(
+            library, case, function, baseline_work
+        )
+        assert (baseline_kind, baseline.status) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+        ), (hostile_op, baseline_kind, baseline.status)
+
+        type_slots = {}
+        token_starts = case[2][1]
+        token_ends = case[2][2]
+        for slot in range(case[9].count):
+            if (
+                case[7][0][slot] != SYMBOL_TYPE
+                or case[7][1][slot] != SYMBOL_NONE
+            ):
+                continue
+            name_token = case[7][2][slot]
+            spelling = source[
+                token_starts[name_token] : token_ends[name_token]
+            ]
+            if spelling in (b"Tag", b"OtherTag"):
+                assert spelling not in type_slots, (hostile_op, spelling)
+                type_slots[spelling] = slot
+        assert set(type_slots) == {b"Tag", b"OtherTag"}, (
+            hostile_op,
+            type_slots,
+        )
+        case[7][3][type_slots[b"OtherTag"]] = case[7][3][type_slots[b"Tag"]]
+
+        hostile_work = make_work(library, case[5].count)
+        hostile_kind, hostile = invoke_dispatch(
+            library, case, function, hostile_work
+        )
+        assert (hostile_kind, hostile.status) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+        ), (hostile_op, hostile_kind, hostile.status)
+        assert_output_guards(baseline_work)
+        assert_output_guards(hostile_work)
 
     # Own enum locals and return types preserve exact enum identity.
     assert_clean(
@@ -2186,9 +2369,16 @@ def assert_reader_enum_values_and_buffers(library):
         b"  return len<Tag>(deref(t).tags);\n"
         b"}\n"
     )
+    for hostile_op in (b"eeq", b"ene"):
+        assert_hostile_payload_rejected(
+            tag
+            + b"fn compare (left: own Tag, right: own Tag) -> own Bool pure {\n"
+            b"  return " + hostile_op + b"<Tag>(left, right);\n"
+            b"}\n"
+        )
 
-    # OP-1 remains closed over integer comparison types. Bool rejection is
-    # pinned separately; enum equality, inequality, and ordering reject here.
+    # Integer equality and ordering remain closed over integer types. Bool
+    # rejection is pinned separately; ieq/ine and ordering reject enums here.
     for illegal_op in (b"ieq", b"ine", b"ilt", b"ile", b"igt", b"ige"):
         assert_unsupported(
             tag
@@ -2724,8 +2914,8 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
         537,
-        70,
-        467,
+        75,
+        462,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -2783,7 +2973,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 537 total / 70 clean / 467 unsupported / "
+        "semantic unit: compiler 537 total / 75 clean / 462 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "
