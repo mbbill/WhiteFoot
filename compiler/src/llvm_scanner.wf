@@ -4,11 +4,11 @@ fn llvm_scanner_fail ['o] (out: &uniq 'o ByteTape) -> own unit writes('o) {
 }
 
 fn llvm_scanner_predicate_call ['a] (ast: &'a AstTape, function: own u64) -> own u64 reads('a), traps {
-  let block: own u64 = llvm_linear_child_at(ast: ast, node: function, ordinal: 9_u64);
-  let loop_node: own u64 = llvm_linear_child_at(ast: ast, node: block, ordinal: 1_u64);
-  let loop_block: own u64 = llvm_linear_child_at(ast: ast, node: loop_node, ordinal: 1_u64);
-  let keep_declaration: own u64 = llvm_linear_child_at(ast: ast, node: loop_block, ordinal: 2_u64);
-  return llvm_linear_child_at(ast: ast, node: keep_declaration, ordinal: 3_u64);
+  let block: own u64 = llvm_linear_child_at<'a>(ast: ast, node: function, ordinal: 9_u64);
+  let loop_node: own u64 = llvm_linear_child_at<'a>(ast: ast, node: block, ordinal: 1_u64);
+  let loop_block: own u64 = llvm_linear_child_at<'a>(ast: ast, node: loop_node, ordinal: 1_u64);
+  let keep_declaration: own u64 = llvm_linear_child_at<'a>(ast: ast, node: loop_block, ordinal: 2_u64);
+  return llvm_linear_child_at<'a>(ast: ast, node: keep_declaration, ordinal: 3_u64);
 }
 
 fn llvm_scanner_emit_predicate_name ['s, 't, 'a, 'f, 'o] (source: &'s buffer<u8>, tokens: &'t TokenTape, ast: &'a AstTape, facts: &'f NodeFacts, call: own u64, out: &uniq 'o ByteTape) -> own unit reads('s 't 'a 'f 'o), writes('o), traps {

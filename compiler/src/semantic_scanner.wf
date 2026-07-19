@@ -22,7 +22,7 @@ fn semantic_scanner_nodes_equal ['c] (source: &'c buffer<u8>, tokens: &'c TokenT
 }
 
 fn semantic_scanner_label_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, kind: own AstKind) -> own Bool reads('c), traps {
-  let scanner_label_leaf: own Bool = semantic_scanner_leaf_valid(source: source, tokens: tokens, ast: ast, node: node, kind: kind);
+  let scanner_label_leaf: own Bool = semantic_scanner_leaf_valid<'c>(source: source, tokens: tokens, ast: ast, node: node, kind: kind);
   match scanner_label_leaf {
     True() => {
     }
@@ -31,7 +31,7 @@ fn semantic_scanner_label_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenT
     }
   }
   let scanner_label_head: own u64 = index<u64>(deref(ast).heads, node);
-  return parser_kind_at_is(tokens: tokens, token: scanner_label_head, want: 5_u64);
+  return parser_kind_at_is<'c>(tokens: tokens, token: scanner_label_head, want: 5_u64);
 }
 
 fn semantic_scanner_match_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {

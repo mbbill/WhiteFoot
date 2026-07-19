@@ -400,13 +400,14 @@ def canonical_path(columns, root, target):
 # remainder are the F1 general-signature + general-enum-match slice (general
 # `own` scalar/enum params, shared buffer borrows, pure or reads+traps effects,
 # exhaustive/exact multi-variant enum matches, scalar/enum returns, and typed
-# tag-only-enum buffer reads). Every listed
+# tag-only-enum buffer reads, and exact one-region user-call substitution).
+# Every listed
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 22, 24, 30, 31, 96, 102, 105, 106, 110, 111, 123, 124, 125, 126,
-    144, 147, 158, 159, 289, 300, 330, 331, 332, 333, 334, 335, 336, 401,
-    412, 413, 427, 490,
+    21, 22, 23, 24, 30, 31, 96, 102, 105, 106, 110, 111, 123, 124, 125,
+    126, 144, 147, 158, 159, 185, 208, 209, 216, 289, 300, 330, 331, 332,
+    333, 334, 335, 336, 401, 412, 413, 427, 490, 508,
 )
 
 
@@ -421,8 +422,8 @@ def assert_compiler_coverage(library):
     expected = (
         UNIT_CLEAN,
         537,
-        51,
-        486,
+        57,
+        480,
         0,
         functions[18],
         AST_NONE,
@@ -2279,8 +2280,8 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
         537,
-        51,
-        486,
+        57,
+        480,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -2337,7 +2338,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 537 total / 51 clean / 486 unsupported / "
+        "semantic unit: compiler 537 total / 57 clean / 480 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, multi-region effectful-call rejection, general signatures "

@@ -494,7 +494,7 @@ fn semantic_buffer_index_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTa
 }
 
 fn semantic_buffer_binary_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, operation: own u64, operand_type: own u64, left_name: own u64, right_name: own u64) -> own Bool reads('c), traps {
-  let prefix: own Bool = semantic_buffer_table_prefix_valid(source: source, tokens: tokens, ast: ast, node: node, operation: operation, operand_type: operand_type);
+  let prefix: own Bool = semantic_buffer_table_prefix_valid<'c>(source: source, tokens: tokens, ast: ast, node: node, operation: operation, operand_type: operand_type);
   match prefix {
     True() => {
     }
@@ -502,10 +502,10 @@ fn semantic_buffer_binary_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenT
       return False();
     }
   }
-  let left: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 1_u64);
-  let right: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 2_u64);
-  let left_valid: own Bool = semantic_buffer_place_resolves(source: source, tokens: tokens, ast: ast, place: left, name_node: left_name);
-  let right_valid: own Bool = semantic_buffer_place_resolves(source: source, tokens: tokens, ast: ast, place: right, name_node: right_name);
+  let left: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 1_u64);
+  let right: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 2_u64);
+  let left_valid: own Bool = semantic_buffer_place_resolves<'c>(source: source, tokens: tokens, ast: ast, place: left, name_node: left_name);
+  let right_valid: own Bool = semantic_buffer_place_resolves<'c>(source: source, tokens: tokens, ast: ast, place: right, name_node: right_name);
   return band<Bool>(left_valid, right_valid);
 }
 
@@ -1440,11 +1440,11 @@ fn semantic_buffer_fixed_width_body_valid ['c] (source: &'c buffer<u8>, tokens: 
 }
 
 fn semantic_buffer_match3_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64) -> own Bool reads('c), traps {
-  return semantic_buffer_fixed_width_signature_for(source: source, tokens: tokens, ast: ast, function: function, expected_width: 3_u64);
+  return semantic_buffer_fixed_width_signature_for<'c>(source: source, tokens: tokens, ast: ast, function: function, expected_width: 3_u64);
 }
 
 fn semantic_buffer_match3_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64) -> own Bool reads('c), traps {
-  return semantic_buffer_fixed_width_body_for(source: source, tokens: tokens, ast: ast, function: function, expected_width: 3_u64);
+  return semantic_buffer_fixed_width_body_for<'c>(source: source, tokens: tokens, ast: ast, function: function, expected_width: 3_u64);
 }
 
 fn semantic_buffer_fixed_width_let_type(width: own u64, ordinal: own u64) -> own u64 traps {
