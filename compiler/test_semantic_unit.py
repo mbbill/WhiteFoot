@@ -391,8 +391,8 @@ def canonical_path(columns, root, target):
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 102, 105, 106, 110, 123, 124, 125, 126, 293,
-    323, 324, 325, 326, 327, 328, 329, 420, 483,
+    21, 24, 30, 31, 102, 105, 106, 110, 123, 124, 125, 126, 298,
+    328, 329, 330, 331, 332, 333, 334, 399, 410, 411, 425, 488,
 )
 
 
@@ -400,15 +400,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 530
+    assert len(functions) == 535
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        530,
-        37,
-        493,
+        535,
+        43,
+        492,
         0,
         functions[18],
         AST_NONE,
@@ -1002,6 +1002,74 @@ def assert_reader_general_signature_and_enum_match(library):
     )
 
 
+def assert_reader_struct_field_and_typed_index(library):
+    # F1 slice 2 (tape reads): the acyclic reader admits reading fields of a
+    # borrowed struct -- scalar/enum fields directly (reads(region), no trap) --
+    # and buffer<u8|u64> fields via a typed index<T>(deref(structparam).field, i)
+    # (reads(region)+traps). The index element T must EXACTLY match the buffer
+    # element; every mismatch or under-declaration fails closed (never a false
+    # CLEAN).
+    def under_test(source):
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        work = make_work(library, case[5].count)
+        (kind, report) = invoke_dispatch(library, case, function, work)
+        return kind, report
+
+    def assert_clean(source):
+        kind, report = under_test(source)
+        assert (kind, report.status) == (CAPABILITY_ACYCLIC, BODY_CLEAN), (
+            kind,
+            report.status,
+        )
+
+    def assert_unsupported(source):
+        kind, report = under_test(source)
+        assert report.status == BODY_UNSUPPORTED, (kind, report.status)
+
+    tape = b"struct Tape {\n  count: u64;\n  data: buffer<u64>;\n  bytes: buffer<u8>;\n}\n\n"
+    # scalar field read declaring reads('s) (no trap) -> CLEAN
+    assert_clean(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 reads('s) {\n  return deref(t).count;\n}\n"
+    )
+    # under-declared: field read but declares pure -> reject
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 pure {\n  return deref(t).count;\n}\n"
+    )
+    # nonexistent field / &uniq struct param -> reject
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape) -> own u64 reads('s) {\n  return deref(t).nope;\n}\n"
+    )
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &uniq 's Tape) -> own u64 reads('s) {\n  return deref(t).count;\n}\n"
+    )
+    # typed index over buffer<u64>/buffer<u8> fields -> CLEAN
+    assert_clean(
+        tape + b"fn probe ['s] (t: &'s Tape, i: own u64) -> own u64 reads('s), traps {\n  return index<u64>(deref(t).data, i);\n}\n"
+    )
+    assert_clean(
+        tape + b"fn probe ['s] (t: &'s Tape, i: own u64) -> own u8 reads('s), traps {\n  return index<u8>(deref(t).bytes, i);\n}\n"
+    )
+    # element mismatch either direction -> reject (no type confusion)
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape, i: own u64) -> own u64 reads('s), traps {\n  return index<u64>(deref(t).bytes, i);\n}\n"
+    )
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape, i: own u64) -> own u8 reads('s), traps {\n  return index<u8>(deref(t).data, i);\n}\n"
+    )
+    # index on a non-buffer (scalar) field -> reject
+    assert_unsupported(
+        tape + b"fn probe ['s] (t: &'s Tape, i: own u64) -> own u64 reads('s), traps {\n  return index<u64>(deref(t).count, i);\n}\n"
+    )
+    # existing buffer-param index still CLEAN; wrong element on it rejected
+    assert_clean(
+        b"fn probe ['s] (src: &'s buffer<u8>, i: own u64) -> own u8 reads('s), traps {\n  return index<u8>(deref(src), i);\n}\n"
+    )
+    assert_unsupported(
+        b"fn probe ['s] (src: &'s buffer<u8>, i: own u64) -> own u64 reads('s), traps {\n  return index<u64>(deref(src), i);\n}\n"
+    )
+
+
 def assert_structural_profile_and_real_reject(library):
     renamed = fixture().replace(b"lexer_is_lower", b"arbitrary_predicate")
     renamed_case = parsed(library, renamed)
@@ -1476,9 +1544,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        530,
-        37,
-        493,
+        535,
+        43,
+        492,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -1519,6 +1587,7 @@ def main():
         assert_reader_bool_equality_rejected(library)
         assert_reader_bool_returns_admitted(library)
         assert_reader_general_signature_and_enum_match(library)
+        assert_reader_struct_field_and_typed_index(library)
         assert_structural_profile_and_real_reject(library)
         assert_diagnostic_path_capacity(library)
         assert_site_specific_rule_ids(library)
@@ -1529,7 +1598,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 530 total / 37 clean / 493 unsupported / "
+        "semantic unit: compiler 535 total / 43 clean / 492 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, multi-region effectful-call rejection, general signatures "
