@@ -216,8 +216,63 @@ fn semantic_reader_operand ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTa
 fn semantic_reader_analyze_table_call ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, scratch: &'w SemanticBodyScratch, node: own u64, report: &uniq 'w SemanticBodyReport) -> own u64 reads('c 'w), writes('w), traps {
   let ast_table_call_atom: own AstKind = AstTableCall();
   let kind_ok: own Bool = semantic_body_kind_is(ast: ast, node: node, want: ast_table_call_atom);
-  let shape_ok: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 3_u64);
   let token_ok: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: node);
+  match band<Bool>(kind_ok, token_ok) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyUnsupported();
+      set deref(report).node = node;
+      set deref(report).related = node;
+      return semantic_facts_none;
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let is_bnot: own Bool = parser_word4(source: source, tokens: tokens, token: head, a: 98_u8, b: 110_u8, c: 111_u8, d: 116_u8);
+  match is_bnot {
+    True() => {
+      let unary_shape: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 2_u64);
+      match unary_shape {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticBodyUnsupported();
+          set deref(report).node = node;
+          set deref(report).related = node;
+          return semantic_facts_none;
+        }
+      }
+      let unary_type_node: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 0_u64);
+      let unary_operand_node: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 1_u64);
+      let unary_operand_type: own u64 = semantic_reader_type_arg_id(source: source, tokens: tokens, ast: ast, node: unary_type_node);
+      let unary_bool: own Bool = ieq<u64>(unary_operand_type, semantic_buffer_type_bool);
+      match unary_bool {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticBodyUnsupported();
+          set deref(report).node = node;
+          set deref(report).related = unary_type_node;
+          return semantic_facts_none;
+        }
+      }
+      let unary_ok: own Bool = semantic_reader_operand(source: source, tokens: tokens, ast: ast, scratch: scratch, node: unary_operand_node, expected_type: semantic_buffer_type_bool);
+      match unary_ok {
+        True() => {
+          return semantic_buffer_type_bool;
+        }
+        False() => {
+          set deref(report).status = SemanticBodyUnsupported();
+          set deref(report).node = node;
+          set deref(report).related = head;
+          return semantic_facts_none;
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let shape_ok: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 3_u64);
   let first: own Bool = band<Bool>(kind_ok, shape_ok);
   let root_ok: own Bool = band<Bool>(first, token_ok);
   match root_ok {
@@ -249,7 +304,6 @@ fn semantic_reader_analyze_table_call ['c, 'w] (source: &'c buffer<u8>, tokens: 
   let operand_bool: own Bool = ieq<u64>(operand_type, semantic_buffer_type_bool);
   let operand_scalar: own Bool = bor<Bool>(operand_u8, operand_u64);
 
-  let head: own u64 = index<u64>(deref(ast).heads, node);
   let is_iadd: own Bool = semantic_buffer_iadd_name_valid(source: source, tokens: tokens, token: head);
   let is_isub: own Bool = semantic_reader_isub_name_valid(source: source, tokens: tokens, token: head);
   let is_ige: own Bool = parser_word3(source: source, tokens: tokens, token: head, a: 105_u8, b: 103_u8, c: 101_u8);
@@ -1265,6 +1319,43 @@ fn semantic_reader_analyze_expr ['c, 'w] (source: &'c buffer<u8>, tokens: &'c To
     False() => {
     }
   }
+  let ast_constructor_atom: own AstKind = AstConstructor();
+  let is_constructor: own Bool = ieq<AstKind>(node_kind, ast_constructor_atom);
+  match is_constructor {
+    True() => {
+      let ctor_shape: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 0_u64);
+      let ctor_token: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: node);
+      match band<Bool>(ctor_shape, ctor_token) {
+        True() => {
+        }
+        False() => {
+          set deref(report).status = SemanticBodyUnsupported();
+          set deref(report).node = node;
+          set deref(report).related = node;
+          return semantic_facts_none;
+        }
+      }
+      let ctor_head: own u64 = index<u64>(deref(ast).heads, node);
+      let ctor_code: own PreludeConstructorCode = semantic_prelude_constructor_code(source: source, tokens: tokens, token: ctor_head);
+      let ctor_true_tag: own PreludeConstructorCode = PreludeConstructorTrue();
+      let ctor_false_tag: own PreludeConstructorCode = PreludeConstructorFalse();
+      let ctor_is_true: own Bool = ieq<PreludeConstructorCode>(ctor_code, ctor_true_tag);
+      let ctor_is_false: own Bool = ieq<PreludeConstructorCode>(ctor_code, ctor_false_tag);
+      match bor<Bool>(ctor_is_true, ctor_is_false) {
+        True() => {
+          return semantic_buffer_type_bool;
+        }
+        False() => {
+          set deref(report).status = SemanticBodyUnsupported();
+          set deref(report).node = node;
+          set deref(report).related = ctor_head;
+          return semantic_facts_none;
+        }
+      }
+    }
+    False() => {
+    }
+  }
   let ast_user_call_atom: own AstKind = AstUserCall();
   let is_call: own Bool = ieq<AstKind>(node_kind, ast_user_call_atom);
   match is_call {
@@ -1855,7 +1946,9 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
   let reader_return_mode_valid: own Bool = semantic_function_mode_valid(source: source, tokens: tokens, ast: ast, node: reader_return_mode);
   let reader_return_mode_ok: own Bool = band<Bool>(reader_return_mode_kind, reader_return_mode_valid);
   let ast_return_type_atom: own AstKind = AstReturnType();
-  let reader_return_type_valid: own Bool = semantic_buffer_type_node_valid(source: source, tokens: tokens, ast: ast, node: reader_return_type, kind: ast_return_type_atom, type_id: semantic_buffer_type_u64);
+  let reader_return_type_u64: own Bool = semantic_buffer_type_node_valid(source: source, tokens: tokens, ast: ast, node: reader_return_type, kind: ast_return_type_atom, type_id: semantic_buffer_type_u64);
+  let reader_return_type_bool: own Bool = semantic_buffer_type_node_valid(source: source, tokens: tokens, ast: ast, node: reader_return_type, kind: ast_return_type_atom, type_id: semantic_buffer_type_bool);
+  let reader_return_type_valid: own Bool = bor<Bool>(reader_return_type_u64, reader_return_type_bool);
   match band<Bool>(reader_return_mode_ok, reader_return_type_valid) {
     True() => {
     }
@@ -1977,10 +2070,25 @@ fn semantic_reader_run ['c, 'w] (source: &'c buffer<u8>, tokens: &'c TokenTape, 
     }
   }
 
+  let reader_return_type_node: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 6_u64);
+  let reader_return_type_id: own u64 = semantic_reader_return_type_id(source: source, tokens: tokens, ast: ast, node: reader_return_type_node);
+  let reader_return_u64: own Bool = ieq<u64>(reader_return_type_id, semantic_buffer_type_u64);
+  let reader_return_bool: own Bool = ieq<u64>(reader_return_type_id, semantic_buffer_type_bool);
+  match bor<Bool>(reader_return_u64, reader_return_bool) {
+    True() => {
+    }
+    False() => {
+      set deref(report).status = SemanticBodyUnsupported();
+      set deref(report).node = function;
+      set deref(report).related = reader_return_type_node;
+      return unit;
+    }
+  }
+
   let reader_block: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 9_u64);
   let flow: own SemanticReaderFlow = SemanticReaderFlowError();
   region 'semantic_reader_run_block {
-    set flow = semantic_reader_analyze_block(source: source, tokens: tokens, ast: ast, symbols: symbols, region_token: region_token, return_type: semantic_buffer_type_u64, block: reader_block, scratch: &uniq 'semantic_reader_run_block deref(scratch), report: &uniq 'semantic_reader_run_block deref(report));
+    set flow = semantic_reader_analyze_block(source: source, tokens: tokens, ast: ast, symbols: symbols, region_token: region_token, return_type: reader_return_type_id, block: reader_block, scratch: &uniq 'semantic_reader_run_block deref(scratch), report: &uniq 'semantic_reader_run_block deref(report));
   }
   match flow {
     SemanticReaderFlowReturns() => {

@@ -394,16 +394,16 @@ def assert_compiler_coverage(library):
     expected = (
         UNIT_CLEAN,
         510,
-        17,
-        493,
+        18,
+        492,
         0,
-        functions[17],
+        functions[18],
         AST_NONE,
     )
     assert unit_report_tuple(first) == expected
     assert_no_unit_diagnostic(first)
     assert function_name(data, case, first.first_unsupported) == (
-        b"lexer_ampuniq_at"
+        b"lexer_scan_string"
     )
 
     clean_ordinals = []
@@ -429,7 +429,7 @@ def assert_compiler_coverage(library):
                 report.function,
                 report.related,
             )
-    assert tuple(clean_ordinals) == tuple(range(17))
+    assert tuple(clean_ordinals) == tuple(range(18))
 
     second = invoke_unit(library, case, work)
     assert unit_report_tuple(second) == unit_report_tuple(first)
@@ -619,6 +619,147 @@ def assert_reader_bool_equality_rejected(library):
             integer_function,
         ), legal_op
         assert_output_guards(integer_work)
+
+
+def assert_reader_bool_returns_admitted(library):
+    # The acyclic (reader) profile admits own Bool-returning functions in
+    # addition to own u64. This exercises the two Bool-only surfaces the
+    # extension adds: the unary bnot operator (OP-1: bnot is (Bool)->Bool, the
+    # sole unary op) and the True()/False() nullary-constructor literal returns.
+    # The negatives pin the guarantees: bnot with a non-Bool type argument, and
+    # a Bool-returning function with a falling-through path, must stay
+    # Unsupported (fail-closed) -- never a false CLEAN.
+    def bool_reader(tail):
+        return (
+            b"fn reader_bool_probe ['s] (source: &'s buffer<u8>, start: own u64, "
+            b"size: own u64) -> own Bool reads('s), traps {\n"
+            b"  let flag: own Bool = ige<u64>(start, size);\n"
+            b"  match flag {\n"
+            b"    True() => {\n"
+            b"      return False();\n"
+            b"    }\n"
+            b"    False() => {\n"
+            b"    }\n"
+            b"  }\n"
+            b"  let byte: own u8 = index<u8>(deref(source), start);\n"
+            b"  let hit: own Bool = ieq<u8>(byte, 65_u8);\n"
+            + tail
+        )
+
+    # Positive: bnot<Bool> and True()/False() literal returns -> clean acyclic.
+    clean_source = bool_reader(
+        b"  let neg: own Bool = bnot<Bool>(hit);\n"
+        b"  match neg {\n"
+        b"    True() => {\n"
+        b"      return True();\n"
+        b"    }\n"
+        b"    False() => {\n"
+        b"    }\n"
+        b"  }\n"
+        b"  return False();\n"
+        b"}\n"
+    )
+    clean_case = parsed(library, clean_source)
+    (clean_function,) = top_level_functions(clean_case)
+    clean_work = make_work(library, clean_case[5].count)
+    kind, report = invoke_dispatch(
+        library, clean_case, clean_function, clean_work
+    )
+    assert (kind, report.status, report.function) == (
+        CAPABILITY_ACYCLIC,
+        BODY_CLEAN,
+        clean_function,
+    )
+    assert (
+        report.rule,
+        report.fix,
+        report.primary_node,
+        report.related_node,
+        report.span_start,
+        report.span_end,
+        report.path_count,
+    ) == (RULE_NONE, FIX_NONE, AST_NONE, AST_NONE, AST_NONE, AST_NONE, 0)
+    assert_path_guard(report)
+    assert_output_guards(clean_work)
+
+    # Negative: identical shape and flow, but the bnot type argument is u64.
+    # bnot is (Bool)->Bool by OP-1, so bnot<u64> is ill-typed. The only change
+    # from the clean case is the operand domain, proving the bnot path pins its
+    # operand to Bool rather than admitting the shape.
+    wrong_operand = clean_source.replace(
+        b"bnot<Bool>(hit)", b"bnot<u64>(hit)"
+    )
+    wrong_case = parsed(library, wrong_operand)
+    (wrong_function,) = top_level_functions(wrong_case)
+    wrong_work = make_work(library, wrong_case[5].count)
+    kind, report = invoke_dispatch(
+        library, wrong_case, wrong_function, wrong_work
+    )
+    assert (kind, report.status, report.function) == (
+        CAPABILITY_UNSUPPORTED,
+        BODY_UNSUPPORTED,
+        wrong_function,
+    )
+    assert (
+        report.rule,
+        report.fix,
+        report.primary_node,
+        report.related_node,
+        report.span_start,
+        report.span_end,
+        report.path_count,
+    ) == (RULE_NONE, FIX_NONE, AST_NONE, AST_NONE, AST_NONE, AST_NONE, 0)
+    assert_path_guard(report)
+    assert_output_guards(wrong_work)
+
+    # Negative: a Bool-returning function whose False arm falls through -> the
+    # block does not return on every path, so the all-paths-return flow gate
+    # keeps it Unsupported (not a false CLEAN just because the return type is
+    # now admitted).
+    non_returning = (
+        b"fn reader_bool_probe ['s] (source: &'s buffer<u8>, start: own u64, "
+        b"size: own u64) -> own Bool reads('s), traps {\n"
+        b"  let flag: own Bool = ige<u64>(start, size);\n"
+        b"  match flag {\n"
+        b"    True() => {\n"
+        b"      return True();\n"
+        b"    }\n"
+        b"    False() => {\n"
+        b"    }\n"
+        b"  }\n"
+        b"}\n"
+    )
+    non_returning_case = parsed(library, non_returning)
+    (non_returning_function,) = top_level_functions(non_returning_case)
+    non_returning_work = make_work(library, non_returning_case[5].count)
+    kind, report = invoke_dispatch(
+        library, non_returning_case, non_returning_function, non_returning_work
+    )
+    assert (kind, report.status, report.function) == (
+        CAPABILITY_UNSUPPORTED,
+        BODY_UNSUPPORTED,
+        non_returning_function,
+    )
+    assert_output_guards(non_returning_work)
+
+    # Negative: u8 returns remain outside the profile (fail-closed) even though
+    # the body is otherwise admissible -- only own u64 and own Bool are gated in.
+    u8_return = (
+        b"fn reader_bool_probe ['s] (source: &'s buffer<u8>, start: own u64, "
+        b"size: own u64) -> own u8 reads('s), traps {\n"
+        b"  return index<u8>(deref(source), start);\n"
+        b"}\n"
+    )
+    u8_case = parsed(library, u8_return)
+    (u8_function,) = top_level_functions(u8_case)
+    u8_work = make_work(library, u8_case[5].count)
+    kind, report = invoke_dispatch(library, u8_case, u8_function, u8_work)
+    assert (kind, report.status, report.function) == (
+        CAPABILITY_UNSUPPORTED,
+        BODY_UNSUPPORTED,
+        u8_function,
+    )
+    assert_output_guards(u8_work)
 
 
 def assert_structural_profile_and_real_reject(library):
@@ -1096,10 +1237,10 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
         510,
-        17,
-        493,
+        18,
+        492,
         0,
-        top_level_functions(case)[17],
+        top_level_functions(case)[18],
         AST_NONE,
     )
     assert validation.status == 0
@@ -1136,6 +1277,7 @@ def main():
         case, work = assert_compiler_coverage(library)
         assert_legal_nonprofile_is_unsupported(library)
         assert_reader_bool_equality_rejected(library)
+        assert_reader_bool_returns_admitted(library)
         assert_structural_profile_and_real_reject(library)
         assert_diagnostic_path_capacity(library)
         assert_site_specific_rule_ids(library)
@@ -1146,9 +1288,10 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 510 total / 17 clean / 493 unsupported / "
+        "semantic unit: compiler 510 total / 18 clean / 492 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
-        "nonprofile, reader bool-equality rejection, structural rename, real "
+        "nonprofile, reader bool-equality rejection, reader bool-return "
+        "admission, structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "
         "dynamic/hostile capacities, inputs, and guards pass"

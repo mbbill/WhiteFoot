@@ -298,24 +298,28 @@ before publishing a source span or root-to-primary node path, and commits no
 partial diagnostic on invalid input or insufficient capacity. Hostile cases
 for stale validation, malformed topology, invalid related nodes, one-short
 buffers, and late publication failure are automated regressions. The current
-unit has 510 functions: 17 clean, 493 legal but unsupported, and zero rejected.
-Its self-parse is deterministic at 1,237,377 source bytes, 244,886 tokens, and
-122,594 unique-head AST nodes. LLVM support remains the same byte-identical
+unit has 510 functions: 18 clean, 492 legal but unsupported, and zero rejected.
+Its self-parse is deterministic at 1,242,113 source bytes, 245,780 tokens, and
+123,022 unique-head AST nodes. LLVM support remains the same byte-identical
 15-function module.
 
-The region-retention checkpoint and the first acyclic-decision admission are
-complete. Calls now retain the explicit region arguments required by TYPE-5 and
+The region-retention checkpoint and the acyclic-decision admissions are
+complete. Calls retain the explicit region arguments required by TYPE-5 and
 consumed by OWN-12 (the six regionful calls in `lexer_scan_op_suffix` and the
 one in `lexer_scan_word` are migrated; remaining call families migrate as
 semantic coverage reaches them, with no omissions by the phase-2 fixpoint). The
-acyclic-decision (reader) body-semantics profile now admits `lexer_scan_op_suffix`
-and `lexer_scan_word` — nested `let`, `match`, and early-return flow; primitive
-expression typing; named multi-argument calls; and effect containment — after a
-two-pass hostile soundness review found and fixed a Bool-equality false-clean
-(`ieq`/`ine` are integer-only per OP-1) and pinned it with a non-vacuous
-regression. This slice adds no LLVM lowering. The next checkpoint continues the
-frontier at `lexer_ampuniq_at`, whose `own Bool` return falls outside the
-current `own u64` reader signature gate and needs a Bool-returning profile.
+acyclic-decision (reader) body-semantics profile admits `own u64`- and
+`own Bool`-returning acyclic functions — `lexer_scan_op_suffix`,
+`lexer_scan_word`, and `lexer_ampuniq_at` — covering nested `let`, `match`, and
+early-return flow; primitive expression typing including the unary `bnot`
+operator and `True()`/`False()` constructors; named multi-argument calls; and
+effect containment. Each admission passed a pre-merge hostile soundness review
+(the first found and fixed a Bool-equality false-clean, `ieq`/`ine` being
+integer-only per OP-1, pinned by a non-vacuous regression). This slice adds no
+LLVM lowering. The next checkpoint advances the frontier to `lexer_scan_string`,
+which returns the aggregate `own ScannedToken` and uses a loop — outside the
+loop-free, primitive-return acyclic profile — so it needs loop and
+aggregate-return support.
 
 ## Work outside the seven-phase scope
 
