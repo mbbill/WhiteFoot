@@ -15,12 +15,14 @@ from test_parser import (
 )
 from test_ast_validate import AstValidationReport
 from test_semantic_body import (
+    AST,
     BODY_CAPACITY,
     BODY_CLEAN,
     BODY_INVALID_AST_TAPE,
     BODY_INVALID_VALIDATION,
     BODY_UNKNOWN_NAME,
     BODY_UNSUPPORTED,
+    SemanticBodyReport,
     SemanticBodyScratch,
     assert_output_guards,
     configure as configure_semantic_body,
@@ -130,6 +132,16 @@ class SemanticUnitReport(ctypes.Structure):
 
 def configure(library):
     configure_semantic_body(library)
+    library.semantic_reader_run.argtypes = [
+        Buffer,
+        ctypes.POINTER(TokenTape),
+        ctypes.POINTER(AstTape),
+        ctypes.POINTER(SymbolTape),
+        ctypes.c_uint64,
+        ctypes.POINTER(SemanticBodyScratch),
+        ctypes.POINTER(SemanticBodyReport),
+    ]
+    library.semantic_reader_run.restype = None
     common = [
         Buffer,
         ctypes.POINTER(TokenTape),
@@ -387,12 +399,14 @@ def canonical_path(columns, root, target):
 # corpus. 0-17 are the original fixed-width/scanner/linear/reader-Bool set; the
 # remainder are the F1 general-signature + general-enum-match slice (general
 # `own` scalar/enum params, shared buffer borrows, pure or reads+traps effects,
-# exhaustive/exact multi-variant enum matches, primitive returns). Every listed
+# exhaustive/exact multi-variant enum matches, scalar/enum returns, and typed
+# tag-only-enum buffer reads). Every listed
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 24, 30, 31, 96, 102, 105, 106, 110, 123, 124, 125, 126, 287,
-    298, 328, 329, 330, 331, 332, 333, 334, 399, 410, 411, 425, 488,
+    21, 22, 24, 30, 31, 96, 102, 105, 106, 110, 111, 123, 124, 125, 126,
+    144, 147, 158, 159, 289, 300, 330, 331, 332, 333, 334, 335, 336, 401,
+    412, 413, 427, 490,
 )
 
 
@@ -400,15 +414,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 535
+    assert len(functions) == 537
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        535,
-        45,
-        490,
+        537,
+        51,
+        486,
         0,
         functions[18],
         AST_NONE,
@@ -1088,6 +1102,292 @@ def assert_reader_struct_field_and_typed_index(library):
     )
 
 
+def assert_reader_enum_values_and_buffers(library):
+    # F1 enum-value slice: tag-only enum buffer elements may flow through typed
+    # index/len, own locals, own returns, and already-supported user calls. The
+    # encoded enum identity remains exact, payload-enum buffers fail closed at
+    # the copy boundary, and OP-1 comparisons stay integer-only.
+    def under_test(source):
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        work = make_work(library, case[5].count)
+        kind, report = invoke_dispatch(library, case, function, work)
+        return kind, report, function, work
+
+    def assert_clean(source):
+        kind, report, function, work = under_test(source)
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_ACYCLIC,
+            BODY_CLEAN,
+            function,
+        ), (kind, report.status)
+        assert (
+            report.rule,
+            report.fix,
+            report.primary_node,
+            report.related_node,
+            report.path_count,
+        ) == (RULE_NONE, FIX_NONE, AST_NONE, AST_NONE, 0)
+        assert_path_guard(report)
+        assert_output_guards(work)
+
+    def assert_unsupported(source):
+        kind, report, _, work = under_test(source)
+        assert report.status == BODY_UNSUPPORTED, (kind, report.status)
+        assert kind in (CAPABILITY_ACYCLIC, CAPABILITY_UNSUPPORTED), kind
+        assert_path_guard(report)
+        assert_output_guards(work)
+
+    tag = b"enum Tag {\n  TagA();\n  TagB();\n}\n\n"
+    other = b"enum OtherTag {\n  OtherA();\n  OtherB();\n}\n\n"
+    tape = (
+        tag
+        + other
+        + b"struct TagTape {\n  tags: buffer<Tag>;\n}\n\n"
+    )
+
+    # Own enum locals and return types preserve exact enum identity.
+    assert_clean(
+        tag
+        + b"fn keep (tag: own Tag) -> own Tag pure {\n"
+        b"  let held: own Tag = tag;\n"
+        b"  return held;\n"
+        b"}\n"
+    )
+
+    # Enum-returning user-call typing composes with enum locals.
+    assert_clean(
+        tag
+        + b"fn keep (tag: own Tag) -> own Tag pure {\n  return tag;\n}\n"
+        b"fn relay (tag: own Tag) -> own Tag pure {\n"
+        b"  let result: own Tag = keep(tag: tag);\n"
+        b"  return result;\n"
+        b"}\n"
+    )
+
+    # Typed enum index reads and bounds-traps; typed enum len reads without a
+    # trap. Both accept only the field's exact tag-only enum element.
+    assert_clean(
+        tape
+        + b"fn read ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s), traps {\n"
+        b"  let result: own Tag = index<Tag>(deref(t).tags, i);\n"
+        b"  return result;\n"
+        b"}\n"
+    )
+    assert_clean(
+        tape
+        + b"fn width ['s] (t: &'s TagTape) -> own u64 reads('s) {\n"
+        b"  return len<Tag>(deref(t).tags);\n"
+        b"}\n"
+    )
+
+    # An enum-returning effectful call retains the already-supported single
+    # region's exact reads+traps row.
+    assert_clean(
+        tape
+        + b"fn read ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s), traps {\n"
+        b"  return index<Tag>(deref(t).tags, i);\n"
+        b"}\n"
+        b"fn relay ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s), traps {\n"
+        b"  let result: own Tag = read<'s>(t: t, i: i);\n"
+        b"  return result;\n"
+        b"}\n"
+    )
+
+    # Exact type identity: a distinct enum, an integer, a struct, and an
+    # unresolved type argument cannot reinterpret buffer<Tag>.
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape, i: own u64) -> own OtherTag "
+        b"reads('s), traps {\n"
+        b"  return index<OtherTag>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape, i: own u64) -> own u64 "
+        b"reads('s), traps {\n"
+        b"  return index<u64>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s), traps {\n"
+        b"  return index<TagTape>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s), traps {\n"
+        b"  return index<MissingTag>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+
+    # Enum locals and returns also require exact identity.
+    assert_unsupported(
+        tag
+        + other
+        + b"fn wrong (tag: own Tag) -> own Tag pure {\n"
+        b"  let other: own OtherTag = tag;\n"
+        b"  return tag;\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tag
+        + other
+        + b"fn wrong (tag: own Tag) -> own OtherTag pure {\n"
+        b"  return tag;\n"
+        b"}\n"
+    )
+
+    # Today's wfc parser accepts only nullary variant declarations. Exercise the
+    # payload boundary adversarially: start from a CLEAN source, attach a child
+    # to one AstVariant in the already indexed tape, then invoke the reader
+    # directly so the stale-validation guard does not mask its own fail-closed
+    # tag-only check.
+    def assert_hostile_payload_rejected(source):
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        baseline_work = make_work(library, case[5].count)
+        baseline_kind, baseline = invoke_dispatch(
+            library, case, function, baseline_work
+        )
+        assert (baseline_kind, baseline.status) == (
+            CAPABILITY_ACYCLIC,
+            BODY_CLEAN,
+        ), (baseline_kind, baseline.status)
+        enum_declarations = [
+            node
+            for node in children_of(case[4], case[5].root)
+            if case[4][0][node] == AST["AstEnumDecl"]
+        ]
+        assert enum_declarations
+        enum_children = children_of(case[4], enum_declarations[0])
+        enum_names = [
+            node for node in enum_children if case[4][0][node] == AST["AstEnumName"]
+        ]
+        enum_variants = [
+            node for node in enum_children if case[4][0][node] == AST["AstVariant"]
+        ]
+        assert len(enum_names) == 1 and enum_variants
+        payload_variant = enum_variants[0]
+        case[4][4][payload_variant] = enum_names[0]
+        case[4][5][payload_variant] = enum_names[0]
+
+        hostile_work = make_work(library, case[5].count)
+        hostile = SemanticBodyReport(99, 123, 456, 99, 99, 789)
+        library.semantic_reader_run(
+            case[1],
+            ctypes.byref(case[3]),
+            ctypes.byref(case[5]),
+            ctypes.byref(case[9]),
+            function,
+            ctypes.byref(hostile_work[6]),
+            ctypes.byref(hostile),
+        )
+        assert (hostile.status, hostile.rule, hostile.fix) == (
+            BODY_UNSUPPORTED,
+            RULE_NONE,
+            FIX_NONE,
+        )
+        assert_output_guards(baseline_work)
+        assert_output_guards(hostile_work)
+
+    # Centralized resolution rejects payload-like enums at parameter, return,
+    # local/type-argument, index, and len boundaries.
+    assert_hostile_payload_rejected(
+        tag
+        + b"fn param (tag: own Tag) -> own u64 pure {\n  return 0_u64;\n}\n"
+    )
+    assert_hostile_payload_rejected(
+        tape
+        + b"fn result ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s), traps {\n"
+        b"  return index<Tag>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+    assert_hostile_payload_rejected(
+        tape
+        + b"fn local ['s] (t: &'s TagTape, i: own u64) -> own u64 "
+        b"reads('s), traps {\n"
+        b"  let tag: own Tag = index<Tag>(deref(t).tags, i);\n"
+        b"  return i;\n"
+        b"}\n"
+    )
+    assert_hostile_payload_rejected(
+        tape
+        + b"fn width ['s] (t: &'s TagTape) -> own u64 reads('s) {\n"
+        b"  return len<Tag>(deref(t).tags);\n"
+        b"}\n"
+    )
+
+    # OP-1 remains closed over integer comparison types. Bool rejection is
+    # pinned separately; enum equality, inequality, and ordering reject here.
+    for illegal_op in (b"ieq", b"ine", b"ilt", b"ile", b"igt", b"ige"):
+        assert_unsupported(
+            tag
+            + b"fn wrong (left: own Tag, right: own Tag) -> own Bool pure {\n"
+            b"  return " + illegal_op + b"<Tag>(left, right);\n"
+            b"}\n"
+        )
+
+    # Exact EFF-2 rows remain type-agnostic: index needs reads+traps, while len
+    # needs reads and specifically does not exhibit traps.
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape, i: own u64) -> own Tag pure {\n"
+        b"  return index<Tag>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape, i: own u64) -> own Tag "
+        b"reads('s) {\n"
+        b"  return index<Tag>(deref(t).tags, i);\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape) -> own u64 pure {\n"
+        b"  return len<Tag>(deref(t).tags);\n"
+        b"}\n"
+    )
+    assert_unsupported(
+        tape
+        + b"fn wrong ['s] (t: &'s TagTape) -> own u64 reads('s), traps {\n"
+        b"  return len<Tag>(deref(t).tags);\n"
+        b"}\n"
+    )
+
+
+def assert_reader_enum_type_id_partition_guard():
+    # Constructing an AST with at least 1e9 addressable nodes is not practical
+    # in this test process. Pin the central pre-encoding guard instead: no enum
+    # declaration index may cross from the enum ID interval into the struct ID
+    # interval before the declaration index is added to the enum base.
+    reader = (Path(__file__).parent / "src" / "semantic_reader.wf").read_text()
+    start = reader.index("fn semantic_reader_leaf_enum_id")
+    end = reader.index("\nfn ", start + 3)
+    helper = reader[start:end]
+    limit = (
+        "let enum_decl_limit: own u64 = isub.wrap<u64>("
+        "semantic_reader_struct_type_base, semantic_reader_enum_type_base);"
+    )
+    guard = (
+        "let enum_decl_in_range: own Bool = "
+        "ilt<u64>(enum_decl, enum_decl_limit);"
+    )
+    encode = "iadd.trap<u64>(enum_decl, semantic_reader_enum_type_base)"
+    assert limit in helper
+    assert guard in helper
+    assert helper.index(limit) < helper.index(guard) < helper.index(encode)
+
+
 def assert_structural_profile_and_real_reject(library):
     renamed = fixture().replace(b"lexer_is_lower", b"arbitrary_predicate")
     renamed_case = parsed(library, renamed)
@@ -1562,9 +1862,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        535,
-        45,
-        490,
+        537,
+        51,
+        486,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -1606,6 +1906,8 @@ def main():
         assert_reader_bool_returns_admitted(library)
         assert_reader_general_signature_and_enum_match(library)
         assert_reader_struct_field_and_typed_index(library)
+        assert_reader_enum_values_and_buffers(library)
+        assert_reader_enum_type_id_partition_guard()
         assert_structural_profile_and_real_reject(library)
         assert_diagnostic_path_capacity(library)
         assert_site_specific_rule_ids(library)
@@ -1616,11 +1918,12 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 535 total / 45 clean / 490 unsupported / "
+        "semantic unit: compiler 537 total / 51 clean / 486 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, multi-region effectful-call rejection, general signatures "
         "and multi-variant enum matches, "
+        "enum values and tag-only-enum buffer reads, "
         "structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "
