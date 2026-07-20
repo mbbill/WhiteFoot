@@ -604,7 +604,7 @@ fn semantic_reader_writer_signature_valid ['c] (source: &'c buffer<u8>, tokens: 
   }
 }
 
-fn semantic_reader_writer_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, writes_node: own u64, block: own u64) -> own Bool reads('c), traps {
+fn semantic_reader_writer_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, writes_node: own u64, block: own u64, allow_user_call: own Bool) -> own Bool reads('c), traps {
   let ast_count: own u64 = deref(ast).count;
   let function_valid: own Bool = ilt<u64>(function, ast_count);
   let writes_valid: own Bool = ilt<u64>(writes_node, ast_count);
@@ -658,6 +658,7 @@ fn semantic_reader_writer_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c T
   let ast_place_use_atom: own AstKind = AstPlaceUse();
   let ast_numeric_literal_atom: own AstKind = AstNumericLiteral();
   let ast_constructor_atom: own AstKind = AstConstructor();
+  let ast_user_call_atom: own AstKind = AstUserCall();
   let ast_unit_literal_atom: own AstKind = AstUnitLiteral();
   loop @semantic_reader_writer_body_scan {
     match ilt<u64>(statement, ast_count) {
@@ -756,12 +757,15 @@ fn semantic_reader_writer_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c T
         let value_place: own Bool = semantic_body_kind_is<'c>(ast: ast, node: value, want: ast_place_use_atom);
         let value_numeric: own Bool = semantic_body_kind_is<'c>(ast: ast, node: value, want: ast_numeric_literal_atom);
         let value_constructor: own Bool = semantic_body_kind_is<'c>(ast: ast, node: value, want: ast_constructor_atom);
+        let value_user_call: own Bool = semantic_body_kind_is<'c>(ast: ast, node: value, want: ast_user_call_atom);
         let value_literal: own Bool = bor<Bool>(value_numeric, value_constructor);
-        let value_kind: own Bool = bor<Bool>(value_place, value_literal);
+        let value_leaf_kind: own Bool = bor<Bool>(value_place, value_literal);
         let value_leaf: own Bool = semantic_body_exact_children<'c>(ast: ast, node: value, want: 0_u64);
+        let value_leaf_ok: own Bool = band<Bool>(value_leaf_kind, value_leaf);
+        let value_call_ok: own Bool = band<Bool>(value_user_call, allow_user_call);
+        let value_shape_ok: own Bool = bor<Bool>(value_leaf_ok, value_call_ok);
         let value_token: own Bool = semantic_body_node_token_valid<'c>(source: source, tokens: tokens, ast: ast, node: value);
-        let value_a: own Bool = band<Bool>(value_kind, value_leaf);
-        match band<Bool>(value_a, value_token) {
+        match band<Bool>(value_shape_ok, value_token) {
           True() => {
             set set_count = iadd.trap<u64>(set_count, 1_u64);
           }

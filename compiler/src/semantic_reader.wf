@@ -5038,11 +5038,13 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
   let return_type_node: own u64 = ast_none;
   let return_type_count: own u64 = 0_u64;
   let pure_seen: own Bool = False();
+  let pure_count: own u64 = 0_u64;
   let reads_node: own u64 = ast_none;
   let reads_count: own u64 = 0_u64;
   let writes_node: own u64 = ast_none;
   let writes_count: own u64 = 0_u64;
   let traps_seen: own Bool = False();
+  let traps_count: own u64 = 0_u64;
   let block_node: own u64 = ast_none;
   let block_count: own u64 = 0_u64;
   let other_child: own Bool = False();
@@ -5122,6 +5124,7 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
     match is_pure {
       True() => {
         set pure_seen = True();
+        set pure_count = iadd.trap<u64>(pure_count, 1_u64);
       }
       False() => {
       }
@@ -5148,6 +5151,7 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
     match is_traps {
       True() => {
         set traps_seen = True();
+        set traps_count = iadd.trap<u64>(traps_count, 1_u64);
       }
       False() => {
       }
@@ -5211,10 +5215,14 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
   let block_one: own Bool = ieq<u64>(block_count, 1_u64);
   let reads_single: own Bool = ilt<u64>(reads_count, 2_u64);
   let writes_single: own Bool = ilt<u64>(writes_count, 2_u64);
+  let pure_single: own Bool = ilt<u64>(pure_count, 2_u64);
+  let traps_single: own Bool = ilt<u64>(traps_count, 2_u64);
   let no_other: own Bool = bnot<Bool>(other_child);
   let struct_a: own Bool = band<Bool>(name_ok, regions_single);
   let struct_b: own Bool = band<Bool>(return_mode_one, return_type_one);
-  let effect_singletons: own Bool = band<Bool>(reads_single, writes_single);
+  let effect_singletons_a: own Bool = band<Bool>(pure_single, reads_single);
+  let effect_singletons_b: own Bool = band<Bool>(writes_single, traps_single);
+  let effect_singletons: own Bool = band<Bool>(effect_singletons_a, effect_singletons_b);
   let struct_c: own Bool = band<Bool>(block_one, effect_singletons);
   let struct_d: own Bool = band<Bool>(no_other, params_ok);
   let struct_ab: own Bool = band<Bool>(struct_a, struct_b);
@@ -5273,17 +5281,23 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
   let effect_writes_a: own Bool = band<Bool>(writes_present, no_pure);
   let effect_writes_b: own Bool = band<Bool>(effect_writes_a, no_reads);
   let effect_writes: own Bool = band<Bool>(effect_writes_b, no_traps);
+  let effect_mixed_a: own Bool = band<Bool>(reads_present, writes_present);
+  let effect_mixed_b: own Bool = band<Bool>(effect_mixed_a, traps_seen);
+  let effect_mixed_writer: own Bool = band<Bool>(effect_mixed_b, no_pure);
   let effect_pure_or_reads: own Bool = bor<Bool>(effect_pure, effect_reads);
   let effect_traps_or_writes: own Bool = bor<Bool>(effect_traps, effect_writes);
-  match bor<Bool>(effect_pure_or_reads, effect_traps_or_writes) {
+  let effect_known: own Bool = bor<Bool>(effect_pure_or_reads, effect_traps_or_writes);
+  match bor<Bool>(effect_known, effect_mixed_writer) {
     True() => {
     }
     False() => {
       return False();
     }
   }
+  let effect_writer: own Bool = bor<Bool>(effect_writes, effect_mixed_writer);
+  let effect_reader: own Bool = bor<Bool>(effect_reads, effect_mixed_writer);
   let has_uniq_param: own Bool = igt<u64>(uniq_param_count, 0_u64);
-  let no_writer_effect: own Bool = bnot<Bool>(effect_writes);
+  let no_writer_effect: own Bool = bnot<Bool>(effect_writer);
   match band<Bool>(has_uniq_param, no_writer_effect) {
     True() => {
       return False();
@@ -5299,7 +5313,7 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
     False() => {
     }
   }
-  match effect_reads {
+  match effect_reader {
     True() => {
       let ast_reads_effect_atom_check: own AstKind = AstReadsEffect();
       let reads_kind: own Bool = semantic_body_kind_is(ast: ast, node: reads_node, want: ast_reads_effect_atom_check);
@@ -5324,7 +5338,7 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
     False() => {
     }
   }
-  match effect_writes {
+  match effect_writer {
     True() => {
       let ast_writes_effect_atom_check: own AstKind = AstWritesEffect();
       let writes_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: writes_node, want: ast_writes_effect_atom_check);
@@ -5345,7 +5359,15 @@ fn semantic_reader_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c Tok
           return False();
         }
       }
-      let writer_signature_ok: own Bool = semantic_reader_writer_signature_valid<'c>(source: source, tokens: tokens, ast: ast, function: function, regions_node: regions_node, writes_node: writes_node);
+      let writer_signature_ok: own Bool = False();
+      match effect_writes {
+        True() => {
+          set writer_signature_ok = semantic_reader_writer_signature_valid<'c>(source: source, tokens: tokens, ast: ast, function: function, regions_node: regions_node, writes_node: writes_node);
+        }
+        False() => {
+          set writer_signature_ok = semantic_reader_writer_mixed_signature_valid<'c>(source: source, tokens: tokens, ast: ast, function: function, regions_node: regions_node, reads_node: reads_node, writes_node: writes_node);
+        }
+      }
       let writer_return_unit: own Bool = ieq<u64>(reader_return_type, semantic_reader_type_unit);
       match band<Bool>(writer_signature_ok, writer_return_unit) {
         True() => {
@@ -6201,7 +6223,9 @@ fn semantic_reader_effects_reconcile ['c] (source: &'c buffer<u8>, tokens: &'c T
   }
   match ine<u64>(writes_node, ast_none) {
     True() => {
-      let writer_body_ok: own Bool = semantic_reader_writer_body_valid<'c>(source: source, tokens: tokens, ast: ast, function: function, writes_node: writes_node, block: block);
+      let reads_present: own Bool = ine<u64>(reads_node, ast_none);
+      let allow_user_call: own Bool = band<Bool>(reads_present, traps_declared);
+      let writer_body_ok: own Bool = semantic_reader_writer_body_valid<'c>(source: source, tokens: tokens, ast: ast, function: function, writes_node: writes_node, block: block, allow_user_call: allow_user_call);
       match writer_body_ok {
         True() => {
         }

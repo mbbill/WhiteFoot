@@ -405,17 +405,18 @@ def canonical_path(columns, root, target):
 # structured loop flow, innermost labeled break, owned-let mutation, and exact
 # writes-only direct field assignment through one exclusive struct borrow, with
 # direct own values, canonical u8/u64 literals, prior direct u64 constants, or
-# exact nullary tag constructors).
+# exact nullary tag constructors, plus one exact two-region mixed writer whose
+# call RHS values carry explicit read-region attribution).
 # Every listed
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 22, 23, 24, 29, 30, 31, 63, 64, 65, 88, 96, 98, 102, 104, 105, 106,
+    21, 22, 23, 24, 29, 30, 31, 34, 63, 64, 65, 88, 96, 98, 102, 104, 105, 106,
     110, 111, 118, 119,
     123, 124, 125, 126, 143, 144, 145, 146, 147, 148, 149, 152, 158, 159, 185,
-    204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 286, 287, 308, 317, 319,
-    325, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 361, 417, 418, 420,
-    424, 427, 428, 429, 431, 432, 433, 439, 446, 481, 509, 526, 527, 549,
+    204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 286, 287, 309, 318, 320,
+    326, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 362, 418, 419, 421,
+    425, 428, 429, 430, 432, 433, 434, 440, 447, 482, 510, 527, 528, 550,
 )
 
 
@@ -423,14 +424,14 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 556
+    assert len(functions) == 557
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        556,
-        98,
+        557,
+        99,
         458,
         0,
         functions[18],
@@ -3166,8 +3167,8 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        556,
-        98,
+        557,
+        99,
         458,
         0,
         top_level_functions(case)[18],
@@ -3227,7 +3228,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 556 total / 98 clean / 458 unsupported / "
+        "semantic unit: compiler 557 total / 99 clean / 458 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "

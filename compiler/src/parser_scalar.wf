@@ -18,10 +18,10 @@ fn parser_append_child ['a] (out: &uniq 'a AstTape, parent: own u64, child: own 
   return unit;
 }
 
-fn parser_fail ['t, 'a] (tokens: &'t TokenTape, out: &uniq 'a AstTape, status: own ParseStatus, token: own u64) -> own unit reads('t 'a), writes('a), traps {
+fn parser_fail ['t, 'a] (tokens: &'t TokenTape, out: &uniq 'a AstTape, status: own ParseStatus, token: own u64) -> own unit reads('t), writes('a), traps {
   set deref(out).status = status;
-  set deref(out).error_start = parser_error_start(tokens: tokens, token: token);
-  set deref(out).error_end = parser_error_end(tokens: tokens, token: token);
+  set deref(out).error_start = parser_error_start<'t>(tokens: tokens, token: token);
+  set deref(out).error_end = parser_error_end<'t>(tokens: tokens, token: token);
   return unit;
 }
 

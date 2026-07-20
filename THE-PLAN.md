@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-556 functions: 98 clean, 458 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,441,655 source bytes, 286,856 tokens, and
-142,455 unique-head AST nodes. The parser census is 3,611 regionful calls: 267
-explicit and 3,344 staged omissions. LLVM support remains the same
+557 functions: 99 clean, 458 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,454,227 source bytes, 289,529 tokens, and
+143,724 unique-head AST nodes. The parser census is 3,636 regionful calls: 294
+explicit and 3,342 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Kernel v0.8 and its tag-only enum equality implementation are complete.
@@ -331,7 +331,7 @@ loop/local-mutation unlock; admitting owned-parameter mutation also conflicts
 with stage-0 lowering and unlocked zero compiler functions, so that experiment
 was fully reverted and the bounded F2 compiler-family tranche is complete.
 
-The first three bounded F3 writer slices are complete. They admit exactly one exclusive
+The first four bounded F3 writer slices are complete. The writes-only profile admits exactly one exclusive
 borrow of a struct in exactly one declared region, an exact writes-only row for
 that region, one or more flat direct scalar/tag-only-enum field assignments from
 own parameters, canonical `u8`/`u64` literals, or exact nullary `Bool`/tag-only-
@@ -365,8 +365,22 @@ functions to CLEAN: `symbol_tape_reset`, `semantic_type_tape_reset`,
 fixed canonical `u64` validation at the exact 20-digit maximum and pinned
 out-of-range rejection, stale symbol redirection, forged AST heads, malformed
 const topology, forward declarations, and non-const value symbols. The focused
-writer implementation and tests remain 857 and 438 lines respectively. F3 remains
-active for the deferred mixed-effect writer profiles. `lexer_scan_string` remains the source-order
+writer implementation remains 861 lines. The fourth slice admits the one measured
+mixed-effect boundary: exactly two distinct regions, exactly one shared root for
+an exact reads row, exactly one exclusive root for an exact writes row, `traps`,
+and the same flat direct-field writer body, with user calls allowed only as
+right-hand-side values under that mixed profile. Ordinary call analysis proves
+callee signature and result type; exact call-region substitution proves shared
+argument provenance; and effect reconciliation independently proves every declared
+read, rejects undeclared reads or traps, and rejects write-effect callees. The source
+function `parser_fail` now declares only its exhibited token-tape read and spells
+both call-region arguments explicitly, moving exactly that one pre-existing function
+to CLEAN. Hostile review pinned omitted and wrong call regions, extra roots and
+regions, missing/spurious/wrong rows, wrong call results, hidden write-effect callees,
+malformed region nodes, call topology, and duplicate effect nodes. Mixed-profile
+logic lives in a focused 237-line module; its focused hostile test is 560 lines and
+the general reader is 6,620 lines. F3 remains active for the deferred indexed and
+control-flow writer profiles. `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. F4 bounded statement-scoped
 reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in
 that order. Whole-unit LLVM lowering, including production emission of general

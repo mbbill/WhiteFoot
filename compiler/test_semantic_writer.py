@@ -67,6 +67,23 @@ def assert_reader_flat_report_writer(library):
         b"  set deref(cell).value = writer_zero;\n"
         b"  return unit;\n}\n"
     )
+    mixed_writer = (
+        b"struct WriterInput {\n  values: buffer<u64>;\n}\n"
+        b"struct WriterMixedReport {\n  status: u64;\n  start: u64;\n"
+        b"  end: u64;\n}\n"
+        b"fn writer_load ['s] (input: &'s WriterInput, token: own u64) "
+        b"-> own u64 reads('s), traps {\n"
+        b"  return index<u64>(deref(input).values, token);\n}\n"
+        b"fn writer_mixed ['s, 'w] (input: &'s WriterInput, "
+        b"report: &uniq 'w WriterMixedReport, status: own u64, "
+        b"token: own u64) -> own unit reads('s), writes('w), traps {\n"
+        b"  set deref(report).status = status;\n"
+        b"  set deref(report).start = writer_load<'s>(input: input, "
+        b"token: token);\n"
+        b"  set deref(report).end = writer_load<'s>(input: input, "
+        b"token: token);\n"
+        b"  return unit;\n}\n"
+    )
 
     def classify(source):
         case = parsed(library, source)
@@ -100,6 +117,7 @@ def assert_reader_flat_report_writer(library):
     assert_clean(report_writer)
     assert_clean(literal_writer)
     assert_clean(global_writer)
+    assert_clean(mixed_writer)
 
     # `unit` and exclusive borrows do not become general reader capabilities.
     assert_unsupported(
@@ -172,6 +190,56 @@ def assert_reader_flat_report_writer(library):
         b"-> own u64 writes('w) {\n"
         b"  set deref(cell).value = value;\n"
         b"  return value;\n}\n"
+    )
+
+    # The mixed profile is exact: two distinct regions, one shared read root,
+    # one exclusive write root, exact rows, traps, and explicit call-region
+    # attribution. Existing writes-only writers do not inherit call RHS values.
+    assert_unsupported(mixed_writer.replace(b"writer_load<'s>", b"writer_load"))
+    assert_unsupported(mixed_writer.replace(b"writer_load<'s>", b"writer_load<'w>"))
+    assert_unsupported(mixed_writer.replace(b"reads('s), writes", b"writes"))
+    assert_unsupported(mixed_writer.replace(b"reads('s), writes", b"reads('w), writes"))
+    assert_unsupported(mixed_writer.replace(b", traps {", b" {"))
+    assert_unsupported(mixed_writer.replace(b"writes('w)", b"writes('s)"))
+    assert_unsupported(mixed_writer.replace(b"['s, 'w]", b"['s, 'w, 'x]"))
+    assert_unsupported(
+        mixed_writer.replace(
+            b"report: &uniq 'w WriterMixedReport,",
+            b"other: &'s WriterInput, report: &uniq 'w WriterMixedReport,",
+        )
+    )
+    assert_unsupported(
+        mixed_writer.replace(
+            b"report: &uniq 'w WriterMixedReport,",
+            b"report: &uniq 'w WriterMixedReport, "
+            b"other: &uniq 'w WriterMixedReport,",
+        )
+    )
+    assert_unsupported(
+        mixed_writer.replace(
+            b"-> own u64 reads('s), traps",
+            b"-> own Bool reads('s), traps",
+        )
+    )
+    assert_unsupported(
+        b"fn writer_identity (value: own u64) -> own u64 pure {\n"
+        b"  return value;\n}\n"
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_call ['w] (cell: &uniq 'w WriterCell, value: own u64) "
+        b"-> own unit writes('w) {\n"
+        b"  set deref(cell).value = writer_identity(value: value);\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"fn writer_hidden ['x] (value: own u64) -> own u64 writes('x) {\n"
+        b"  return value;\n}\n"
+        b"struct WriterInput {\n  values: buffer<u64>;\n}\n"
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_mixed ['s, 'w] (input: &'s WriterInput, "
+        b"cell: &uniq 'w WriterCell, value: own u64) -> own unit "
+        b"reads('s), writes('w), traps {\n"
+        b"  set deref(cell).value = writer_hidden<'s>(value: value);\n"
+        b"  return unit;\n}\n"
     )
 
     # Constructor resolution is confined to the field-writer RHS. It proves a
@@ -312,6 +380,56 @@ def assert_reader_flat_report_writer(library):
         )
         case[4][0][effect] = AST["AstReadsEffect"]
 
+    def mixed_shared_mode_kind(case):
+        mode = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstSharedMode"]
+        )
+        case[4][0][mode] = AST["AstOwnMode"]
+
+    def mixed_reads_region_kind(case):
+        effect = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstReadsEffect"]
+            and node > top_level_functions(case)[-1]
+        )
+        region = children_of(case[4], effect)[0]
+        case[4][0][region] = AST["AstPlaceUse"]
+
+    def mixed_call_terminal(case):
+        call = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstUserCall"]
+        )
+        children = children_of(case[4], call)
+        case[4][6][children[-1]] = children[0]
+
+    def mixed_duplicate_traps_node(case):
+        helper, writer = top_level_functions(case)[-2:]
+        helper_block = next(
+            node
+            for node in children_of(case[4], helper)
+            if case[4][0][node] == AST["AstBlock"]
+        )
+        duplicate = children_of(case[4], helper_block)[0]
+        writer_children = children_of(case[4], writer)
+        traps = next(
+            node
+            for node in writer_children
+            if case[4][0][node] == AST["AstTrapsEffect"]
+        )
+        block = next(
+            node
+            for node in writer_children
+            if case[4][0][node] == AST["AstBlock"]
+        )
+        case[4][0][duplicate] = AST["AstTrapsEffect"]
+        case[4][6][traps] = duplicate
+        case[4][6][duplicate] = block
+
     def constructor_payload_shape(case):
         enum_declaration = next(
             node
@@ -413,6 +531,10 @@ def assert_reader_flat_report_writer(library):
     assert_mutation_unsupported(report_writer, deref_base_kind)
     assert_mutation_unsupported(report_writer, uniq_mode_kind)
     assert_mutation_unsupported(report_writer, writes_effect_kind)
+    assert_mutation_unsupported(mixed_writer, mixed_shared_mode_kind)
+    assert_mutation_unsupported(mixed_writer, mixed_reads_region_kind)
+    assert_direct_reader_mutation_rejected(mixed_writer, mixed_call_terminal)
+    assert_direct_reader_mutation_rejected(mixed_writer, mixed_duplicate_traps_node)
     assert_direct_constructor_mutation_rejected(constructor_payload_shape)
     assert_direct_constructor_mutation_rejected(constructor_enum_header)
     assert_direct_constructor_mutation_rejected(constructor_root_terminal)
@@ -427,10 +549,10 @@ def main():
         configure(library)
         assert_reader_flat_report_writer(library)
     print(
-        "semantic writer: exact exclusive-root flat writes from own values, "
-        "canonical integers, prior direct u64 constants, and nullary tags; "
-        "effect, nominal, binding, shape, topology, and deferred-profile "
-        "fences pass"
+        "semantic writer: exact writes-only and two-region mixed flat writers; "
+        "own values, canonical integers, prior direct u64 constants, nullary "
+        "tags, attributed call RHS values, and hostile effect, nominal, binding, "
+        "shape, topology, and deferred-profile fences pass"
     )
 
 

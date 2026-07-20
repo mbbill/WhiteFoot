@@ -1,0 +1,237 @@
+fn semantic_reader_writer_mixed_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, function: own u64, regions_node: own u64, reads_node: own u64, writes_node: own u64) -> own Bool reads('c), traps {
+  let ast_count: own u64 = deref(ast).count;
+  let function_valid: own Bool = ilt<u64>(function, ast_count);
+  let regions_valid: own Bool = ilt<u64>(regions_node, ast_count);
+  let reads_valid_node: own Bool = ilt<u64>(reads_node, ast_count);
+  let writes_valid_node: own Bool = ilt<u64>(writes_node, ast_count);
+  let node_a: own Bool = band<Bool>(function_valid, regions_valid);
+  let node_b: own Bool = band<Bool>(reads_valid_node, writes_valid_node);
+  match band<Bool>(node_a, node_b) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let region_first: own u64 = index<u64>(deref(ast).first_children, regions_node);
+  let region_last: own u64 = index<u64>(deref(ast).last_children, regions_node);
+  let regions_present: own Bool = ine<u64>(region_first, ast_none);
+  let regions_distinct: own Bool = ine<u64>(region_first, region_last);
+  match band<Bool>(regions_present, regions_distinct) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let region_next: own u64 = index<u64>(deref(ast).next_siblings, region_first);
+  let region_terminal: own u64 = index<u64>(deref(ast).next_siblings, region_last);
+  let exactly_two_regions: own Bool = ieq<u64>(region_next, region_last);
+  let regions_terminated: own Bool = ieq<u64>(region_terminal, ast_none);
+  match band<Bool>(exactly_two_regions, regions_terminated) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let region_first_leaf: own Bool = semantic_function_region_leaf_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: region_first);
+  let region_last_leaf: own Bool = semantic_function_region_leaf_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: region_last);
+  let region_first_exact: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: region_first);
+  let region_last_exact: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: region_last);
+  let region_leafs: own Bool = band<Bool>(region_first_leaf, region_last_leaf);
+  let region_exact: own Bool = band<Bool>(region_first_exact, region_last_exact);
+  match band<Bool>(region_leafs, region_exact) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let reads_first: own u64 = index<u64>(deref(ast).first_children, reads_node);
+  let reads_last: own u64 = index<u64>(deref(ast).last_children, reads_node);
+  let writes_first: own u64 = index<u64>(deref(ast).first_children, writes_node);
+  let writes_last: own u64 = index<u64>(deref(ast).last_children, writes_node);
+  let reads_one: own Bool = ieq<u64>(reads_first, reads_last);
+  let writes_one: own Bool = ieq<u64>(writes_first, writes_last);
+  let reads_present: own Bool = ine<u64>(reads_first, ast_none);
+  let writes_present: own Bool = ine<u64>(writes_first, ast_none);
+  let row_singletons: own Bool = band<Bool>(reads_one, writes_one);
+  let rows_present: own Bool = band<Bool>(reads_present, writes_present);
+  match band<Bool>(row_singletons, rows_present) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let reads_leaf: own Bool = semantic_function_region_leaf_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: reads_first);
+  let writes_leaf: own Bool = semantic_function_region_leaf_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: writes_first);
+  let reads_exact: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: reads_first);
+  let writes_exact: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: writes_first);
+  let row_leafs: own Bool = band<Bool>(reads_leaf, writes_leaf);
+  let row_exact: own Bool = band<Bool>(reads_exact, writes_exact);
+  match band<Bool>(row_leafs, row_exact) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let reads_terminal: own u64 = index<u64>(deref(ast).next_siblings, reads_first);
+  let writes_terminal: own u64 = index<u64>(deref(ast).next_siblings, writes_first);
+  let reads_terminated: own Bool = ieq<u64>(reads_terminal, ast_none);
+  let writes_terminated: own Bool = ieq<u64>(writes_terminal, ast_none);
+  match band<Bool>(reads_terminated, writes_terminated) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let region_first_head: own u64 = index<u64>(deref(ast).heads, region_first);
+  let region_last_head: own u64 = index<u64>(deref(ast).heads, region_last);
+  let reads_head: own u64 = index<u64>(deref(ast).heads, reads_first);
+  let writes_head: own u64 = index<u64>(deref(ast).heads, writes_first);
+  let reads_is_first: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: reads_head, right: region_first_head);
+  let reads_is_last: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: reads_head, right: region_last_head);
+  let writes_is_first: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: writes_head, right: region_first_head);
+  let writes_is_last: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: writes_head, right: region_last_head);
+  let reads_declared: own Bool = bor<Bool>(reads_is_first, reads_is_last);
+  let writes_declared: own Bool = bor<Bool>(writes_is_first, writes_is_last);
+  let row_regions_match: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: reads_head, right: writes_head);
+  let row_regions_distinct: own Bool = bnot<Bool>(row_regions_match);
+  let rows_declared: own Bool = band<Bool>(reads_declared, writes_declared);
+  match band<Bool>(rows_declared, row_regions_distinct) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let function_first: own u64 = index<u64>(deref(ast).first_children, function);
+  let function_last: own u64 = index<u64>(deref(ast).last_children, function);
+  let function_first_none: own Bool = ieq<u64>(function_first, ast_none);
+  let function_last_none: own Bool = ieq<u64>(function_last, ast_none);
+  match bor<Bool>(function_first_none, function_last_none) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let shared_count: own u64 = 0_u64;
+  let uniq_count: own u64 = 0_u64;
+  let child: own u64 = function_first;
+  let steps: own u64 = 0_u64;
+  let ast_parameter_atom: own AstKind = AstParameter();
+  let ast_shared_mode_atom: own AstKind = AstSharedMode();
+  let ast_uniq_mode_atom: own AstKind = AstUniqMode();
+  loop @semantic_reader_writer_mixed_signature_scan {
+    match ilt<u64>(child, ast_count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let child_is_parameter: own Bool = semantic_body_kind_is<'c>(ast: ast, node: child, want: ast_parameter_atom);
+    match child_is_parameter {
+      True() => {
+        let mode_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: child, ordinal: 0_u64);
+        let mode_shared: own Bool = semantic_body_kind_is<'c>(ast: ast, node: mode_node, want: ast_shared_mode_atom);
+        let mode_uniq: own Bool = semantic_body_kind_is<'c>(ast: ast, node: mode_node, want: ast_uniq_mode_atom);
+        match bor<Bool>(mode_shared, mode_uniq) {
+          True() => {
+            let mode_valid: own Bool = semantic_function_mode_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: mode_node);
+            match mode_valid {
+              True() => {
+              }
+              False() => {
+                return False();
+              }
+            }
+            let parameter_region: own u64 = semantic_body_child_at<'c>(ast: ast, node: mode_node, ordinal: 0_u64);
+            let parameter_region_leaf: own Bool = semantic_function_region_leaf_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: parameter_region);
+            let parameter_region_exact: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: parameter_region);
+            match band<Bool>(parameter_region_leaf, parameter_region_exact) {
+              True() => {
+              }
+              False() => {
+                return False();
+              }
+            }
+            let parameter_region_head: own u64 = index<u64>(deref(ast).heads, parameter_region);
+            match mode_shared {
+              True() => {
+                let matches_reads: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: parameter_region_head, right: reads_head);
+                match matches_reads {
+                  True() => {
+                    set shared_count = iadd.trap<u64>(shared_count, 1_u64);
+                  }
+                  False() => {
+                    return False();
+                  }
+                }
+              }
+              False() => {
+              }
+            }
+            match mode_uniq {
+              True() => {
+                let matches_writes: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: parameter_region_head, right: writes_head);
+                match matches_writes {
+                  True() => {
+                    set uniq_count = iadd.trap<u64>(uniq_count, 1_u64);
+                  }
+                  False() => {
+                    return False();
+                  }
+                }
+              }
+              False() => {
+              }
+            }
+          }
+          False() => {
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    match ieq<u64>(child, function_last) {
+      True() => {
+        let function_terminal: own u64 = index<u64>(deref(ast).next_siblings, child);
+        let function_terminated: own Bool = ieq<u64>(function_terminal, ast_none);
+        let one_shared: own Bool = ieq<u64>(shared_count, 1_u64);
+        let one_uniq: own Bool = ieq<u64>(uniq_count, 1_u64);
+        let roots_exact: own Bool = band<Bool>(one_shared, one_uniq);
+        return band<Bool>(function_terminated, roots_exact);
+      }
+      False() => {
+      }
+    }
+    let next: own u64 = index<u64>(deref(ast).next_siblings, child);
+    match ilt<u64>(next, ast_count) {
+      True() => {
+        set child = next;
+      }
+      False() => {
+        return False();
+      }
+    }
+    set steps = iadd.trap<u64>(steps, 1_u64);
+    match ilt<u64>(steps, ast_count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+}
