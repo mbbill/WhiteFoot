@@ -1,6 +1,6 @@
 # THE PLAN
 
-Status: CANONICAL ROADMAP, updated 2026-07-17.
+Status: CANONICAL ROADMAP, updated 2026-07-19.
 
 This file contains Whitefoot's one current execution order. Other files may
 define law, specify behavior, explain a design, or preserve evidence. They do
@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-547 functions: 79 clean, 468 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,392,939 source bytes, 276,481 tokens, and
-137,559 unique-head AST nodes. The parser census is 3,500 regionful calls: 152
-explicit and 3,348 staged omissions. LLVM support remains the same
+549 functions: 83 clean, 466 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,421,992 source bytes, 282,607 tokens, and
+140,433 unique-head AST nodes. The parser census is 3,566 regionful calls: 222
+explicit and 3,344 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Kernel v0.8 and its tag-only enum equality implementation are complete.
@@ -326,14 +326,30 @@ bodies. It deliberately keeps parameter mutation, outer-target breaks from a
 nested loop, duplicate labels, and a no-break loop without any return witness
 unsupported. `semantic_reader_u64_literal_any` is the one pre-existing
 function newly classified clean; the other three clean additions are the new
-flow-query helpers. F2 remains active for the remaining bounded loop and local-
-mutation corpus. `lexer_scan_string` remains the source-order frontier, held
-jointly for F2 and F5 aggregate return. F3 writers, F4 bounded statement-
-scoped reborrow, F5 aggregate construction/return, and F6 `allocates`/`move`
-follow in that order. Whole-unit LLVM lowering, including production emission
-of general `eeq`/`ene` calls after revalidating their domain, remains the
-separate Phase-2 step-2 track and may not treat CLEAN classification as
-emission authority.
+flow-query helpers. A fresh corpus inventory found no additional isolated
+loop/local-mutation unlock; admitting owned-parameter mutation also conflicts
+with stage-0 lowering and unlocked zero compiler functions, so that experiment
+was fully reverted and the bounded F2 compiler-family tranche is complete.
+
+The first bounded F3 writer slice is complete. It admits exactly one exclusive
+borrow of a struct in exactly one declared region, an exact writes-only row for
+that region, one or more flat direct scalar/tag-only-enum field assignments from
+own parameters, and a final `return unit`. Shared or multiple exclusive roots,
+general `unit` readers, constructor or borrowed RHS values, missing/spurious or
+wrong-region writes, nested control, writer calls, and non-unit returns remain
+unsupported. Exactly four pre-existing functions move to CLEAN:
+`symbol_report`, `semantic_body_set_report`,
+`semantic_type_resolve_set_report`, and `llvm_supported_fail`. Hostile review
+caught and closed an initial widening that also admitted three read-only
+exclusive-borrow helpers; both exclusive borrows and `unit` are now fenced to
+the exact writer profile, and the body independently verifies the exclusive
+target and flat direct-parameter RHS shape. F3 remains active for the remaining
+writer profiles. `lexer_scan_string` remains the source-order frontier, blocked
+by aggregate return and other deferred forms. F4 bounded statement-scoped
+reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in
+that order. Whole-unit LLVM lowering, including production emission of general
+`eeq`/`ene` calls after revalidating their domain, remains the separate Phase-2
+step-2 track and may not treat CLEAN classification as emission authority.
 
 ## Work outside the seven-phase scope
 

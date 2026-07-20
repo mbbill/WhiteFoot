@@ -397,21 +397,23 @@ def canonical_path(columns, root, target):
 
 # Source ordinals of the functions the classifier admits CLEAN over the wfc
 # corpus. 0-17 are the original fixed-width/scanner/linear/reader-Bool set; the
-# remainder are the F1 general-signature + general-enum-match slice plus the
-# first F2 loop/local-mutation slice (general
+# remainder are the F1 general-signature + general-enum-match slice, the first
+# F2 loop/local-mutation slice, and the first F3 flat-report-writer slice (general
 # `own` scalar/enum params, shared buffer borrows, pure or reads+traps effects,
 # exhaustive/exact multi-variant enum matches, scalar/enum returns, and typed
 # tag-only-enum buffer reads, exact arbitrary-arity call-region substitution,
-# structured loop flow, innermost labeled break, and owned-let mutation).
+# structured loop flow, innermost labeled break, owned-let mutation, and exact
+# writes-only direct field assignment through one exclusive struct borrow).
 # Every listed
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
     21, 22, 23, 24, 29, 30, 31, 63, 64, 65, 96, 98, 102, 104, 105, 106,
-    110, 111,
-    123, 124, 125, 126, 144, 145, 147, 148, 152, 158, 159, 185, 204, 207, 208,
-    209, 214, 216, 228, 229, 230, 235, 299, 310, 340, 341, 342, 343, 344,
-    345, 346, 409, 411, 415, 418, 419, 420, 422, 423, 424, 437, 500, 518,
+    110, 111, 118,
+    123, 124, 125, 126, 144, 145, 147, 148, 149, 152, 158, 159, 185, 204, 207, 208,
+    209, 214, 216, 228, 229, 230, 235, 301, 310, 312, 342, 343, 344, 345,
+    346, 347, 348, 411, 413, 417, 420, 421, 422, 424, 425, 426, 439, 502, 520,
+    542,
 )
 
 
@@ -419,15 +421,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 547
+    assert len(functions) == 549
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        547,
-        79,
-        468,
+        549,
+        83,
+        466,
         0,
         functions[18],
         AST_NONE,
@@ -792,6 +794,191 @@ def assert_reader_loops_and_local_set(library):
     assert_direct_mutation_rejected(local_set, break_set_target)
     assert_direct_mutation_rejected(loop_break, break_loop_label)
     assert_direct_mutation_rejected(loop_break, break_break_label)
+
+
+def assert_reader_flat_report_writer(library):
+    # F3 first slice: exactly one exclusive struct borrow, one matching
+    # writes(region) row, a nonempty flat sequence of direct field assignments
+    # from own parameters, and a final `return unit`. The declared write row is
+    # an optimizer fact, so every broader or malformed shape stays fail-closed.
+    report_writer = (
+        b"enum WriterStatus {\n  WriterIdle();\n  WriterFailed();\n}\n\n"
+        b"struct WriterReport {\n  status: WriterStatus;\n  node: u64;\n"
+        b"  related: u64;\n}\n\n"
+        b"fn writer_set_report ['w] (report: &uniq 'w WriterReport, "
+        b"status: own WriterStatus, node: own u64, related: own u64) "
+        b"-> own unit writes('w) {\n"
+        b"  set deref(report).status = status;\n"
+        b"  set deref(report).node = node;\n"
+        b"  set deref(report).related = related;\n"
+        b"  return unit;\n"
+        b"}\n"
+    )
+
+    def classify(source):
+        case = parsed(library, source)
+        function = top_level_functions(case)[-1]
+        work = make_work(library, case[5].count)
+        kind, report = invoke_dispatch(library, case, function, work)
+        return case, function, work, kind, report
+
+    def assert_clean(source):
+        case, function, work, kind, report = classify(source)
+        assert (kind, report.status, report.function, report.related) == (
+            CAPABILITY_ACYCLIC,
+            BODY_CLEAN,
+            function,
+            AST_NONE,
+        ), (kind, report.status, report.function, report.related)
+        assert_no_capability_diagnostic(report)
+        assert_output_guards(work)
+        return case, function
+
+    def assert_unsupported(source):
+        _, function, work, kind, report = classify(source)
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+            function,
+        ), (kind, report.status, report.function, report.related)
+        assert_no_capability_diagnostic(report)
+        assert_output_guards(work)
+
+    assert_clean(report_writer)
+
+    # `unit` and exclusive borrows do not become general reader capabilities.
+    assert_unsupported(
+        b"fn writer_noop () -> own unit pure {\n  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_read ['w] (cell: &uniq 'w WriterCell) -> own u64 "
+        b"reads('w) {\n  return deref(cell).value;\n}\n"
+    )
+
+    # EFF-2 is bidirectional for writes: missing, spurious, or wrong-region
+    # declarations never admit a body.
+    assert_unsupported(report_writer.replace(b"writes('w)", b"pure"))
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_spurious ['w] (cell: &uniq 'w WriterCell, "
+        b"value: own u64) -> own unit writes('w) {\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        report_writer.replace(b"['w]", b"['w, 'x]").replace(
+            b"writes('w)", b"writes('x)"
+        )
+    )
+
+    # The target must be one direct field of exactly one exclusive struct
+    # parameter. Shared targets and multiple exclusive roots stay deferred.
+    assert_unsupported(report_writer.replace(b"&uniq 'w", b"&'w"))
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_two ['w] (left: &uniq 'w WriterCell, "
+        b"right: &uniq 'w WriterCell, value: own u64) -> own unit "
+        b"writes('w) {\n"
+        b"  set deref(left).value = value;\n"
+        b"  return unit;\n}\n"
+    )
+
+    # The flat profile accepts only direct own-parameter values. Reads through
+    # the exclusive root, constructors, local mutation, and nested control are
+    # separate future tranches.
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n  other: u64;\n}\n"
+        b"fn writer_reads ['w] (cell: &uniq 'w WriterCell) -> own unit "
+        b"writes('w) {\n"
+        b"  set deref(cell).value = deref(cell).other;\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"enum WriterStatus {\n  WriterIdle();\n  WriterFailed();\n}\n"
+        b"struct WriterCell {\n  status: WriterStatus;\n}\n"
+        b"fn writer_construct ['w] (cell: &uniq 'w WriterCell) -> own unit "
+        b"writes('w) {\n"
+        b"  set deref(cell).status = WriterFailed();\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_local ['w] (cell: &uniq 'w WriterCell, value: own u64) "
+        b"-> own unit writes('w) {\n"
+        b"  let local: own u64 = value;\n"
+        b"  set local = value;\n"
+        b"  set deref(cell).value = local;\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_nested ['w] (cell: &uniq 'w WriterCell, value: own u64, "
+        b"flag: own Bool) -> own unit writes('w) {\n"
+        b"  match flag {\n"
+        b"    True() => { set deref(cell).value = value; }\n"
+        b"    False() => { set deref(cell).value = value; }\n"
+        b"  }\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_value ['w] (cell: &uniq 'w WriterCell, value: own u64) "
+        b"-> own u64 writes('w) {\n"
+        b"  set deref(cell).value = value;\n"
+        b"  return value;\n}\n"
+    )
+
+    def assert_mutation_unsupported(mutate):
+        case, function = assert_clean(report_writer)
+        mutate(case)
+        work = make_work(library, case[5].count)
+        kind, report = invoke_dispatch(library, case, function, work)
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+            function,
+        ), (kind, report.status, report.function, report.related)
+        assert_output_guards(work)
+
+    def field_target_kind(case):
+        statement = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstSet"]
+        )
+        target = children_of(case[4], statement)[0]
+        case[4][0][target] = AST["AstPlaceUse"]
+
+    def deref_base_kind(case):
+        statement = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstSet"]
+        )
+        target = children_of(case[4], statement)[0]
+        base = children_of(case[4], target)[0]
+        case[4][0][base] = AST["AstPlaceUse"]
+
+    def uniq_mode_kind(case):
+        mode = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstUniqMode"]
+        )
+        case[4][0][mode] = AST["AstSharedMode"]
+
+    def writes_effect_kind(case):
+        effect = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstWritesEffect"]
+        )
+        case[4][0][effect] = AST["AstReadsEffect"]
+
+    assert_mutation_unsupported(field_target_kind)
+    assert_mutation_unsupported(deref_base_kind)
+    assert_mutation_unsupported(uniq_mode_kind)
+    assert_mutation_unsupported(writes_effect_kind)
 
 
 def assert_reader_bool_equality_rejected(library):
@@ -3160,9 +3347,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        547,
-        79,
-        468,
+        549,
+        83,
+        466,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -3201,6 +3388,7 @@ def main():
         case, work = assert_compiler_coverage(library)
         assert_legal_nonprofile_is_unsupported(library)
         assert_reader_loops_and_local_set(library)
+        assert_reader_flat_report_writer(library)
         assert_reader_bool_equality_rejected(library)
         assert_reader_bool_returns_admitted(library)
         assert_reader_general_signature_and_enum_match(library)
@@ -3221,12 +3409,13 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 547 total / 79 clean / 468 unsupported / "
+        "semantic unit: compiler 549 total / 83 clean / 466 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "
         "and multi-variant enum matches, "
         "structured loops and owned-let mutation, "
+        "flat exclusive-borrow report writers, "
         "enum values and tag-only-enum buffer reads, "
         "structural rename, real "
         "reject, deterministic repeat, "
