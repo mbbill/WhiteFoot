@@ -50,9 +50,8 @@ ORACLE_FILES = (                                 # frozen digest literals live h
     "tools/codegen_parity.py",
     "tools/test_checked_automation.py",
 )
-GUARDED_TEST_FILES = (                            # reference semantics; per-function pin
+GUARDED_TEST_FILES = (                            # active reference semantics; per-function pin
     "prototype/checker/test_checker.py",
-    "prototype/democ/test_codegen.py",
 )
 
 HEX_DIGEST = re.compile(r'"([0-9a-f]{64}|[0-9a-f]{40})"')

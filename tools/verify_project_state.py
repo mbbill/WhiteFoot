@@ -15,25 +15,14 @@ CANONICAL_ROADMAP = Path("THE-PLAN.md")
 RETIRED_ACTIVE_PATHS = (
     Path("HANDOVER.md"),
     Path("compiler/PLAN.md"),
+    Path("compiler/sources.txt"),
+    Path("prototype/democ/democ.py"),
     Path("optimizer-language-research/implementation/validation-harness-plan.md"),
     Path("tools/verify_performance_research_status.py"),
     Path(
         "optimizer-language-research/implementation/"
         "systems-performance-coverage/FOLLOW-UPS.md"
     ),
-)
-
-DESIGN_PACKAGE = Path(
-    "optimizer-language-research/implementation/systems-performance-coverage"
-)
-REQUIRED_DESIGN_FILES = (
-    Path("README.md"),
-    Path("DESIGN-DOSSIER.md"),
-    Path("DESIGN-COMPARISON-AND-RECOMMENDATION.md"),
-    Path("SCENARIO-DEMAND-MAP.md"),
-    Path("CATALOG-V1-RECUT.md"),
-    Path("m1-loan-judgment/RULES-RATIFIED.md"),
-    Path("m2-spec-mass/conc-normative.md"),
 )
 
 
@@ -116,11 +105,6 @@ def verify(root: Path) -> list[str]:
         if (root / path).exists():
             errors.append(f"retired active path still exists: {path}")
 
-    for path in REQUIRED_DESIGN_FILES:
-        full_path = root / DESIGN_PACKAGE / path
-        if not full_path.is_file():
-            errors.append(f"design package is missing: {DESIGN_PACKAGE / path}")
-
     return errors
 
 
@@ -134,7 +118,7 @@ def main() -> int:
 
     print(
         "project state: THE-PLAN.md is the sole active roadmap; "
-        "agent instructions and design package verified"
+        "agent instructions and retired-toolchain paths verified"
     )
     return 0
 

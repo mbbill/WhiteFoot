@@ -3,108 +3,93 @@
 Whitefoot is a systems language for AI-written, human-approved code. Entire bug
 classes are unrepresentable (memory corruption, races, silent overflow,
 uninitialized reads); there is no unsafe escape. The checker's proofs double
-as optimizer facts: safety checks are always on unless a machine-verified
-proof discharges them — speed is earned by proof, never by weakening a check.
+as optimizer facts: safety checks are always on unless a machine-verified proof
+discharges them — speed is earned by proof, never by weakening a check.
 
-## Read order (do this before working)
+## Read order
 
-1. `THE-PLAN.md` — the sole roadmap: current state, execution order, and gates.
-2. Tail of `optimizer-language-research/implementation/decision-gates.md` —
-   the append-only lab log; the last ~10 entries are the live context.
-3. `mcts_mem/` — the design-decision tree: before proposing any non-trivial
-   design change, read the relevant node and its `.alt/` (what was already
-   tried and why it lost).
-4. As needed: `CONSTITUTION.md` (law), `PATTERNS.md` (the closed pattern
-   doctrine — blessed shapes writers must use), `spec/kernel-spec-v0.8.md`
-   (the 91-rule language spec), `optimizer-language-research/notes/user-directives.md`
-   (binding owner rulings and amendments).
+1. `THE-PLAN.md` is the sole source for roadmap and authorization.
+2. The tail of
+   `optimizer-language-research/implementation/decision-gates.md`.
+3. The relevant live `mcts_mem/` node and its `.alt/` history before a
+   non-trivial design change.
+4. As needed: `CONSTITUTION.md`, `PATTERNS.md`,
+   `spec/kernel-spec-v0.8.md`, and
+   `optimizer-language-research/notes/user-directives.md`.
 
-## Verify (before AND after your work)
+## Verify
 
-- `make check` — root gate: spec CI, rule tests, soundness, perf pins,
-  codegen parity + corpus, conformance. Must be green.
-- `make -C compiler check` — wfc (the production compiler, written in Whitefoot,
-  bootstrapped by `prototype/democ`). Must be green.
+- `make check` is always required. During the Phase-2 foundation it checks
+  repository structure, specification governance and integrity, the retained
+  focused reference model, and conformance data. Its output explicitly says
+  that no compiler exists yet.
+- Once Phase 2 creates `compiler/`, `make -C compiler check` is also required
+  before and after compiler work. The root gate must incorporate it in the same
+  tranche.
+- A release claim uses the separate release gate defined by `THE-PLAN.md`; a
+  green development gate is not a completeness claim.
 
-## Standing rules (owner-ratified; do not relitigate)
+## Standing rules
 
-- English-only project: all project code and documentation must be written in
-  English. More generally, every new or modified repository artifact must be
-  written in English. This includes source identifiers that use natural-language
-  words, comments, diagnostics, string literals intended for readers, test names,
-  fixtures, documentation, reports, plans, prompts, project-authored datasets,
-  and file or directory names. Do not add translations or language-suffixed
-  variants. Programming-language tokens, formal mathematical notation, numeric
-  data, and external proper names are allowed, but all surrounding prose must be
-  English. Before finishing a change, scan changed contents and filenames for
-  non-English prose.
-- `CLAUDE.md` and `AGENTS.md` are repository-level agent instructions and must
-  remain byte-identical. Update both in the same change.
-- Kernel-spec changes are owner-gated, in advance. Before modifying any numbered
-  kernel specification in any way, present the exact proposed delta to the owner
-  and get explicit approval; approval of a plan, phase, or checker task is never
-  approval to edit the spec. Every approved change bumps the specification
-  version and updates the filename, title, and all live references in the same
-  change — never revise a numbered specification in place. Record the owner's
-  approval in `governance/APPROVALS.md`; that logged approval is the
-  authorization to commit.
-- Earn a spec change with evidence, never convenience. The accepted specification
-  is the authority; the current wfc source is not — it is early code that may be
-  wrong. A conflict between wfc and the spec is an investigation, not a license to
-  relax the rule: record the alternatives (fix the code to fit the rule vs. change
-  the rule), their pros and cons, a soundness argument for any proposed relaxation,
-  and measured data (checker feasibility, code shape, performance) before bringing
-  the owner-gated change. Never relax a rule on the ground that existing code
-  violates it; a spec change must be earned by a soundness or design argument that
-  stands on its own, independent of what the current code happens to do.
-- The semantics-bearing test surface is owner-gated the same way: conformance
-  expected verdicts (`conformance/manifest.jsonl` + `conformance/cases/**`),
-  frozen oracle digests, and the reference semantics tests
-  (`prototype/checker/test_checker.py`, `prototype/democ/test_codegen.py`). Add
-  new tests or conformance cases freely, but modifying, deleting, or weakening an
-  existing one — or regenerating a pinned oracle digest — needs the owner's
-  logged approval. Never make a failing check pass by changing what it expects
-  (W3). After approval, run `make approve-spec REASON="..."`.
-- `make check`'s `spec-guard` layer enforces both rules: a guarded change with no
-  matching approval in `governance/APPROVALS.md` fails the build. A red
-  spec-guard means stop and get the owner's approval — not regenerate the
-  baseline to go green.
-- Durability: commit + one `decision-gates.md` line per completed step.
-  Sessions get rewound; git log + gates tail are how work resumes.
-- Fact channels (anything that lets the optimizer assume more) get hostile
-  adversarial review BEFORE shipping. A green gate is not a review.
-- Never trade a check for speed at the source level; proof-elision is the
-  only path (PATTERNS P8). `move`/checks/rows have exactly one spelling.
-- Report results to the owner in plain language; keep project codenames in
-  the repo logs, not in chat.
-- Subagent tiering: sonnet only for mechanical work, opus for most tasks,
+- English only: every new or modified repository artifact, identifier, comment,
+  diagnostic, fixture, test name, document, and file or directory name uses
+  English prose. Formal notation, programming-language tokens, numeric data,
+  and external proper names are allowed.
+- `AGENTS.md` and `CLAUDE.md` must remain byte-identical.
+- The exact first implementation target is
+  `spec/kernel-spec-v0.8.md`, SHA-256
+  `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
+  The implementation does not reinterpret or edit that numbered file.
+- Kernel-spec changes are owner-gated in advance. Present the exact delta, get
+  explicit approval, create a new numbered version and update every live
+  reference, then record the approval in `governance/APPROVALS.md`.
+- Earn a specification change with independent evidence, never implementation
+  convenience. A compiler/spec discrepancy stops for investigation; compiler
+  behavior cannot define the language.
+- Conformance source and expected verdicts, frozen oracle digests, and active
+  reference-semantics tests are owner-gated. Additive tests are free; modifying,
+  deleting, weakening, or regenerating protected material needs exact logged
+  approval followed by `make approve-spec REASON="..."`.
+- A red spec guard means stop and obtain approval. Never regenerate a baseline
+  merely to make the gate green.
+- The conformance corpus is implementation-independent authority. Compiler
+  capability, internal errors, timeouts, verifier failures, and backend
+  failures live in adapter results, not normative expectations.
+- Facts that can increase optimizer authority require hostile adversarial
+  review before shipment. A green gate is not a review.
+- Never trade a source check for speed. Proof-elision is the only path.
+- Durability: each completed step gets one commit and one append-only
+  `decision-gates.md` entry.
+- Keep files cohesive and reviewable. Split by invariant-bearing
+  responsibility, not arbitrary line counts, corpus functions, or one-use
+  forwarding modules.
+- Report results in plain performance and correctness language; keep internal
+  project codenames in repository logs.
+- Subagent tiering: sonnet only for mechanical work, opus for most tasks, and
   top tier for subtle soundness reasoning. Never haiku.
-- Framing: performance and correctness language only.
 
 ## Layout
 
-- `compiler/` — wfc, the self-hosting compiler (Whitefoot sources, Python-run
-  stage-0 tests). The active build track.
-- `prototype/` — democ (stage-0 compiler) + checker; reference semantics.
-- `spec/` — kernel spec, derivation ledger, FR reconciliation.
-- `conformance/`, `codegen-corpus/`, `tools/` — the verification stack.
-- `experiments/` — active measured evidence (see its README).
-- `optimizer-language-research/` — the lab log (`implementation/decision-gates.md`),
-  owner directives (`notes/`), design docs + reviews (`implementation/`).
-- `mcts_mem/` — the design-decision tree; read the relevant node + its
-  `.alt/` before proposing any non-trivial design change; keep it true per
-  the mcts-mem discipline (re-decisions move the old form into `.alt/` with
-  paired whys, in the same change as the code).
-- `archive/` — superseded plans, the research-era record, shelved harnesses.
-  Read-only context; nothing in it gates anything.
+- `spec/` — exact language versions and derivation evidence.
+- `conformance/` — compiler-independent source and expected behavior.
+- `codegen-corpus/` — implementation-independent proof/code-shape premises
+  and hostile near misses; its old democ runner is dormant until replaced.
+- `prototype/checker/` — retained focused reference model, never compiler or
+  language authority.
+- `compiler/` — the fresh Rust production compiler once Phase 2 creates it.
+- `tools/` — active repository, governance, and verification tooling.
+- `experiments/` — measured evidence and open development workloads.
+- `optimizer-language-research/` — owner directives, decision log, design
+  dossiers, and historical research evidence.
+- `mcts_mem/` — current design decisions plus rejected alternatives.
+- `archive/` — inert historical material. No active tool, build, test, or
+  source import may read from it.
 
-## Current authority and authorization
+## Current authority
 
-`THE-PLAN.md` is the sole source for current status, execution order, phase
-gates, and next work. Owner directives and the decision log preserve rulings
-and evidence. Design dossiers and archived plans do not authorize work.
-
-The owner has authorized phases 1 through 7 in `THE-PLAN.md`, in order, through
-the complete acceptance ledger for `seq`. Each phase keeps its written gates
-and stop conditions. Concurrency and later catalog work remain outside this
-authorization and require a new owner directive.
+The owner replaced the self-host-first wfc/democ route on 2026-07-20. The old
+implementations are archived, the exact v0.8 Rust implementation is the active
+direction, and there is no disposable Rust compiler. `THE-PLAN.md` authorizes
+phases 1 through 5 in order through the production v0.8 compiler baseline.
+Specification changes, Phase-7 product qualification, and any later
+self-hosting require their stated separate owner gates.

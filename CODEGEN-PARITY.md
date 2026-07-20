@@ -1,11 +1,20 @@
-# Codegen-parity gate
+# Dormant codegen-parity design
 
-This gate answers a narrower question than a benchmark: did a compiler change
+Status: historical runner, active compiler-independent corpus.
+
+The 2026-07-20 toolchain reset retired the democ compiler that this harness
+invokes. The manifest, corpus, policy design, and frozen oracle digests remain
+preserved, but neither this harness nor the commands below are active gates.
+Phase 2 must bind the permanent Rust compiler to the corpus through a new
+adapter before promoting any of these checks. A missing democ path is not a
+compiler result.
+
+The design answers a narrower question than a benchmark: did a compiler change
 silently lose a code-generation property that the project has already earned?
 It recompiles every input in a temporary directory and checks optimized LLVM
 IR, loop-vectorizer remarks, and per-function machine opcode sequences.
 
-Run it with:
+Historical invocations were:
 
 ```sh
 make parity

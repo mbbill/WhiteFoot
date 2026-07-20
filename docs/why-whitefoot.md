@@ -470,7 +470,14 @@ The specification pins the facts: one spelling per construct and one byte-level 
 
 What that buys, labeled by evidence status:
 
-- **Reproducibility (by construction, exercised).** Same source, same artifact, byte-identical binaries. The project's own gate shows it at scale: continuous integration pins the self-hosted compiler's optimized object by SHA-256, a 264 KB binary reproduced to the byte.
+- **Reproducibility (by construction, partially exercised).** The language and
+  artifact design require byte-stable results for the same source and pinned
+  toolchain. The retired compiler prototypes exercised deterministic parsing
+  and selected IR fixtures, but Whitefoot does not yet have a complete
+  self-hosted compiler or a production-object reproducibility result. The Rust
+  compiler roadmap therefore treats deterministic source, artifacts,
+  diagnostics, and target-qualified output as release gates rather than as an
+  already earned claim.
 - **Semantic diff and merge (by construction).** No formatting variance exists, so every diff is a semantic diff. There is no "reformatted, 2,000 lines changed" commit, no style debate, and nowhere for an unintended edit to hide in noise. For AI-written code this is the review story: what changed is what the diff says changed.
 - **Caching and build speed (projected, labeled).** Source-to-tree is a bijection, the canonical artifact is deterministic, and effect rows already decouple optimization from body visibility (§ 4, the measured half of this claim). Those are the preconditions content-addressed build caching wants, designed in on purpose. The honest status: the design removes the classical obstacles to very fast incremental compilation, and no build-speed number is measured yet.
 - **The repair loop (by construction, exercised daily).** Deterministic, rule-citing, byte-stable diagnostics are an API, not prose. The writer that consumes them is a machine: same mistake, same message, same fix, every time. This is what "the AI can act on failure" means in practice.

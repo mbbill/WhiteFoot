@@ -56,3 +56,8 @@ semantic change, a pointer to the recorded investigation it rests on.
 - owner: approved in session
 - reason: Owner-approved v0.7->v0.8 tag-only enum equality: exact eeq/ene delta and guarded conformance-META updates in enum-equality-investigation/V0.8-DELTA-DRAFT.md
 - baseline: 3222e16164d319ba4367368aeabe7396d4360d144e07fd68e819b3afc2f54630
+
+## 2026-07-20 — approval
+- owner: approved in session
+- reason: Owner-approved retirement of prototype/democ/test_codegen.py with the archived democ implementation on 2026-07-20; test bytes preserved under archive/toolchains/self-hosting-2026-07-20/democ/test_codegen.py; kernel v0.8, conformance cases and verdicts, frozen oracle digests, and active prototype/checker/test_checker.py unchanged.
+- baseline: 9d4ff925668a3341543d555c5243ef0b74ca5e7e275617ff4808d90c290dc48a

@@ -7,11 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from verify_project_state import (
-    DESIGN_PACKAGE,
-    REQUIRED_DESIGN_FILES,
-    verify,
-)
+from verify_project_state import verify
 
 
 INSTRUCTIONS = """# Agents
@@ -29,12 +25,6 @@ def make_root(path: Path) -> None:
     (path / "AGENTS.md").write_text(INSTRUCTIONS, encoding="utf-8")
     (path / "CLAUDE.md").write_text(INSTRUCTIONS, encoding="utf-8")
     (path / "THE-PLAN.md").write_text(ROADMAP, encoding="utf-8")
-    for relative in REQUIRED_DESIGN_FILES:
-        target = path / DESIGN_PACKAGE / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text("evidence\n", encoding="utf-8")
-
-
 class ProjectStateTests(unittest.TestCase):
     def test_minimal_valid_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

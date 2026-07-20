@@ -35,7 +35,10 @@ codegen-corpus/
         n21-output-buffer-uniq-reborrow.wf
 ```
 
-Run all families or select a tag:
+The source families and their premise/near-miss classifications remain active
+compiler-independent data. The former democ runner is dormant after the
+2026-07-20 toolchain reset; Phase 2 must bind these manifests to the Rust
+adapter before any family regains gate authority. Historical commands were:
 
 ```sh
 make corpus

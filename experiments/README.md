@@ -5,7 +5,12 @@ with measured numbers and honest caveats). Binaries/corpora are regenerable
 and gitignored. Chronology and decisions live in
 `../optimizer-language-research/implementation/decision-gates.md`.
 
-## Fact-channel benchmarks (democ facts vs --no-facts vs Rust/C)
+## Historical fact-channel benchmarks
+
+These results used the now-archived democ implementation. They remain measured
+evidence and regression requirements for the Rust compiler, but their harnesses
+are not active compiler gates during Phase 2.
+
 - `effect-attrs-channel/` — channel 2: effect rows -> LLVM fn attributes.
   O(n)->O(1) at opaque boundaries; ties fat LTO at per-file build cost.
 - `scoped-alias-channel/` — channel 1: ownership provenance -> alias.scope.
@@ -54,9 +59,11 @@ and gitignored. Chronology and decisions live in
   ~parity BSD (table-width algorithm gap); PROOF-1 discharges 15/27 bounds
   sites and improves the kernel 2.50 -> 2.93 GB/s, with PROOF-2 debt isolated.
 
-## Gate fixtures
-- `codegen-vs-rust-c/` — the splitmix scalar-backend-parity fixture (LIVE:
-  referenced by the parity gate; do not archive).
+## Preserved code-generation fixtures
+
+- `codegen-vs-rust-c/` — the splitmix scalar-backend-parity evidence. Its old
+  democ runner is dormant; Phase 2 will bind the fixture to the Rust adapter
+  before it can regain gate authority.
 
 ## Earlier corpus-era studies
 Moved to `../archive/experiments/` (scatter residual, guarded-plan

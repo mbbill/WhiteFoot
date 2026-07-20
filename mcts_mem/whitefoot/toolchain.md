@@ -1,13 +1,11 @@
-- The production compiler (wfc) is written in Whitefoot itself; the Python prototype is stage 0 only, compiling wfc until wfc compiles itself, with self-hosting defined as a byte-identical emitted-IR fixpoint across stages.
-- wfc is built on fixed-capacity structure-of-arrays tapes backed by primitive buffers; token and node counts are bounded from source size, and the bootstrap needs no growable collections, no pool, and no general generics.
-- Compilation is one whole-program unit in a deterministic declaration order; the target is LLVM IR text, and the external C compiler is driven by the build system, never spawned by the compiler.
-- Two standing verification gates guard every change: the conformance/model-check/perf-pin gate, and the codegen-parity gate over earned IR, opcode, and proof-site properties, with audit-versus-gate maturity keeping known debt visible without becoming contract.
-- Stage 0 builds wfc with optimizer facts disabled until wfc's own effect checking is complete.
-- The bootstrap first reaches a facts-off, byte-identical fixpoint over the compiler's source subset. wfc then closes the rest of the current language, enables fact channels one at a time, and re-establishes the fixpoint with facts on.
-- Stage 0 freezes after the first fixpoint and remains an independent oracle for the language it already supports. Later production-language changes land in wfc; focused reference checkers remain independent semantic oracles.
-- Body semantics is one source-independent, syntax-directed checker with rule-level dispatch on AST and resolved semantic state; atomic unit acceptance produces one unit-bound elaborated artifact, and lowering is one generic consumer of that artifact. Delivery slices do not become whole-function or subtree profiles or family dispatch. Exact local AST, type, ownership, region, call, flow, and effect validation remains mandatory, but no conjunction of source name, ordinal, nominal spelling, signature, literals, statement sequence, callees, loop shape, or complete subtree acts as a production fingerprint or selects an alternative admission path.
-- Facts-off bootstrap accepts legal checked operations with their traps intact. Source-specific proofs of bounds, overflow freedom, termination, or literal properties are not acceptance prerequisites; any later check removal belongs to an independently reviewed optimizer fact channel.
-- Completed semantic tranches close their preregistered atomic facets and any temporary helper debt, preserve valuable defect regressions, and remove superseded source-specific authority and duplicated logic. Coverage counts are recorded and explained, but their sign is never an exit gate.
+- Compiler input is one explicitly ordered, closed multi-file unit. Declaration order, diagnostics, and artifacts are deterministic; the compiler emits LLVM IR text, while the build system invokes external native tools.
+- Conformance authority is compiler-independent and bound to the exact specification identity. Implementation capability is recorded separately from normative expected verdicts.
+- A specification-hash-bound facet catalog accounts for every grammar, semantic, diagnostic, artifact, runtime, lowering, and whole-program obligation.
+- One source-independent, syntax-directed checker handles arbitrary finite programs. Successful checking publishes a failure-atomic checked unit bound to the exact source, canonical tree, specification, facet catalog, and proof schema.
+- A separate closed verifier validates source binding, local proofs, whole-unit closure, and catalog completeness. It does not parse frontend source, reproduce frontend semantics, search for proofs, optimize, lower, execute, or generate diagnostics.
+- One generic lowerer consumes only verified checked artifacts. Required runtime checks remain present when optimizer facts are disabled.
+- Optimizer facts are a separately verified optional overlay. They cannot change source acceptance, remove checks without proof, or select an alternate lowerer.
+- Verification combines conformance, independent models, mutants, fuzzing, code generation, runtime behavior, determinism, resource bounds, and target checks. Every fact channel receives hostile adversarial review before shipment.
 
 ## Facts
 

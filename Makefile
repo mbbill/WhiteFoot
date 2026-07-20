@@ -1,36 +1,41 @@
-# whitefoot verification stack — `make check` runs every layer.
+# Whitefoot repository foundation gate.
+#
+# Phase 2 has no active compiler yet. `make check` validates the durable
+# specification, governance, reference model, and conformance data. The Rust
+# compiler gate is added as the first Phase-2 implementation step; until then a
+# compiler or release claim is intentionally unavailable.
+
 PY=python3 -B
-check: project-state spec-guard spec rules soundness perf parity conformance bootstrap
-	@echo "== ALL VERIFICATION LAYERS GREEN =="
-project-state:             # repository structure: one plan, coherent design package
+
+check: project-state spec-guard spec reference-model conformance
+	@echo "== REPOSITORY FOUNDATION GATE GREEN; NO ACTIVE COMPILER =="
+
+project-state:
 	$(PY) tools/test_verify_project_state.py
 	$(PY) tools/verify_project_state.py
-spec-guard:                # owner-gated surfaces: kernel spec, conformance verdicts, oracle digests, reference tests
+
+spec-guard:
 	$(PY) tools/spec_guard.py --check
 	$(PY) tools/test_spec_guard.py
-approve-spec:              # regenerate the guard baseline + log an owner approval; approved changes ONLY
+
+approve-spec:
 	$(PY) tools/spec_guard.py --approve --reason "$(REASON)"
-spec:                      # layer 1: spec integrity (META rules, ledger coverage)
+
+spec:
 	$(PY) tools/spec_ci.py
-rules:                     # layer 2: rule-keyed checker + stage-0 codegen correctness
-	cd prototype/checker && $(PY) test_checker.py -v 2>&1 | tail -2
-	cd prototype/democ && $(PY) test_codegen.py
-	cd prototype/democ && $(PY) test_entry_allocas.py
-soundness:                 # layer 3: generative model check vs independent oracle
+
+reference-model:
+	cd prototype/checker && $(PY) test_checker.py -v
 	cd prototype/checker && $(PY) modelcheck.py 10000
-perf:                      # layer 4: pinned optimizer-fact effects
-	cd prototype/democ && $(PY) perf_regress.py
-	$(PY) experiments/port-study/base64/verify.py
-parity:                    # layer 5: whitefoot/facts-off/C/Rust codegen properties + visible debt
-	$(PY) tools/test_checked_automation.py
-	$(PY) tools/codegen_parity.py --corpus --promotion
-corpus:                    # focused proof/codegen corpus; positive + adversarial gates
-	$(PY) tools/test_checked_automation.py
-	$(PY) tools/codegen_parity.py --corpus --tag bounds
-conformance:               # layer 6: spec-anchored rule-keyed conformance suite (source -> verdict)
-	$(PY) conformance/runner.py all
-bootstrap:                 # layer 7: permanent wfc components compiled by disposable stage 0
-	$(MAKE) -C compiler check
-examples:                  # smoke: compile & run the demo programs
-	cd prototype/democ && $(PY) democ.py examples/ex1.wf --run && $(PY) democ.py examples/ex2.wf --run
-.PHONY: check project-state spec-guard approve-spec spec rules soundness perf parity corpus conformance bootstrap examples
+
+conformance:
+	$(PY) conformance/runner.py coverage
+
+conformance-run:
+	$(PY) conformance/runner.py run
+
+release-check:
+	@echo "release gate unavailable: Phase 2 has no active Rust compiler"
+	@false
+
+.PHONY: check project-state spec-guard approve-spec spec reference-model conformance conformance-run release-check

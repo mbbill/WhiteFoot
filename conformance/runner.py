@@ -3,14 +3,12 @@
 
 Each case is a canonical `.wf` source (conformance/cases/<id>.wf) plus a manifest
 entry (conformance/manifest.jsonl) declaring the rule id(s) it exercises and the
-expected verdict. Cases are driven through a TOOLCHAIN ADAPTER — democ today, any
-conformant whitefoot compiler (real, then self-hosted) tomorrow — and the verdict is
-asserted; for a rejection the EXACT cited rule id is checked [DIAG-1]. A coverage
-tracker binds cases to the spec's rule ids and reports which rules are untested.
+expected verdict. Cases are driven through a named toolchain adapter. No active
+adapter exists during the Rust compiler foundation phase; coverage remains
+available and an attempted semantic run fails explicitly.
 
-Because it tests the LANGUAGE (source -> verdict), not a prototype's internals, this
-suite outlives every compiler rewrite, including self-hosting. It is the correctness
-oracle the M3 AI-codegen harness scores against, and the bootstrap safety net.
+Because it tests the LANGUAGE (source -> verdict), not a compiler's internals, this
+suite outlives compiler implementations.
 
 Verdict = ("accept",) | ("reject", rule) | ("run", exit) | ("trap",) | ("unsupported", why)
 
@@ -24,40 +22,16 @@ Manifest line (JSON):
                   not yet produce it (a tracked gap) — reported, non-failing; if it
                   starts matching, it is flagged XPASS (fix landed; drop the xfail).
 """
-import json, re, sys, subprocess, tempfile
+import json, re, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 CASES = HERE / "cases"
 MANIFEST = HERE / "manifest.jsonl"
-sys.path[:0] = [str(ROOT / "prototype" / "democ"), str(ROOT / "prototype" / "checker")]
-CLANG = "/usr/bin/clang" if Path("/usr/bin/clang").exists() else "clang"
-
-
-# -- toolchain adapter: swap this out for the real / self-hosted compiler ----------
-def adapter_democ(source, want_run):
-    import democ
-    from checker import CheckError
-    try:
-        ir = democ.compile_program(source)
-    except CheckError as e:                      # a spec rejection, with its rule id
-        return ("reject", e.rule)
-    except (SystemExit, AssertionError, KeyError, IndexError, AttributeError, ValueError) as e:
-        return ("unsupported", f"{type(e).__name__}: {str(e)[:80]}")   # outside democ's subset
-    if not want_run:
-        return ("accept",)
-    with tempfile.TemporaryDirectory() as d:
-        ll, exe = Path(d) / "m.ll", Path(d) / "m"
-        ll.write_text(ir)
-        c = subprocess.run([CLANG, "-O2", str(ll), "-o", str(exe)], capture_output=True, text=True)
-        if c.returncode != 0:
-            return ("unsupported", f"clang: {c.stderr[:80]}")
-        r = subprocess.run([str(exe)], capture_output=True)
-        return ("trap",) if r.returncode < 0 else ("run", r.returncode)   # <0 = killed by signal (llvm.trap)
-
-
-ADAPTER = adapter_democ
+# Phase 2 installs a named Rust adapter. Keeping this explicit prevents a
+# missing compiler, crash, or broad exception from becoming `Unsupported`.
+ADAPTER = None
 
 
 def matches(v, expect):
@@ -81,6 +55,10 @@ def load_manifest():
 
 
 def run_cases(cases):
+    if ADAPTER is None:
+        raise RuntimeError(
+            "no active compiler adapter; use `coverage` until Phase 2 installs one"
+        )
     results = []
     for c in cases:
         status = c.get("status", "runnable")
@@ -129,17 +107,26 @@ def main():
     cases, annots = load_manifest()
     fail = 0
     if cmd in ("run", "all"):
-        tally = {}
-        for c, o, v in run_cases(cases):
-            tally[o] = tally.get(o, 0) + 1
-            if o in ("FAIL", "XPASS"):
-                fail += 1
-                print(f"  {o:5} {c['id']:38} want {c['expect']} got {v}")
-            elif o == "XFAIL" and verbose:
-                print(f"  XFAIL {c['id']:38} ({c.get('reason','known gap')})")
-            elif o == "SKIP" and verbose:
-                print(f"  SKIP  {c['id']:38} {v[1] if len(v) > 1 else 'pending'}")
-        print("conformance run: " + "  ".join(f"{k}={tally[k]}" for k in sorted(tally)))
+        if ADAPTER is None:
+            print(
+                "conformance run: UNAVAILABLE — no active compiler adapter",
+                file=sys.stderr,
+            )
+            fail += 1
+            if cmd == "run":
+                raise SystemExit(fail)
+        else:
+            tally = {}
+            for c, o, v in run_cases(cases):
+                tally[o] = tally.get(o, 0) + 1
+                if o in ("FAIL", "XPASS"):
+                    fail += 1
+                    print(f"  {o:5} {c['id']:38} want {c['expect']} got {v}")
+                elif o == "XFAIL" and verbose:
+                    print(f"  XFAIL {c['id']:38} ({c.get('reason','known gap')})")
+                elif o == "SKIP" and verbose:
+                    print(f"  SKIP  {c['id']:38} {v[1] if len(v) > 1 else 'pending'}")
+            print("conformance run: " + "  ".join(f"{k}={tally[k]}" for k in sorted(tally)))
     if cmd in ("coverage", "all"):
         rules, spec_name, covered, by_case, annotated, pos, neg, uncovered = coverage(cases, annots)
         print(f"coverage ({spec_name}): {len(covered)}/{len(rules)} rules covered "

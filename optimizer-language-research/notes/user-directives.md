@@ -826,3 +826,39 @@ does not authorize compiler cleanup: the separate implementation entrance gate
 in `THE-PLAN.md` still requires a read-only debt inventory, complete architecture
 packet, preregistered first tranche, hostile review, and explicit written owner
 approval.
+
+## D22 (2026-07-20): One safe-Rust production compiler for exact v0.8
+
+The owner replaced the self-host-first ladder and its wfc recovery path with the
+following direction:
+
+1. **Exact target.** The first production compiler implements the exact
+   normative content of `spec/kernel-spec-v0.8.md`, SHA-256
+   `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
+   Its provisional and deferred markings do not silently change. Every later
+   specification delta remains separately owner-gated and creates a new
+   immutable numbered version.
+2. **One permanent implementation.** The production compiler starts fresh in
+   safe Rust and proceeds directly through the permanent checked-artifact
+   architecture. There is no disposable Rust compiler and no parallel compiler
+   ladder. Self-hosting is a later product decision, not a prerequisite.
+3. **Retired predecessors.** wfc and democ move intact to an inert historical
+   archive. No active build, source import, semantic decision, lowering path, or
+   release claim may depend on them. General defects may be re-derived as
+   additive tests against permanent interfaces; retired implementation code is
+   not transplanted.
+4. **Durable authority.** The exact specification, compiler-independent
+   conformance corpus, focused independent models, facet catalog, checked-unit
+   contract, independent verifier, generic facts-off lowering, and later
+   separately verified fact overlays form the durable implementation program.
+5. **Authorization.** Phases 1 through 5 of the rewritten `THE-PLAN.md` are
+   authorized in order through the exact-v0.8 production baseline. Phase 6
+   research and additive dogfood evidence are authorized, but cannot alter the
+   specification. Phase 7 qualification and any self-hosting work require a new
+   explicit owner decision.
+
+The owner explicitly authorized retiring `prototype/democ/test_codegen.py`
+with democ. Its bytes remain preserved under
+`archive/toolchains/self-hosting-2026-07-20/democ/test_codegen.py`. This
+authorization changes no kernel-specification byte, conformance verdict, frozen
+oracle digest, or active reference-checker expectation.

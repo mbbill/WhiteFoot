@@ -1,13 +1,11 @@
 # Whitefoot conformance suite
 
 A **spec-anchored, rule-keyed, toolchain-agnostic** test system. It tests the
-*language* — `source → verdict` — not any prototype's internals, so the same suite
-validates every implementation: today's demo compiler, the real compiler, and the
-self-hosted compiler. It is the correctness oracle the M3 AI-codegen harness scores
-against, and the safety net for the self-hosting bootstrap.
+*language* — `source → verdict` — rather than compiler internals, so the same
+suite validates the fresh Rust compiler and any later replacement.
 
-It is the production artifact of the toolchain. The checker and democ are disposable;
-the guarantees this suite pins are not.
+It is a production artifact of the toolchain. Compiler implementations are
+replaceable; the guarantees this suite pins are not.
 
 ## Layout
 - `cases/<id>.wf` — one canonical Whitefoot program per case (also a FORM-1/2 byte-exact fixture).
@@ -34,10 +32,10 @@ the guarantees this suite pins are not.
 
 ## Run
 ```
-python3 conformance/runner.py run        # cases; nonzero exit on any FAIL or XPASS
+python3 conformance/runner.py run        # requires an installed compiler adapter
 python3 conformance/runner.py coverage   # which of the spec's rules have a case
-python3 conformance/runner.py all -v     # both, verbose
-make conformance                         # the same, as make-check layer 5
+python3 conformance/runner.py all -v     # run plus coverage; unavailable before adapter
+make conformance                         # corpus/coverage integrity during Phase 2
 ```
 
 ## Adding a case
@@ -45,8 +43,9 @@ Write `cases/<id>.wf` in canonical form, add a manifest line tagging the rule(s)
 expected verdict. Prefer one rule per negative case (so the coverage map is precise). To
 close a coverage gap, target a rule from the `untested` list the coverage report prints.
 
-## Plugging in a new compiler
-The only coupling to the current toolchain is `ADAPTER` in `runner.py` — a function
-`(source, want_run) -> verdict`. Point it at the real (then self-hosted) compiler and the
-entire corpus runs against it unchanged. That is the reuse: the corpus is the contract; the
-compiler behind the adapter is swappable.
+## Plugging in a compiler
+
+Phase 2 replaces the temporary `ADAPTER` slot in `runner.py` with a selectable,
+structured adapter protocol. Semantic expectations stay in this corpus;
+compiler capability and failures stay in adapter-owned data. The corpus is the
+contract and the implementation behind an adapter is replaceable.

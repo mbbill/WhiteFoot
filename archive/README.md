@@ -33,3 +33,7 @@ anything; no tool or test reads from this tree.
   `verifier-tools/` (inert — not run). ~179MB.
 - `research/capability-floor/` — the general-purpose data-structure capability
   floor research (2026-07-13) that preceded and fed the D15 pass.
+- `toolchains/self-hosting-2026-07-20/` — the retired Whitefoot wfc, Python
+  democ, and tape-era inventory. Their exact Git
+  identities and replay instructions are recorded inside. The active compiler
+  starts fresh in Rust and imports nothing from this archive.
