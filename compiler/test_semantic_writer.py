@@ -28,7 +28,7 @@ from test_semantic_unit import (
 )
 
 def assert_reader_flat_report_writer(library):
-    # F3 bounded slices: exactly one exclusive struct borrow, one matching
+    # F3 bounded slices: one or more same-region exclusive struct borrows, one matching
     # writes(region) row, a nonempty flat sequence of direct field assignments
     # from own parameters or exact scalar/tag literals, and a final `return unit`.
     # The declared write row is an optimizer fact, so every broader or malformed
@@ -144,13 +144,23 @@ def assert_reader_flat_report_writer(library):
         )
     )
 
-    # The target must be one direct field of exactly one exclusive struct
-    # parameter. Shared targets and multiple exclusive roots stay deferred.
+    # Every target must be one direct field of an exclusive struct parameter.
+    # Multiple roots are admitted only when every root belongs to the one write
+    # region; shared and cross-region roots stay deferred.
     assert_unsupported(report_writer.replace(b"&uniq 'w", b"&'w"))
-    assert_unsupported(
+    assert_clean(
         b"struct WriterCell {\n  value: u64;\n}\n"
         b"fn writer_two ['w] (left: &uniq 'w WriterCell, "
         b"right: &uniq 'w WriterCell, value: own u64) -> own unit "
+        b"writes('w) {\n"
+        b"  set deref(left).value = value;\n"
+        b"  set deref(right).value = value;\n"
+        b"  return unit;\n}\n"
+    )
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_cross ['w, 'x] (left: &uniq 'w WriterCell, "
+        b"right: &uniq 'x WriterCell, value: own u64) -> own unit "
         b"writes('w) {\n"
         b"  set deref(left).value = value;\n"
         b"  return unit;\n}\n"
@@ -549,7 +559,8 @@ def main():
         configure(library)
         assert_reader_flat_report_writer(library)
     print(
-        "semantic writer: exact writes-only and two-region mixed flat writers; "
+        "semantic writer: same-region multi-root writes-only and exact two-region "
+        "mixed flat writers; "
         "own values, canonical integers, prior direct u64 constants, nullary "
         "tags, attributed call RHS values, and hostile effect, nominal, binding, "
         "shape, topology, and deferred-profile fences pass"

@@ -578,8 +578,8 @@ fn semantic_reader_writer_signature_valid ['c] (source: &'c buffer<u8>, tokens: 
       True() => {
         let function_terminal: own u64 = index<u64>(deref(ast).next_siblings, child);
         let function_terminated: own Bool = ieq<u64>(function_terminal, ast_none);
-        let exactly_one_uniq: own Bool = ieq<u64>(uniq_count, 1_u64);
-        return band<Bool>(function_terminated, exactly_one_uniq);
+        let has_uniq: own Bool = igt<u64>(uniq_count, 0_u64);
+        return band<Bool>(function_terminated, has_uniq);
       }
       False() => {
       }

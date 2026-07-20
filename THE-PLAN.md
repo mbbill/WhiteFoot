@@ -294,8 +294,8 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-557 functions: 99 clean, 458 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,454,227 source bytes, 289,529 tokens, and
+557 functions: 100 clean, 457 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,454,211 source bytes, 289,529 tokens, and
 143,724 unique-head AST nodes. The parser census is 3,636 regionful calls: 294
 explicit and 3,342 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
@@ -331,8 +331,8 @@ loop/local-mutation unlock; admitting owned-parameter mutation also conflicts
 with stage-0 lowering and unlocked zero compiler functions, so that experiment
 was fully reverted and the bounded F2 compiler-family tranche is complete.
 
-The first four bounded F3 writer slices are complete. The writes-only profile admits exactly one exclusive
-borrow of a struct in exactly one declared region, an exact writes-only row for
+The first five bounded F3 writer slices are complete. The writes-only profile admits one or more exclusive
+borrows of structs in exactly one declared region, an exact writes-only row for
 that region, one or more flat direct scalar/tag-only-enum field assignments from
 own parameters, canonical `u8`/`u64` literals, or exact nullary `Bool`/tag-only-
 enum constructors, or a prior direct top-level `u64` constant initialized by a
@@ -343,7 +343,7 @@ equality. Constant resolution is likewise writer-local: it requires the exact
 value-symbol binding, declaration-before-use, exact const/name/type/value topology,
 source-anchored head tokens, and exact `u64` type and initializer. It admits no
 mutable global state (which the language forbids), forward reference, alias,
-array, non-`u64` constant, or function symbol. Shared or multiple exclusive roots,
+array, non-`u64` constant, or function symbol. Shared or cross-region exclusive roots,
 general `unit` readers, borrowed RHS values, payload or ambiguous constructors,
 general constructor expressions, missing/spurious or wrong-region writes, nested
 control, writer calls, and non-unit returns remain unsupported. The first slice moved exactly
@@ -378,8 +378,15 @@ both call-region arguments explicitly, moving exactly that one pre-existing func
 to CLEAN. Hostile review pinned omitted and wrong call regions, extra roots and
 regions, missing/spurious/wrong rows, wrong call results, hidden write-effect callees,
 malformed region nodes, call topology, and duplicate effect nodes. Mixed-profile
-logic lives in a focused 237-line module; its focused hostile test is 560 lines and
-the general reader is 6,620 lines. F3 remains active for the deferred indexed and
+logic lives in a focused 237-line module. The fifth slice extends the established
+writes-only signature proof from exactly one exclusive root to one or more roots,
+while requiring every root, including unused roots, to belong to the singleton
+declared write region. The existing body proof already checks every assignment
+target independently against an exclusive parameter and that region. This moves
+exactly `semantic_body_mark_failure`, whose three exclusive output tapes share one
+region, to CLEAN; shared roots, zero roots, and an unused cross-region root remain
+Unsupported. Its focused hostile test is 571 lines and the general reader remains
+6,620 lines. F3 remains active for the deferred indexed and
 control-flow writer profiles. `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. F4 bounded statement-scoped
 reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in
