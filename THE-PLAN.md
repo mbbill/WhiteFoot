@@ -377,16 +377,19 @@ the canonical generated catalog SHA-256 is
 `2fa586a8a1d9a49f344d64ad2b5f450a2ae2e8362bc187c70267097b9b427e1d`.
 The bounded checker accepts only exact specification, source-index, and
 canonical fragment bytes. A checked-in descriptive sidecar is regenerated from
-those authorities and records 13 exact, non-waivable specification or
-protected-surface discrepancies. Only their affected facets are blocked; no
-record chooses semantics or authorizes a release. Token, tree, declaration,
+those authorities and records 14 exact, non-waivable specification or
+protected-surface discrepancies. The latest audit isolates DIAG-1's missing
+location representation for rejection before a canonical tree exists; it
+blocks only the node-path-attribution facet and does not block a lossless lexer
+that publishes no normative rejection ABI. Only affected facets are blocked;
+no record chooses semantics or authorizes a release. Token, tree, declaration,
 type, instantiation, check, and proof identities remain deliberately unfrozen
 until their canonical schemas exist; traversal counters must not become
-artifact authority. The implementation capability overlay now lives outside the
-Cargo workspace, binds the exact catalog, rejects blocked handler claims, and
-contains no verdict or completion state. The foundation registers no evidence
-replay provider, so its empty overlay closes nothing; opaque receipt references
-would remain unresolved and grant nothing. Production Rust cannot contain direct
+artifact authority. The implementation capability overlay now lives outside
+the Cargo workspace, binds the exact catalog, rejects blocked handler claims,
+and contains no verdict or completion state. The foundation registers no
+evidence replay provider, so its empty overlay closes nothing; opaque receipt
+references would remain unresolved and grant nothing. Production Rust cannot contain direct
 contiguous facet-ID source occurrences. Workspace policy scans every `.rs` file
 under `compiler/crates/`, forbids `#[path]`, and permits only the exact
 specification and static semantic-catalog locks as source-level included data.

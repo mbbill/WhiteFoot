@@ -96,6 +96,13 @@ REGISTRATIONS = (
         ("successor-numbered-specification",),
     ),
     Registration(
+        "discrepancy:v0.8/diag1-pre-tree-node-path",
+        "internal-specification-gap",
+        "predicate:diag1-pre-tree-node-path-completeness",
+        ("facet:DIAG-1/node-path-attribution",),
+        ("successor-numbered-specification",),
+    ),
+    Registration(
         "discrepancy:v0.8/diag3-retained-proof-ref",
         "internal-specification-gap",
         "predicate:diag3-retained-check-proof-ref-completeness",
@@ -1430,6 +1437,95 @@ def observe_diag3_retained_proof_ref(
     return Observation(True, evidence)
 
 
+def observe_diag1_pre_tree_node_path(
+    specification: bytes,
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record the missing location contract for rejection before a tree exists."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "diag1_universal_path": (
+                b"Every rejection cites exactly one rule ID, the node path in the "
+                b"canonical tree, and where applicable a mechanical fix or restructuring."
+            ),
+            "form1_noncanonical_hard_error": (
+                b"Non-canonical input is a hard error; "
+            ),
+            "form1_unknown_hard_error": (
+                b"Unknown constructs are hard errors (conservative extension).\n"
+            ),
+            "form2_utf8_requirement": b"Formatting, exhaustively: UTF-8;",
+            "gram1_node_contract": (
+                b"Every production maps 1:1 to one core-tree node kind; "
+                b"there is no desugaring."
+            ),
+            "scope2_parse_requirement": (
+                b"[SCOPE-2] A program is accepted iff it parses under the "
+                b"canonical grammar, "
+            ),
+        },
+        {
+            "diag1_universal_path": {
+                "byte_end": 58633,
+                "byte_start": 58498,
+                "sha256": (
+                    "ea4b9d5fe33924f33dda38e02b906c5c"
+                    "14d76250014f31c2af299f626eb4a9f5"
+                ),
+            },
+            "form1_noncanonical_hard_error": {
+                "byte_end": 7696,
+                "byte_start": 7659,
+                "sha256": (
+                    "be6129f4b4e6c6781688d5b56718ec57"
+                    "99b804ccd47a63c9f498a5697c63f6f5"
+                ),
+            },
+            "form1_unknown_hard_error": {
+                "byte_end": 7791,
+                "byte_start": 7730,
+                "sha256": (
+                    "a6db94e026f58654700c92a544473ed2"
+                    "0d04796bd1717e277d5206c28807ff53"
+                ),
+            },
+            "form2_utf8_requirement": {
+                "byte_end": 7833,
+                "byte_start": 7801,
+                "sha256": (
+                    "7449c18148efd9b3fc9c7e16f0977a9b"
+                    "409af9e8345871cddd00f694d05f10d0"
+                ),
+            },
+            "gram1_node_contract": {
+                "byte_end": 12345,
+                "byte_start": 12268,
+                "sha256": (
+                    "0f10dd0af3c839004ed9fae81ee611804"
+                    "3a10ed9cf48476a0c406f6a3386cfe2"
+                ),
+            },
+            "scope2_parse_requirement": {
+                "byte_end": 6696,
+                "byte_start": 6621,
+                "sha256": (
+                    "b3cc1e52a8c187dccd3f3f8d21b430eb"
+                    "090a37d52e541f3cfe5cf5e092eab6af"
+                ),
+            },
+        },
+        "DIAG-1 pre-tree node-path evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["missing_contract"] = (
+        "pre-canonical-tree-rejection-location-representation"
+    )
+    return Observation(True, evidence)
+
+
 def validate_registry(
     observations: Mapping[str, Observation],
 ) -> dict[str, Registration]:
@@ -1476,6 +1572,9 @@ def recompute(authorities: inputs.AuthorityInputs) -> dict[str, Observation]:
     observations = {
         "discrepancy:v0.8/affine-deref-storage-lifecycle": (
             observe_affine_deref_lifecycle(authorities.specification)
+        ),
+        "discrepancy:v0.8/diag1-pre-tree-node-path": (
+            observe_diag1_pre_tree_node_path(authorities.specification)
         ),
         "discrepancy:v0.8/diag3-retained-proof-ref": (
             observe_diag3_retained_proof_ref(authorities.specification)

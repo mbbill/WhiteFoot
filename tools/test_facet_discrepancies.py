@@ -27,6 +27,7 @@ SYNTHETIC_FACETS = {
 }
 EXPECTED_OPEN_IDS = (
     "discrepancy:v0.8/affine-deref-storage-lifecycle",
+    "discrepancy:v0.8/diag1-pre-tree-node-path",
     "discrepancy:v0.8/diag3-retained-proof-ref",
     "discrepancy:v0.8/eff1-row-canonicality",
     "discrepancy:v0.8/eff2-local-region-effects",
@@ -385,6 +386,9 @@ class PinnedPredicateTests(unittest.TestCase):
             "discrepancy:v0.8/diag3-retained-proof-ref": [
                 "facet:DIAG-3/check-report-schema",
             ],
+            "discrepancy:v0.8/diag1-pre-tree-node-path": [
+                "facet:DIAG-1/node-path-attribution",
+            ],
             "discrepancy:v0.8/eff1-row-canonicality": [
                 "facet:EFF-1/canonical-effect-order",
                 "facet:EFF-1/effect-row-grammar",
@@ -411,6 +415,27 @@ class PinnedPredicateTests(unittest.TestCase):
         for identifier, facets in expected.items():
             with self.subTest(identifier=identifier):
                 self.assertEqual(self.by_id[identifier]["affected_facet_ids"], facets)
+
+    def test_diag1_pre_tree_location_gap_is_exactly_anchored(self) -> None:
+        record = self.by_id["discrepancy:v0.8/diag1-pre-tree-node-path"]
+        self.assertEqual(record["class"], "internal-specification-gap")
+        self.assertEqual(
+            record["resolution_authorities"],
+            ["successor-numbered-specification"],
+        )
+        evidence = record["evidence"]
+        self.assertEqual(
+            evidence["missing_contract"],
+            "pre-canonical-tree-rejection-location-representation",
+        )
+        self.assertEqual(
+            evidence["scope2_parse_requirement_source"]["byte_start"],
+            6621,
+        )
+        self.assertEqual(
+            evidence["diag1_universal_path_source"]["byte_end"],
+            58633,
+        )
 
     def test_new_protected_conflicts_pin_exact_case_expectations(self) -> None:
         expected = {

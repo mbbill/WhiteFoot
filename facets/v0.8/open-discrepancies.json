@@ -56,6 +56,68 @@
     },
     {
       "affected_facet_ids": [
+        "facet:DIAG-1/node-path-attribution"
+      ],
+      "class": "internal-specification-gap",
+      "evidence": {
+        "diag1_universal_path_source": {
+          "byte_end": 58633,
+          "byte_start": 58498,
+          "line_end": 312,
+          "line_start": 312,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "ea4b9d5fe33924f33dda38e02b906c5c14d76250014f31c2af299f626eb4a9f5"
+        },
+        "form1_noncanonical_hard_error_source": {
+          "byte_end": 7696,
+          "byte_start": 7659,
+          "line_end": 21,
+          "line_start": 21,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "be6129f4b4e6c6781688d5b56718ec5799b804ccd47a63c9f498a5697c63f6f5"
+        },
+        "form1_unknown_hard_error_source": {
+          "byte_end": 7791,
+          "byte_start": 7730,
+          "line_end": 21,
+          "line_start": 21,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "a6db94e026f58654700c92a544473ed20d04796bd1717e277d5206c28807ff53"
+        },
+        "form2_utf8_requirement_source": {
+          "byte_end": 7833,
+          "byte_start": 7801,
+          "line_end": 23,
+          "line_start": 23,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "7449c18148efd9b3fc9c7e16f0977a9b409af9e8345871cddd00f694d05f10d0"
+        },
+        "gram1_node_contract_source": {
+          "byte_end": 12345,
+          "byte_start": 12268,
+          "line_end": 39,
+          "line_start": 39,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "0f10dd0af3c839004ed9fae81ee6118043a10ed9cf48476a0c406f6a3386cfe2"
+        },
+        "missing_contract": "pre-canonical-tree-rejection-location-representation",
+        "scope2_parse_requirement_source": {
+          "byte_end": 6696,
+          "byte_start": 6621,
+          "line_end": 13,
+          "line_start": 13,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "b3cc1e52a8c187dccd3f3f8d21b430eb090a37d52e541f3cfe5cf5e092eab6af"
+        }
+      },
+      "id": "discrepancy:v0.8/diag1-pre-tree-node-path",
+      "predicate_id": "predicate:diag1-pre-tree-node-path-completeness",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
         "facet:DIAG-3/check-report-schema"
       ],
       "class": "internal-specification-gap",
