@@ -372,7 +372,7 @@ def main():
     print(
         "semantic reborrow chunk wrapper: exact one- and two-region "
         "fixed-literal ten-argument calls, independent nested callee proof, "
-        "source anchoring, topology, and closed higher-region/composite "
+        "source anchoring, topology, and closed three-region/composite "
         "shapes pass"
     )
 

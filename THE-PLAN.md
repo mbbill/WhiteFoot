@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-627 functions: 158 clean, 469 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,678,161 source bytes, 338,051 tokens, and
-167,770 unique-head AST nodes. The parser census is 4,580 regionful calls: 496
-explicit and 4,084 staged omissions. LLVM support remains the same
+627 functions: 159 clean, 468 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,679,443 source bytes, 338,276 tokens, and
+167,874 unique-head AST nodes. The parser census is 4,581 regionful calls: 496
+explicit and 4,085 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Kernel v0.8 and its tag-only enum equality implementation are complete.
@@ -584,6 +584,36 @@ remains 6,748 lines. Fresh inventory leaves exactly five Unsupported chunk
 callers: one exact four-region wrapper and four chunk-plus-recursive-number
 compositions. The four-region wrapper is next; recursive composition remains
 later.
+
+The sixth bounded F4 slice admits that exact four-region wrapper,
+`llvm_text_emit_uadd_overflow_i64`. Its established one-parent signature and
+fixed-literal chunk-call proof are unchanged. The caller contains exactly four
+sequential one-statement local regions followed by a unit return. Every local
+region differs from the outer region and from all prior locals, and each call
+independently re-proves its confined whole-parent unique child, ten named
+actuals in formal order, canonical `u64` and `u8` literals, nominal parent
+type, guarded chunk callee, and nested byte-push callee. The bounded sequence
+helper accepts only two or four regions; one-region callers retain their prior
+path, while three-, five-, and composite-region shapes remain Unsupported.
+Each unbound own-unit call and local region ends before the next statement, so
+the parent resumes between statements and no unique siblings coexist. Hostile
+review pins caller modes and effects, exact literals and argument order,
+shared, deeper, explicit, and bound calls, missing, mixed, or dishonest nested
+callees, pairwise local freshness including nonadjacent duplicates, outer
+shadowing, extra statements, closed three- and five-region shapes, source-head
+redirection, and cyclic topology. It also caught and corrected two test
+mutations that initially targeted a nested callee rather than the wrapper.
+Exactly `llvm_text_emit_uadd_overflow_i64` moves to CLEAN; no prior CLEAN
+function is lost and the refactored sequence helper remains Unsupported. The
+unit is 627 total / 159 CLEAN / 468 Unsupported / 0 rejected; the exact
+15-function LLVM module is unchanged. The parser census is 4,581 regionful
+calls = 496 explicit + 4,085 staged omissions; self-parse is deterministic at
+1,679,443 bytes / 338,276 tokens / 167,874 nodes. The focused proof is 283
+lines, its new hostile suite is 224 lines, the shared caller gate is 339 lines,
+and the general reader remains 6,748 lines. Fresh inventory leaves four
+Unsupported chunk-plus-recursive-number callers. Their next common prerequisite
+is the exact recursive decimal emitter `byte_tape_emit_u64`, selected as the
+next bounded F4 boundary before admitting any composite caller.
 
 `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. Remaining F4

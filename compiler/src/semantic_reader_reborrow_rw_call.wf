@@ -221,7 +221,9 @@ fn semantic_reader_reborrow_rw_wrapper_body_valid ['c] (source: &'c buffer<u8>, 
   let block_kind: own Bool = semantic_body_kind_is(ast: ast, node: block, want: ast_block_atom);
   let block_single_shape: own Bool = semantic_body_exact_children(ast: ast, node: block, want: 2_u64);
   let block_pair_shape: own Bool = semantic_body_exact_children(ast: ast, node: block, want: 3_u64);
-  let block_shape: own Bool = bor<Bool>(block_single_shape, block_pair_shape);
+  let block_quad_shape: own Bool = semantic_body_exact_children(ast: ast, node: block, want: 5_u64);
+  let block_sequence_shape: own Bool = bor<Bool>(block_pair_shape, block_quad_shape);
+  let block_shape: own Bool = bor<Bool>(block_single_shape, block_sequence_shape);
   let block_token: own Bool = semantic_buffer_single_symbol_node(source: source, tokens: tokens, ast: ast, node: block, want: 123_u8);
   let block_first: own Bool = band<Bool>(block_kind, block_shape);
   match band<Bool>(block_first, block_token) {
@@ -236,7 +238,14 @@ fn semantic_reader_reborrow_rw_wrapper_body_valid ['c] (source: &'c buffer<u8>, 
   let parameter_head: own u64 = index<u64>(deref(ast).heads, parameter);
   match block_pair_shape {
     True() => {
-      return semantic_reader_reborrow_chunk_wrapper_pair_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, outer_parameter_head: parameter_head, outer_type: parameter_type, outer_region_head: outer_region_head, block: block);
+      return semantic_reader_reborrow_chunk_wrapper_sequence_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, outer_parameter_head: parameter_head, outer_type: parameter_type, outer_region_head: outer_region_head, block: block, region_count: 2_u64);
+    }
+    False() => {
+    }
+  }
+  match block_quad_shape {
+    True() => {
+      return semantic_reader_reborrow_chunk_wrapper_sequence_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, outer_parameter_head: parameter_head, outer_type: parameter_type, outer_region_head: outer_region_head, block: block, region_count: 4_u64);
     }
     False() => {
     }
