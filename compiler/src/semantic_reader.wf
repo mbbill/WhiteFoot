@@ -6239,7 +6239,17 @@ fn semantic_reader_effects_reconcile ['c] (source: &'c buffer<u8>, tokens: &'c T
       let allow_user_call: own Bool = band<Bool>(reads_present, traps_declared);
       let no_reads: own Bool = bnot<Bool>(reads_present);
       let allow_index_target: own Bool = band<Bool>(no_reads, traps_declared);
-      let writer_body_ok: own Bool = semantic_reader_writer_body_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_node: writes_node, block: block, allow_user_call: allow_user_call, allow_index_target: allow_index_target);
+      let flat_writer_body_ok: own Bool = semantic_reader_writer_body_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_node: writes_node, block: block, allow_user_call: allow_user_call, allow_index_target: allow_index_target);
+      let control_writer_body_ok: own Bool = False();
+      match allow_index_target {
+        True() => {
+          let control_candidate: own Bool = semantic_reader_writer_control_body_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_node: writes_node, block: block);
+          set control_writer_body_ok = control_candidate;
+        }
+        False() => {
+        }
+      }
+      let writer_body_ok: own Bool = bor<Bool>(flat_writer_body_ok, control_writer_body_ok);
       match writer_body_ok {
         True() => {
         }

@@ -294,9 +294,9 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-563 functions: 106 clean, 457 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,471,434 source bytes, 293,298 tokens, and
-145,565 unique-head AST nodes. The parser census is 3,692 regionful calls: 350
+572 functions: 107 clean, 465 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,507,599 source bytes, 301,854 tokens, and
+149,730 unique-head AST nodes. The parser census is 3,836 regionful calls: 494
 explicit and 3,342 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
@@ -331,7 +331,7 @@ loop/local-mutation unlock; admitting owned-parameter mutation also conflicts
 with stage-0 lowering and unlocked zero compiler functions, so that experiment
 was fully reverted and the bounded F2 compiler-family tranche is complete.
 
-The first eight bounded F3 writer slices are complete. The writes-only profile admits one or more exclusive
+The first nine bounded F3 writer slices are complete. The writes-only profile admits one or more exclusive
 borrows of structs in exactly one declared region, an exact writes-only row for
 that region, one or more flat direct scalar/tag-only-enum field assignments from
 own parameters, canonical `u8`/`u64` literals, or exact nullary `Bool`/tag-only-
@@ -418,8 +418,25 @@ Unsupported, as do same-named non-own parameters: parameter lookup distinguishes
 an absent name from a present but invalid binding before global fallback. Exactly
 `semantic_buffer_initialize_types` moves to CLEAN. Target logic is 408 lines, its
 focused hostile test is 418 lines, the writer module remains 814 lines, and the
-general reader is 6,634 lines. F3 remains active for the deferred broader indexed and
-control-flow writer profiles. `lexer_scan_string` remains the source-order
+general reader is 6,634 lines. The ninth slice admits the one remaining
+loop-based indexed initializer, `semantic_body_initialize_facts`. Its exact
+control protocol requires an owned `u64` cursor initialized by canonical
+`0_u64`; one loop whose source-anchored `ige<u64>(cursor, own_u64_parameter)`
+guard has a `True` arm containing only a break to the same source-anchored label
+and an empty `False` arm; one or more indexed assignments rooted in the exact
+write region and subscripted only by that cursor; the exact trapping
+`cursor = iadd.trap<u64>(cursor, 1_u64)` update; one or more direct field tail
+writes; and a final `return unit`. The ordinary reader, flat writer, and indexed
+read profiles are unchanged. Hostile review caught and closed swapped arm tags,
+non-cursor subscripts, and same-spelling type/name/label token redirection before
+the slice landed. Exactly `semantic_body_initialize_facts` moves to CLEAN; no
+other pre-existing function moves and no prior CLEAN function is lost. Control
+logic is isolated in a 674-line module with a 325-line focused hostile test;
+the general reader is 6,644 lines. A fresh post-slice inventory leaves
+`frontend_unit_reset` as the only Unsupported function with writes but neither
+reads nor allocation; it is a statement-scoped reborrow/call-composition shape,
+so the bounded F3 compiler-family tranche is complete and F4 is next.
+`lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. F4 bounded statement-scoped
 reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in
 that order. Whole-unit LLVM lowering, including production emission of general

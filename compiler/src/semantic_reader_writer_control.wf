@@ -1,0 +1,674 @@
+fn semantic_reader_writer_control_leaf_value_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {
+  let ast_place_use_atom: own AstKind = AstPlaceUse();
+  let ast_numeric_literal_atom: own AstKind = AstNumericLiteral();
+  let ast_constructor_atom: own AstKind = AstConstructor();
+  let place: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_place_use_atom);
+  let numeric: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_numeric_literal_atom);
+  let constructor: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_constructor_atom);
+  let exact_leaf: own Bool = bor<Bool>(place, numeric);
+  match exact_leaf {
+    True() => {
+      return semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: node);
+    }
+    False() => {
+    }
+  }
+  match constructor {
+    True() => {
+      let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 0_u64);
+      let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+      return band<Bool>(shape, token);
+    }
+    False() => {
+      return False();
+    }
+  }
+}
+
+fn semantic_reader_writer_control_set_header_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {
+  let ast_set_atom: own AstKind = AstSet();
+  let kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_set_atom);
+  let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 2_u64);
+  let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  match band<Bool>(first, token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  return parser_word3<'c, 'c>(source: source, tokens: tokens, token: head, a: 115_u8, b: 101_u8, c: 116_u8);
+}
+
+fn semantic_reader_writer_control_cursor_head ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own u64 reads('c), traps {
+  let ast_let_atom: own AstKind = AstLet();
+  let kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_let_atom);
+  let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 4_u64);
+  let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  match band<Bool>(first, token) {
+    True() => {
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let let_word: own Bool = parser_word3<'c, 'c>(source: source, tokens: tokens, token: head, a: 108_u8, b: 101_u8, c: 116_u8);
+  match let_word {
+    True() => {
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+  let name: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 0_u64);
+  let mode: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 1_u64);
+  let type_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 2_u64);
+  let initializer: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 3_u64);
+  let ast_binding_name_atom: own AstKind = AstBindingName();
+  let name_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: name, want: ast_binding_name_atom);
+  let name_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: name);
+  match band<Bool>(name_kind, name_token) {
+    True() => {
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+  let ast_own_mode_atom: own AstKind = AstOwnMode();
+  let mode_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: mode, want: ast_own_mode_atom);
+  let mode_valid: own Bool = semantic_function_mode_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: mode);
+  let mode_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: mode);
+  let ast_binding_type_atom: own AstKind = AstBindingType();
+  let type_valid: own Bool = semantic_buffer_type_node_valid<'c>(source: source, tokens: tokens, ast: ast, node: type_node, kind: ast_binding_type_atom, type_id: semantic_buffer_type_u64);
+  let type_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: type_node);
+  let ast_numeric_literal_atom: own AstKind = AstNumericLiteral();
+  let initializer_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: initializer, want: ast_numeric_literal_atom);
+  let initializer_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: initializer);
+  match band<Bool>(initializer_kind, initializer_token) {
+    True() => {
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+  let initializer_head: own u64 = index<u64>(deref(ast).heads, initializer);
+  let initializer_number: own Bool = parser_kind_at_is<'c>(tokens: tokens, token: initializer_head, want: 6_u64);
+  let initializer_start: own u64 = index<u64>(deref(tokens).starts, initializer_head);
+  let initializer_end: own u64 = index<u64>(deref(tokens).ends, initializer_head);
+  let initializer_width: own u64 = isub.wrap<u64>(initializer_end, initializer_start);
+  let initializer_width_valid: own Bool = ieq<u64>(initializer_width, 5_u64);
+  let initializer_b0: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: initializer_head, offset: 0_u64, want: 48_u8);
+  let initializer_b1: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: initializer_head, offset: 1_u64, want: 95_u8);
+  let initializer_b2: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: initializer_head, offset: 2_u64, want: 117_u8);
+  let initializer_b3: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: initializer_head, offset: 3_u64, want: 54_u8);
+  let initializer_b4: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: initializer_head, offset: 4_u64, want: 52_u8);
+  let initializer_b01: own Bool = band<Bool>(initializer_b0, initializer_b1);
+  let initializer_b23: own Bool = band<Bool>(initializer_b2, initializer_b3);
+  let initializer_first: own Bool = band<Bool>(initializer_b01, initializer_b23);
+  let initializer_word: own Bool = band<Bool>(initializer_first, initializer_b4);
+  let initializer_prefix: own Bool = band<Bool>(initializer_number, initializer_width_valid);
+  let initializer_zero: own Bool = band<Bool>(initializer_prefix, initializer_word);
+  let mode_first: own Bool = band<Bool>(mode_kind, mode_valid);
+  let mode_and_type: own Bool = band<Bool>(mode_first, mode_token);
+  let type_exact: own Bool = band<Bool>(type_valid, type_token);
+  let declaration: own Bool = band<Bool>(mode_and_type, type_exact);
+  match band<Bool>(declaration, initializer_zero) {
+    True() => {
+      return index<u64>(deref(ast).heads, name);
+    }
+    False() => {
+      return ast_none;
+    }
+  }
+}
+
+fn semantic_reader_writer_control_guard_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, node: own u64, cursor_head: own u64) -> own Bool reads('c), traps {
+  let ast_table_call_atom: own AstKind = AstTableCall();
+  let kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_table_call_atom);
+  let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 3_u64);
+  let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  match band<Bool>(first, token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let operation: own Bool = parser_word3<'c, 'c>(source: source, tokens: tokens, token: head, a: 105_u8, b: 103_u8, c: 101_u8);
+  match operation {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let type_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 0_u64);
+  let left: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 1_u64);
+  let right: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 2_u64);
+  let ast_type_argument_atom: own AstKind = AstTypeArgument();
+  let type_valid: own Bool = semantic_buffer_type_node_valid<'c>(source: source, tokens: tokens, ast: ast, node: type_node, kind: ast_type_argument_atom, type_id: semantic_buffer_type_u64);
+  let type_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: type_node);
+  let ast_place_use_atom: own AstKind = AstPlaceUse();
+  let left_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: left, want: ast_place_use_atom);
+  let left_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: left);
+  let left_head: own u64 = index<u64>(deref(ast).heads, left);
+  let left_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: left_head, right: cursor_head);
+  let left_first: own Bool = band<Bool>(left_kind, left_token);
+  let left_valid: own Bool = band<Bool>(left_first, left_matches);
+  let right_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: right, want: ast_place_use_atom);
+  let right_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: right);
+  let right_head: own u64 = index<u64>(deref(ast).heads, right);
+  let right_is_cursor: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: right_head, right: cursor_head);
+  let right_not_cursor: own Bool = bnot<Bool>(right_is_cursor);
+  let right_class: own u64 = semantic_reader_writer_own_u64_parameter_class<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, name_head: right_head);
+  let right_parameter: own Bool = ieq<u64>(right_class, 1_u64);
+  let right_first: own Bool = band<Bool>(right_kind, right_token);
+  let right_second: own Bool = band<Bool>(right_not_cursor, right_parameter);
+  let right_valid: own Bool = band<Bool>(right_first, right_second);
+  let operands: own Bool = band<Bool>(left_valid, right_valid);
+  let type_exact: own Bool = band<Bool>(type_valid, type_token);
+  return band<Bool>(type_exact, operands);
+}
+
+fn semantic_reader_writer_control_iadd_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, cursor_head: own u64) -> own Bool reads('c), traps {
+  let ast_table_call_atom: own AstKind = AstTableCall();
+  let kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_table_call_atom);
+  let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 3_u64);
+  let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  match band<Bool>(first, token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let token_start: own u64 = index<u64>(deref(tokens).starts, head);
+  let token_end: own u64 = index<u64>(deref(tokens).ends, head);
+  let width: own u64 = isub.wrap<u64>(token_end, token_start);
+  let width_valid: own Bool = ieq<u64>(width, 9_u64);
+  let b0: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 0_u64, want: 105_u8);
+  let b1: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 1_u64, want: 97_u8);
+  let b2: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 2_u64, want: 100_u8);
+  let b3: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 3_u64, want: 100_u8);
+  let b4: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 4_u64, want: 46_u8);
+  let b5: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 5_u64, want: 116_u8);
+  let b6: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 6_u64, want: 114_u8);
+  let b7: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 7_u64, want: 97_u8);
+  let b8: own Bool = parser_word_byte<'c, 'c>(source: source, tokens: tokens, token: head, offset: 8_u64, want: 112_u8);
+  let b01: own Bool = band<Bool>(b0, b1);
+  let b23: own Bool = band<Bool>(b2, b3);
+  let b45: own Bool = band<Bool>(b4, b5);
+  let b67: own Bool = band<Bool>(b6, b7);
+  let b0123: own Bool = band<Bool>(b01, b23);
+  let b4567: own Bool = band<Bool>(b45, b67);
+  let word_first: own Bool = band<Bool>(b0123, b4567);
+  let word: own Bool = band<Bool>(word_first, b8);
+  match band<Bool>(width_valid, word) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let type_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 0_u64);
+  let left: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 1_u64);
+  let right: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 2_u64);
+  let ast_type_argument_atom: own AstKind = AstTypeArgument();
+  let type_valid: own Bool = semantic_buffer_type_node_valid<'c>(source: source, tokens: tokens, ast: ast, node: type_node, kind: ast_type_argument_atom, type_id: semantic_buffer_type_u64);
+  let type_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: type_node);
+  let ast_place_use_atom: own AstKind = AstPlaceUse();
+  let left_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: left, want: ast_place_use_atom);
+  let left_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: left);
+  let left_head: own u64 = index<u64>(deref(ast).heads, left);
+  let left_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: left_head, right: cursor_head);
+  let left_first: own Bool = band<Bool>(left_kind, left_token);
+  let left_valid: own Bool = band<Bool>(left_first, left_matches);
+  let right_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: right);
+  let right_one: own Bool = semantic_buffer_u64_literal_valid<'c>(source: source, tokens: tokens, ast: ast, node: right, value: 1_u64);
+  let right_valid: own Bool = band<Bool>(right_token, right_one);
+  let operands: own Bool = band<Bool>(left_valid, right_valid);
+  let type_exact: own Bool = band<Bool>(type_valid, type_token);
+  return band<Bool>(type_exact, operands);
+}
+
+fn semantic_reader_writer_control_break_arm_class ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, arm: own u64, loop_label_head: own u64) -> own u64 reads('c), traps {
+  let ast_match_arm_atom: own AstKind = AstMatchArm();
+  let arm_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: arm, want: ast_match_arm_atom);
+  let arm_shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: arm, want: 1_u64);
+  let arm_token: own Bool = semantic_body_node_token_valid<'c>(source: source, tokens: tokens, ast: ast, node: arm);
+  let arm_first: own Bool = band<Bool>(arm_kind, arm_shape);
+  match band<Bool>(arm_first, arm_token) {
+    True() => {
+    }
+    False() => {
+      return 2_u64;
+    }
+  }
+  let block: own u64 = semantic_body_child_at<'c>(ast: ast, node: arm, ordinal: 0_u64);
+  let ast_block_atom: own AstKind = AstBlock();
+  let block_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: block, want: ast_block_atom);
+  let block_token: own Bool = semantic_buffer_single_symbol_node<'c>(source: source, tokens: tokens, ast: ast, node: block, want: 123_u8);
+  match band<Bool>(block_kind, block_token) {
+    True() => {
+    }
+    False() => {
+      return 2_u64;
+    }
+  }
+  let first: own u64 = index<u64>(deref(ast).first_children, block);
+  let last: own u64 = index<u64>(deref(ast).last_children, block);
+  let first_none: own Bool = ieq<u64>(first, ast_none);
+  let last_none: own Bool = ieq<u64>(last, ast_none);
+  match band<Bool>(first_none, last_none) {
+    True() => {
+      return 0_u64;
+    }
+    False() => {
+    }
+  }
+  match ieq<u64>(first, last) {
+    True() => {
+    }
+    False() => {
+      return 2_u64;
+    }
+  }
+  let ast_break_atom: own AstKind = AstBreak();
+  let break_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: first, want: ast_break_atom);
+  let break_shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: first, want: 1_u64);
+  let break_token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: first);
+  let break_first: own Bool = band<Bool>(break_kind, break_shape);
+  match band<Bool>(break_first, break_token) {
+    True() => {
+    }
+    False() => {
+      return 2_u64;
+    }
+  }
+  let break_head: own u64 = index<u64>(deref(ast).heads, first);
+  let break_word: own Bool = parser_word5<'c, 'c>(source: source, tokens: tokens, token: break_head, a: 98_u8, b: 114_u8, c: 101_u8, d: 97_u8, e: 107_u8);
+  let break_label: own u64 = semantic_body_child_at<'c>(ast: ast, node: first, ordinal: 0_u64);
+  let ast_break_label_atom: own AstKind = AstBreakLabel();
+  let label_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: break_label, want: ast_break_label_atom);
+  let label_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: break_label);
+  let break_label_head: own u64 = index<u64>(deref(ast).heads, break_label);
+  let label_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: break_label_head, right: loop_label_head);
+  let label_first: own Bool = band<Bool>(label_kind, label_token);
+  let label_valid: own Bool = band<Bool>(label_first, label_matches);
+  match band<Bool>(break_word, label_valid) {
+    True() => {
+      return 1_u64;
+    }
+    False() => {
+      return 2_u64;
+    }
+  }
+}
+
+fn semantic_reader_writer_control_break_match_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, node: own u64, loop_label_head: own u64, cursor_head: own u64) -> own Bool reads('c), traps {
+  let ast_match_atom: own AstKind = AstMatch();
+  let kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_match_atom);
+  let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 3_u64);
+  let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  match band<Bool>(first, token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let match_word: own Bool = parser_word5<'c, 'c>(source: source, tokens: tokens, token: head, a: 109_u8, b: 97_u8, c: 116_u8, d: 99_u8, e: 104_u8);
+  let guard: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 0_u64);
+  let guard_valid: own Bool = semantic_reader_writer_control_guard_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, node: guard, cursor_head: cursor_head);
+  let break_arm: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 1_u64);
+  let empty_arm: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 2_u64);
+  let break_arm_token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: break_arm);
+  let empty_arm_token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: empty_arm);
+  let break_arm_head: own u64 = index<u64>(deref(ast).heads, break_arm);
+  let empty_arm_head: own u64 = index<u64>(deref(ast).heads, empty_arm);
+  let break_arm_code: own PreludeConstructorCode = semantic_prelude_constructor_code<'c, 'c>(source: source, tokens: tokens, token: break_arm_head);
+  let empty_arm_code: own PreludeConstructorCode = semantic_prelude_constructor_code<'c, 'c>(source: source, tokens: tokens, token: empty_arm_head);
+  let true_tag: own PreludeConstructorCode = PreludeConstructorTrue();
+  let false_tag: own PreludeConstructorCode = PreludeConstructorFalse();
+  let break_arm_true: own Bool = eeq<PreludeConstructorCode>(break_arm_code, true_tag);
+  let empty_arm_false: own Bool = eeq<PreludeConstructorCode>(empty_arm_code, false_tag);
+  let break_class: own u64 = semantic_reader_writer_control_break_arm_class<'c>(source: source, tokens: tokens, ast: ast, arm: break_arm, loop_label_head: loop_label_head);
+  let empty_class: own u64 = semantic_reader_writer_control_break_arm_class<'c>(source: source, tokens: tokens, ast: ast, arm: empty_arm, loop_label_head: loop_label_head);
+  let break_valid: own Bool = ieq<u64>(break_class, 1_u64);
+  let empty_valid: own Bool = ieq<u64>(empty_class, 0_u64);
+  let arms: own Bool = band<Bool>(break_valid, empty_valid);
+  let arm_tokens: own Bool = band<Bool>(break_arm_token, empty_arm_token);
+  let arm_words: own Bool = band<Bool>(break_arm_true, empty_arm_false);
+  let arm_headers: own Bool = band<Bool>(arm_tokens, arm_words);
+  let exact_arms: own Bool = band<Bool>(arm_headers, arms);
+  let header: own Bool = band<Bool>(match_word, guard_valid);
+  return band<Bool>(header, exact_arms);
+}
+
+fn semantic_reader_writer_control_loop_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, writes_region_head: own u64, cursor_head: own u64, node: own u64) -> own Bool reads('c), traps {
+  let ast_count: own u64 = deref(ast).count;
+  let ast_loop_atom: own AstKind = AstLoop();
+  let kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_loop_atom);
+  let shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 2_u64);
+  let token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  match band<Bool>(first, token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let loop_word: own Bool = parser_word4<'c, 'c>(source: source, tokens: tokens, token: head, a: 108_u8, b: 111_u8, c: 111_u8, d: 112_u8);
+  let label: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 0_u64);
+  let ast_loop_label_atom: own AstKind = AstLoopLabel();
+  let label_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: label, want: ast_loop_label_atom);
+  let label_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: label);
+  let label_valid: own Bool = band<Bool>(label_kind, label_token);
+  match band<Bool>(loop_word, label_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let loop_label_head: own u64 = index<u64>(deref(ast).heads, label);
+  let block: own u64 = semantic_body_child_at<'c>(ast: ast, node: node, ordinal: 1_u64);
+  let ast_block_atom: own AstKind = AstBlock();
+  let block_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: block, want: ast_block_atom);
+  let block_token: own Bool = semantic_buffer_single_symbol_node<'c>(source: source, tokens: tokens, ast: ast, node: block, want: 123_u8);
+  match band<Bool>(block_kind, block_token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let statement: own u64 = index<u64>(deref(ast).first_children, block);
+  let last: own u64 = index<u64>(deref(ast).last_children, block);
+  let break_match_valid: own Bool = semantic_reader_writer_control_break_match_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, node: statement, loop_label_head: loop_label_head, cursor_head: cursor_head);
+  match break_match_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let next_statement: own u64 = index<u64>(deref(ast).next_siblings, statement);
+  match ilt<u64>(next_statement, ast_count) {
+    True() => {
+      set statement = next_statement;
+    }
+    False() => {
+      return False();
+    }
+  }
+  let index_count: own u64 = 0_u64;
+  let steps: own u64 = 0_u64;
+  loop @semantic_reader_writer_control_index_sets {
+    match ieq<u64>(statement, last) {
+      True() => {
+        break @semantic_reader_writer_control_index_sets;
+      }
+      False() => {
+      }
+    }
+    let set_valid: own Bool = semantic_reader_writer_control_set_header_valid<'c>(source: source, tokens: tokens, ast: ast, node: statement);
+    match set_valid {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let target: own u64 = semantic_body_child_at<'c>(ast: ast, node: statement, ordinal: 0_u64);
+    let target_shape_valid: own Bool = semantic_reader_writer_index_target_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_region_head: writes_region_head, local_subscript_head: cursor_head, target: target);
+    match target_shape_valid {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let subscript: own u64 = semantic_body_child_at<'c>(ast: ast, node: target, ordinal: 2_u64);
+    let subscript_head: own u64 = index<u64>(deref(ast).heads, subscript);
+    let subscript_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: subscript_head, right: cursor_head);
+    let target_valid: own Bool = subscript_matches;
+    let value: own u64 = semantic_body_child_at<'c>(ast: ast, node: statement, ordinal: 1_u64);
+    let value_valid: own Bool = semantic_reader_writer_control_leaf_value_valid<'c>(source: source, tokens: tokens, ast: ast, node: value);
+    match band<Bool>(target_valid, value_valid) {
+      True() => {
+        set index_count = iadd.trap<u64>(index_count, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next: own u64 = index<u64>(deref(ast).next_siblings, statement);
+    match ilt<u64>(next, ast_count) {
+      True() => {
+        set statement = next;
+      }
+      False() => {
+        return False();
+      }
+    }
+    set steps = iadd.trap<u64>(steps, 1_u64);
+    match ilt<u64>(steps, ast_count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+  match igt<u64>(index_count, 0_u64) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let local_set_valid: own Bool = semantic_reader_writer_control_set_header_valid<'c>(source: source, tokens: tokens, ast: ast, node: last);
+  match local_set_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let local_target: own u64 = semantic_body_child_at<'c>(ast: ast, node: last, ordinal: 0_u64);
+  let ast_place_use_atom: own AstKind = AstPlaceUse();
+  let local_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: local_target, want: ast_place_use_atom);
+  let local_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: local_target);
+  let local_head: own u64 = index<u64>(deref(ast).heads, local_target);
+  let local_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: local_head, right: cursor_head);
+  let local_first: own Bool = band<Bool>(local_kind, local_token);
+  let local_valid: own Bool = band<Bool>(local_first, local_matches);
+  let local_value: own u64 = semantic_body_child_at<'c>(ast: ast, node: last, ordinal: 1_u64);
+  let increment_valid: own Bool = semantic_reader_writer_control_iadd_valid<'c>(source: source, tokens: tokens, ast: ast, node: local_value, cursor_head: cursor_head);
+  let terminal: own u64 = index<u64>(deref(ast).next_siblings, last);
+  let terminated: own Bool = ieq<u64>(terminal, ast_none);
+  let update_valid: own Bool = band<Bool>(local_valid, increment_valid);
+  return band<Bool>(update_valid, terminated);
+}
+
+fn semantic_reader_writer_control_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, writes_node: own u64, block: own u64) -> own Bool reads('c), traps {
+  let ast_count: own u64 = deref(ast).count;
+  let function_valid: own Bool = ilt<u64>(function, ast_count);
+  let writes_valid: own Bool = ilt<u64>(writes_node, ast_count);
+  let block_valid: own Bool = ilt<u64>(block, ast_count);
+  let first_valid: own Bool = band<Bool>(function_valid, writes_valid);
+  match band<Bool>(first_valid, block_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let ast_block_atom: own AstKind = AstBlock();
+  let block_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: block, want: ast_block_atom);
+  let block_token: own Bool = semantic_buffer_single_symbol_node<'c>(source: source, tokens: tokens, ast: ast, node: block, want: 123_u8);
+  match band<Bool>(block_kind, block_token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let writes_first: own u64 = index<u64>(deref(ast).first_children, writes_node);
+  let writes_last: own u64 = index<u64>(deref(ast).last_children, writes_node);
+  let writes_one: own Bool = ieq<u64>(writes_first, writes_last);
+  let writes_present: own Bool = ine<u64>(writes_first, ast_none);
+  match band<Bool>(writes_one, writes_present) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let region_valid: own Bool = semantic_function_region_leaf_valid<'c, 'c, 'c>(source: source, tokens: tokens, ast: ast, node: writes_first);
+  match region_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let writes_region_head: own u64 = index<u64>(deref(ast).heads, writes_first);
+  let statement: own u64 = index<u64>(deref(ast).first_children, block);
+  let last: own u64 = index<u64>(deref(ast).last_children, block);
+  let statement_valid: own Bool = ilt<u64>(statement, ast_count);
+  let last_valid: own Bool = ilt<u64>(last, ast_count);
+  match band<Bool>(statement_valid, last_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let cursor_head: own u64 = semantic_reader_writer_control_cursor_head<'c>(source: source, tokens: tokens, ast: ast, node: statement);
+  match ieq<u64>(cursor_head, ast_none) {
+    True() => {
+      return False();
+    }
+    False() => {
+    }
+  }
+  let loop_node: own u64 = index<u64>(deref(ast).next_siblings, statement);
+  match ilt<u64>(loop_node, ast_count) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let loop_valid: own Bool = semantic_reader_writer_control_loop_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_region_head: writes_region_head, cursor_head: cursor_head, node: loop_node);
+  match loop_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let tail: own u64 = index<u64>(deref(ast).next_siblings, loop_node);
+  let tail_count: own u64 = 0_u64;
+  let steps: own u64 = 0_u64;
+  loop @semantic_reader_writer_control_tail_sets {
+    match ieq<u64>(tail, last) {
+      True() => {
+        break @semantic_reader_writer_control_tail_sets;
+      }
+      False() => {
+      }
+    }
+    match ilt<u64>(tail, ast_count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let set_valid: own Bool = semantic_reader_writer_control_set_header_valid<'c>(source: source, tokens: tokens, ast: ast, node: tail);
+    match set_valid {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    let target: own u64 = semantic_body_child_at<'c>(ast: ast, node: tail, ordinal: 0_u64);
+    let target_valid: own Bool = semantic_reader_writer_field_target_valid<'c>(source: source, tokens: tokens, ast: ast, function: function, writes_region_head: writes_region_head, target: target);
+    let value: own u64 = semantic_body_child_at<'c>(ast: ast, node: tail, ordinal: 1_u64);
+    let value_valid: own Bool = semantic_reader_writer_control_leaf_value_valid<'c>(source: source, tokens: tokens, ast: ast, node: value);
+    match band<Bool>(target_valid, value_valid) {
+      True() => {
+        set tail_count = iadd.trap<u64>(tail_count, 1_u64);
+      }
+      False() => {
+        return False();
+      }
+    }
+    let next: own u64 = index<u64>(deref(ast).next_siblings, tail);
+    match ilt<u64>(next, ast_count) {
+      True() => {
+        set tail = next;
+      }
+      False() => {
+        return False();
+      }
+    }
+    set steps = iadd.trap<u64>(steps, 1_u64);
+    match ilt<u64>(steps, ast_count) {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+  }
+  match igt<u64>(tail_count, 0_u64) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let ast_return_atom: own AstKind = AstReturn();
+  let return_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: last, want: ast_return_atom);
+  let return_shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: last, want: 1_u64);
+  let return_token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: last);
+  let return_first: own Bool = band<Bool>(return_kind, return_shape);
+  match band<Bool>(return_first, return_token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let return_head: own u64 = index<u64>(deref(ast).heads, last);
+  let return_word: own Bool = parser_word6<'c, 'c>(source: source, tokens: tokens, token: return_head, a: 114_u8, b: 101_u8, c: 116_u8, d: 117_u8, e: 114_u8, f: 110_u8);
+  let return_value: own u64 = semantic_body_child_at<'c>(ast: ast, node: last, ordinal: 0_u64);
+  let ast_unit_literal_atom: own AstKind = AstUnitLiteral();
+  let unit_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: return_value, want: ast_unit_literal_atom);
+  let unit_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: return_value);
+  let unit_head: own u64 = index<u64>(deref(ast).heads, return_value);
+  let unit_word: own Bool = parser_word4<'c, 'c>(source: source, tokens: tokens, token: unit_head, a: 117_u8, b: 110_u8, c: 105_u8, d: 116_u8);
+  let unit_first: own Bool = band<Bool>(unit_kind, unit_token);
+  let unit_valid: own Bool = band<Bool>(unit_first, unit_word);
+  let terminal: own u64 = index<u64>(deref(ast).next_siblings, last);
+  let terminated: own Bool = ieq<u64>(terminal, ast_none);
+  let return_valid: own Bool = band<Bool>(return_word, unit_valid);
+  return band<Bool>(return_valid, terminated);
+}

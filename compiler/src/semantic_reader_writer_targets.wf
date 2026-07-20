@@ -259,7 +259,7 @@ fn semantic_reader_writer_own_u64_parameter_class ['c] (source: &'c buffer<u8>, 
   }
 }
 
-fn semantic_reader_writer_index_target_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, writes_region_head: own u64, target: own u64) -> own Bool reads('c), traps {
+fn semantic_reader_writer_index_target_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, writes_region_head: own u64, local_subscript_head: own u64, target: own u64) -> own Bool reads('c), traps {
   let ast_index_place_atom: own AstKind = AstIndexPlace();
   let target_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: target, want: ast_index_place_atom);
   let target_shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: target, want: 3_u64);
@@ -381,7 +381,17 @@ fn semantic_reader_writer_index_target_valid ['c] (source: &'c buffer<u8>, token
             False() => {
             }
           }
-          let place_valid: own Bool = bor<Bool>(parameter_valid, global_valid);
+          let local_valid: own Bool = False();
+          match ine<u64>(local_subscript_head, ast_none) {
+            True() => {
+              let local_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: subscript_head, right: local_subscript_head);
+              set local_valid = local_matches;
+            }
+            False() => {
+            }
+          }
+          let parameter_or_global: own Bool = bor<Bool>(parameter_valid, global_valid);
+          let place_valid: own Bool = bor<Bool>(parameter_or_global, local_valid);
           set subscript_place_valid = place_valid;
         }
         False() => {

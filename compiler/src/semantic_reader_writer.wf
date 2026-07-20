@@ -694,7 +694,7 @@ fn semantic_reader_writer_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c T
         let index_target: own Bool = False();
         match allow_index_target {
           True() => {
-            set index_target = semantic_reader_writer_index_target_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_region_head: writes_region_head, target: target);
+            set index_target = semantic_reader_writer_index_target_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_region_head: writes_region_head, local_subscript_head: ast_none, target: target);
           }
           False() => {
           }

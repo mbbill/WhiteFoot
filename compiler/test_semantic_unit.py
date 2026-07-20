@@ -398,7 +398,7 @@ def canonical_path(columns, root, target):
 # Source ordinals of the functions the classifier admits CLEAN over the wfc
 # corpus. 0-17 are the original fixed-width/scanner/linear/reader-Bool set; the
 # remainder are the F1 general-signature + general-enum-match slice, the first
-# F2 loop/local-mutation slice, and the bounded F3 flat-writer slices (general
+# F2 loop/local-mutation slice, and the bounded F3 writer slices (general
 # `own` scalar/enum params, shared buffer borrows, pure or reads+traps effects,
 # exhaustive/exact multi-variant enum matches, scalar/enum returns, and typed
 # tag-only-enum buffer reads, exact arbitrary-arity call-region substitution,
@@ -409,7 +409,8 @@ def canonical_path(columns, root, target):
 # prior immutable u64 constant subscript, with
 # direct own values, canonical u8/u64 literals, prior direct u64 constants, or
 # exact nullary tag constructors, plus one exact two-region mixed writer whose
-# call RHS values carry explicit read-region attribution).
+# call RHS values carry explicit read-region attribution, and one exact
+# zero-cursor loop that clears indexed rows before direct field tail writes).
 # Every listed
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
@@ -417,11 +418,11 @@ COMPILER_CLEAN_ORDINALS = (
     21, 22, 23, 24, 29, 30, 31, 34, 63, 64, 65, 88, 96, 98, 102, 104, 105, 106,
     110, 111, 118, 119,
     123, 124, 125, 126, 143, 144, 145, 146, 147, 148, 149, 150, 152, 158, 159,
-    162, 164, 175,
+    162, 163, 164, 175,
     185, 190, 191, 204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 286, 287,
-    295, 315, 324, 326, 332, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365,
-    368, 424, 425, 427, 431, 434, 435, 436, 438, 439, 440, 446, 453, 488, 516,
-    533, 534, 556,
+    295, 324, 333, 335, 341, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374,
+    377, 433, 434, 436, 440, 443, 444, 445, 447, 448, 449, 455, 462, 497, 525,
+    542, 543, 565,
 )
 
 
@@ -429,15 +430,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 563
+    assert len(functions) == 572
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        563,
-        106,
-        457,
+        572,
+        107,
+        465,
         0,
         functions[18],
         AST_NONE,
@@ -3172,9 +3173,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        563,
-        106,
-        457,
+        572,
+        107,
+        465,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -3233,14 +3234,15 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 563 total / 106 clean / 457 unsupported / "
+        "semantic unit: compiler 572 total / 107 clean / 465 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "
         "and multi-variant enum matches, "
         "structured loops and owned-let mutation, "
         "enum values and tag-only-enum buffer reads, "
-        "flat field and exact trapping indexed writers, "
+        "flat field, exact trapping indexed writers, and exact indexed "
+        "row-clearing control writers, "
         "structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "
