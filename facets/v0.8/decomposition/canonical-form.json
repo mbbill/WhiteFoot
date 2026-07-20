@@ -1,0 +1,1209 @@
+{
+  "clauses": [
+    {
+      "byte_end": 7622,
+      "byte_start": 7560,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-1/one-spelling-per-construct"
+      ],
+      "owner_rule": "FORM-1",
+      "sha256": "75a46f7f109f8ae1e6ae8908de474e423b7c3bbcf60274a5b526595226e3df36"
+    },
+    {
+      "byte_end": 7659,
+      "byte_start": 7622,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-1/one-byte-format"
+      ],
+      "owner_rule": "FORM-1",
+      "sha256": "71f0315540900f0b3a9a6494961a28831afa48707d8edf59c8503feb1d9a0c6c"
+    },
+    {
+      "byte_end": 7696,
+      "byte_start": 7659,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-1/noncanonical-input-rejected"
+      ],
+      "owner_rule": "FORM-1",
+      "sha256": "be6129f4b4e6c6781688d5b56718ec5799b804ccd47a63c9f498a5697c63f6f5"
+    },
+    {
+      "byte_end": 7730,
+      "byte_start": 7696,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-1/toolchain-does-not-autoformat"
+      ],
+      "owner_rule": "FORM-1",
+      "sha256": "617fec5ab2f1dcfb3c6dee50acf9791b567561f0b8c4c8a07cca6477aa670253"
+    },
+    {
+      "byte_end": 7791,
+      "byte_start": 7730,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-1/unknown-constructs-rejected"
+      ],
+      "owner_rule": "FORM-1",
+      "sha256": "a6db94e026f58654700c92a544473ed20d04796bd1717e277d5206c28807ff53"
+    },
+    {
+      "byte_end": 7834,
+      "byte_start": 7792,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/utf8-source"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "340ac824a999d6a006f724b36631a74f645fb654b5d367bdfcd589a08a228cf9"
+    },
+    {
+      "byte_end": 7846,
+      "byte_start": 7834,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/lf-line-endings"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "a886ad3d5664b13a0364884e4b8643326ae4ff4f74748baecdbf4021e98d6948"
+    },
+    {
+      "byte_end": 7877,
+      "byte_start": 7846,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/single-terminal-lf"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "4d7162e29939dd199b49d74048915f28338dcae875298bec7b8108ff224f1694"
+    },
+    {
+      "byte_end": 7930,
+      "byte_start": 7877,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/two-space-brace-indentation"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "0927f37d7c5af836533e0b30852947022c3c951e420b43d9df4aea69f88be7f5"
+    },
+    {
+      "byte_end": 7973,
+      "byte_start": 7930,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/match-arm-indentation"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "77b94af70b9cb0ac718680bb982e3be9becfa4cd1ea5b421a6afa3500128bb4d"
+    },
+    {
+      "byte_end": 8023,
+      "byte_start": 7973,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/single-space-between-adjacent-tokens"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "39338e29aba88b60e878c705c83bc895d0bf345d478da38c6a6aabaae2a92571"
+    },
+    {
+      "byte_end": 8093,
+      "byte_start": 8023,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/no-space-after-borrow-marker",
+        "facet:FORM-2/no-space-after-open-angle",
+        "facet:FORM-2/no-space-after-open-paren",
+        "facet:FORM-2/no-space-before-close-angle",
+        "facet:FORM-2/no-space-before-close-paren",
+        "facet:FORM-2/no-space-before-colon",
+        "facet:FORM-2/no-space-before-comma",
+        "facet:FORM-2/no-space-before-dot",
+        "facet:FORM-2/no-space-before-open-angle",
+        "facet:FORM-2/no-space-before-open-paren",
+        "facet:FORM-2/no-space-before-semicolon"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "4189440a2129424af373458a0a0091ff3a01b4a2fd8c754c43dfd6c447c7c911"
+    },
+    {
+      "byte_end": 8122,
+      "byte_start": 8093,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/single-space-after-colon",
+        "facet:FORM-2/single-space-after-comma"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "246c911210ce1a16158bcce9366c5900e0e383328558a17baef781bf11c35baa"
+    },
+    {
+      "byte_end": 8153,
+      "byte_start": 8122,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/no-space-after-place-dot",
+        "facet:FORM-2/no-space-before-dot"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "8c91be8dcb039f0d5de74c7b2472d01d7f1e424fb35baa99fb4af4ce19be0145"
+    },
+    {
+      "byte_end": 8197,
+      "byte_start": 8153,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/no-line-wrapping"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "287e333dec8712248ee89b947d02cda1807dfa90c2ffd44752fa4224e67549db"
+    },
+    {
+      "byte_end": 8247,
+      "byte_start": 8197,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/single-blank-line-between-declarations"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "10b05945d2ced2ceac15b29c54643e886e3a4dca1df991003478b1612da9ec77"
+    },
+    {
+      "byte_end": 8271,
+      "byte_start": 8247,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-2/no-trailing-whitespace"
+      ],
+      "owner_rule": "FORM-2",
+      "sha256": "2e044fba056a1ee39983e30cfbdacf48722c3e97d6e9fd9be41ad7cc8a995cc1"
+    },
+    {
+      "byte_end": 8323,
+      "byte_start": 8272,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/ident-lexical-class"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "06942b344051ff62dd8ef3e2973ff3bf7d9f472030a76173c9c157f6cd3db185"
+    },
+    {
+      "byte_end": 8351,
+      "byte_start": 8323,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/typeid-lexical-class"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "d890aaac7b55924b0178ec50da8003d25ab9135674db895c6b70c40bffbbd068"
+    },
+    {
+      "byte_end": 8428,
+      "byte_start": 8351,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/regionid-apostrophe-only",
+        "facet:FORM-3/regionid-lexical-class"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "62fcd192384e3563fbda98c1d2d92111c63c93873fa69dbb949f489cb7353722"
+    },
+    {
+      "byte_end": 8454,
+      "byte_start": 8428,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/label-lexical-class"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "8f9f958a5fefe556e89bf1fa2c7536fc332b762ab4e16cf9a3b47b57fa6b59b2"
+    },
+    {
+      "byte_end": 8510,
+      "byte_start": 8454,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/opname-base-ident",
+        "facet:FORM-3/opname-mode-suffix-closed"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "c51c99225e3ada9d5743c4d68bc1032584d80ec6b9e031d0b2d0e1ef50f0a0a5"
+    },
+    {
+      "byte_end": 8526,
+      "byte_start": 8510,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/opname-single-token"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "fdc5fd6bbc40ff5176fb9da962cb5950286e04ad780c53eac2a3d3922b57b3a3"
+    },
+    {
+      "byte_end": 8589,
+      "byte_start": 8526,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/opname-base-ident",
+        "facet:FORM-3/opname-mode-suffix-closed"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "a0fe34297aba83ffa5f36504b077cfd698652f67e49eb082c92ff5694e91b1db"
+    },
+    {
+      "byte_end": 8667,
+      "byte_start": 8589,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/opname-field-access-boundary"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "048ead645768d8c8d4904d124236fe8846eb22ff9c5c9b73d75037b37dd5d578"
+    },
+    {
+      "byte_end": 8689,
+      "byte_start": 8667,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-3/opname-base-ident",
+        "facet:FORM-3/opname-mode-suffix-closed"
+      ],
+      "owner_rule": "FORM-3",
+      "sha256": "bfb140e10b02be50713a8be4bc95785a51ad0bcffbc461bc39ef12215b494647"
+    },
+    {
+      "byte_end": 8722,
+      "byte_start": 8690,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-4/comments-forbidden"
+      ],
+      "owner_rule": "FORM-4",
+      "sha256": "4861264b2a75aa5bebd8592a77ba62bc1aed1b38b747a41a88c32e7fd9b282ec"
+    },
+    {
+      "byte_end": 8781,
+      "byte_start": 8722,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-4/documentation-field-only"
+      ],
+      "owner_rule": "FORM-4",
+      "sha256": "0281b65bc9d308743eefa66883c8b08f050c8a09add111da9a0943b897ab815c"
+    },
+    {
+      "byte_end": 8820,
+      "byte_start": 8781,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:FORM-4/provenance-toolchain-record-only"
+      ],
+      "owner_rule": "FORM-4",
+      "sha256": "3ae48899638dd2e6f7a9d04f9ae0b9034e1323cd18a2dc34c409e685f9dfbe82"
+    }
+  ],
+  "facets": [
+    {
+      "id": "facet:FORM-1/noncanonical-input-rejected",
+      "owner_rule": "FORM-1",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-1"
+      ]
+    },
+    {
+      "id": "facet:FORM-1/one-byte-format",
+      "owner_rule": "FORM-1",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-1"
+      ]
+    },
+    {
+      "id": "facet:FORM-1/one-spelling-per-construct",
+      "owner_rule": "FORM-1",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-1"
+      ]
+    },
+    {
+      "id": "facet:FORM-1/toolchain-does-not-autoformat",
+      "owner_rule": "FORM-1",
+      "owner_stage": "toolchain-policy",
+      "required_evidence": [
+        "conformance-reject",
+        "diagnostic",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:FORM-1"
+      ]
+    },
+    {
+      "id": "facet:FORM-1/unknown-constructs-rejected",
+      "owner_rule": "FORM-1",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-1"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/lf-line-endings",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/match-arm-indentation",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-line-wrapping",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-after-borrow-marker",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-after-open-angle",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-after-open-paren",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-after-place-dot",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-close-angle",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-close-paren",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-colon",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-comma",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-dot",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-open-angle",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-open-paren",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-space-before-semicolon",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/no-trailing-whitespace",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/single-blank-line-between-declarations",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/single-space-after-colon",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/single-space-after-comma",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/single-space-between-adjacent-tokens",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/single-terminal-lf",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/two-space-brace-indentation",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-2/utf8-source",
+      "owner_rule": "FORM-2",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-2"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/ident-lexical-class",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/label-lexical-class",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/opname-base-ident",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/opname-field-access-boundary",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/opname-mode-suffix-closed",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/opname-single-token",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/regionid-apostrophe-only",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/regionid-lexical-class",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-3/typeid-lexical-class",
+      "owner_rule": "FORM-3",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-3"
+      ]
+    },
+    {
+      "id": "facet:FORM-4/comments-forbidden",
+      "owner_rule": "FORM-4",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-4"
+      ]
+    },
+    {
+      "id": "facet:FORM-4/documentation-field-only",
+      "owner_rule": "FORM-4",
+      "owner_stage": "canonical-tree",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:FORM-4"
+      ]
+    },
+    {
+      "id": "facet:FORM-4/provenance-toolchain-record-only",
+      "owner_rule": "FORM-4",
+      "owner_stage": "toolchain-policy",
+      "required_evidence": [
+        "artifact-hostile",
+        "fuzz",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "frontend",
+        "artifact",
+        "verifier",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:FORM-4"
+      ]
+    }
+  ],
+  "kind": "whitefoot-semantic-decomposition-fragment",
+  "rules": [
+    "FORM-1",
+    "FORM-2",
+    "FORM-3",
+    "FORM-4"
+  ],
+  "schema": 1
+}

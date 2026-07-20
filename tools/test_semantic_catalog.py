@@ -1,0 +1,932 @@
+#!/usr/bin/env python3
+"""Hostile tests for the authored semantic-decomposition contract."""
+
+from __future__ import annotations
+
+import copy
+import contextlib
+import io
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from collections import defaultdict
+from pathlib import Path
+from unittest import mock
+
+import semantic_catalog
+
+
+SPECIFICATION = semantic_catalog.SPEC_PATH.read_bytes()
+SOURCE_INDEX_BYTES = semantic_catalog.SOURCE_INDEX_PATH.read_bytes()
+SOURCE_INDEX = semantic_catalog.parse_strict_json(
+    SOURCE_INDEX_BYTES, "test source index"
+)
+
+# This is an independent test oracle, not a view of the production table.  A
+# disposition-table edit therefore requires an intentional test-contract edit.
+EXPECTED_REVIEWED_DISPOSITIONS = (
+    (
+        "explicitly-deferred",
+        "FORM-5",
+        9_749,
+        9_788,
+        "0cbec3066cc7e216554e03b29f95f8664198f04cdbd6df0e0c7a97e791a49ed4",
+    ),
+    (
+        "explicitly-deferred",
+        "FORM-7",
+        11_240,
+        11_357,
+        "268dc6c19eacf8f247fad3a3402746692fee5ce709aeace0b3a1254f497f118e",
+    ),
+    (
+        "explicitly-deferred",
+        "LEX-1",
+        11_958,
+        12_115,
+        "23d98d39550622dd24d013800c1262209082accd33b73fa02ac3d840d7c4bacb",
+    ),
+    (
+        "explicitly-nonnormative",
+        "OWN-9",
+        30_436,
+        30_904,
+        "1853bc29443f66b3e54c800026931ba0e380278a6a42980768580457b2d912a2",
+    ),
+    (
+        "explicitly-nonnormative",
+        "FN-4",
+        51_608,
+        51_678,
+        "81d5ee971632574011b34a653b327c776502004dd02f495434862e9b1dee4a0d",
+    ),
+)
+EXPECTED_FN_4_DISPOSITION = EXPECTED_REVIEWED_DISPOSITIONS[-1]
+UNAUTHORIZED_META_5_MARKER = (
+    "explicitly-deferred",
+    "META-5",
+    63_232,
+    63_279,
+    "f5e0ed0496f9455a2ec0dc9c97a3f01223d18e1cec605f7a785c37670577fa07",
+)
+
+
+def exact_hash(start: int, end: int) -> str:
+    return semantic_catalog.sha256(SPECIFICATION[start:end])
+
+
+def source_atoms() -> tuple[dict[str, list[str]], list[str], list[str]]:
+    positioned: list[tuple[int, int, str, str]] = []
+    positioned_all: list[tuple[int, int, str, str]] = []
+    for rule in SOURCE_INDEX["rules"]:
+        source = rule["source"]
+        positioned_all.append(
+            (
+                source["byte_start"],
+                source["byte_end"],
+                rule["id"],
+                rule["rule_id"],
+            )
+        )
+    for collection in semantic_catalog.CHILD_COLLECTIONS:
+        for atom in SOURCE_INDEX[collection]:
+            source = atom["source"]
+            positioned.append(
+                (
+                    source["byte_start"],
+                    source["byte_end"],
+                    atom["id"],
+                    atom["owner_rule"],
+                )
+            )
+    positioned.sort(key=lambda item: (item[0], item[1], item[2].encode("ascii")))
+    positioned_all.extend(positioned)
+    positioned_all.sort(
+        key=lambda item: (item[0], item[1], item[2].encode("ascii"))
+    )
+    by_owner: dict[str, list[str]] = defaultdict(list)
+    for _, _, atom_id, owner in positioned:
+        by_owner[owner].append(atom_id)
+    return (
+        by_owner,
+        [item[2] for item in positioned],
+        [item[2] for item in positioned_all],
+    )
+
+
+CHILDREN_BY_OWNER, CHILD_ORDER, ATOM_ORDER = source_atoms()
+RULE_SOURCE = {rule["rule_id"]: rule["source"] for rule in SOURCE_INDEX["rules"]}
+RULES = sorted(RULE_SOURCE, key=str.encode)
+
+# The synthetic one-facet-per-rule data below is structural-only.  It exercises
+# the catalog contract and makes no claim about the rule's semantic facets.
+
+def facet_for(rule: str) -> dict[str, object]:
+    return {
+        "id": f"facet:{rule}/semantic-obligation",
+        "owner_rule": rule,
+        "source_atoms": [f"rule:{rule}", *CHILDREN_BY_OWNER[rule]],
+        "owner_stage": "semantic-check",
+        "required_lanes": ["frontend", "checker", "verifier"],
+        "required_evidence": ["conformance-accept", "diagnostic", "static-audit"],
+    }
+
+
+def clause_for(rule: str) -> dict[str, object]:
+    source = RULE_SOURCE[rule]
+    return {
+        "owner_rule": rule,
+        "byte_start": source["byte_start"],
+        "byte_end": source["byte_end"],
+        "sha256": source["sha256"],
+        "disposition": "facet",
+        "facet_ids": [f"facet:{rule}/semantic-obligation"],
+    }
+
+
+def fragment_for(rules: list[str]) -> dict[str, object]:
+    return {
+        "schema": 1,
+        "kind": "whitefoot-semantic-decomposition-fragment",
+        "rules": sorted(rules, key=str.encode),
+        "clauses": sorted(
+            (clause_for(rule) for rule in rules),
+            key=lambda clause: clause["byte_start"],
+        ),
+        "facets": sorted(
+            (facet_for(rule) for rule in rules),
+            key=lambda facet: facet["id"].encode("ascii"),
+        ),
+    }
+
+
+def valid_fragments() -> list[dict[str, object]]:
+    """Return complete structural-only fixtures, never semantic evidence."""
+    return [fragment_for(RULES)]
+
+
+def build(fragments: list[dict[str, object]]) -> dict[str, object]:
+    """Build a structural-only synthetic fixture, never production evidence."""
+    return semantic_catalog.build_static_catalog(
+        [semantic_catalog.canonical_bytes(fragment) for fragment in fragments],
+        SPECIFICATION,
+        SOURCE_INDEX_BYTES,
+    )
+
+
+def locate(fragment: dict[str, object], collection: str, owner: str) -> dict[str, object]:
+    return next(
+        entry
+        for entry in fragment[collection]
+        if entry["owner_rule"] == owner
+    )
+
+
+def replace_with_reviewed_exclusion(
+    fragment: dict[str, object],
+    reviewed: tuple[str, str, int, int, str],
+) -> None:
+    """Apply one exact reviewed exclusion to a structural-only fixture."""
+    disposition, rule, start, end, digest = reviewed
+    original = locate(fragment, "clauses", rule)
+    rule_start = original["byte_start"]
+    rule_end = original["byte_end"]
+    if not (rule_start <= start < end <= rule_end):
+        raise AssertionError(f"reviewed exclusion escapes {rule}")
+    if exact_hash(start, end) != digest:
+        raise AssertionError(f"reviewed exclusion hash is stale for {rule}")
+    replacement = []
+    if rule_start < start:
+        prefix = copy.deepcopy(original)
+        prefix["byte_end"] = start
+        prefix["sha256"] = exact_hash(rule_start, start)
+        replacement.append(prefix)
+    replacement.append(
+        {
+            "owner_rule": rule,
+            "byte_start": start,
+            "byte_end": end,
+            "sha256": digest,
+            "disposition": disposition,
+            "facet_ids": [],
+        }
+    )
+    if end < rule_end:
+        suffix = copy.deepcopy(original)
+        suffix["byte_start"] = end
+        suffix["sha256"] = exact_hash(end, rule_end)
+        replacement.append(suffix)
+    index = fragment["clauses"].index(original)
+    fragment["clauses"][index : index + 1] = replacement
+    if start == rule_start and end == rule_end:
+        fragment["facets"].remove(locate(fragment, "facets", rule))
+
+
+class StaticCatalogTests(unittest.TestCase):
+    def test_complete_in_memory_decomposition_builds_closed_catalog(self) -> None:
+        catalog = build(valid_fragments())
+        self.assertEqual(
+            set(catalog),
+            {
+                "schema",
+                "kind",
+                "specification",
+                "source_index",
+                "decomposition_sha256",
+                "clauses",
+                "facets",
+                "source_atom_coverage",
+            },
+        )
+        self.assertEqual(catalog["schema"], 1)
+        self.assertEqual(catalog["kind"], "whitefoot-static-semantic-catalog")
+        self.assertEqual(
+            catalog["specification"],
+            {
+                "path": "spec/kernel-spec-v0.8.md",
+                "version": "0.8",
+                "sha256": semantic_catalog.SPEC_SHA256,
+            },
+        )
+        self.assertEqual(
+            catalog["source_index"],
+            {
+                "path": "facets/v0.8/source.json",
+                "sha256": semantic_catalog.sha256(SOURCE_INDEX_BYTES),
+            },
+        )
+        self.assertEqual(len(catalog["clauses"]), 91)
+        self.assertEqual(len(catalog["facets"]), 91)
+        self.assertEqual(len(catalog["source_atom_coverage"]), 200)
+        self.assertEqual(
+            [entry["source_atom"] for entry in catalog["source_atom_coverage"]],
+            ATOM_ORDER,
+        )
+        normalized = {"clauses": catalog["clauses"], "facets": catalog["facets"]}
+        self.assertEqual(
+            catalog["decomposition_sha256"],
+            semantic_catalog.sha256(semantic_catalog.canonical_bytes(normalized)),
+        )
+        forbidden = {"handler", "status", "test", "witness", "prose"}
+        self.assertFalse(forbidden & set(json.dumps(catalog).split('"')))
+
+    def test_fragment_file_order_does_not_change_normalized_catalog(self) -> None:
+        even = fragment_for(RULES[::2])
+        odd = fragment_for(RULES[1::2])
+        self.assertEqual(build([even, odd]), build([odd, even]))
+
+    def test_canonical_output_is_ascii_and_deterministic(self) -> None:
+        first = semantic_catalog.canonical_bytes(build(valid_fragments()))
+        second = semantic_catalog.canonical_bytes(build(valid_fragments()))
+        self.assertEqual(first, second)
+        self.assertEqual(first[-1:], b"\n")
+        self.assertNotEqual(first[-2:], b"\n\n")
+        first.decode("ascii")
+
+
+class StrictJsonTests(unittest.TestCase):
+    def test_canonical_fragment_round_trips(self) -> None:
+        fragment = valid_fragments()[0]
+        raw = semantic_catalog.canonical_bytes(fragment)
+        self.assertEqual(semantic_catalog.parse_fragment_bytes(raw), fragment)
+
+    def test_duplicate_keys_floats_non_ascii_and_trailing_bytes_fail(self) -> None:
+        hostile = (
+            b'{"schema":1,"schema":1}',
+            b'{"schema":1.0}\n',
+            b'{"name":"\xc3\xa9"}\n',
+            semantic_catalog.canonical_bytes({"schema": 1}) + b" ",
+        )
+        for raw in hostile:
+            with self.subTest(raw=raw):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    semantic_catalog.parse_fragment_bytes(raw)
+
+    def test_noncanonical_key_order_or_whitespace_fails(self) -> None:
+        for raw in (b'{"b": 1, "a": 2}\n', b'{"a":2}\n', b'{"a": 2}'):
+            with self.subTest(raw=raw):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    semantic_catalog.parse_fragment_bytes(raw)
+
+    def test_canonical_encoder_rejects_all_floats_and_round_trips_supported_values(self) -> None:
+        for value in (0.0, -1.25, float("nan"), float("inf"), float("-inf")):
+            with self.subTest(forbidden=value):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    semantic_catalog.canonical_bytes(value)
+
+        supported = (
+            None,
+            True,
+            False,
+            0,
+            -123,
+            "ASCII text",
+            [],
+            [None, True, 7, "value"],
+            {},
+            {"array": [False, 9], "object": {"key": "value"}},
+        )
+        for value in supported:
+            with self.subTest(supported=value):
+                raw = semantic_catalog.canonical_bytes(value)
+                self.assertEqual(
+                    semantic_catalog.parse_strict_json(raw, max_bytes=len(raw)),
+                    value,
+                )
+
+    def test_unknown_keys_fail_at_every_authored_layer(self) -> None:
+        for collection, owner in ((None, None), ("clauses", "SCOPE-1"), ("facets", "SCOPE-1")):
+            fragments = valid_fragments()
+            if collection is None:
+                fragments[0]["unknown"] = 1
+            else:
+                locate(fragments[0], collection, owner)["unknown"] = 1
+            with self.subTest(collection=collection):
+                with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "keys differ"):
+                    build(fragments)
+
+
+class ResourceBoundTests(unittest.TestCase):
+    def test_raw_depth_integer_string_and_list_limits_accept_limit_reject_plus_one(self) -> None:
+        raw = semantic_catalog.canonical_bytes({"ok": True})
+        self.assertEqual(
+            semantic_catalog.parse_strict_json(raw, max_bytes=len(raw)), {"ok": True}
+        )
+        with self.assertRaises(semantic_catalog.SemanticCatalogError):
+            semantic_catalog.parse_strict_json(raw, max_bytes=len(raw) - 1)
+
+        with mock.patch.object(semantic_catalog, "MAX_JSON_DEPTH", 3):
+            semantic_catalog.parse_strict_json(
+                semantic_catalog.canonical_bytes([[[0]]])
+            )
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "depth"):
+                semantic_catalog.parse_strict_json(
+                    semantic_catalog.canonical_bytes([[[[0]]]])
+                )
+
+        with mock.patch.object(semantic_catalog, "MAX_INTEGER_DIGITS", 2):
+            semantic_catalog.parse_strict_json(semantic_catalog.canonical_bytes(99))
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "digit"):
+                semantic_catalog.parse_strict_json(semantic_catalog.canonical_bytes(100))
+
+        with mock.patch.object(semantic_catalog, "MAX_JSON_STRING_BYTES", 3):
+            semantic_catalog.parse_strict_json(semantic_catalog.canonical_bytes("abc"))
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "string"):
+                semantic_catalog.parse_strict_json(semantic_catalog.canonical_bytes("abcd"))
+
+        with mock.patch.object(semantic_catalog, "MAX_JSON_LIST_ITEMS", 2):
+            semantic_catalog.parse_strict_json(semantic_catalog.canonical_bytes([0, 1]))
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "list"):
+                semantic_catalog.parse_strict_json(
+                    semantic_catalog.canonical_bytes([0, 1, 2])
+                )
+        with mock.patch.object(semantic_catalog, "MAX_JSON_OBJECT_FIELDS", 2):
+            semantic_catalog.parse_strict_json(
+                semantic_catalog.canonical_bytes({"a": 0, "b": 1})
+            )
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "object"):
+                semantic_catalog.parse_strict_json(
+                    semantic_catalog.canonical_bytes({"a": 0, "b": 1, "c": 2})
+                )
+        with mock.patch.object(semantic_catalog, "MAX_JSON_NODES", 3):
+            semantic_catalog.parse_strict_json(semantic_catalog.canonical_bytes([0, 1]))
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "node"):
+                semantic_catalog.parse_strict_json(
+                    semantic_catalog.canonical_bytes([0, 1, 2])
+                )
+
+    def test_fragment_byte_count_clause_and_facet_limits_have_boundaries(self) -> None:
+        fragment = semantic_catalog.canonical_bytes(valid_fragments()[0])
+        with mock.patch.object(semantic_catalog, "MAX_FRAGMENT_COUNT", 1):
+            semantic_catalog.build_static_catalog(
+                [fragment], SPECIFICATION, SOURCE_INDEX_BYTES
+            )
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "fragment count"):
+                semantic_catalog.build_static_catalog(
+                    [fragment, fragment], SPECIFICATION, SOURCE_INDEX_BYTES
+                )
+        with mock.patch.object(semantic_catalog, "MAX_FRAGMENT_BYTES", len(fragment)):
+            semantic_catalog.build_static_catalog(
+                [fragment], SPECIFICATION, SOURCE_INDEX_BYTES
+            )
+        with mock.patch.object(semantic_catalog, "MAX_FRAGMENT_BYTES", len(fragment) - 1):
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "fragment 0"):
+                semantic_catalog.build_static_catalog(
+                    [fragment], SPECIFICATION, SOURCE_INDEX_BYTES
+                )
+        with mock.patch.object(
+            semantic_catalog, "MAX_FRAGMENT_TOTAL_BYTES", len(fragment)
+        ):
+            build(valid_fragments())
+        with mock.patch.object(
+            semantic_catalog, "MAX_FRAGMENT_TOTAL_BYTES", len(fragment) - 1
+        ):
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "aggregate"):
+                build(valid_fragments())
+        with mock.patch.object(semantic_catalog, "MAX_CLAUSE_COUNT", 91):
+            build(valid_fragments())
+        with mock.patch.object(semantic_catalog, "MAX_CLAUSE_COUNT", 90):
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "clause count"):
+                build(valid_fragments())
+        with mock.patch.object(semantic_catalog, "MAX_FACET_COUNT", 91):
+            build(valid_fragments())
+        with mock.patch.object(semantic_catalog, "MAX_FACET_COUNT", 90):
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "facet count"):
+                build(valid_fragments())
+
+    def test_normalized_output_limit_and_parser_runtime_failures_are_controlled(self) -> None:
+        catalog = build(valid_fragments())
+        catalog_size = len(semantic_catalog.canonical_bytes(catalog))
+        with mock.patch.object(semantic_catalog, "MAX_NORMALIZED_OUTPUT_BYTES", catalog_size):
+            build(valid_fragments())
+        with mock.patch.object(
+            semantic_catalog, "MAX_NORMALIZED_OUTPUT_BYTES", catalog_size - 1
+        ):
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "normalized-output"):
+                build(valid_fragments())
+        raw = semantic_catalog.canonical_bytes({"ok": True})
+        for error in (RecursionError("deep"), OverflowError("large"), ValueError("bad")):
+            with self.subTest(error=type(error).__name__), mock.patch.object(
+                semantic_catalog.semantic_catalog_io.json, "loads", side_effect=error
+            ):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    semantic_catalog.parse_strict_json(raw)
+
+
+class PartitionAndClauseTests(unittest.TestCase):
+    def test_rules_must_be_a_unique_bytewise_sorted_exact_partition(self) -> None:
+        mutations = []
+        missing = valid_fragments()
+        missing[0]["rules"].pop()
+        mutations.append(missing)
+        duplicate = valid_fragments()
+        duplicate[0]["rules"].append(duplicate[0]["rules"][-1])
+        mutations.append(duplicate)
+        unsorted = valid_fragments()
+        unsorted[0]["rules"][0], unsorted[0]["rules"][1] = (
+            unsorted[0]["rules"][1], unsorted[0]["rules"][0]
+        )
+        mutations.append(unsorted)
+        for fragments in mutations:
+            with self.subTest(rules=fragments[0]["rules"][:3]):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+    def test_clause_hash_gap_overlap_escape_and_order_fail(self) -> None:
+        for mode in ("hash", "gap", "overlap", "escape", "order"):
+            fragments = valid_fragments()
+            fragment = fragments[0]
+            clause = locate(fragment, "clauses", "SCOPE-1")
+            if mode == "hash":
+                clause["sha256"] = "0" * 64
+            elif mode in {"gap", "overlap"}:
+                original_end = clause["byte_end"]
+                middle = clause["byte_start"] + 10
+                first = copy.deepcopy(clause)
+                second = copy.deepcopy(clause)
+                first["byte_end"] = middle + (1 if mode == "overlap" else -1)
+                first["sha256"] = exact_hash(first["byte_start"], first["byte_end"])
+                second["byte_start"] = middle
+                second["sha256"] = exact_hash(second["byte_start"], original_end)
+                index = fragment["clauses"].index(clause)
+                fragment["clauses"][index:index + 1] = [first, second]
+            elif mode == "escape":
+                clause["byte_end"] += 1
+                clause["sha256"] = exact_hash(clause["byte_start"], clause["byte_end"])
+            else:
+                fragment["clauses"][0], fragment["clauses"][1] = (
+                    fragment["clauses"][1], fragment["clauses"][0]
+                )
+            with self.subTest(mode=mode):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+    def test_dispositions_are_closed_and_exclusion_requires_reviewed_tuple(self) -> None:
+        for disposition in ("unknown", "explicitly-deferred", "explicitly-nonnormative"):
+            fragments = valid_fragments()
+            clause = locate(fragments[0], "clauses", "SCOPE-1")
+            clause["disposition"] = disposition
+            clause["facet_ids"] = []
+            with self.subTest(disposition=disposition):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+    def test_reviewed_disposition_table_matches_exact_spec_bound_contract(self) -> None:
+        self.assertEqual(
+            semantic_catalog.REVIEWED_DISPOSITIONS,
+            EXPECTED_REVIEWED_DISPOSITIONS,
+        )
+
+    def test_every_exact_reviewed_disposition_can_be_excluded(self) -> None:
+        for reviewed in EXPECTED_REVIEWED_DISPOSITIONS:
+            fragments = valid_fragments()
+            replace_with_reviewed_exclusion(fragments[0], reviewed)
+            with self.subTest(rule=reviewed[1]):
+                build(fragments)
+
+    def test_exact_meta_5_deferred_marker_span_has_no_exclusion_authority(self) -> None:
+        fragments = valid_fragments()
+        replace_with_reviewed_exclusion(
+            fragments[0], UNAUTHORIZED_META_5_MARKER
+        )
+        with self.assertRaisesRegex(
+            semantic_catalog.SemanticCatalogError, "exact reviewed"
+        ):
+            build(fragments)
+
+    def test_markers_meta_5_and_expanded_spans_have_no_authority(self) -> None:
+        for rule, disposition in (
+            ("FORM-7", "explicitly-deferred"),
+            ("FN-4", "explicitly-nonnormative"),
+            ("META-5", "explicitly-deferred"),
+        ):
+            fragments = valid_fragments()
+            fragment = fragments[0]
+            clause = locate(fragment, "clauses", rule)
+            clause["disposition"] = disposition
+            clause["facet_ids"] = []
+            facet = locate(fragment, "facets", rule)
+            fragment["facets"].remove(facet)
+            with self.subTest(rule=rule):
+                with self.assertRaisesRegex(
+                    semantic_catalog.SemanticCatalogError,
+                    "exact reviewed",
+                ):
+                    build(fragments)
+
+    def test_fn_4_trailing_normative_sentence_cannot_be_excluded(self) -> None:
+        fragments = valid_fragments()
+        replace_with_reviewed_exclusion(fragments[0], EXPECTED_FN_4_DISPOSITION)
+        excluded = next(
+            clause
+            for clause in fragments[0]["clauses"]
+            if clause["owner_rule"] == "FN-4"
+            and clause["disposition"] == "explicitly-nonnormative"
+        )
+        excluded["byte_end"] += len(b"it never licenses optimizer use. ")
+        excluded["sha256"] = exact_hash(
+            excluded["byte_start"], excluded["byte_end"]
+        )
+        following = fragments[0]["clauses"][
+            fragments[0]["clauses"].index(excluded) + 1
+        ]
+        following["byte_start"] = excluded["byte_end"]
+        following["sha256"] = exact_hash(
+            following["byte_start"], following["byte_end"]
+        )
+        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "exact reviewed"):
+            build(fragments)
+
+    def test_facet_clause_requires_nonempty_sorted_same_owner_ids(self) -> None:
+        for mode in ("empty", "duplicate", "unsorted", "cross-owner"):
+            fragments = valid_fragments()
+            clause = locate(fragments[0], "clauses", "SCOPE-1")
+            if mode == "empty":
+                clause["facet_ids"] = []
+            elif mode == "duplicate":
+                clause["facet_ids"] *= 2
+            elif mode == "unsorted":
+                second = copy.deepcopy(locate(fragments[0], "facets", "SCOPE-1"))
+                second["id"] = "facet:SCOPE-1/another-obligation"
+                fragments[0]["facets"].append(second)
+                fragments[0]["facets"].sort(key=lambda entry: entry["id"].encode("ascii"))
+                clause["facet_ids"] = [
+                    "facet:SCOPE-1/semantic-obligation",
+                    "facet:SCOPE-1/another-obligation",
+                ]
+            else:
+                clause["facet_ids"] = ["facet:SCOPE-2/semantic-obligation"]
+            with self.subTest(mode=mode):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+
+class FacetContractTests(unittest.TestCase):
+    def test_bad_owner_mismatched_and_duplicate_facet_ids_fail(self) -> None:
+        for mode in ("bad", "mismatch", "duplicate"):
+            fragments = valid_fragments()
+            facet = locate(fragments[0], "facets", "SCOPE-1")
+            clause = locate(fragments[0], "clauses", "SCOPE-1")
+            if mode == "bad":
+                facet["id"] = "facet:SCOPE-1/not_valid"
+                clause["facet_ids"] = [facet["id"]]
+            elif mode == "mismatch":
+                facet["id"] = "facet:SCOPE-2/semantic-obligation"
+                clause["facet_ids"] = [facet["id"]]
+            else:
+                duplicate = copy.deepcopy(facet)
+                fragments[0]["facets"].append(duplicate)
+            fragments[0]["facets"].sort(key=lambda entry: entry["id"].encode("ascii"))
+            with self.subTest(mode=mode):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+    def test_every_facet_must_be_mapped_by_a_clause(self) -> None:
+        fragments = valid_fragments()
+        extra = copy.deepcopy(locate(fragments[0], "facets", "SCOPE-1"))
+        extra["id"] = "facet:SCOPE-1/unmapped-obligation"
+        fragments[0]["facets"].append(extra)
+        fragments[0]["facets"].sort(key=lambda entry: entry["id"].encode("ascii"))
+        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "not mapped"):
+            build(fragments)
+
+    def test_source_atoms_must_be_complete_unique_same_owner_and_index_ordered(self) -> None:
+        owner = "GRAM-2"
+        self.assertGreater(len(CHILDREN_BY_OWNER[owner]), 2)
+        for mode in ("missing-rule", "missing-child", "duplicate", "cross-owner", "unsorted"):
+            fragments = valid_fragments()
+            facet = locate(fragments[0], "facets", owner)
+            if mode == "missing-rule":
+                facet["source_atoms"].pop(0)
+            elif mode == "missing-child":
+                facet["source_atoms"].pop()
+            elif mode == "duplicate":
+                facet["source_atoms"].append(facet["source_atoms"][-1])
+            elif mode == "cross-owner":
+                facet["source_atoms"] = ["rule:GRAM-3"]
+            else:
+                facet["source_atoms"][0], facet["source_atoms"][1] = (
+                    facet["source_atoms"][1], facet["source_atoms"][0]
+                )
+            with self.subTest(mode=mode):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+    def test_stages_lanes_and_evidence_are_closed_nonempty_and_ordered(self) -> None:
+        cases = (
+            ("owner_stage", "unknown"),
+            ("required_lanes", []),
+            ("required_lanes", ["checker", "frontend"]),
+            ("required_lanes", ["frontend", "frontend"]),
+            ("required_evidence", []),
+            ("required_evidence", ["static-audit", "property"]),
+            ("required_evidence", ["unknown"]),
+        )
+        for field, value in cases:
+            fragments = valid_fragments()
+            locate(fragments[0], "facets", "SCOPE-1")[field] = value
+            with self.subTest(field=field, value=value):
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    build(fragments)
+
+
+class SourceBindingAndDiscoveryTests(unittest.TestCase):
+    @staticmethod
+    def write_repository(
+        root: Path,
+        *,
+        source_index: bytes = SOURCE_INDEX_BYTES,
+        fragments: list[dict[str, object]] | None = None,
+    ) -> None:
+        (root / "spec").mkdir()
+        decomposition = root / "facets" / "v0.8" / "decomposition"
+        decomposition.mkdir(parents=True)
+        (root / "spec" / "kernel-spec-v0.8.md").write_bytes(SPECIFICATION)
+        (root / "facets" / "v0.8" / "source.json").write_bytes(source_index)
+        for index, fragment in enumerate(fragments or valid_fragments()):
+            (decomposition / f"{index:02d}.json").write_bytes(
+                semantic_catalog.canonical_bytes(fragment)
+            )
+
+    def test_source_index_requires_exact_bytes_not_an_object_substitution(self) -> None:
+        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "exact bytes"):
+            semantic_catalog.build_static_catalog(
+                [semantic_catalog.canonical_bytes(valid_fragments()[0])],
+                SPECIFICATION,
+                SOURCE_INDEX,
+            )
+
+    def test_authority_lengths_are_checked_before_parsing(self) -> None:
+        fragment = semantic_catalog.canonical_bytes(valid_fragments()[0])
+        with mock.patch.object(
+            semantic_catalog.semantic_catalog_io, "parse_canonical_json"
+        ) as parser:
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "byte length"):
+                semantic_catalog.build_static_catalog(
+                    [fragment], SPECIFICATION + b" ", SOURCE_INDEX_BYTES
+                )
+            parser.assert_not_called()
+        with mock.patch.object(
+            semantic_catalog.semantic_catalog_io, "parse_canonical_json"
+        ) as parser:
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "byte length"):
+                semantic_catalog.build_static_catalog(
+                    [fragment], SPECIFICATION, SOURCE_INDEX_BYTES + b" "
+                )
+            parser.assert_not_called()
+
+    def test_structurally_plausible_source_index_substitution_fails_identity(self) -> None:
+        substitute = copy.deepcopy(SOURCE_INDEX)
+        substitute["scope"] += " Substituted."
+        substitute_bytes = semantic_catalog.canonical_bytes(substitute)
+        self.assertNotEqual(
+            semantic_catalog.sha256(substitute_bytes),
+            semantic_catalog.SOURCE_INDEX_SHA256,
+        )
+        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "source index"):
+            semantic_catalog.build_static_catalog(
+                [semantic_catalog.canonical_bytes(valid_fragments()[0])],
+                SPECIFICATION,
+                substitute_bytes,
+            )
+
+    def test_file_construction_rejects_source_index_substitution(self) -> None:
+        substitute = copy.deepcopy(SOURCE_INDEX)
+        substitute["scope"] += " Substituted."
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_repository(
+                root, source_index=semantic_catalog.canonical_bytes(substitute)
+            )
+            with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "source index"):
+                semantic_catalog.build_from_files(root)
+
+    def test_exact_specification_hash_is_required(self) -> None:
+        changed = bytearray(SPECIFICATION)
+        changed[0] ^= 1
+        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "specification hash"):
+            semantic_catalog.build_static_catalog(
+                [semantic_catalog.canonical_bytes(valid_fragments()[0])],
+                bytes(changed),
+                SOURCE_INDEX_BYTES,
+            )
+
+    def test_fixed_inputs_and_fragment_paths_reject_symlinks(self) -> None:
+        cases = ("root", "specification", "source-index", "directory", "fragment")
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                base = Path(directory)
+                real = base / "real"
+                real.mkdir()
+                self.write_repository(real)
+                target = real
+                if case == "root":
+                    target = base / "root-link"
+                    target.symlink_to(real, target_is_directory=True)
+                elif case == "specification":
+                    path = real / "spec" / "kernel-spec-v0.8.md"
+                    path.unlink()
+                    path.symlink_to(base / "outside-spec")
+                    (base / "outside-spec").write_bytes(SPECIFICATION)
+                elif case == "source-index":
+                    path = real / "facets" / "v0.8" / "source.json"
+                    path.unlink()
+                    path.symlink_to(base / "outside-source")
+                    (base / "outside-source").write_bytes(SOURCE_INDEX_BYTES)
+                elif case == "directory":
+                    path = real / "facets" / "v0.8" / "decomposition"
+                    path.rename(base / "outside-decomposition")
+                    path.symlink_to(base / "outside-decomposition", target_is_directory=True)
+                else:
+                    path = real / "facets" / "v0.8" / "decomposition" / "00.json"
+                    path.unlink()
+                    path.symlink_to(base / "outside-fragment")
+                    (base / "outside-fragment").write_bytes(
+                        semantic_catalog.canonical_bytes(valid_fragments()[0])
+                    )
+                with self.assertRaises(semantic_catalog.SemanticCatalogError):
+                    semantic_catalog.build_from_files(target)
+
+    def test_named_fifo_inputs_fail_in_subprocess_without_hanging(self) -> None:
+        child_program = "\n".join(
+            (
+                "import pathlib, sys",
+                "sys.path.insert(0, sys.argv[1])",
+                "import semantic_catalog",
+                "try:",
+                "    semantic_catalog.build_from_files(pathlib.Path(sys.argv[2]))",
+                "except semantic_catalog.SemanticCatalogError:",
+                "    raise SystemExit(0)",
+                "except BaseException as error:",
+                "    print(type(error).__name__, error, file=sys.stderr)",
+                "    raise SystemExit(3)",
+                "raise SystemExit(2)",
+            )
+        )
+        tools_directory = str(Path(__file__).resolve().parent)
+        fifo_paths = (
+            Path("spec/kernel-spec-v0.8.md"),
+            Path("facets/v0.8/decomposition/00.json"),
+        )
+        for fifo_path in fifo_paths:
+            with self.subTest(path=str(fifo_path)), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.write_repository(root)
+                path = root / fifo_path
+                path.unlink()
+                os.mkfifo(path)
+                environment = dict(os.environ)
+                environment["PYTHONDONTWRITEBYTECODE"] = "1"
+                completed = subprocess.run(
+                    [sys.executable, "-c", child_program, tools_directory, str(root)],
+                    capture_output=True,
+                    check=False,
+                    env=environment,
+                    text=True,
+                    timeout=3,
+                )
+                self.assertEqual(
+                    completed.returncode,
+                    0,
+                    msg=f"stdout={completed.stdout!r} stderr={completed.stderr!r}",
+                )
+
+    def test_directory_entry_and_json_fragment_caps_have_exact_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_repository(root)
+            decomposition = root / "facets" / "v0.8" / "decomposition"
+            (decomposition / "README.md").write_text("ignored\n", encoding="ascii")
+            (decomposition / "nested").mkdir()
+            with mock.patch.object(
+                semantic_catalog, "MAX_FRAGMENT_DIRECTORY_ENTRIES", 3
+            ):
+                self.assertEqual(
+                    semantic_catalog.build_from_files(root), build(valid_fragments())
+                )
+                (decomposition / "ignored.bin").write_bytes(b"ignored\n")
+                with self.assertRaisesRegex(
+                    semantic_catalog.SemanticCatalogError, "entr"
+                ):
+                    semantic_catalog.build_from_files(root)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fragments = [fragment_for(RULES[::2]), fragment_for(RULES[1::2])]
+            self.write_repository(root, fragments=fragments)
+            decomposition = root / "facets" / "v0.8" / "decomposition"
+            with mock.patch.object(semantic_catalog, "MAX_FRAGMENT_COUNT", 2):
+                self.assertEqual(
+                    semantic_catalog.build_from_files(root), build(fragments)
+                )
+                (decomposition / "02.json").write_bytes(
+                    semantic_catalog.canonical_bytes({})
+                )
+                with self.assertRaisesRegex(
+                    semantic_catalog.SemanticCatalogError, "fragment count"
+                ):
+                    semantic_catalog.build_from_files(root)
+
+    def test_public_file_build_and_partial_check_normalize_descriptor_oserrors(self) -> None:
+        public_apis = (
+            semantic_catalog.build_from_files,
+            semantic_catalog.check_partial_from_files,
+        )
+        os_functions = ("open", "dup", "fstat", "read", "scandir")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_repository(root)
+            for public_api in public_apis:
+                for function_name in os_functions:
+                    with self.subTest(
+                        api=public_api.__name__, os_function=function_name
+                    ), mock.patch.object(
+                        semantic_catalog.semantic_catalog_io.os,
+                        function_name,
+                        side_effect=OSError("injected descriptor failure"),
+                    ):
+                        with self.assertRaises(
+                            semantic_catalog.SemanticCatalogError
+                        ):
+                            public_api(root)
+
+    def test_discovery_is_direct_and_ignores_non_json_or_nested_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_repository(root)
+            decomposition = root / "facets" / "v0.8" / "decomposition"
+            (decomposition / "README.md").write_text("ignored\n", encoding="ascii")
+            nested = decomposition / "nested"
+            nested.mkdir()
+            (nested / "hidden.json").write_bytes(semantic_catalog.canonical_bytes({}))
+            self.assertEqual(semantic_catalog.build_from_files(root), build(valid_fragments()))
+
+
+class LivePartialAuditTests(unittest.TestCase):
+    def test_live_check_partial_uses_only_authored_fragments_and_lists_missing_rules(self) -> None:
+        audit = semantic_catalog.check_partial_from_files()
+        self.assertGreater(audit["rule_count"], 0)
+        self.assertLess(audit["rule_count"], len(RULES))
+        self.assertEqual(
+            len(audit["missing_rules"]), len(RULES) - audit["rule_count"]
+        )
+        self.assertGreaterEqual(audit["source_atom_count"], audit["rule_count"])
+        self.assertNotIn("SCOPE-1", audit["missing_rules"])
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            self.assertEqual(semantic_catalog.main(["check-partial"]), 0)
+        self.assertIn(
+            f"{audit['rule_count']}/{len(RULES)} rules", output.getvalue()
+        )
+        self.assertIn(f"missing: {audit['missing_rules'][0]}", output.getvalue())
+
+    def test_live_full_build_remains_red_until_all_91_rules_are_authored(self) -> None:
+        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "missing="):
+            semantic_catalog.build_from_files()
+
+
+if __name__ == "__main__":
+    unittest.main()
