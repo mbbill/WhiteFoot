@@ -24,8 +24,9 @@ facets:
 	$(PY) tools/test_facet_catalog.py
 	$(PY) tools/facet_catalog.py check
 	$(PY) tools/test_semantic_catalog.py
-	$(PY) tools/semantic_catalog.py check-partial
+	$(PY) tools/semantic_catalog.py check
 	$(PY) tools/test_facet_discrepancies.py
+	$(PY) tools/facet_discrepancies.py check
 
 reference-model:
 	cd prototype/checker && $(PY) test_checker.py -v

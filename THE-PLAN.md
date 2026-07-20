@@ -365,18 +365,21 @@ separately typed source-binding verifier. The current catalog slice supplies a
 fail-closed exact-v0.8 structural index; it explicitly distinguishes 57 fenced
 grammar productions from two EFF-1 inline productions and records the unresolved
 OP-1 dotless-name set mismatch without choosing an interpretation. The authored
-semantic decomposition now covers 34 of 91 rules, 237 exact clauses, 218
-semantic facets, and 91 of 200 source atoms. Its bounded checker accepts only
-exact specification, source-index, and canonical fragment bytes; its
-development-only partial audit lists every missing rule without synthesizing
-obligations, while the full static catalog remains unavailable. A closed
-predicate registry records six exact specification or protected-surface
-discrepancies and cannot waive them; a complete catalog is required before a
-production sidecar can exist. Token, tree, declaration, type, instantiation,
-check, and proof identities remain deliberately unfrozen until their canonical
-schemas exist; traversal counters must not become artifact authority. The next
-slices complete the remaining semantic families, freeze the capability-overlay
-boundary, and then freeze those identities and the artifact envelope. A red
-gate, specification conflict, protected-surface guard, unverified authority
-path, unexplained verdict, or need for a numbered-spec change stops the affected
-work at that boundary.
+semantic decomposition now owns all 91 rules, tiles them into 598 exact clauses
+and 587 semantic facets, and traces all 200 source atoms. Its normalized
+decomposition SHA-256 is
+`3ccd1c7b5113e176e7edac37eb4a98603d158cce41908a6297064bf5ded2d156`;
+the canonical generated catalog SHA-256 is
+`2fa586a8a1d9a49f344d64ad2b5f450a2ae2e8362bc187c70267097b9b427e1d`.
+The bounded checker accepts only exact specification, source-index, and
+canonical fragment bytes. A checked-in descriptive sidecar is regenerated from
+those authorities and records 13 exact, non-waivable specification or
+protected-surface discrepancies. Only their affected facets are blocked; no
+record chooses semantics or authorizes a release. Token, tree, declaration,
+type, instantiation, check, and proof identities remain deliberately unfrozen
+until their canonical schemas exist; traversal counters must not become
+artifact authority. The next slice freezes the capability-overlay boundary,
+followed by those identities and the artifact envelope. A red gate,
+specification conflict, protected-surface guard, unverified authority path,
+unexplained verdict, or need for a numbered-spec change stops the affected work
+at that boundary.

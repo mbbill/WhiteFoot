@@ -1,0 +1,692 @@
+{
+  "bindings": {
+    "catalog_sha256": "2fa586a8a1d9a49f344d64ad2b5f450a2ae2e8362bc187c70267097b9b427e1d",
+    "guard_baseline_sha256": "9d4ff925668a3341543d555c5243ef0b74ca5e7e275617ff4808d90c290dc48a",
+    "source_index_sha256": "b5f52d81fe7aff0581a421c296a84f0b0fd1ebf7d9dee104988f096d5937379e",
+    "specification_sha256": "d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8"
+  },
+  "format": "whitefoot-open-discrepancies-v1",
+  "records": [
+    {
+      "affected_facet_ids": [
+        "facet:STOR-3/deallocation-compiler-derived",
+        "facet:STOR-3/drop-and-arena-release-artifact-operations"
+      ],
+      "class": "internal-specification-gap",
+      "evidence": {
+        "missing_contract": "backing-allocation-and-remaining-payload-disposition-after-affine-referent-move",
+        "own1_partial_move_source": {
+          "byte_end": 26085,
+          "byte_start": 25995,
+          "line_end": 161,
+          "line_start": 161,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "385e180cf9a88c4fc0a2673b3a2a710fa8f27b7006dcef1c74d7c3acae2404fc"
+        },
+        "stor2_deref_access_source": {
+          "byte_end": 34917,
+          "byte_start": 34883,
+          "line_end": 191,
+          "line_start": 191,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "4e6f6d92f02bc31211cf29b2c676cd1891dffcb246752d9ed97cf2c70b57ca25"
+        },
+        "stor3_derived_drop_source": {
+          "byte_end": 35072,
+          "byte_start": 34984,
+          "line_end": 193,
+          "line_start": 193,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "450ffec2a8008c821a4181e34333a4c55bd938408183f45d4554779ea803dfad"
+        },
+        "type7_affine_move_source": {
+          "byte_end": 23201,
+          "byte_start": 23112,
+          "line_end": 153,
+          "line_start": 153,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "9e03775a3ee20b6d5779bb6fbe51ab8ca921cf58907d431e07a04714e86c0283"
+        }
+      },
+      "id": "discrepancy:v0.8/affine-deref-storage-lifecycle",
+      "predicate_id": "predicate:affine-deref-storage-lifecycle-completeness",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:DIAG-3/check-report-schema"
+      ],
+      "class": "internal-specification-gap",
+      "evidence": {
+        "check_report_row_source": {
+          "byte_end": 59549,
+          "byte_start": 59385,
+          "line_end": 321,
+          "line_start": 321,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "54c2c2e96227c74da8c6cefd61029eca7146a57a58363622d6d46a821f90e17c"
+        },
+        "missing_contract": "proof_ref-value-for-retained-check",
+        "report_header_source": {
+          "byte_end": 59257,
+          "byte_start": 59223,
+          "line_end": 318,
+          "line_start": 318,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "f403fac660ee6442a1a568edd22055cc8c476fe9e829de352d1eebf9471e8518"
+        }
+      },
+      "id": "discrepancy:v0.8/diag3-retained-proof-ref",
+      "predicate_id": "predicate:diag3-retained-check-proof-ref-completeness",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:EFF-1/canonical-effect-order",
+        "facet:EFF-1/effect-row-grammar"
+      ],
+      "class": "specification-protected-surface-conflict",
+      "evidence": {
+        "effect_kind_order_source": {
+          "byte_end": 55810,
+          "byte_start": 55745,
+          "line_end": 288,
+          "line_start": 288,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "8294f4112b0cca9c4c12fd43e3a1b7029187dd480248961b653f58dbddbb0763"
+        },
+        "missing_contract": "effect-kind-and-region-or-allocation-entry-uniqueness-and-order",
+        "protected_case": {
+          "manifest": {
+            "expect": {
+              "kind": "reject",
+              "rule": "EFF-1"
+            },
+            "id": "x-eff-dup-reads-effect",
+            "rules": [
+              "EFF-1"
+            ],
+            "status": "runnable"
+          },
+          "path": "conformance/cases/x-eff-dup-reads-effect.wf",
+          "sha256": "6b3fdf57da232086c693c382549332d5a090ce0741aeb2cb0aee90459ffd74e5"
+        },
+        "row_grammar_source": {
+          "byte_end": 55610,
+          "byte_start": 55555,
+          "line_end": 288,
+          "line_start": 288,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "bca021af57224f0154c77083fe0baf3ed3b0a0b88aea8e2b9189b934cd59ea15"
+        }
+      },
+      "id": "discrepancy:v0.8/eff1-row-canonicality",
+      "predicate_id": "predicate:eff1-row-canonicality-completeness",
+      "resolution_authorities": [
+        "owner-approved-protected-surface-change",
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:EFF-2/effect-row-bidirectional-exactness",
+        "facet:EFF-2/syntactic-effect-exhibit-closure",
+        "facet:EX-1/byte-exact-canonical-program",
+        "facet:FN-7/main-effect-ceiling"
+      ],
+      "class": "internal-specification-inconsistency",
+      "evidence": {
+        "eff2_bidirectional_check_source": {
+          "byte_end": 56375,
+          "byte_start": 56316,
+          "line_end": 290,
+          "line_start": 290,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "eb726a4ce9068a4da2877415481fa853996b5f2679610f97460a373b44fd8096"
+        },
+        "eff2_local_exhibits_source": {
+          "byte_end": 56314,
+          "byte_start": 56229,
+          "line_end": 290,
+          "line_start": 290,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "85180ce9cdf2eddb8a9cbc45651832517dd2258bede1efd8aa974e411ef2a07a"
+        },
+        "example_local_region_source": {
+          "byte_end": 62093,
+          "byte_start": 62054,
+          "line_end": 389,
+          "line_start": 388,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "ea63a7f4873f5f2b803e5f10e71f6730026ecbe63389a5450331c3d82b0ce886"
+        },
+        "fn7_main_effect_ceiling_source": {
+          "byte_end": 52805,
+          "byte_start": 52762,
+          "line_end": 282,
+          "line_start": 282,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "a206d85444b96a73e8c06f8bd745ea46fae4bfde3a281b26900bce4cbe4c982d"
+        },
+        "missing_contract": "body-local-region-effect-discharge-or-row-projection",
+        "protected_case": {
+          "manifest": {
+            "expect": {
+              "exit": 0,
+              "kind": "run"
+            },
+            "id": "stor4-pos-arena-confined",
+            "rules": [
+              "STOR-4"
+            ],
+            "status": "pending"
+          },
+          "path": "conformance/cases/stor4-pos-arena-confined.wf",
+          "sha256": "fa0d1c15f32c5f2f4f26a3b5132d0fffe4d2365ef64d824e3b24995f4199a977"
+        }
+      },
+      "id": "discrepancy:v0.8/eff2-local-region-effects",
+      "predicate_id": "predicate:eff2-local-region-effect-row-consistency",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:FN-3/contract-member-checking-boundary",
+        "facet:FN-5/behavior-parameterization",
+        "facet:FN-5/env-struct-direct-calls"
+      ],
+      "class": "internal-specification-gap",
+      "evidence": {
+        "fn3_conformance_source": {
+          "byte_end": 50843,
+          "byte_start": 50724,
+          "line_end": 274,
+          "line_start": 274,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "e047d27e9a2bc0feef8cf97911c9eba2723057e8bcdfb30c195a13ac237e8b89"
+        },
+        "fn5_behavior_source": {
+          "byte_end": 51944,
+          "byte_start": 51855,
+          "line_end": 278,
+          "line_start": 278,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "19bf72318a692d1ef8ddd3f9b83334e3e2c3456e1a9ed644f0b360be29420c13"
+        },
+        "missing_contract": "member-set-signature-effect-substitution-law-and-call-resolution"
+      },
+      "id": "discrepancy:v0.8/fn3-contract-member-semantics",
+      "predicate_id": "predicate:fn3-contract-member-semantics-completeness",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:FN-4/optimizer-law-fact-admission"
+      ],
+      "class": "specification-protected-surface-conflict",
+      "evidence": {
+        "fn4_fact_admission_source": {
+          "byte_end": 51489,
+          "byte_start": 51415,
+          "line_end": 276,
+          "line_start": 276,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "fedf1625497c0d6087d80e4b15200dbbe96870652b60890095012bfb75d028bb"
+        },
+        "missing_contract": "universal-law-proof-schema-scope-and-declaration-acceptance",
+        "op5_deferred_vocabulary_source": {
+          "byte_end": 43209,
+          "byte_start": 43131,
+          "line_end": 258,
+          "line_start": 258,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "d3066130c269f160e09c9ffda0bef1e8fff45a536959c470606248a060f2bb5e"
+        },
+        "protected_case": {
+          "manifest": {
+            "expect": {
+              "kind": "reject",
+              "rule": "FN-4"
+            },
+            "id": "fn4-neg-law-undischarged",
+            "rules": [
+              "FN-4"
+            ],
+            "status": "runnable"
+          },
+          "path": "conformance/cases/fn4-neg-law-undischarged.wf",
+          "sha256": "5959185a75c17ac79c5fb336cb728873b6db8bd83b7174ae05bfd05460fb851a"
+        }
+      },
+      "id": "discrepancy:v0.8/fn4-law-admission",
+      "predicate_id": "predicate:fn4-law-admission-completeness",
+      "resolution_authorities": [
+        "owner-approved-protected-surface-change",
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:EX-1/byte-exact-canonical-program",
+        "facet:FN-7/main-return-spelling",
+        "facet:GRAM-2/function-and-contract-declaration-shapes",
+        "facet:GRAM-3/return-mode-type-shape"
+      ],
+      "class": "internal-specification-inconsistency",
+      "evidence": {
+        "example_main_return_spelling": "own unit",
+        "example_main_source": {
+          "byte_end": 61943,
+          "byte_start": 61913,
+          "line_end": 385,
+          "line_start": 385,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "3c21e58f403384c5f0b6f119e1c6e64e916b48bea8a58355724ec5a9f4642165"
+        },
+        "fn7_main_return_spelling": "unit",
+        "fn7_main_source": {
+          "byte_end": 52755,
+          "byte_start": 52738,
+          "line_end": 282,
+          "line_start": 282,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "2687d72b3742432ba69de3203f96d29308347ac8825558f829fa766f6a3b8fc8"
+        },
+        "fn_decl_return_nonterminal": "rtype",
+        "fn_decl_source": {
+          "byte_end": 12901,
+          "byte_start": 12759,
+          "line_end": 53,
+          "line_start": 52,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "7937beaad997465d1e80dcc0eae3573d3de754bd5b7762a561760bf98adc9508"
+        },
+        "rtype_shape": "mode type",
+        "rtype_source": {
+          "byte_end": 13916,
+          "byte_start": 13896,
+          "line_end": 76,
+          "line_start": 76,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "c9e5b6dead005a9feb5a7adb849ce60d0bc0dcd6051f3b64892a0f7c383eeac4"
+        }
+      },
+      "id": "discrepancy:v0.8/fn7-main-return-spelling",
+      "predicate_id": "predicate:fn7-main-return-spelling-consistency",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:FN-8/keyword-reserved",
+        "facet:FORM-3/ident-lexical-class"
+      ],
+      "class": "specification-protected-surface-conflict",
+      "evidence": {
+        "fn8_reservation_source": {
+          "byte_end": 53852,
+          "byte_start": 53792,
+          "line_end": 284,
+          "line_start": 284,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "bc4d0e65117de04cde9031c32d32795977189aee2d061acb110325337127d854"
+        },
+        "protected_case": {
+          "manifest": {
+            "expect": {
+              "kind": "reject",
+              "rule": "FORM-3"
+            },
+            "id": "form3-neg-requires-binding",
+            "rules": [
+              "FORM-3",
+              "FN-8"
+            ],
+            "status": "runnable"
+          },
+          "path": "conformance/cases/form3-neg-requires-binding.wf",
+          "sha256": "18814d0b53a94300fe6e13f5ac1ea0cba45ac473ed2d05d4ec90a694291fedfe"
+        },
+        "protected_cited_rule": "FORM-3",
+        "specification_owner_rule": "FN-8"
+      },
+      "id": "discrepancy:v0.8/fn8-reserved-rule-attribution",
+      "predicate_id": "predicate:fn8-reserved-rule-attribution-consistency",
+      "resolution_authorities": [
+        "owner-approved-protected-surface-change",
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:FORM-2/no-space-before-open-paren"
+      ],
+      "class": "specification-protected-surface-conflict",
+      "evidence": {
+        "attached_declaration_count": 2,
+        "direct_function_declaration_count": 400,
+        "manifested_direct_function_declaration_count": 399,
+        "manifested_expected_form2_rejection_count": 2,
+        "manifested_pending_source_files_with_single_space_count": 14,
+        "manifested_runnable_other_expectation_count": 274,
+        "manifested_runnable_source_files_with_single_space_count": 276,
+        "manifested_single_space_declaration_count": 397,
+        "other_whitespace_declaration_count": 0,
+        "positive_fixture": {
+          "direct_function_declarations": [
+            {
+              "line": 1,
+              "line_sha256": "01da3f7b8d2822839e71e050e99e46eb38a794d3e4b8054e5d5f361a184ab29c",
+              "name_bytes_hex": "6d61696e",
+              "spacing": "single-space"
+            }
+          ],
+          "manifest": {
+            "expect": {
+              "exit": 0,
+              "kind": "run"
+            },
+            "id": "form2-pos-canonical-bytes",
+            "rules": [
+              "FORM-2"
+            ],
+            "status": "runnable"
+          },
+          "path": "conformance/cases/form2-pos-canonical-bytes.wf",
+          "sha256": "202d27f9d94e35c1a5d36eb04046e25774273f73783efb0609fb4e7e9e5c9218"
+        },
+        "protected_census_sha256": "61fe48b74371fd2ea476cc901db8d30ce07921ffa4ce30ba9c32577a6394beb5",
+        "protected_manifested_source_count": 292,
+        "protected_manifested_source_files_with_single_space_count": 290,
+        "protected_source_count": 293,
+        "protected_source_files_with_single_space_count": 291,
+        "protected_source_inventory_sha256": "944773a3012e40d529f33b1bfe4d9069a11eb0c365ae938e27d58977830c9700",
+        "protected_surface_sha256": "ba8101aa8cf27fab5c948f276923b826d2d5cba610f8e5a8c00ecd5ffc11c100",
+        "protected_unmanifested_source_count": 1,
+        "protected_unmanifested_source_files_with_single_space_count": 1,
+        "single_space_declaration_count": 398,
+        "unmanifested_direct_function_declaration_count": 1,
+        "unmanifested_protected_sources": [
+          {
+            "direct_function_declarations": [
+              {
+                "line": 3,
+                "line_sha256": "e58d474de015a09840860e8f233684239005a29ace4a3ba58c17903fdd13326e",
+                "name_bytes_hex": "6d61696e",
+                "spacing": "single-space"
+              }
+            ],
+            "manifest": null,
+            "path": "conformance/cases/pending-const2-item.wf",
+            "sha256": "ae99d9b9b99e02e9c6c5f2af54f0924b7b1a0f5ee0422d29958b01b597adf759"
+          }
+        ],
+        "unmanifested_single_space_declaration_count": 1
+      },
+      "id": "discrepancy:v0.8/form2-protected-conformance-spacing",
+      "predicate_id": "predicate:form2-conformance-function-spacing",
+      "resolution_authorities": [
+        "owner-approved-protected-surface-change",
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:FORM-4/documentation-field-only"
+      ],
+      "class": "internal-specification-inconsistency",
+      "evidence": {
+        "doc_production_id": "production:GRAM-2:doc",
+        "doc_production_lhs": "doc",
+        "doc_production_owner": "GRAM-2",
+        "doc_production_source": {
+          "byte_end": 13368,
+          "byte_start": 13335,
+          "line_end": 61,
+          "line_start": 61,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "62075dc6f83e384ce0bea4df8876944089e916f855f9e78b315d02c34e3fccb1"
+        },
+        "form4_citation_source": {
+          "byte_end": 8780,
+          "byte_start": 8722,
+          "line_end": 27,
+          "line_start": 27,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "73ef840b5d5d7f45dcacb899e42f7d6a0be0af400a1cce8371da8721a1cd56d4"
+        },
+        "form4_cited_owner": "GRAM-3"
+      },
+      "id": "discrepancy:v0.8/form4-doc-cross-reference",
+      "predicate_id": "predicate:form4-doc-production-owner-consistency",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:FORM-1/noncanonical-input-rejected",
+        "facet:FORM-1/one-byte-format",
+        "facet:FORM-1/one-spelling-per-construct",
+        "facet:FORM-1/toolchain-does-not-autoformat",
+        "facet:FORM-5/float-lowercase-exponent",
+        "facet:FORM-5/float-no-leading-zeros",
+        "facet:FORM-5/float-required-integer-and-fraction-digits",
+        "facet:FORM-5/float-shortest-rne-roundtrip",
+        "facet:META-1/one-spelling-enforcement"
+      ],
+      "class": "internal-specification-inconsistency",
+      "evidence": {
+        "form5_disposition": "normative-unique-shortest-rne-roundtrip",
+        "form5_source": {
+          "byte_end": 9325,
+          "byte_start": 9125,
+          "line_end": 29,
+          "line_start": 29,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "3b25dca20138b9ef5f797dae0565329818835c7190f04e1d1b83108800157c6a"
+        },
+        "form7_disposition": "explicitly-deferred",
+        "form7_source": {
+          "byte_end": 11357,
+          "byte_start": 11240,
+          "line_end": 33,
+          "line_start": 33,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "268dc6c19eacf8f247fad3a3402746692fee5ce709aeace0b3a1254f497f118e"
+        }
+      },
+      "id": "discrepancy:v0.8/form5-form7-float-canonical-spelling",
+      "predicate_id": "predicate:form5-form7-float-canonical-spelling-consistency",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:GRAM-1/production-node-bijection",
+        "facet:GRAM-7/shared-match-node-kind",
+        "facet:META-1/production-node-bijection-enforcement"
+      ],
+      "class": "internal-specification-inconsistency",
+      "evidence": {
+        "gram1_constraint": "one-production-to-one-node-kind-bijection",
+        "gram1_source": {
+          "byte_end": 12345,
+          "byte_start": 12268,
+          "line_end": 39,
+          "line_start": 39,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "0f10dd0af3c839004ed9fae81ee6118043a10ed9cf48476a0c406f6a3386cfe2"
+        },
+        "gram7_constraint": "two-productions-share-one-match-node-kind",
+        "gram7_source": {
+          "byte_end": 16205,
+          "byte_start": 16129,
+          "line_end": 127,
+          "line_start": 127,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "d131bea381d9e91bac481198b82a0c931bbff919066db77073cd50a67d9fe414"
+        }
+      },
+      "id": "discrepancy:v0.8/gram1-gram7-match-node-bijection",
+      "predicate_id": "predicate:gram1-gram7-match-node-bijection-consistency",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    },
+    {
+      "affected_facet_ids": [
+        "facet:OP-1/dotless-operation-reservation"
+      ],
+      "class": "internal-specification-ambiguity",
+      "evidence": {
+        "listed_distinct_dotless_count": 20,
+        "listed_dotless_identifiers": [
+          "ieq",
+          "ine",
+          "ilt",
+          "ile",
+          "igt",
+          "ige",
+          "eeq",
+          "ene",
+          "feq",
+          "flt",
+          "fle",
+          "band",
+          "bor",
+          "bxor",
+          "bnot",
+          "cvt",
+          "len",
+          "slice_of",
+          "box_new",
+          "arena_new"
+        ],
+        "listed_only_count": 0,
+        "listed_only_identifiers": [],
+        "listed_source": {
+          "byte_end": 40290,
+          "byte_start": 40193,
+          "line_end": 250,
+          "line_start": 250,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "bca1f3a8ad911092756f1f18a459de95cd91062991b837b792e9d9de78fd41fc"
+        },
+        "operation_name_occurrence_count": 84,
+        "operation_row_count": 44,
+        "table_distinct_dotless_count": 51,
+        "table_dotless_identifiers": [
+          "ieq",
+          "ine",
+          "ilt",
+          "ile",
+          "igt",
+          "ige",
+          "eeq",
+          "ene",
+          "feq",
+          "flt",
+          "fle",
+          "fgt",
+          "fge",
+          "fne",
+          "band",
+          "bor",
+          "bxor",
+          "bnot",
+          "cvt",
+          "len",
+          "slice_of",
+          "box_new",
+          "arena_new",
+          "array_new",
+          "buffer_new",
+          "iand",
+          "ior",
+          "ixor",
+          "inot",
+          "irotl",
+          "irotr",
+          "ipopcount",
+          "iclz",
+          "ictz",
+          "ibswap",
+          "imulhi",
+          "imin",
+          "imax",
+          "reinterpret",
+          "fneg",
+          "fabs",
+          "fcopysign",
+          "fmin",
+          "fmax",
+          "ffloor",
+          "fceil",
+          "ftrunc",
+          "froundeven",
+          "frem",
+          "finf",
+          "fnan"
+        ],
+        "table_only_count": 31,
+        "table_only_identifiers": [
+          "fgt",
+          "fge",
+          "fne",
+          "array_new",
+          "buffer_new",
+          "iand",
+          "ior",
+          "ixor",
+          "inot",
+          "irotl",
+          "irotr",
+          "ipopcount",
+          "iclz",
+          "ictz",
+          "ibswap",
+          "imulhi",
+          "imin",
+          "imax",
+          "reinterpret",
+          "fneg",
+          "fabs",
+          "fcopysign",
+          "fmin",
+          "fmax",
+          "ffloor",
+          "fceil",
+          "ftrunc",
+          "froundeven",
+          "frem",
+          "finf",
+          "fnan"
+        ],
+        "table_source": {
+          "byte_end": 40090,
+          "byte_start": 36670,
+          "line_end": 248,
+          "line_start": 203,
+          "path": "spec/kernel-spec-v0.8.md",
+          "sha256": "415a65e25e5c070ccbb7a51ebfb0b3d4ff2a8c42f2f151d3a23720198c352297"
+        }
+      },
+      "id": "discrepancy:v0.8/op1-dotless-reservation",
+      "predicate_id": "predicate:op1-dotless-reservation-set-equality",
+      "resolution_authorities": [
+        "successor-numbered-specification"
+      ]
+    }
+  ]
+}

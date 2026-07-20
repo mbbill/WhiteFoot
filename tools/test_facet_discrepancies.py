@@ -26,7 +26,14 @@ SYNTHETIC_FACETS = {
     "OP-1": "facet:OP-1/dotless-operation-reservation",
 }
 EXPECTED_OPEN_IDS = (
+    "discrepancy:v0.8/affine-deref-storage-lifecycle",
+    "discrepancy:v0.8/diag3-retained-proof-ref",
+    "discrepancy:v0.8/eff1-row-canonicality",
+    "discrepancy:v0.8/eff2-local-region-effects",
+    "discrepancy:v0.8/fn3-contract-member-semantics",
+    "discrepancy:v0.8/fn4-law-admission",
     "discrepancy:v0.8/fn7-main-return-spelling",
+    "discrepancy:v0.8/fn8-reserved-rule-attribution",
     "discrepancy:v0.8/form2-protected-conformance-spacing",
     "discrepancy:v0.8/form4-doc-cross-reference",
     "discrepancy:v0.8/form5-form7-float-canonical-spelling",
@@ -66,11 +73,7 @@ def _source_atoms_by_owner(source_index: dict) -> dict[str, list[str]]:
 def make_test_catalog(
     facet_renames: dict[str, str] | None = None,
 ) -> bytes:
-    """Use live fragments and synthesize only their missing rule partition.
-
-    The generated missing-rule entries are deliberately test-only structural
-    filler. They make no semantic decomposition claim.
-    """
+    """Build the live catalog, optionally renaming facets for hostile tests."""
     specification = authority.SPEC_PATH.read_bytes()
     source_index_bytes = authority.SOURCE_INDEX_PATH.read_bytes()
     source_index = semantic_catalog.parse_strict_json(
@@ -357,13 +360,99 @@ class PinnedPredicateTests(unittest.TestCase):
         self.assertEqual(evidence["gram7_source"]["byte_end"], 16205)
 
     def test_fn7_predicate_pins_grammar_rule_and_example_spans(self) -> None:
-        evidence = self.by_id[
-            "discrepancy:v0.8/fn7-main-return-spelling"
-        ]["evidence"]
+        record = self.by_id["discrepancy:v0.8/fn7-main-return-spelling"]
+        evidence = record["evidence"]
         self.assertEqual(evidence["fn_decl_return_nonterminal"], "rtype")
         self.assertEqual(evidence["rtype_shape"], "mode type")
         self.assertEqual(evidence["fn7_main_return_spelling"], "unit")
         self.assertEqual(evidence["example_main_return_spelling"], "own unit")
+        self.assertEqual(
+            record["affected_facet_ids"],
+            [
+                "facet:EX-1/byte-exact-canonical-program",
+                "facet:FN-7/main-return-spelling",
+                "facet:GRAM-2/function-and-contract-declaration-shapes",
+                "facet:GRAM-3/return-mode-type-shape",
+            ],
+        )
+
+    def test_new_internal_gaps_block_only_the_reviewed_facets(self) -> None:
+        expected = {
+            "discrepancy:v0.8/affine-deref-storage-lifecycle": [
+                "facet:STOR-3/deallocation-compiler-derived",
+                "facet:STOR-3/drop-and-arena-release-artifact-operations",
+            ],
+            "discrepancy:v0.8/diag3-retained-proof-ref": [
+                "facet:DIAG-3/check-report-schema",
+            ],
+            "discrepancy:v0.8/eff1-row-canonicality": [
+                "facet:EFF-1/canonical-effect-order",
+                "facet:EFF-1/effect-row-grammar",
+            ],
+            "discrepancy:v0.8/eff2-local-region-effects": [
+                "facet:EFF-2/effect-row-bidirectional-exactness",
+                "facet:EFF-2/syntactic-effect-exhibit-closure",
+                "facet:EX-1/byte-exact-canonical-program",
+                "facet:FN-7/main-effect-ceiling",
+            ],
+            "discrepancy:v0.8/fn3-contract-member-semantics": [
+                "facet:FN-3/contract-member-checking-boundary",
+                "facet:FN-5/behavior-parameterization",
+                "facet:FN-5/env-struct-direct-calls",
+            ],
+            "discrepancy:v0.8/fn4-law-admission": [
+                "facet:FN-4/optimizer-law-fact-admission",
+            ],
+            "discrepancy:v0.8/fn8-reserved-rule-attribution": [
+                "facet:FN-8/keyword-reserved",
+                "facet:FORM-3/ident-lexical-class",
+            ],
+        }
+        for identifier, facets in expected.items():
+            with self.subTest(identifier=identifier):
+                self.assertEqual(self.by_id[identifier]["affected_facet_ids"], facets)
+
+    def test_new_protected_conflicts_pin_exact_case_expectations(self) -> None:
+        expected = {
+            "discrepancy:v0.8/eff1-row-canonicality": (
+                "x-eff-dup-reads-effect",
+                {"kind": "reject", "rule": "EFF-1"},
+                "6b3fdf57da232086c693c382549332d5a090ce0741aeb2cb0aee90459ffd74e5",
+            ),
+            "discrepancy:v0.8/eff2-local-region-effects": (
+                "stor4-pos-arena-confined",
+                {"exit": 0, "kind": "run"},
+                "fa0d1c15f32c5f2f4f26a3b5132d0fffe4d2365ef64d824e3b24995f4199a977",
+            ),
+            "discrepancy:v0.8/fn4-law-admission": (
+                "fn4-neg-law-undischarged",
+                {"kind": "reject", "rule": "FN-4"},
+                "5959185a75c17ac79c5fb336cb728873b6db8bd83b7174ae05bfd05460fb851a",
+            ),
+            "discrepancy:v0.8/fn8-reserved-rule-attribution": (
+                "form3-neg-requires-binding",
+                {"kind": "reject", "rule": "FORM-3"},
+                "18814d0b53a94300fe6e13f5ac1ea0cba45ac473ed2d05d4ec90a694291fedfe",
+            ),
+        }
+        for identifier, (case_id, expectation, digest) in expected.items():
+            with self.subTest(identifier=identifier):
+                case = self.by_id[identifier]["evidence"]["protected_case"]
+                self.assertEqual(case["manifest"]["id"], case_id)
+                self.assertEqual(case["manifest"]["expect"], expectation)
+                self.assertEqual(case["sha256"], digest)
+
+    def test_new_gap_evidence_is_exactly_anchored(self) -> None:
+        lifecycle = self.by_id[
+            "discrepancy:v0.8/affine-deref-storage-lifecycle"
+        ]["evidence"]
+        self.assertEqual(lifecycle["type7_affine_move_source"]["byte_start"], 23112)
+        self.assertEqual(lifecycle["stor3_derived_drop_source"]["byte_end"], 35072)
+        report = self.by_id[
+            "discrepancy:v0.8/diag3-retained-proof-ref"
+        ]["evidence"]
+        self.assertEqual(report["report_header_source"]["byte_start"], 59223)
+        self.assertEqual(report["check_report_row_source"]["byte_end"], 59549)
 
     def test_records_have_closed_non_authorizing_fields(self) -> None:
         self.assertEqual(tuple(sorted(self.by_id)), EXPECTED_OPEN_IDS)
@@ -524,6 +613,19 @@ class CatalogAndRegistryTests(unittest.TestCase):
             self.assertTrue(
                 {facet["id"] for facet in fragment["facets"]}.issubset(catalog_ids)
             )
+
+    def test_checked_in_sidecar_equals_fresh_exact_recomputation(self) -> None:
+        raw = authority.read_regular(
+            authority.ROOT,
+            discrepancies.SIDECAR_PATH,
+            "checked-in discrepancy sidecar",
+            authority.MAX_SIDECAR_BYTES,
+        )
+        self.assertEqual(raw, discrepancies.generated_sidecar_bytes())
+        self.assertEqual(
+            discrepancies.check_repository_sidecar().open_discrepancy_ids,
+            EXPECTED_OPEN_IDS,
+        )
 
     def test_catalog_validation_uses_exact_byte_builder_contract(self) -> None:
         original_build = semantic_catalog.build_static_catalog

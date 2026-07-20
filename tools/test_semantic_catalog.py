@@ -905,27 +905,36 @@ class SourceBindingAndDiscoveryTests(unittest.TestCase):
             self.assertEqual(semantic_catalog.build_from_files(root), build(valid_fragments()))
 
 
-class LivePartialAuditTests(unittest.TestCase):
-    def test_live_check_partial_uses_only_authored_fragments_and_lists_missing_rules(self) -> None:
+class LiveCatalogTests(unittest.TestCase):
+    def test_live_partial_audit_confirms_the_complete_authored_partition(self) -> None:
         audit = semantic_catalog.check_partial_from_files()
-        self.assertGreater(audit["rule_count"], 0)
-        self.assertLess(audit["rule_count"], len(RULES))
-        self.assertEqual(
-            len(audit["missing_rules"]), len(RULES) - audit["rule_count"]
-        )
-        self.assertGreaterEqual(audit["source_atom_count"], audit["rule_count"])
-        self.assertNotIn("SCOPE-1", audit["missing_rules"])
+        self.assertEqual(audit["rule_count"], len(RULES))
+        self.assertEqual(audit["missing_rules"], [])
+        self.assertEqual(audit["source_atom_count"], 200)
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             self.assertEqual(semantic_catalog.main(["check-partial"]), 0)
-        self.assertIn(
-            f"{audit['rule_count']}/{len(RULES)} rules", output.getvalue()
+        self.assertEqual(
+            output.getvalue(),
+            f"{len(RULES)}/{len(RULES)} rules; 200/200 source atoms; missing: \n",
         )
-        self.assertIn(f"missing: {audit['missing_rules'][0]}", output.getvalue())
 
-    def test_live_full_build_remains_red_until_all_91_rules_are_authored(self) -> None:
-        with self.assertRaisesRegex(semantic_catalog.SemanticCatalogError, "missing="):
-            semantic_catalog.build_from_files()
+    def test_live_full_build_is_complete_and_deterministic(self) -> None:
+        catalog = semantic_catalog.build_from_files()
+        self.assertEqual(len(catalog["source_atom_coverage"]), 200)
+        self.assertEqual(
+            catalog["specification"],
+            {
+                "path": semantic_catalog.SPEC_RELATIVE_PATH,
+                "sha256": semantic_catalog.SPEC_SHA256,
+                "version": semantic_catalog.SPEC_VERSION,
+            },
+        )
+        self.assertEqual(catalog, semantic_catalog.build_from_files())
+        self.assertEqual(
+            semantic_catalog.canonical_bytes(catalog),
+            semantic_catalog.canonical_bytes(semantic_catalog.build_from_files()),
+        )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,762 @@
+{
+  "clauses": [
+    {
+      "byte_end": 58540,
+      "byte_start": 58489,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-1/exactly-one-rule-id"
+      ],
+      "owner_rule": "DIAG-1",
+      "sha256": "54cacca70c4e9ff774a09a3ded8490a339e41d0153b7268cded50934893804c5"
+    },
+    {
+      "byte_end": 58577,
+      "byte_start": 58540,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-1/node-path-attribution"
+      ],
+      "owner_rule": "DIAG-1",
+      "sha256": "13841bf1a67287cdd3bcf756a64d0723eb6f2353239590554ba924729a1f3a53"
+    },
+    {
+      "byte_end": 58633,
+      "byte_start": 58577,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-1/mechanical-fix-when-applicable"
+      ],
+      "owner_rule": "DIAG-1",
+      "sha256": "f836c649c5b472e1b7914ae92d07c231789a88241d2c7f1bc43f8ba2992ae507"
+    },
+    {
+      "byte_end": 58680,
+      "byte_start": 58633,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-1/deterministic-byte-stable-diagnostic"
+      ],
+      "owner_rule": "DIAG-1",
+      "sha256": "2144e4f6c28f1bd67d8a927937941de2f4f99dfd0c5ae790db44f424e130b466"
+    },
+    {
+      "byte_end": 58867,
+      "byte_start": 58680,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-1/nested-place-offending-segment"
+      ],
+      "owner_rule": "DIAG-1",
+      "sha256": "7285ae5c711f53917cd33346ddfb52e6a3cef80b7d23773994ea1990877acac9"
+    },
+    {
+      "byte_end": 59028,
+      "byte_start": 58868,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-2/canonical-explicit-derived-operations"
+      ],
+      "owner_rule": "DIAG-2",
+      "sha256": "5289d9341724f21dd21531a5aa4ba49d8449132814fc6c9f3899448f3f36381e"
+    },
+    {
+      "byte_end": 59088,
+      "byte_start": 59028,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-2/embedded-proofs-and-check-instrumentation"
+      ],
+      "owner_rule": "DIAG-2",
+      "sha256": "3ab549daea43713777fa49442930e37435e92402a457fe1b15977c34b3f3a5a1"
+    },
+    {
+      "byte_end": 59141,
+      "byte_start": 59088,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-2/artifact-only-acceptance-decidability"
+      ],
+      "owner_rule": "DIAG-2",
+      "sha256": "2f4ab8887a44d7053ed463aac8825530d2617f83b0f077d6189ba76e928e41de"
+    },
+    {
+      "byte_end": 59234,
+      "byte_start": 59142,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/normative-report-family"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "1e51b50f8ee6363b5d51896420c10a464b962b716d42579cd34419afe3e59d83"
+    },
+    {
+      "byte_end": 59255,
+      "byte_start": 59234,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/all-report-fields-required"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "aec48982bc5234cdf36a91837562c793a9b6015309bc91090196cb6a05373aa0"
+    },
+    {
+      "byte_end": 59268,
+      "byte_start": 59255,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/normative-report-family"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "cf8d5aa49c324cd30b01c67ee53d49727231213beee0c397fd1848011807806b"
+    },
+    {
+      "byte_end": 59385,
+      "byte_start": 59268,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/trap-report-schema"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "e58a175cc302437a95cb83c44e58c3c75d4599c45711bc179f83d8e4f093725b"
+    },
+    {
+      "byte_end": 59550,
+      "byte_start": 59385,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/check-report-schema"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "9588c44bd48b9f6d3a642301acf3fca6e1a7b3dcdba0693a090dc469f54faf36"
+    },
+    {
+      "byte_end": 59643,
+      "byte_start": 59550,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/lifetime-report-schema"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "20cdde1053e6906b527c6f312dd45cfe60ea2597ff0b9b1f10c12c236a735ea8"
+    },
+    {
+      "byte_end": 59731,
+      "byte_start": 59643,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/check-density-report-schema"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "3cae4456d0603563287e0b6043af18ba93b266cd651d927c581a10c8dad9e1c7"
+    },
+    {
+      "byte_end": 59761,
+      "byte_start": 59731,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/machine-readable-reports"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "2fbb3ed1a4a7fb91b343d2dd9bcec8ab368f3aa2cbe1a64ef0789dad1401b9fb"
+    },
+    {
+      "byte_end": 59776,
+      "byte_start": 59761,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/report-determinism"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "7a841a8eba1059ee51627889f2aae2b3ef512b195fef6c052f9ac7333f3343c4"
+    },
+    {
+      "byte_end": 59826,
+      "byte_start": 59776,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/report-byte-stability"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "2745516332d24fe832479f5d1edc55a37bffee05c16bb123c2d52d0afe3977a2"
+    },
+    {
+      "byte_end": 59899,
+      "byte_start": 59826,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:DIAG-3/writer-schema-authority"
+      ],
+      "owner_rule": "DIAG-3",
+      "sha256": "d15279942e9fdd6b37ebc55f84e66a73e4a11ebdf1c06d1963f62ccaa6fcade7"
+    },
+    {
+      "byte_end": 61375,
+      "byte_start": 61053,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:PRE-1/exact-prelude-surface"
+      ],
+      "owner_rule": "PRE-1",
+      "sha256": "d96e33dc9969366fe58d46db8728692854a3a1af332b6d940bc0eafe099de7f6"
+    },
+    {
+      "byte_end": 62351,
+      "byte_start": 61417,
+      "disposition": "facet",
+      "facet_ids": [
+        "facet:EX-1/byte-exact-canonical-program"
+      ],
+      "owner_rule": "EX-1",
+      "sha256": "7b57230c8d27a761ec8d212749eef7547f8d982f33e5dcda6805bf27234987cc"
+    }
+  ],
+  "facets": [
+    {
+      "id": "facet:DIAG-1/deterministic-byte-stable-diagnostic",
+      "owner_rule": "DIAG-1",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "diagnostic",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "resolution",
+        "checker",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:DIAG-1"
+      ]
+    },
+    {
+      "id": "facet:DIAG-1/exactly-one-rule-id",
+      "owner_rule": "DIAG-1",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "diagnostic",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "frontend",
+        "resolution",
+        "checker",
+        "artifact",
+        "verifier",
+        "diagnostic",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-1"
+      ]
+    },
+    {
+      "id": "facet:DIAG-1/mechanical-fix-when-applicable",
+      "owner_rule": "DIAG-1",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "diagnostic",
+        "artifact-hostile",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "resolution",
+        "checker",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:DIAG-1"
+      ]
+    },
+    {
+      "id": "facet:DIAG-1/nested-place-offending-segment",
+      "owner_rule": "DIAG-1",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "diagnostic",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "checker",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:DIAG-1"
+      ]
+    },
+    {
+      "id": "facet:DIAG-1/node-path-attribution",
+      "owner_rule": "DIAG-1",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "diagnostic",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "frontend",
+        "resolution",
+        "checker",
+        "artifact",
+        "verifier",
+        "diagnostic"
+      ],
+      "source_atoms": [
+        "rule:DIAG-1"
+      ]
+    },
+    {
+      "id": "facet:DIAG-2/artifact-only-acceptance-decidability",
+      "owner_rule": "DIAG-2",
+      "owner_stage": "checked-artifact",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-2"
+      ]
+    },
+    {
+      "id": "facet:DIAG-2/canonical-explicit-derived-operations",
+      "owner_rule": "DIAG-2",
+      "owner_stage": "checked-artifact",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "conformance-run",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "code-shape",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "diagnostic",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-2"
+      ]
+    },
+    {
+      "id": "facet:DIAG-2/embedded-proofs-and-check-instrumentation",
+      "owner_rule": "DIAG-2",
+      "owner_stage": "checked-artifact",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "conformance-run",
+        "conformance-trap",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "code-shape",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "diagnostic",
+        "report",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-2"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/all-report-fields-required",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "report",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/check-density-report-schema",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-run",
+        "artifact-valid",
+        "artifact-hostile",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "report"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3",
+        "report:DIAG-3:check-density"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/check-report-schema",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-run",
+        "conformance-trap",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "report"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3",
+        "report:DIAG-3:check"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/lifetime-report-schema",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "checker",
+        "artifact",
+        "verifier",
+        "diagnostic",
+        "report"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3",
+        "report:DIAG-3:lifetime"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/machine-readable-reports",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "conformance-run",
+        "conformance-trap",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "runtime",
+        "diagnostic",
+        "report",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/normative-report-family",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "conformance-run",
+        "conformance-trap",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "diagnostic",
+        "report",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/report-byte-stability",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "conformance-run",
+        "conformance-trap",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "runtime",
+        "diagnostic",
+        "report"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/report-determinism",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "conformance-run",
+        "conformance-trap",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism"
+      ],
+      "required_lanes": [
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "diagnostic",
+        "report"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/trap-report-schema",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-trap",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "report"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3",
+        "report:DIAG-3:trap"
+      ]
+    },
+    {
+      "id": "facet:DIAG-3/writer-schema-authority",
+      "owner_rule": "DIAG-3",
+      "owner_stage": "diagnostic-report",
+      "required_evidence": [
+        "conformance-reject",
+        "conformance-run",
+        "conformance-trap",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "differential",
+        "determinism",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "artifact",
+        "verifier",
+        "runtime",
+        "diagnostic",
+        "report",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:DIAG-3"
+      ]
+    },
+    {
+      "id": "facet:EX-1/byte-exact-canonical-program",
+      "owner_rule": "EX-1",
+      "owner_stage": "source-envelope",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-run",
+        "artifact-valid",
+        "artifact-hostile",
+        "differential",
+        "determinism",
+        "code-shape",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "frontend",
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:EX-1",
+        "fence:EX-1"
+      ]
+    },
+    {
+      "id": "facet:PRE-1/exact-prelude-surface",
+      "owner_rule": "PRE-1",
+      "owner_stage": "declaration-resolution",
+      "required_evidence": [
+        "conformance-accept",
+        "conformance-reject",
+        "conformance-run",
+        "diagnostic",
+        "artifact-valid",
+        "artifact-hostile",
+        "property",
+        "fuzz",
+        "differential",
+        "determinism",
+        "code-shape",
+        "static-audit"
+      ],
+      "required_lanes": [
+        "frontend",
+        "resolution",
+        "checker",
+        "artifact",
+        "verifier",
+        "lowerer",
+        "runtime",
+        "diagnostic",
+        "governance"
+      ],
+      "source_atoms": [
+        "rule:PRE-1",
+        "fence:PRE-1"
+      ]
+    }
+  ],
+  "kind": "whitefoot-semantic-decomposition-fragment",
+  "rules": [
+    "DIAG-1",
+    "DIAG-2",
+    "DIAG-3",
+    "EX-1",
+    "PRE-1"
+  ],
+  "schema": 1
+}

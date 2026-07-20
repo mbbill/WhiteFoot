@@ -86,6 +86,82 @@ class Registration:
 
 REGISTRATIONS = (
     Registration(
+        "discrepancy:v0.8/affine-deref-storage-lifecycle",
+        "internal-specification-gap",
+        "predicate:affine-deref-storage-lifecycle-completeness",
+        (
+            "facet:STOR-3/deallocation-compiler-derived",
+            "facet:STOR-3/drop-and-arena-release-artifact-operations",
+        ),
+        ("successor-numbered-specification",),
+    ),
+    Registration(
+        "discrepancy:v0.8/diag3-retained-proof-ref",
+        "internal-specification-gap",
+        "predicate:diag3-retained-check-proof-ref-completeness",
+        ("facet:DIAG-3/check-report-schema",),
+        ("successor-numbered-specification",),
+    ),
+    Registration(
+        "discrepancy:v0.8/eff1-row-canonicality",
+        "specification-protected-surface-conflict",
+        "predicate:eff1-row-canonicality-completeness",
+        (
+            "facet:EFF-1/canonical-effect-order",
+            "facet:EFF-1/effect-row-grammar",
+        ),
+        (
+            "owner-approved-protected-surface-change",
+            "successor-numbered-specification",
+        ),
+    ),
+    Registration(
+        "discrepancy:v0.8/eff2-local-region-effects",
+        "internal-specification-inconsistency",
+        "predicate:eff2-local-region-effect-row-consistency",
+        (
+            "facet:EFF-2/effect-row-bidirectional-exactness",
+            "facet:EFF-2/syntactic-effect-exhibit-closure",
+            "facet:EX-1/byte-exact-canonical-program",
+            "facet:FN-7/main-effect-ceiling",
+        ),
+        ("successor-numbered-specification",),
+    ),
+    Registration(
+        "discrepancy:v0.8/fn3-contract-member-semantics",
+        "internal-specification-gap",
+        "predicate:fn3-contract-member-semantics-completeness",
+        (
+            "facet:FN-3/contract-member-checking-boundary",
+            "facet:FN-5/behavior-parameterization",
+            "facet:FN-5/env-struct-direct-calls",
+        ),
+        ("successor-numbered-specification",),
+    ),
+    Registration(
+        "discrepancy:v0.8/fn4-law-admission",
+        "specification-protected-surface-conflict",
+        "predicate:fn4-law-admission-completeness",
+        ("facet:FN-4/optimizer-law-fact-admission",),
+        (
+            "owner-approved-protected-surface-change",
+            "successor-numbered-specification",
+        ),
+    ),
+    Registration(
+        "discrepancy:v0.8/fn8-reserved-rule-attribution",
+        "specification-protected-surface-conflict",
+        "predicate:fn8-reserved-rule-attribution-consistency",
+        (
+            "facet:FN-8/keyword-reserved",
+            "facet:FORM-3/ident-lexical-class",
+        ),
+        (
+            "owner-approved-protected-surface-change",
+            "successor-numbered-specification",
+        ),
+    ),
+    Registration(
         "discrepancy:v0.8/op1-dotless-reservation",
         "internal-specification-ambiguity",
         "predicate:op1-dotless-reservation-set-equality",
@@ -141,7 +217,12 @@ REGISTRATIONS = (
         "discrepancy:v0.8/fn7-main-return-spelling",
         "internal-specification-inconsistency",
         "predicate:fn7-main-return-spelling-consistency",
-        ("facet:FN-7/main-return-spelling",),
+        (
+            "facet:EX-1/byte-exact-canonical-program",
+            "facet:FN-7/main-return-spelling",
+            "facet:GRAM-2/function-and-contract-declaration-shapes",
+            "facet:GRAM-3/return-mode-type-shape",
+        ),
         ("successor-numbered-specification",),
     ),
 )
@@ -150,6 +231,61 @@ REGISTRATIONS = (
 def _pin(actual: Any, expected: Any, label: str) -> None:
     if inputs.canonical_bytes(actual) != inputs.canonical_bytes(expected):
         raise DiscrepancyError(f"{label} no longer matches the pinned audit")
+
+
+def _exact_fragment_sources(
+    source: ExactSource,
+    fragments: Mapping[str, bytes],
+    expected: Mapping[str, Mapping[str, Any]],
+    label: str,
+    *,
+    enforce_pins: bool,
+) -> dict[str, Any]:
+    """Locate unique exact fragments and optionally pin their spans and hashes."""
+    evidence: dict[str, Any] = {}
+    audit: dict[str, Any] = {}
+    for name, fragment in fragments.items():
+        span = source.unique(fragment)
+        record = source.evidence(*span)
+        evidence[f"{name}_source"] = record
+        audit[name] = {
+            "byte_end": span[1],
+            "byte_start": span[0],
+            "sha256": record["sha256"],
+        }
+    if enforce_pins:
+        _pin(audit, expected, label)
+    return evidence
+
+
+def _protected_case_evidence(
+    manifest: bytes,
+    case_sources: Mapping[str, bytes],
+    protected_surface: Mapping[str, Any],
+    identifier: str,
+) -> dict[str, Any]:
+    """Validate the protected surface and return one exact case projection."""
+    entries, cases = _manifest_entries(manifest)
+    protected_ids = _protected_surface(
+        entries,
+        cases,
+        case_sources,
+        protected_surface,
+    )
+    if identifier not in protected_ids or identifier not in cases:
+        raise DiscrepancyError(f"protected case is missing: {identifier}")
+    path = f"conformance/cases/{identifier}.wf"
+    if path not in case_sources:
+        raise DiscrepancyError(f"protected case source is missing: {path}")
+    entry = cases[identifier]
+    return {
+        "manifest": {
+            field: entry.get(field)
+            for field in ("id", "rules", "expect", "status")
+        },
+        "path": path,
+        "sha256": inputs.sha256(case_sources[path]),
+    }
 
 
 def observe_op1(specification: bytes, *, enforce_pins: bool = True) -> Observation:
@@ -915,6 +1051,385 @@ def observe_gram1_gram7(
     return Observation(True, evidence)
 
 
+def observe_affine_deref_lifecycle(
+    specification: bytes,
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record affine referent move permission beside unspecified cleanup."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "own1_partial_move": (
+                b"After a move, the whole binding rooting `p` is dead "
+                b"(partial moves kill the whole binding)"
+            ),
+            "stor2_deref_access": b"Content access is through `deref`.",
+            "stor3_derived_drop": (
+                b"every drop and arena release appears as an explicit operation "
+                b"in the elaborated artifact"
+            ),
+            "type7_affine_move": (
+                b"a use of that place copies it when T is copy and requires `move` "
+                b"when T is affine [OWN-1]"
+            ),
+        },
+        {
+            "own1_partial_move": {
+                "byte_end": 26085,
+                "byte_start": 25995,
+                "sha256": (
+                    "385e180cf9a88c4fc0a2673b3a2a710f"
+                    "a8f27b7006dcef1c74d7c3acae2404fc"
+                ),
+            },
+            "stor2_deref_access": {
+                "byte_end": 34917,
+                "byte_start": 34883,
+                "sha256": (
+                    "4e6f6d92f02bc31211cf29b2c676cd18"
+                    "91dffcb246752d9ed97cf2c70b57ca25"
+                ),
+            },
+            "stor3_derived_drop": {
+                "byte_end": 35072,
+                "byte_start": 34984,
+                "sha256": (
+                    "450ffec2a8008c821a4181e34333a4c55"
+                    "bd938408183f45d4554779ea803dfad"
+                ),
+            },
+            "type7_affine_move": {
+                "byte_end": 23201,
+                "byte_start": 23112,
+                "sha256": (
+                    "9e03775a3ee20b6d5779bb6fbe51ab8c"
+                    "a921cf58907d431e07a04714e86c0283"
+                ),
+            },
+        },
+        "affine deref lifecycle evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["missing_contract"] = (
+        "backing-allocation-and-remaining-payload-disposition-after-affine-referent-move"
+    )
+    return Observation(True, evidence)
+
+
+def observe_eff1_row_canonicality(
+    specification: bytes,
+    manifest: bytes,
+    case_sources: Mapping[str, bytes],
+    protected_surface: Mapping[str, Any],
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record underdefined row canonicality and the protected rejection."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "effect_kind_order": (
+                b"in exactly this canonical order (reads, writes, allocates, traps)"
+            ),
+            "row_grammar": b"Row grammar: `effects := \"pure\" | effect (\",\" effect)*`",
+        },
+        {
+            "effect_kind_order": {
+                "byte_end": 55810,
+                "byte_start": 55745,
+                "sha256": (
+                    "8294f4112b0cca9c4c12fd43e3a1b702"
+                    "9187dd480248961b653f58dbddbb0763"
+                ),
+            },
+            "row_grammar": {
+                "byte_end": 55610,
+                "byte_start": 55555,
+                "sha256": (
+                    "bca021af57224f0154c77083fe0baf3e"
+                    "d3b0a0b88aea8e2b9189b934cd59ea15"
+                ),
+            },
+        },
+        "EFF-1 row-canonicality evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["protected_case"] = _protected_case_evidence(
+        manifest,
+        case_sources,
+        protected_surface,
+        "x-eff-dup-reads-effect",
+    )
+    evidence["missing_contract"] = (
+        "effect-kind-and-region-or-allocation-entry-uniqueness-and-order"
+    )
+    return Observation(True, evidence)
+
+
+def observe_eff2_local_region_effects(
+    specification: bytes,
+    manifest: bytes,
+    case_sources: Mapping[str, bytes],
+    protected_surface: Mapping[str, Any],
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record exact row checking where body-local regions cannot be named."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "eff2_bidirectional_check": (
+                b"Rows are checked both ways against the syntactic definition"
+            ),
+            "eff2_local_exhibits": (
+                b"they exhibit reads/writes/allocates per the operation table "
+                b"and borrow modes they use"
+            ),
+            "example_local_region": (
+                b"region 'r {\n    let p: &'r i32 = &'r a;"
+            ),
+            "fn7_main_effect_ceiling": (
+                b"effect row at most `allocates(heap), traps`"
+            ),
+        },
+        {
+            "eff2_bidirectional_check": {
+                "byte_end": 56375,
+                "byte_start": 56316,
+                "sha256": (
+                    "eb726a4ce9068a4da2877415481fa8539"
+                    "96b5f2679610f97460a373b44fd8096"
+                ),
+            },
+            "eff2_local_exhibits": {
+                "byte_end": 56314,
+                "byte_start": 56229,
+                "sha256": (
+                    "85180ce9cdf2eddb8a9cbc45651832517"
+                    "dd2258bede1efd8aa974e411ef2a07a"
+                ),
+            },
+            "example_local_region": {
+                "byte_end": 62093,
+                "byte_start": 62054,
+                "sha256": (
+                    "ea63a7f4873f5f2b803e5f10e71f6730"
+                    "026ecbe63389a5450331c3d82b0ce886"
+                ),
+            },
+            "fn7_main_effect_ceiling": {
+                "byte_end": 52805,
+                "byte_start": 52762,
+                "sha256": (
+                    "a206d85444b96a73e8c06f8bd745ea46"
+                    "fae4bfde3a281b26900bce4cbe4c982d"
+                ),
+            },
+        },
+        "EFF-2 local-region evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["protected_case"] = _protected_case_evidence(
+        manifest,
+        case_sources,
+        protected_surface,
+        "stor4-pos-arena-confined",
+    )
+    evidence["missing_contract"] = "body-local-region-effect-discharge-or-row-projection"
+    return Observation(True, evidence)
+
+
+def observe_fn4_law_admission(
+    specification: bytes,
+    manifest: bytes,
+    case_sources: Mapping[str, bytes],
+    protected_surface: Mapping[str, Any],
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record law-fact channels without a defined universal proof contract."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "fn4_fact_admission": (
+                b"Laws become optimizer-usable facts only via the stated-and-checked channel"
+            ),
+            "op5_deferred_vocabulary": (
+                b"the fuller stated-and-checked vocabulary (loop invariants, ranges) "
+                b"is DEFERRED"
+            ),
+        },
+        {
+            "fn4_fact_admission": {
+                "byte_end": 51489,
+                "byte_start": 51415,
+                "sha256": (
+                    "fedf1625497c0d6087d80e4b15200dbb"
+                    "e96870652b60890095012bfb75d028bb"
+                ),
+            },
+            "op5_deferred_vocabulary": {
+                "byte_end": 43209,
+                "byte_start": 43131,
+                "sha256": (
+                    "d3066130c269f160e09c9ffda0bef1e8"
+                    "fff45a536959c470606248a060f2bb5e"
+                ),
+            },
+        },
+        "FN-4 law-admission evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["protected_case"] = _protected_case_evidence(
+        manifest,
+        case_sources,
+        protected_surface,
+        "fn4-neg-law-undischarged",
+    )
+    evidence["missing_contract"] = (
+        "universal-law-proof-schema-scope-and-declaration-acceptance"
+    )
+    return Observation(True, evidence)
+
+
+def observe_contract_member_semantics(
+    specification: bytes,
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record declared contracts without a complete member checking relation."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "fn3_conformance": (
+                b"a `contract` declares fn signatures and laws; "
+                b"`conform T : C { member = fn; }` declares conformance, "
+                b"checked per member"
+            ),
+            "fn5_behavior": (
+                b"Behavior parameterization is generics over contract-conforming "
+                b"types (env-struct pattern)"
+            ),
+        },
+        {
+            "fn3_conformance": {
+                "byte_end": 50843,
+                "byte_start": 50724,
+                "sha256": (
+                    "e047d27e9a2bc0feef8cf97911c9eba2"
+                    "723057e8bcdfb30c195a13ac237e8b89"
+                ),
+            },
+            "fn5_behavior": {
+                "byte_end": 51944,
+                "byte_start": 51855,
+                "sha256": (
+                    "19bf72318a692d1ef8ddd3f9b83334e3"
+                    "e2c3456e1a9ed644f0b360be29420c13"
+                ),
+            },
+        },
+        "contract-member semantics evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["missing_contract"] = (
+        "member-set-signature-effect-substitution-law-and-call-resolution"
+    )
+    return Observation(True, evidence)
+
+
+def observe_fn8_reserved_rule_attribution(
+    specification: bytes,
+    manifest: bytes,
+    case_sources: Mapping[str, bytes],
+    protected_surface: Mapping[str, Any],
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Compare FN-8's reservation rule with the protected cited rule."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "fn8_reservation": (
+                b"`requires` is RESERVED and cannot bind any IDENT declaration"
+            ),
+        },
+        {
+            "fn8_reservation": {
+                "byte_end": 53852,
+                "byte_start": 53792,
+                "sha256": (
+                    "bc4d0e65117de04cde9031c32d327959"
+                    "77189aee2d061acb110325337127d854"
+                ),
+            },
+        },
+        "FN-8 reserved-word evidence",
+        enforce_pins=enforce_pins,
+    )
+    protected = _protected_case_evidence(
+        manifest,
+        case_sources,
+        protected_surface,
+        "form3-neg-requires-binding",
+    )
+    evidence["protected_case"] = protected
+    expected = protected["manifest"].get("expect")
+    cited_rule = expected.get("rule") if isinstance(expected, dict) else None
+    evidence["protected_cited_rule"] = cited_rule
+    evidence["specification_owner_rule"] = "FN-8"
+    return Observation(cited_rule != "FN-8", evidence)
+
+
+def observe_diag3_retained_proof_ref(
+    specification: bytes,
+    *,
+    enforce_pins: bool = True,
+) -> Observation:
+    """Record an all-required field whose retained-check value is undefined."""
+    source = ExactSource.from_bytes("spec/kernel-spec-v0.8.md", specification)
+    evidence = _exact_fragment_sources(
+        source,
+        {
+            "check_report_row": (
+                b"| check | function; per check: node_path, fact_class "
+                b"(bounds/overflow/alias/user), status (retained/eliminated), "
+                b"proof_ref (for eliminated: checker-derivation id) |"
+            ),
+            "report_header": b"| report | fields (all required) |",
+        },
+        {
+            "check_report_row": {
+                "byte_end": 59549,
+                "byte_start": 59385,
+                "sha256": (
+                    "54c2c2e96227c74da8c6cefd61029eca"
+                    "7146a57a58363622d6d46a821f90e17c"
+                ),
+            },
+            "report_header": {
+                "byte_end": 59257,
+                "byte_start": 59223,
+                "sha256": (
+                    "f403fac660ee6442a1a568edd22055cc8"
+                    "c476fe9e829de352d1eebf9471e8518"
+                ),
+            },
+        },
+        "DIAG-3 retained-proof-ref evidence",
+        enforce_pins=enforce_pins,
+    )
+    evidence["missing_contract"] = "proof_ref-value-for-retained-check"
+    return Observation(True, evidence)
+
+
 def validate_registry(
     observations: Mapping[str, Observation],
 ) -> dict[str, Registration]:
@@ -959,6 +1474,43 @@ def validate_registry(
 def recompute(authorities: inputs.AuthorityInputs) -> dict[str, Observation]:
     """Recompute every registered predicate from one authority snapshot."""
     observations = {
+        "discrepancy:v0.8/affine-deref-storage-lifecycle": (
+            observe_affine_deref_lifecycle(authorities.specification)
+        ),
+        "discrepancy:v0.8/diag3-retained-proof-ref": (
+            observe_diag3_retained_proof_ref(authorities.specification)
+        ),
+        "discrepancy:v0.8/eff1-row-canonicality": observe_eff1_row_canonicality(
+            authorities.specification,
+            authorities.manifest,
+            authorities.case_sources,
+            authorities.protected_conformance,
+        ),
+        "discrepancy:v0.8/eff2-local-region-effects": (
+            observe_eff2_local_region_effects(
+                authorities.specification,
+                authorities.manifest,
+                authorities.case_sources,
+                authorities.protected_conformance,
+            )
+        ),
+        "discrepancy:v0.8/fn3-contract-member-semantics": (
+            observe_contract_member_semantics(authorities.specification)
+        ),
+        "discrepancy:v0.8/fn4-law-admission": observe_fn4_law_admission(
+            authorities.specification,
+            authorities.manifest,
+            authorities.case_sources,
+            authorities.protected_conformance,
+        ),
+        "discrepancy:v0.8/fn8-reserved-rule-attribution": (
+            observe_fn8_reserved_rule_attribution(
+                authorities.specification,
+                authorities.manifest,
+                authorities.case_sources,
+                authorities.protected_conformance,
+            )
+        ),
         "discrepancy:v0.8/op1-dotless-reservation": observe_op1(
             authorities.specification
         ),

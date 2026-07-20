@@ -8,9 +8,10 @@ the affected facet IDs, and recomputes the closed predicate registry.
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 try:
     import facet_discrepancy_inputs as authority
@@ -36,6 +37,8 @@ MAX_JSON_DEPTH = authority.MAX_JSON_DEPTH
 MAX_SIDECAR_BYTES = authority.MAX_SIDECAR_BYTES
 MAX_CATALOG_BYTES = authority.MAX_CATALOG_BYTES
 FORMAT = "whitefoot-open-discrepancies-v1"
+SIDECAR_RELATIVE_PATH = Path("facets") / "v0.8" / "open-discrepancies.json"
+SIDECAR_PATH = ROOT / SIDECAR_RELATIVE_PATH
 
 sha256 = authority.sha256
 canonical_bytes = authority.canonical_bytes
@@ -277,3 +280,75 @@ def require_no_open_discrepancies(
             "release is blocked by open discrepancies: "
             + ", ".join(result.open_discrepancy_ids)
         )
+
+
+def _live_catalog_bytes(root: Path) -> bytes:
+    """Build the canonical catalog from the fixed repository inputs."""
+    try:
+        try:
+            import semantic_catalog
+        except ModuleNotFoundError:
+            from tools import semantic_catalog  # type: ignore
+
+        return semantic_catalog.canonical_bytes(
+            semantic_catalog.build_from_files(root)
+        )
+    except DiscrepancyError:
+        raise
+    except (
+        MemoryError,
+        OverflowError,
+        RecursionError,
+        semantic_catalog.SemanticCatalogError,
+    ) as error:
+        raise DiscrepancyError(f"cannot build live static catalog: {error}") from error
+
+
+def generated_sidecar_bytes(root: Path = ROOT) -> bytes:
+    """Return the canonical sidecar derived from all live authorities."""
+    return canonical_bytes(build_sidecar(_live_catalog_bytes(root), root))
+
+
+def check_repository_sidecar(root: Path = ROOT) -> AuditResult:
+    """Validate the checked-in sidecar against freshly loaded authorities."""
+    raw = authority.read_regular(
+        root,
+        root / SIDECAR_RELATIVE_PATH,
+        "open-discrepancy sidecar",
+        MAX_SIDECAR_BYTES,
+    )
+    return parse_and_validate_sidecar(raw, _live_catalog_bytes(root), root)
+
+
+def write_repository_sidecar(root: Path = ROOT) -> str:
+    """Mechanically rewrite the descriptive sidecar from exact authorities."""
+    parent = root / SIDECAR_RELATIVE_PATH.parent
+    authority.require_directory(root, parent, "open-discrepancy sidecar directory")
+    raw = generated_sidecar_bytes(root)
+    (root / SIDECAR_RELATIVE_PATH).write_bytes(raw)
+    return sha256(raw)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "command",
+        choices=("check", "write"),
+        nargs="?",
+        default="check",
+    )
+    arguments = parser.parse_args(argv)
+    if arguments.command == "write":
+        print(write_repository_sidecar())
+        return 0
+    result = check_repository_sidecar()
+    print(f"{len(result.open_discrepancy_ids)} open discrepancies")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (OSError, DiscrepancyError) as error:
+        print(f"facet discrepancies: {error}", file=__import__("sys").stderr)
+        raise SystemExit(1)
