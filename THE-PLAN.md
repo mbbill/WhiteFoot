@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-639 functions: 164 clean, 475 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,727,663 source bytes, 348,731 tokens, and
-173,085 unique-head AST nodes. The parser census is 4,804 regionful calls: 496
-explicit and 4,308 staged omissions. LLVM support remains the same
+644 functions: 165 clean, 479 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,740,995 source bytes, 351,552 tokens, and
+174,487 unique-head AST nodes. The parser census is 4,860 regionful calls: 496
+explicit and 4,364 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Stage 0 now emits every fixed-size stack slot once in the LLVM entry block.
@@ -687,10 +687,43 @@ The parser census is 4,804 regionful calls = 496 explicit + 4,308 staged
 omissions; self-parse is deterministic at 1,727,663 bytes / 348,731 tokens /
 173,085 nodes. The focused proof is 90 lines, its hostile suite is 340 lines,
 the shared caller gate is 355 lines, and the general reader remains 6,779
-lines. Fresh dependency inventory selects `byte_tape_emit_probe` as the next
-bounded F4 boundary: its reset, fixed-prefix, and recursive-number callees are
-all CLEAN, while the adjacent span probe remains blocked by the Unsupported
-`byte_tape_emit_span`.
+lines. That dependency inventory selected `byte_tape_emit_probe`, whose bounded
+slice is complete below.
+
+The ninth bounded F4 slice admits `byte_tape_emit_probe`. Its exact two-
+parameter same-region signature has one exclusive struct output, one owned
+`u64` value, singleton reads and writes rows plus traps, and own unit. Its body
+has exactly three sequential one-statement local regions followed by a unit
+return. The first call passes only a confined whole-parent unique child to an
+independently validated one-root flat writes-only callee. The second passes the
+same shape to an independently validated fixed-literal chunk wrapper, which in
+turn re-proves its guarded chunk and byte-push callees. The third passes the
+whole-parent child and exact owned caller value to the independently re-proven
+terminating decimal emitter. Every local differs from the outer region and
+pairwise from the other locals; each unbound own-unit call ends before the
+parent resumes, so no unique siblings coexist. Ordinary flow support accepts
+only the one-argument whole-parent call whose callee independently passes the
+flat-writer or fixed-chunk-wrapper proof; the same-region effect gate still
+requires this exact ordered body. No value, bound, global, call result, or
+optimizer fact is exported, and no lowering authority is added. Hostile review
+pins the signature and effects, statement order, shared and deeper borrows,
+explicit region arguments, bound or missing calls, wrong owned values,
+duplicate and shadowing locals, extra statements and regions, dishonest nested
+callees, mismatched formal names, same-spelling source-head redirection, and
+cyclic topology. Exactly `byte_tape_emit_probe` moves to CLEAN; no prior CLEAN
+function is lost and all five new helpers remain Unsupported. The unit is 644
+total / 165 CLEAN / 479 Unsupported / 0 rejected; the exact 15-function LLVM
+module is unchanged. The parser census is 4,860 regionful calls = 496 explicit
++ 4,364 staged omissions; self-parse is deterministic at 1,740,995 bytes /
+351,552 tokens / 174,487 nodes. Maintainability review isolates the proof in a
+230-line module and its hostile boundary in a 405-line test; the shared caller
+gate is 363 lines and the general reader is 6,788 lines. Fresh inventory leaves
+`byte_tape_emit_span` and its dependent `byte_tape_emit_span_probe` Unsupported
+at output ordinals 93 and 94 while the probe at ordinal 95 is CLEAN. The exact
+span emitter is the next bounded F4 boundary: it combines already-supported
+guarded loop flow and shared source reads with one statement-scoped whole-output
+child per owned byte; the span probe remains blocked until that prerequisite is
+CLEAN.
 
 `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. Remaining F4

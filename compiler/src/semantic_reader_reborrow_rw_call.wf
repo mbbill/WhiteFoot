@@ -335,7 +335,15 @@ fn semantic_reader_reborrow_rw_body_valid ['c] (source: &'c buffer<u8>, tokens: 
               return True();
             }
             False() => {
-              return semantic_reader_reborrow_numeric_wrapper_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+              let numeric_wrapper_body: own Bool = semantic_reader_reborrow_numeric_wrapper_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+              match numeric_wrapper_body {
+                True() => {
+                  return True();
+                }
+                False() => {
+                  return semantic_reader_reborrow_probe_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+                }
+              }
             }
           }
         }
