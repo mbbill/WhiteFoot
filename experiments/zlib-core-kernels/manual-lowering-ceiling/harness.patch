@@ -1,0 +1,896 @@
+diff --git a/experiments/zlib-core-kernels/bench.c b/experiments/zlib-core-kernels/bench.c
+index 6392771..428bd67 100644
+--- a/experiments/zlib-core-kernels/bench.c
++++ b/experiments/zlib-core-kernels/bench.c
+@@ -32,6 +32,24 @@ extern uint64_t zng_inflate_match_copy(
+     uint64_t repeats
+ );
+ 
++extern uint64_t zng_inflate_match_copy_prevalidated(
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t seed_len,
++    uint64_t distance,
++    uint64_t match_len,
++    uint64_t repeats
++);
++
++extern uint64_t candidate_inflate_match_copy(
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t seed_len,
++    uint64_t distance,
++    uint64_t match_len,
++    uint64_t repeats
++);
++
+ static uint64_t parse_u64(const char *text) {
+     char *end = NULL;
+     errno = 0;
+@@ -155,6 +173,41 @@ static uint64_t zng_copy(
+     );
+ }
+ 
++static uint64_t zng_prevalidated_copy(
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t seed_len,
++    uint64_t distance,
++    uint64_t match_len,
++    uint64_t repeats
++) {
++    return zng_inflate_match_copy_prevalidated(
++        out, out_len, seed_len, distance, match_len, repeats
++    );
++}
++
++static uint64_t candidate_copy(
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t seed_len,
++    uint64_t distance,
++    uint64_t match_len,
++    uint64_t repeats
++) {
++    if (distance >= 64) {
++        return inflate_match_copy(
++            (wf_u8_buffer){out, out_len},
++            seed_len,
++            distance,
++            match_len,
++            repeats
++        );
++    }
++    return candidate_inflate_match_copy(
++        out, out_len, seed_len, distance, match_len, repeats
++    );
++}
++
+ static uint64_t digest(const uint8_t *data, uint64_t length) {
+     uint64_t hash = UINT64_C(1469598103934665603);
+     for (uint64_t index = 0; index < length; ++index) {
+@@ -182,13 +235,18 @@ static int check_case(uint64_t distance, uint64_t match_len) {
+     uint8_t *expected = malloc((size_t)size);
+     uint8_t *wf = malloc((size_t)size);
+     uint8_t *zng = malloc((size_t)size);
+-    if (expected == NULL || wf == NULL || zng == NULL) {
++    uint8_t *zng_prevalidated = malloc((size_t)size);
++    uint8_t *candidate = malloc((size_t)size);
++    if (expected == NULL || wf == NULL || zng == NULL ||
++        zng_prevalidated == NULL || candidate == NULL) {
+         fputs("allocation failed\n", stderr);
+         return 2;
+     }
+     initialize(expected, size, seed_len);
+     memcpy(wf, expected, (size_t)size);
+     memcpy(zng, expected, (size_t)size);
++    memcpy(zng_prevalidated, expected, (size_t)size);
++    memcpy(candidate, expected, (size_t)size);
+     uint64_t expected_end = reference_copy(
+         expected, seed_len, distance, match_len, repeats
+     );
+@@ -198,12 +256,23 @@ static int check_case(uint64_t distance, uint64_t match_len) {
+     uint64_t zng_end = zng_copy(
+         zng, size, seed_len, distance, match_len, repeats
+     );
++    uint64_t candidate_end = candidate_copy(
++        candidate, size, seed_len, distance, match_len, repeats
++    );
++    uint64_t zng_prevalidated_end = zng_prevalidated_copy(
++        zng_prevalidated, size, seed_len, distance, match_len, repeats
++    );
+     int okay = expected_end == wf_end && expected_end == zng_end &&
++        expected_end == candidate_end && expected_end == zng_prevalidated_end &&
+         memcmp(expected, wf, (size_t)expected_end) == 0 &&
+-        memcmp(expected, zng, (size_t)expected_end) == 0;
++        memcmp(expected, zng, (size_t)expected_end) == 0 &&
++        memcmp(expected, zng_prevalidated, (size_t)expected_end) == 0 &&
++        memcmp(expected, candidate, (size_t)size) == 0;
+     free(expected);
+     free(wf);
+     free(zng);
++    free(zng_prevalidated);
++    free(candidate);
+     return okay ? 0 : 1;
+ }
+ 
+@@ -229,6 +298,149 @@ static int check_all(void) {
+     return 0;
+ }
+ 
++static int check_candidate_grid(void) {
++    static const uint64_t selected_lengths[] = {
++        3, 8, 16, 31, 32, 63, 64, 127, 128, 257, 258
++    };
++    const uint64_t seed_len = 32768;
++    const uint64_t capacity = seed_len + 3 * 258 + 16;
++    uint8_t *expected = malloc((size_t)capacity);
++    uint8_t *candidate = malloc((size_t)capacity);
++    if (expected == NULL || candidate == NULL) {
++        return 2;
++    }
++    initialize(expected, capacity, seed_len);
++    memcpy(candidate, expected, (size_t)capacity);
++
++    uint64_t cases = 0;
++    for (uint64_t distance = 1; distance <= 64; ++distance) {
++        for (uint64_t length = 3; length <= 258; ++length) {
++            const uint64_t repeats = 3;
++            const uint64_t logical = seed_len + repeats * length;
++            memset(expected + seed_len, 0xa5, (size_t)(capacity - seed_len));
++            memset(candidate + seed_len, 0xa5, (size_t)(capacity - seed_len));
++            uint64_t expected_end = reference_copy(
++                expected, seed_len, distance, length, repeats
++            );
++            uint64_t candidate_end = candidate_copy(
++                candidate, logical, seed_len, distance, length, repeats
++            );
++            if (expected_end != candidate_end ||
++                memcmp(expected, candidate, (size_t)capacity) != 0) {
++                fprintf(
++                    stderr,
++                    "candidate grid failed: distance=%" PRIu64
++                    " length=%" PRIu64 "\n",
++                    distance,
++                    length
++                );
++                free(expected);
++                free(candidate);
++                return 1;
++            }
++            ++cases;
++        }
++    }
++    for (uint64_t distance = 65; distance <= 32768; ++distance) {
++        for (size_t length_index = 0;
++             length_index < sizeof(selected_lengths) / sizeof(selected_lengths[0]);
++             ++length_index) {
++            uint64_t length = selected_lengths[length_index];
++            const uint64_t repeats = 2;
++            const uint64_t logical = seed_len + repeats * length;
++            memset(expected + seed_len, 0xa5, (size_t)(capacity - seed_len));
++            memset(candidate + seed_len, 0xa5, (size_t)(capacity - seed_len));
++            uint64_t expected_end = reference_copy(
++                expected, seed_len, distance, length, repeats
++            );
++            uint64_t candidate_end = candidate_copy(
++                candidate, logical, seed_len, distance, length, repeats
++            );
++            if (expected_end != candidate_end ||
++                memcmp(expected, candidate, (size_t)capacity) != 0) {
++                fprintf(
++                    stderr,
++                    "candidate grid failed: distance=%" PRIu64
++                    " length=%" PRIu64 "\n",
++                    distance,
++                    length
++                );
++                free(expected);
++                free(candidate);
++                return 1;
++            }
++            ++cases;
++        }
++    }
++
++    const uint64_t small_capacity = 32 + 3 * 258 + 16;
++    uint8_t *small_expected = malloc((size_t)small_capacity);
++    uint8_t *small_candidate = malloc((size_t)small_capacity);
++    if (small_expected == NULL || small_candidate == NULL) {
++        free(expected);
++        free(candidate);
++        return 2;
++    }
++    for (uint64_t seed = 1; seed <= 31; ++seed) {
++        initialize(small_expected, small_capacity, seed);
++        memcpy(small_candidate, small_expected, (size_t)small_capacity);
++        for (uint64_t distance = 1; distance <= seed; ++distance) {
++            for (uint64_t length = 3; length <= 258; ++length) {
++                const uint64_t repeats = 3;
++                const uint64_t logical = seed + repeats * length;
++                memset(
++                    small_expected + seed,
++                    0xa5,
++                    (size_t)(small_capacity - seed)
++                );
++                memset(
++                    small_candidate + seed,
++                    0xa5,
++                    (size_t)(small_capacity - seed)
++                );
++                uint64_t expected_end = reference_copy(
++                    small_expected, seed, distance, length, repeats
++                );
++                uint64_t candidate_end = candidate_inflate_match_copy(
++                    small_candidate,
++                    logical,
++                    seed,
++                    distance,
++                    length,
++                    repeats
++                );
++                if (expected_end != candidate_end ||
++                    memcmp(
++                        small_expected,
++                        small_candidate,
++                        (size_t)small_capacity
++                    ) != 0) {
++                    fprintf(
++                        stderr,
++                        "candidate boundary failed: seed=%" PRIu64
++                        " distance=%" PRIu64 " length=%" PRIu64 "\n",
++                        seed,
++                        distance,
++                        length
++                    );
++                    free(expected);
++                    free(candidate);
++                    free(small_expected);
++                    free(small_candidate);
++                    return 1;
++                }
++                ++cases;
++            }
++        }
++    }
++    free(small_expected);
++    free(small_candidate);
++    free(expected);
++    free(candidate);
++    printf("candidate grid: %" PRIu64 " exact-range cases passed\n", cases);
++    return 0;
++}
++
+ int main(int argc, char **argv) {
+     if (argc == 3 && strcmp(argv[1], "contract") == 0) {
+         return contract_case(argv[2]);
+@@ -236,10 +448,13 @@ int main(int argc, char **argv) {
+     if (argc == 2 && strcmp(argv[1], "check") == 0) {
+         return check_all();
+     }
++    if (argc == 2 && strcmp(argv[1], "check-candidate-grid") == 0) {
++        return check_candidate_grid();
++    }
+     if (argc != 7) {
+         fprintf(
+             stderr,
+-            "usage: %s run {wf|zng} DISTANCE MATCH_LEN OUTPUT_BYTES PASSES\n",
++            "usage: %s run {wf|candidate|zng_prevalidated|zng} DISTANCE MATCH_LEN OUTPUT_BYTES PASSES\n",
+             argv[0]
+         );
+         return 2;
+@@ -279,6 +494,14 @@ int main(int argc, char **argv) {
+             end_position = zng_copy(
+                 out, size, seed_len, distance, match_len, repeats
+             );
++        } else if (strcmp(variant, "candidate") == 0) {
++            end_position = candidate_copy(
++                out, size, seed_len, distance, match_len, repeats
++            );
++        } else if (strcmp(variant, "zng_prevalidated") == 0) {
++            end_position = zng_prevalidated_copy(
++                out, size, seed_len, distance, match_len, repeats
++            );
+         } else {
+             fputs("unknown variant\n", stderr);
+             free(out);
+diff --git a/experiments/zlib-core-kernels/huffman_bench.c b/experiments/zlib-core-kernels/huffman_bench.c
+index dd1caca..a153f20 100644
+--- a/experiments/zlib-core-kernels/huffman_bench.c
++++ b/experiments/zlib-core-kernels/huffman_bench.c
+@@ -6,6 +6,8 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <sys/mman.h>
++#include <unistd.h>
+ 
+ typedef struct {
+     void *data;
+@@ -27,6 +29,14 @@ extern uint64_t zng_huffman_literals(
+     uint64_t symbol_count
+ );
+ 
++extern uint64_t candidate_huffman_literals(
++    const uint8_t *src,
++    uint64_t src_len,
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t symbol_count
++);
++
+ static uint64_t parse_u64(const char *text) {
+     char *end = NULL;
+     errno = 0;
+@@ -66,8 +76,9 @@ static void fixed_codes(unsigned *codes, unsigned *lengths) {
+     }
+ }
+ 
+-static void write_fixed_symbol(
++static void write_fixed_symbol_at(
+     uint8_t *src,
++    uint64_t bit_position,
+     unsigned symbol,
+     const unsigned *codes,
+     const unsigned *lengths
+@@ -76,12 +87,42 @@ static void write_fixed_symbol(
+     unsigned stream_code = reverse_bits(codes[symbol], length);
+     for (unsigned bit = 0; bit < length; ++bit) {
+         if ((stream_code >> bit) & 1U) {
+-            src[bit >> 3] |= (uint8_t)(1U << (bit & 7));
++            uint64_t stream_bit = bit_position + bit;
++            src[stream_bit >> 3] |= (uint8_t)(1U << (stream_bit & 7));
+         }
+     }
+ }
+ 
+-static int contract_case(const char *name) {
++static void write_fixed_symbol(
++    uint8_t *src,
++    unsigned symbol,
++    const unsigned *codes,
++    const unsigned *lengths
++) {
++    write_fixed_symbol_at(src, 0, symbol, codes, lengths);
++}
++
++static uint64_t invoke_contract_kernel(
++    int candidate,
++    const uint8_t *src,
++    uint64_t src_len,
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t count
++) {
++    if (candidate) {
++        return candidate_huffman_literals(
++            src, src_len, out, out_len, count
++        );
++    }
++    return inflate_huffman_literals(
++        (wf_buffer){(void *)src, src_len},
++        (wf_buffer){out, out_len},
++        count
++    );
++}
++
++static int contract_case(const char *name, int candidate) {
+     unsigned codes[288];
+     unsigned lengths[288];
+     uint8_t src[2] = {0, 0};
+@@ -89,42 +130,65 @@ static int contract_case(const char *name) {
+     fixed_codes(codes, lengths);
+ 
+     if (strcmp(name, "zero") == 0) {
+-        return inflate_huffman_literals(
+-            (wf_buffer){NULL, 0}, (wf_buffer){NULL, 0}, 0
+-        ) == 0 ? 0 : 1;
++        return invoke_contract_kernel(candidate, NULL, 0, NULL, 0, 0) == 0
++            ? 0 : 1;
+     }
+     if (strcmp(name, "exact-input") == 0) {
+         write_fixed_symbol(src, 144, codes, lengths);
+-        uint64_t result = inflate_huffman_literals(
+-            (wf_buffer){src, 2}, (wf_buffer){out, 1}, 1
++        uint64_t result = invoke_contract_kernel(
++            candidate, src, 2, out, 1, 1
+         );
+         return result == 1 && out[0] == 144 ? 0 : 1;
+     }
+     if (strcmp(name, "short-input") == 0) {
+         write_fixed_symbol(src, 144, codes, lengths);
+-        (void)inflate_huffman_literals(
+-            (wf_buffer){src, 1}, (wf_buffer){out, 1}, 1
+-        );
++        (void)invoke_contract_kernel(candidate, src, 1, out, 1, 1);
+         return 1;
+     }
+     if (strcmp(name, "short-output") == 0) {
+         write_fixed_symbol(src, 144, codes, lengths);
+-        (void)inflate_huffman_literals(
+-            (wf_buffer){src, 2}, (wf_buffer){out, 0}, 1
+-        );
++        (void)invoke_contract_kernel(candidate, src, 2, out, 0, 1);
+         return 1;
+     }
+     if (strcmp(name, "nonliteral") == 0) {
+         write_fixed_symbol(src, 256, codes, lengths);
+-        (void)inflate_huffman_literals(
+-            (wf_buffer){src, 2}, (wf_buffer){out, 1}, 1
++        (void)invoke_contract_kernel(candidate, src, 2, out, 1, 1);
++        return 1;
++    }
++    if (strncmp(name, "nonliteral-batch-", 17) == 0 &&
++        name[17] >= '0' && name[17] <= '5' && name[18] == '\0') {
++        unsigned nonliteral_position = (unsigned)(name[17] - '0');
++        uint8_t batch_src[7] = {0};
++        uint8_t batch_out[6] = {0};
++        uint64_t bit_position = 0;
++        for (unsigned position = 0; position < 6; ++position) {
++            unsigned symbol = position == nonliteral_position ? 256 : 144;
++            write_fixed_symbol_at(
++                batch_src,
++                bit_position,
++                symbol,
++                codes,
++                lengths
++            );
++            bit_position += lengths[symbol];
++        }
++        (void)invoke_contract_kernel(
++            candidate,
++            batch_src,
++            sizeof(batch_src),
++            batch_out,
++            sizeof(batch_out),
++            6
+         );
+         return 1;
+     }
+     if (strcmp(name, "count-overflow") == 0) {
+-        (void)inflate_huffman_literals(
+-            (wf_buffer){src, sizeof(src)},
+-            (wf_buffer){out, sizeof(out)},
++        (void)invoke_contract_kernel(
++            candidate,
++            src,
++            sizeof(src),
++            out,
++            sizeof(out),
+             UINT64_C(16397105843297379214)
+         );
+         return 1;
+@@ -161,6 +225,129 @@ static uint64_t make_stream(
+     return (bit_position + 7) >> 3;
+ }
+ 
++static int check_candidate(void) {
++    unsigned codes[288];
++    unsigned lengths[288];
++    fixed_codes(codes, lengths);
++
++    for (unsigned symbol = 0; symbol < 256; ++symbol) {
++        uint8_t src[2] = {0, 0};
++        uint8_t out[17];
++        memset(out, 0xa5, sizeof(out));
++        write_fixed_symbol(src, symbol, codes, lengths);
++        uint64_t result = candidate_huffman_literals(
++            src, sizeof(src), out, 1, 1
++        );
++        if (result != 1 || out[0] != symbol) {
++            fprintf(stderr, "candidate literal failed: %u\n", symbol);
++            return 1;
++        }
++        for (size_t index = 1; index < sizeof(out); ++index) {
++            if (out[index] != 0xa5) {
++                fprintf(stderr, "candidate suffix changed: %u\n", symbol);
++                return 1;
++            }
++        }
++    }
++
++    for (uint64_t count = 1; count <= 511; ++count) {
++        uint64_t src_capacity = count * 2 + 16;
++        uint64_t required_src = count + (count >> 3) + ((count & 7) != 0);
++        uint8_t *src = malloc((size_t)src_capacity);
++        uint8_t *expected = malloc((size_t)count);
++        uint8_t *out = malloc((size_t)(count + 16));
++        if (src == NULL || expected == NULL || out == NULL) {
++            return 2;
++        }
++        uint64_t actual_src = make_stream(
++            src, expected, count, codes, lengths
++        );
++        memset(out, 0xa5, (size_t)(count + 16));
++        uint64_t result = candidate_huffman_literals(
++            src, required_src, out, count, count
++        );
++        int okay = actual_src <= required_src && result == count &&
++            memcmp(out, expected, (size_t)count) == 0;
++        for (uint64_t index = count; index < count + 16; ++index) {
++            okay = okay && out[index] == 0xa5;
++        }
++        free(src);
++        free(expected);
++        free(out);
++        if (!okay) {
++            fprintf(stderr, "candidate count failed: %" PRIu64 "\n", count);
++            return 1;
++        }
++    }
++
++    long page_size_value = sysconf(_SC_PAGESIZE);
++    if (page_size_value <= 0) {
++        return 2;
++    }
++    size_t page_size = (size_t)page_size_value;
++    uint8_t *src_pages = mmap(
++        NULL,
++        2 * page_size,
++        PROT_READ | PROT_WRITE,
++        MAP_PRIVATE | MAP_ANON,
++        -1,
++        0
++    );
++    uint8_t *out_pages = mmap(
++        NULL,
++        2 * page_size,
++        PROT_READ | PROT_WRITE,
++        MAP_PRIVATE | MAP_ANON,
++        -1,
++        0
++    );
++    if (src_pages == MAP_FAILED || out_pages == MAP_FAILED) {
++        return 2;
++    }
++    if (mprotect(src_pages + page_size, page_size, PROT_NONE) != 0 ||
++        mprotect(out_pages + page_size, page_size, PROT_NONE) != 0) {
++        return 2;
++    }
++    for (uint64_t count = 1; count <= 511; ++count) {
++        uint64_t src_capacity = count * 2 + 16;
++        uint64_t required_src = count + (count >> 3) + ((count & 7) != 0);
++        uint8_t *temporary_src = malloc((size_t)src_capacity);
++        uint8_t *expected = malloc((size_t)count);
++        if (temporary_src == NULL || expected == NULL) {
++            return 2;
++        }
++        uint64_t actual_src = make_stream(
++            temporary_src, expected, count, codes, lengths
++        );
++        uint8_t *guarded_src = src_pages + page_size - required_src;
++        uint8_t *guarded_out = out_pages + page_size - count;
++        memset(src_pages, 0, page_size);
++        memset(out_pages, 0xa5, page_size);
++        memcpy(guarded_src, temporary_src, (size_t)required_src);
++        uint64_t result = candidate_huffman_literals(
++            guarded_src, required_src, guarded_out, count, count
++        );
++        int okay = actual_src <= required_src && result == count &&
++            memcmp(guarded_out, expected, (size_t)count) == 0;
++        size_t untouched = count < 16 ? (size_t)count : 16;
++        for (size_t index = 1; index <= untouched; ++index) {
++            okay = okay && guarded_out[-(ptrdiff_t)index] == 0xa5;
++        }
++        free(temporary_src);
++        free(expected);
++        if (!okay) {
++            fprintf(stderr, "candidate guard-page failed: %" PRIu64 "\n", count);
++            return 1;
++        }
++    }
++    munmap(src_pages, 2 * page_size);
++    munmap(out_pages, 2 * page_size);
++    puts(
++        "candidate correctness: 256 literals, counts 1..511, and exact guard pages passed"
++    );
++    return 0;
++}
++
+ static uint64_t ticks_to_ns(uint64_t ticks) {
+     mach_timebase_info_data_t info;
+     if (mach_timebase_info(&info) != KERN_SUCCESS) {
+@@ -180,12 +367,18 @@ static uint64_t digest(const uint8_t *data, uint64_t length) {
+ 
+ int main(int argc, char **argv) {
+     if (argc == 3 && strcmp(argv[1], "contract") == 0) {
+-        return contract_case(argv[2]);
++        return contract_case(argv[2], 0);
++    }
++    if (argc == 3 && strcmp(argv[1], "contract-candidate") == 0) {
++        return contract_case(argv[2], 1);
++    }
++    if (argc == 2 && strcmp(argv[1], "check-candidate") == 0) {
++        return check_candidate();
+     }
+     if (argc != 5 || strcmp(argv[1], "run") != 0) {
+         fprintf(
+             stderr,
+-            "usage: %s {run {wf|zng} SYMBOLS PASSES|contract CASE}\n",
++            "usage: %s {run {wf|candidate|zng} SYMBOLS PASSES|contract CASE}\n",
+             argv[0]
+         );
+         return 2;
+@@ -208,6 +401,7 @@ int main(int argc, char **argv) {
+     memset(out, 0, (size_t)count);
+     fixed_codes(codes, lengths);
+     uint64_t src_len = make_stream(src, expected, count, codes, lengths);
++    uint64_t required_src = count + (count >> 3) + ((count & 7) != 0);
+     uint64_t result = 0;
+     if (strcmp(variant, "wf") == 0) {
+         result = inflate_huffman_literals(
+@@ -217,6 +411,10 @@ int main(int argc, char **argv) {
+         );
+     } else if (strcmp(variant, "zng") == 0) {
+         result = zng_huffman_literals(src, out, count);
++    } else if (strcmp(variant, "candidate") == 0) {
++        result = candidate_huffman_literals(
++            src, required_src, out, count, count
++        );
+     } else {
+         return 2;
+     }
+@@ -232,8 +430,12 @@ int main(int argc, char **argv) {
+                 (wf_buffer){out, count},
+                 count
+             );
+-        } else {
++        } else if (strcmp(variant, "zng") == 0) {
+             result = zng_huffman_literals(src, out, count);
++        } else {
++            result = candidate_huffman_literals(
++                src, required_src, out, count, count
++            );
+         }
+     }
+     uint64_t elapsed_ns = ticks_to_ns(mach_continuous_time() - start);
+diff --git a/experiments/zlib-core-kernels/run.py b/experiments/zlib-core-kernels/run.py
+index c346586..d153140 100644
+--- a/experiments/zlib-core-kernels/run.py
++++ b/experiments/zlib-core-kernels/run.py
+@@ -53,10 +53,10 @@ CASES = (
+     (257, 258),
+     (32768, 258),
+ )
+-VARIANTS = ("facts", "nofacts", "zng")
++VARIANTS = ("facts", "nofacts", "candidate", "zng_prevalidated", "zng")
+ OUTPUT_BYTES = 32 * 1024 * 1024
+ PASSES = 4
+-SAMPLES = 9
++SAMPLES = 15
+ CONTRACT_SUCCESSES = ("zero-repeats", "exact-capacity")
+ CONTRACT_TRAPS = (
+     "length-below",
+@@ -181,6 +181,7 @@ def build_variant(name: str, no_facts: bool) -> Path:
+             str(ZNG_SOURCE),
+             str(HERE / "bench.c"),
+             str(HERE / "zng_kernel.c"),
++            str(HERE / "periodic_candidate.c"),
+             str(obj),
+             "-o",
+             str(exe),
+@@ -200,6 +201,12 @@ def main() -> int:
+     for executable in executables.values():
+         print(run([str(executable), "check"], capture=True).stdout.strip())
+         verify_contract(executable)
++    print(
++        run(
++            [str(executables["facts"]), "check-candidate-grid"],
++            capture=True,
++        ).stdout.strip()
++    )
+     print(
+         "contract: "
+         f"{len(CONTRACT_SUCCESSES) + len(CONTRACT_TRAPS)} cases passed "
+@@ -209,10 +216,14 @@ def main() -> int:
+     rows: list[dict[str, object]] = []
+     for distance, match_len in CASES:
+         for sample in range(SAMPLES):
+-            order = VARIANTS[sample % 3 :] + VARIANTS[: sample % 3]
++            order = VARIANTS[sample % len(VARIANTS) :] + VARIANTS[: sample % len(VARIANTS)]
+             for variant in order:
+                 executable = executables["nofacts" if variant == "nofacts" else "facts"]
+-                selected = "zng" if variant == "zng" else "wf"
++                selected = (
++                    variant
++                    if variant in ("candidate", "zng_prevalidated", "zng")
++                    else "wf"
++                )
+                 completed = run(
+                     [
+                         str(executable),
+@@ -248,8 +259,12 @@ def main() -> int:
+             f"distance={distance:5d} length={match_len:3d} "
+             f"facts={medians['facts']:7.3f} GiB/s "
+             f"nofacts={medians['nofacts']:7.3f} GiB/s "
++            f"candidate={medians['candidate']:7.3f} GiB/s "
++            f"zng_prevalidated={medians['zng_prevalidated']:7.3f} GiB/s "
+             f"zng={medians['zng']:7.3f} GiB/s "
+-            f"facts/zng={medians['facts'] / medians['zng']:.3f}"
++            f"candidate/zng_prevalidated="
++            f"{medians['candidate'] / medians['zng_prevalidated']:.3f} "
++            f"candidate/zng={medians['candidate'] / medians['zng']:.3f}"
+         )
+ 
+     result = {
+diff --git a/experiments/zlib-core-kernels/run_huffman.py b/experiments/zlib-core-kernels/run_huffman.py
+index 136e03c..08e19da 100644
+--- a/experiments/zlib-core-kernels/run_huffman.py
++++ b/experiments/zlib-core-kernels/run_huffman.py
+@@ -40,12 +40,18 @@ SOURCE = HERE / "huffman_literals.wf"
+ SYMBOLS = 32 * 1024 * 1024 - 2
+ PASSES = 4
+ SAMPLES = 12
+-VARIANTS = ("facts", "nofacts", "zng")
++VARIANTS = ("facts", "nofacts", "candidate", "zng")
+ CONTRACT_SUCCESSES = ("zero", "exact-input")
+ CONTRACT_TRAPS = (
+     "short-input",
+     "short-output",
+     "nonliteral",
++    "nonliteral-batch-0",
++    "nonliteral-batch-1",
++    "nonliteral-batch-2",
++    "nonliteral-batch-3",
++    "nonliteral-batch-4",
++    "nonliteral-batch-5",
+     "count-overflow",
+ )
+ 
+@@ -70,12 +76,16 @@ def verify_fixed_table_identity() -> None:
+     zng_header = (ZNG_SOURCE / "inffixed_tbl.h").read_text(encoding="utf-8")
+     zng_table_text = zng_header.split("static const code lenfix[512] = {", 1)[1]
+     zng_table_text = zng_table_text.split("};", 1)[0]
+-    zng_entries = [
+-        int(operation) | (int(bits) << 8) | (int(value) << 16)
++    zng_triples = [
++        (int(operation), int(bits), int(value))
+         for operation, bits, value in re.findall(
+             r"\{([0-9]+),([0-9]+),([0-9]+)\}", zng_table_text
+         )
+     ]
++    zng_entries = [
++        int(operation) | (int(bits) << 8) | (int(value) << 16)
++        for operation, bits, value in zng_triples
++    ]
+     if len(wf_entries) != 512 or len(zng_entries) != 512:
+         raise SystemExit(
+             "fixed Huffman table audit failed: "
+@@ -94,6 +104,10 @@ def verify_fixed_table_identity() -> None:
+             f"{mismatch}: Whitefoot={wf_entries[mismatch]} "
+             f"zlib-ng={zng_entries[mismatch]}"
+         )
++    if any(bits < 7 or bits > 9 for _, bits, _ in zng_triples):
++        raise SystemExit("fixed Huffman table bit-use invariant failed")
++    if any(operation == 0 and value > 255 for operation, _, value in zng_triples):
++        raise SystemExit("fixed Huffman literal-value invariant failed")
+ 
+ 
+ def verify_zng_checkout() -> None:
+@@ -115,30 +129,31 @@ def verify_zng_checkout() -> None:
+ 
+ 
+ def verify_contract(executable: Path) -> None:
+-    for case in CONTRACT_SUCCESSES:
+-        completed = subprocess.run(
+-            [str(executable), "contract", case],
+-            text=True,
+-            stdout=subprocess.PIPE,
+-            stderr=subprocess.PIPE,
+-        )
+-        if completed.returncode != 0:
+-            raise SystemExit(
+-                f"Huffman contract success case {case!r} returned "
+-                f"{completed.returncode}: {completed.stderr.strip()}"
++    for mode in ("contract", "contract-candidate"):
++        for case in CONTRACT_SUCCESSES:
++            completed = subprocess.run(
++                [str(executable), mode, case],
++                text=True,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.PIPE,
+             )
+-    for case in CONTRACT_TRAPS:
+-        completed = subprocess.run(
+-            [str(executable), "contract", case],
+-            text=True,
+-            stdout=subprocess.PIPE,
+-            stderr=subprocess.PIPE,
+-        )
+-        if completed.returncode >= 0:
+-            raise SystemExit(
+-                f"Huffman contract trap case {case!r} did not signal; "
+-                f"return code {completed.returncode}"
++            if completed.returncode != 0:
++                raise SystemExit(
++                    f"Huffman {mode} success case {case!r} returned "
++                    f"{completed.returncode}: {completed.stderr.strip()}"
++                )
++        for case in CONTRACT_TRAPS:
++            completed = subprocess.run(
++                [str(executable), mode, case],
++                text=True,
++                stdout=subprocess.PIPE,
++                stderr=subprocess.PIPE,
+             )
++            if completed.returncode >= 0:
++                raise SystemExit(
++                    f"Huffman {mode} trap case {case!r} did not signal; "
++                    f"return code {completed.returncode}"
++                )
+ 
+ 
+ def build_variant(name: str, no_facts: bool) -> Path:
+@@ -171,6 +186,7 @@ def build_variant(name: str, no_facts: bool) -> Path:
+             str(ZNG_SOURCE),
+             str(HERE / "huffman_bench.c"),
+             str(HERE / "zng_huffman_kernel.c"),
++            str(HERE / "huffman_candidate.c"),
+             str(obj),
+             "-o",
+             str(exe),
+@@ -189,6 +205,7 @@ def main() -> int:
+     }
+     for executable in executables.values():
+         verify_contract(executable)
++        print(run([str(executable), "check-candidate"]).stdout.strip())
+     print(
+         "contract: "
+         f"{len(CONTRACT_SUCCESSES) + len(CONTRACT_TRAPS)} cases passed "
+@@ -196,10 +213,10 @@ def main() -> int:
+     )
+     rows: list[dict[str, object]] = []
+     for sample in range(SAMPLES):
+-        order = VARIANTS[sample % 3 :] + VARIANTS[: sample % 3]
++        order = VARIANTS[sample % len(VARIANTS) :] + VARIANTS[: sample % len(VARIANTS)]
+         for variant in order:
+             executable = executables["nofacts" if variant == "nofacts" else "facts"]
+-            selected = "zng" if variant == "zng" else "wf"
++            selected = variant if variant in ("candidate", "zng") else "wf"
+             completed = run(
+                 [str(executable), "run", selected, str(SYMBOLS), str(PASSES)]
+             )
+@@ -221,8 +238,9 @@ def main() -> int:
+     print(
+         f"facts={medians['facts']:.3f} Msyms/s "
+         f"nofacts={medians['nofacts']:.3f} Msyms/s "
++        f"candidate={medians['candidate']:.3f} Msyms/s "
+         f"zng={medians['zng']:.3f} Msyms/s "
+-        f"facts/zng={medians['facts'] / medians['zng']:.3f}"
++        f"candidate/zng={medians['candidate'] / medians['zng']:.3f}"
+     )
+     (HERE / "huffman-results.json").write_text(
+         json.dumps(
+diff --git a/experiments/zlib-core-kernels/zng_kernel.c b/experiments/zlib-core-kernels/zng_kernel.c
+index e2992c1..cafb036 100644
+--- a/experiments/zlib-core-kernels/zng_kernel.c
++++ b/experiments/zlib-core-kernels/zng_kernel.c
+@@ -25,3 +25,28 @@ uint64_t zng_inflate_match_copy(
+     }
+     return (uint64_t)(next - out);
+ }
++
++uint64_t zng_inflate_match_copy_prevalidated(
++    uint8_t *out,
++    uint64_t out_len,
++    uint64_t seed_len,
++    uint64_t distance,
++    uint64_t match_len,
++    uint64_t repeats
++) {
++    if (distance == 0 || distance > seed_len || distance > 32768 ||
++        match_len < 3 || match_len > 258 ||
++        repeats > (UINT64_MAX - seed_len) / match_len ||
++        seed_len + repeats * match_len > out_len) {
++        __builtin_trap();
++    }
++    uint8_t *next = out + seed_len;
++    for (uint64_t match = 0; match < repeats; ++match) {
++        if (distance >= match_len || distance >= CHUNKSIZE()) {
++            next = CHUNKCOPY(next, next - distance, (unsigned)match_len);
++        } else {
++            next = CHUNKMEMSET(next, next - distance, (unsigned)match_len);
++        }
++    }
++    return (uint64_t)(next - out);
++}

@@ -1,0 +1,378 @@
+diff --git a/prototype/democ/democ.py b/prototype/democ/democ.py
+index 219560e..e677cd7 100644
+--- a/prototype/democ/democ.py
++++ b/prototype/democ/democ.py
+@@ -9,7 +9,7 @@ scoped-alias + effect-attr + derived-willreturn fact channels (--no-facts for
+ controls, --totality for the lint), give value-match, recursion, runnable main.
+ Temporary tool (owner ruling): endgame is a self-hosted compiler.
+ """
+-import re, sys, subprocess, json
++import hashlib, re, sys, subprocess, json
+ from pathlib import Path
+ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'checker'))
+ from checker import (check_program, CheckError, PRELUDE_ENUMS, _parse_effect_row,
+@@ -3251,14 +3251,329 @@ def reassociate_reductions(fns, proved):
+     for f in fns:
+         f["body"] = walk(f["body"])
+ 
+-def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
++_GUARDED_BIT_WINDOW_SHAPE_SHA256 = (
++    "c1f2685fca5dfa9dbaa6094d9b0f437cbd8b9acd960ad28ef30e81efd8b1c2ea"
++)
++
++
++def _guarded_bit_window_shape_digest(f, consts):
++    """Return an alpha-normalized structural digest for the experimental shape.
++
++    This deliberately runs on the checked AST, not source text.  Documentation,
++    diagnostic text, local names, labels, and region spellings are erased; all
++    operations, types, modes, constants, control, and places remain in the
++    digest.  The experiment accepts one closed shape and fails closed on drift.
++    """
++    identifiers = {}
++    labels = {}
++    regions = {name: f"r{index}" for index, name in enumerate(f["regions"])}
++    for index, param in enumerate(f["params"]):
++        identifiers[param["name"]] = f"p{index}"
++    for index, const in enumerate(consts):
++        identifiers[const["name"]] = f"c{index}"
++    value_counter = [0]
++    label_counter = [0]
++
++    def collect(value):
++        if isinstance(value, list):
++            for item in value:
++                collect(item)
++            return
++        if not isinstance(value, dict):
++            return
++        if value.get("s") in ("let", "try") and value.get("n") not in identifiers:
++            identifiers[value["n"]] = f"v{value_counter[0]}"
++            value_counter[0] += 1
++        if value.get("s") == "loop" and value.get("l") not in labels:
++            labels[value["l"]] = f"@l{label_counter[0]}"
++            label_counter[0] += 1
++        if value.get("s") == "match":
++            for arm in value.get("arms", []):
++                for binder in arm.get("b", []):
++                    if binder["name"] not in identifiers:
++                        identifiers[binder["name"]] = f"v{value_counter[0]}"
++                        value_counter[0] += 1
++        for child in value.values():
++            collect(child)
++
++    collect(f.get("requires") or [])
++    collect(f["body"])
++
++    def normalize(value):
++        if isinstance(value, list):
++            return [
++                normalize(item)
++                for item in value
++                if not (isinstance(item, dict) and item.get("s") == "doc")
++            ]
++        if isinstance(value, dict):
++            out = {}
++            for key in sorted(value):
++                if key == "msg" or (key == "s" and value.get("s") == "doc"):
++                    continue
++                child = value[key]
++                if key in ("name", "n", "base") and isinstance(child, str):
++                    child = identifiers.get(child, child)
++                elif key == "l" and isinstance(child, str):
++                    child = labels.get(child, child)
++                elif key == "region" and isinstance(child, str):
++                    child = regions.get(child, child)
++                out[key] = normalize(child)
++            return out
++        if isinstance(value, str) and value.startswith("'"):
++            bare = value[1:]
++            if bare in regions:
++                return "'" + regions[bare]
++        return value
++
++    shape = {
++        "regions": [regions[name] for name in f["regions"]],
++        "params": normalize(f["params"]),
++        "rmode": normalize(f["rmode"]),
++        "rty": f["rty"],
++        "effects": normalize(f["effects"]),
++        "requires": normalize(f.get("requires") or []),
++        "body": normalize(f["body"]),
++    }
++    encoded = json.dumps(shape, sort_keys=True, separators=(",", ":")).encode()
++    return hashlib.sha256(encoded).hexdigest()
++
++
++def _certify_guarded_bit_window(f, consts):
++    """Certify the one experimental six-symbol, 64-bit bit-window lowering."""
++    digest = _guarded_bit_window_shape_digest(f, consts)
++    if digest != _GUARDED_BIT_WINDOW_SHAPE_SHA256:
++        return None
++    if len(consts) != 1 or consts[0]["ty"] != "array<u32,512>":
++        return None
++    entries = [_litval(value) for value in consts[0]["vals"]]
++    if len(entries) != 512 or any(value < 0 or value > INT_MAX["u32"] for value in entries):
++        return None
++    literal_entries = [value for value in entries if (value & 255) == 0]
++    if not literal_entries:
++        return None
++    if any(not (1 <= ((value >> 8) & 255) <= 9) for value in literal_entries):
++        return None
++    if any((value >> 16) > 255 for value in literal_entries):
++        return None
++    # At most five prior 9-bit drops precede the sixth 9-bit lookup.  A byte
++    # cursor can start seven bits into the loaded word, so 7 + 6*9 = 61 <= 64.
++    if 7 + 6 * 9 > 64:
++        return None
++    return {
++        "shape_sha256": digest,
++        "table": consts[0]["name"],
++        "table_entries": len(entries),
++        "lookup_bits": 9,
++        "max_used": 9,
++        "batch": 6,
++        "window_bits": 64,
++        "src": f["params"][0]["name"],
++        "out": f["params"][1]["name"],
++        "count": f["params"][2]["name"],
++    }
++
++
++def _lower_guarded_bit_window(f, cert, alias):
++    """Emit the certified fast prefix plus the exact checked scalar tail."""
++    src = cert["src"]
++    out = cert["out"]
++    count = cert["count"]
++    table = cert["table"]
++    attrs = " nounwind memory(argmem: readwrite, inaccessiblemem: write)" if alias else ""
++    lines = [
++        "; EXPERIMENTAL guarded-bit-window certificate: "
++        f"shape={cert['shape_sha256']} table_entries=512 window=64 batch=6",
++        f"define i64 @{f['name']}({{ptr, i64}} %{src}, {{ptr, i64}} %{out}, i64 %{count}){attrs} {{",
++        "entry:",
++        f"  %bw_src_ptr = extractvalue {{ptr, i64}} %{src}, 0",
++        f"  %bw_src_len = extractvalue {{ptr, i64}} %{src}, 1",
++        f"  %bw_out_ptr = extractvalue {{ptr, i64}} %{out}, 0",
++        f"  %bw_out_len = extractvalue {{ptr, i64}} %{out}, 1",
++        f"  %bw_full_eighths = lshr i64 %{count}, 3",
++        f"  %bw_required_base = add i64 %{count}, %bw_full_eighths",
++        f"  %bw_remainder = and i64 %{count}, 7",
++        "  %bw_remainder_zero = icmp eq i64 %bw_remainder, 0",
++        "  %bw_input_exact = icmp uge i64 %bw_src_len, %bw_required_base",
++        "  %bw_input_tail = icmp ugt i64 %bw_src_len, %bw_required_base",
++        "  %bw_zero_case = and i1 %bw_remainder_zero, %bw_input_exact",
++        "  %bw_remainder_nonzero = xor i1 %bw_remainder_zero, true",
++        "  %bw_tail_case = and i1 %bw_remainder_nonzero, %bw_input_tail",
++        "  %bw_input_valid = or i1 %bw_zero_case, %bw_tail_case",
++        f"  %bw_output_valid = icmp uge i64 %bw_out_len, %{count}",
++        f"  %bw_count_valid = icmp ule i64 %{count}, 16397105843297379213",
++        "  %bw_buffers_valid = and i1 %bw_input_valid, %bw_output_valid",
++        "  %bw_all_valid = and i1 %bw_count_valid, %bw_buffers_valid",
++        "  %bw_contract_slot = alloca i1",
++        "  store volatile i1 %bw_all_valid, ptr %bw_contract_slot",
++        "  %bw_contract_observed = load volatile i1, ptr %bw_contract_slot",
++        "  br i1 %bw_contract_observed, label %bw_contract_ok, label %trap",
++        "bw_contract_ok:",
++        "  br label %bw_fast_header",
++        "bw_fast_header:",
++        "  %bw_produced = phi i64 [ 0, %bw_contract_ok ], [ %bw_next_produced, %bw_decode5 ]",
++        "  %bw_byte = phi i64 [ 0, %bw_contract_ok ], [ %bw_next_byte, %bw_decode5 ]",
++        "  %bw_offset = phi i64 [ 0, %bw_contract_ok ], [ %bw_next_offset, %bw_decode5 ]",
++        f"  %bw_remaining = sub i64 %{count}, %bw_produced",
++        "  %bw_has_batch = icmp uge i64 %bw_remaining, 6",
++        "  br i1 %bw_has_batch, label %bw_fast_guard, label %bw_tail_entry",
++        "bw_fast_guard:",
++        "  %bw_byte_within = icmp ule i64 %bw_byte, %bw_src_len",
++        "  %bw_src_available = sub i64 %bw_src_len, %bw_byte",
++        "  %bw_has_word = icmp uge i64 %bw_src_available, 8",
++        "  %bw_input_guard = and i1 %bw_byte_within, %bw_has_word",
++        "  %bw_output_within = icmp ule i64 %bw_produced, %bw_out_len",
++        "  %bw_out_available = sub i64 %bw_out_len, %bw_produced",
++        "  %bw_has_output_batch = icmp uge i64 %bw_out_available, 6",
++        "  %bw_output_guard = and i1 %bw_output_within, %bw_has_output_batch",
++        "  %bw_bulk_guard = and i1 %bw_input_guard, %bw_output_guard",
++        "  br i1 %bw_bulk_guard, label %bw_load_word, label %bw_tail_entry",
++        "bw_load_word:",
++    ]
++    wide_value = None
++    for index in range(8):
++        ptr = "%bw_word_ptr0" if index == 0 else f"%bw_word_ptr{index}"
++        if index == 0:
++            lines.append("  %bw_word_ptr0 = getelementptr i8, ptr %bw_src_ptr, i64 %bw_byte")
++        else:
++            lines.append(f"  {ptr} = getelementptr i8, ptr %bw_word_ptr0, i64 {index}")
++        lines.append(f"  %bw_word_byte{index} = load i8, ptr {ptr}, align 1")
++        lines.append(f"  %bw_word_wide{index} = zext i8 %bw_word_byte{index} to i64")
++        component = f"%bw_word_wide{index}"
++        if index:
++            lines.append(f"  %bw_word_shifted{index} = shl i64 {component}, {index * 8}")
++            component = f"%bw_word_shifted{index}"
++        if wide_value is None:
++            wide_value = component
++        else:
++            lines.append(f"  %bw_word_or{index} = or i64 {wide_value}, {component}")
++            wide_value = f"%bw_word_or{index}"
++    lines.extend([
++        f"  %bw_hold0 = lshr i64 {wide_value}, %bw_offset",
++        "  %bw_sum0 = add i64 %bw_offset, 0",
++    ])
++    hold = "%bw_hold0"
++    bit_sum = "%bw_sum0"
++    for index in range(6):
++        lines.extend([
++            f"  %bw_index{index} = and i64 {hold}, 511",
++            f"  %bw_entry_ptr{index} = getelementptr [512 x i32], ptr @__const_{table}, i64 0, i64 %bw_index{index}",
++            f"  %bw_entry{index} = load i32, ptr %bw_entry_ptr{index}, align 4",
++            f"  %bw_operation{index} = and i32 %bw_entry{index}, 255",
++            f"  %bw_is_literal{index} = icmp eq i32 %bw_operation{index}, 0",
++            f"  br i1 %bw_is_literal{index}, label %bw_decode{index}, label %trap",
++            f"bw_decode{index}:",
++        ])
++        if index == 0:
++            out_index = "%bw_produced"
++        else:
++            lines.append(f"  %bw_out_index{index} = add i64 %bw_produced, {index}")
++            out_index = f"%bw_out_index{index}"
++        lines.extend([
++            f"  %bw_symbol_word{index} = lshr i32 %bw_entry{index}, 16",
++            f"  %bw_symbol{index} = trunc i32 %bw_symbol_word{index} to i8",
++            f"  %bw_out_at{index} = getelementptr i8, ptr %bw_out_ptr, i64 {out_index}",
++            f"  store i8 %bw_symbol{index}, ptr %bw_out_at{index}, align 1",
++            f"  %bw_used_shifted{index} = lshr i32 %bw_entry{index}, 8",
++            f"  %bw_used32_{index} = and i32 %bw_used_shifted{index}, 255",
++            f"  %bw_used{index} = zext i32 %bw_used32_{index} to i64",
++            f"  %bw_hold{index + 1} = lshr i64 {hold}, %bw_used{index}",
++            f"  %bw_sum{index + 1} = add i64 {bit_sum}, %bw_used{index}",
++        ])
++        hold = f"%bw_hold{index + 1}"
++        bit_sum = f"%bw_sum{index + 1}"
++    lines.extend([
++        f"  %bw_advance = lshr i64 {bit_sum}, 3",
++        f"  %bw_next_offset = and i64 {bit_sum}, 7",
++        "  %bw_next_byte = add i64 %bw_byte, %bw_advance",
++        "  %bw_next_produced = add i64 %bw_produced, 6",
++        "  br label %bw_fast_header",
++        "bw_tail_entry:",
++        "  br label %bw_tail_header",
++        "bw_tail_header:",
++        "  %bw_tail_produced = phi i64 [ %bw_produced, %bw_tail_entry ], [ %bw_tail_next_produced, %bw_tail_decode ]",
++        "  %bw_tail_byte = phi i64 [ %bw_byte, %bw_tail_entry ], [ %bw_tail_next_byte, %bw_tail_decode ]",
++        "  %bw_tail_offset = phi i64 [ %bw_offset, %bw_tail_entry ], [ %bw_tail_next_offset, %bw_tail_decode ]",
++        f"  %bw_tail_done = icmp uge i64 %bw_tail_produced, %{count}",
++        "  br i1 %bw_tail_done, label %bw_return, label %bw_tail_guard",
++        "bw_tail_guard:",
++        "  %bw_tail_byte_within = icmp ule i64 %bw_tail_byte, %bw_src_len",
++        "  %bw_tail_src_available = sub i64 %bw_src_len, %bw_tail_byte",
++        "  %bw_tail_has_two = icmp uge i64 %bw_tail_src_available, 2",
++        "  %bw_tail_input_guard = and i1 %bw_tail_byte_within, %bw_tail_has_two",
++        "  %bw_tail_output_within = icmp ult i64 %bw_tail_produced, %bw_out_len",
++        "  %bw_tail_guard_ok = and i1 %bw_tail_input_guard, %bw_tail_output_within",
++        "  br i1 %bw_tail_guard_ok, label %bw_tail_load, label %trap",
++        "bw_tail_load:",
++        "  %bw_tail_ptr0 = getelementptr i8, ptr %bw_src_ptr, i64 %bw_tail_byte",
++        "  %bw_tail_byte0 = load i8, ptr %bw_tail_ptr0, align 1",
++        "  %bw_tail_byte1_index = add i64 %bw_tail_byte, 1",
++        "  %bw_tail_ptr1 = getelementptr i8, ptr %bw_src_ptr, i64 %bw_tail_byte1_index",
++        "  %bw_tail_byte1 = load i8, ptr %bw_tail_ptr1, align 1",
++        "  %bw_tail_wide0 = zext i8 %bw_tail_byte0 to i32",
++        "  %bw_tail_wide1 = zext i8 %bw_tail_byte1 to i32",
++        "  %bw_tail_shifted1 = shl i32 %bw_tail_wide1, 8",
++        "  %bw_tail_window = or i32 %bw_tail_wide0, %bw_tail_shifted1",
++        "  %bw_tail_offset32 = trunc i64 %bw_tail_offset to i32",
++        "  %bw_tail_hold = lshr i32 %bw_tail_window, %bw_tail_offset32",
++        "  %bw_tail_index32 = and i32 %bw_tail_hold, 511",
++        "  %bw_tail_index = zext i32 %bw_tail_index32 to i64",
++        f"  %bw_tail_entry_ptr = getelementptr [512 x i32], ptr @__const_{table}, i64 0, i64 %bw_tail_index",
++        "  %bw_tail_entry_value = load i32, ptr %bw_tail_entry_ptr, align 4",
++        "  %bw_tail_operation = and i32 %bw_tail_entry_value, 255",
++        "  %bw_tail_is_literal = icmp eq i32 %bw_tail_operation, 0",
++        "  br i1 %bw_tail_is_literal, label %bw_tail_decode, label %trap",
++        "bw_tail_decode:",
++        "  %bw_tail_symbol_word = lshr i32 %bw_tail_entry_value, 16",
++        "  %bw_tail_symbol = trunc i32 %bw_tail_symbol_word to i8",
++        "  %bw_tail_out_at = getelementptr i8, ptr %bw_out_ptr, i64 %bw_tail_produced",
++        "  store i8 %bw_tail_symbol, ptr %bw_tail_out_at, align 1",
++        "  %bw_tail_used_shifted = lshr i32 %bw_tail_entry_value, 8",
++        "  %bw_tail_used32 = and i32 %bw_tail_used_shifted, 255",
++        "  %bw_tail_used = zext i32 %bw_tail_used32 to i64",
++        "  %bw_tail_sum = add i64 %bw_tail_offset, %bw_tail_used",
++        "  %bw_tail_advance = lshr i64 %bw_tail_sum, 3",
++        "  %bw_tail_next_offset = and i64 %bw_tail_sum, 7",
++        "  %bw_tail_next_byte = add i64 %bw_tail_byte, %bw_tail_advance",
++        "  %bw_tail_next_produced = add i64 %bw_tail_produced, 1",
++        "  br label %bw_tail_header",
++        "bw_return:",
++        "  ret i64 %bw_tail_produced",
++        "trap:",
++        "  call void @llvm.trap()",
++        "  unreachable",
++        "}",
++    ])
++    return "\n".join(lines) + "\n"
++
++
++def compile_program(src, alias=True, elide_bounds=False, proof_report=None,
++                    experimental_guarded_bit_window=False):
+     # elide_bounds is an EXPERIMENT-ONLY ceiling probe (perfect-prover upper
+     # bound): never a shipping mode; real elision arrives via the OP-4 proof
+     # tier (THE-PLAN.md bet 1).
+     if proof_report is not None and proof_report:
+         raise ValueError("proof_report must be a fresh empty list")
++    if proof_report is not None and experimental_guarded_bit_window:
++        raise ValueError(
++            "the experimental guarded bit-window lowering has a standalone "
++            "certificate and does not yet integrate with proof_report"
++        )
+     structs, enums, fns, contracts, conforms, consts = parse_program(src)
+     check_program(build_prog(structs, enums, fns, consts))
++    guarded_bit_windows = {}
++    if experimental_guarded_bit_window:
++        for f in fns:
++            certificate = _certify_guarded_bit_window(f, consts)
++            if certificate is not None:
++                guarded_bit_windows[f["name"]] = certificate
++        if len(guarded_bit_windows) != 1:
++            raise CheckError(
++                "EXPERIMENT-BIT-WINDOW",
++                "experimental guarded bit-window lowering requires exactly one "
++                "checker-accepted canonical bit/table loop; "
++                f"certified {len(guarded_bit_windows)}",
++            )
+     type_spellings = _democ_type_spellings(structs, enums, fns, consts)
+     _validate_erased_prelude_payloads(type_spellings, enums)
+     proved = discharge_laws(contracts, conforms, fns)
+@@ -3340,8 +3655,13 @@ def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
+         }
+         for sites in final_report_sites.values():
+             for ix in sites: ix["_proof_report_emissions"] = 0
+-    bodies = [Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr,
+-                  elide=elide_bounds, proof_report=proof_report).run() for f in fns]
++    bodies = [
++        _lower_guarded_bit_window(f, guarded_bit_windows[f["name"]], alias)
++        if f["name"] in guarded_bit_windows
++        else Gen(f, enums, structs, alias, fnret, decls, total, mdefs, mdctr,
++                 elide=elide_bounds, proof_report=proof_report).run()
++        for f in fns
++    ]
+     if final_report_sites is not None:
+         expected_report_sites = sum(len(sites) for sites in final_report_sites.values())
+         missed = [
+@@ -3385,11 +3705,15 @@ if __name__ == "__main__":
+     args = [a for a in sys.argv[1:] if not a.startswith('-')]
+     flags = {a for a in sys.argv[1:] if a.startswith('-')}
+     if not args:
+-        print("usage: democ.py FILE.wf [--no-facts] [--asm] [--run] [--totality]"); sys.exit(0)
++        print("usage: democ.py FILE.wf [--no-facts] [--asm] [--run] [--totality] "
++              "[--experimental-guarded-bit-window]"); sys.exit(0)
+     src_path = Path(args[0])
+     try:
+         ir = compile_program(src_path.read_text(), alias='--no-facts' not in flags,
+-                             elide_bounds='--elide-bounds-experiment' in flags)
++                             elide_bounds='--elide-bounds-experiment' in flags,
++                             experimental_guarded_bit_window=(
++                                 '--experimental-guarded-bit-window' in flags
++                             ))
+     except CheckError as e:
+         print(f"{src_path.name}: REJECTED {e}"); sys.exit(1)
+     out = src_path.with_suffix('.ll'); out.write_text(ir)

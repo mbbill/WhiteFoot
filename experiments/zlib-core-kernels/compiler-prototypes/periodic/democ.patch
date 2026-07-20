@@ -1,0 +1,319 @@
+diff --git a/prototype/democ/democ.py b/prototype/democ/democ.py
+index 219560e..50456ce 100644
+--- a/prototype/democ/democ.py
++++ b/prototype/democ/democ.py
+@@ -1721,7 +1721,26 @@ class Gen:
+         body_env = dict(g.env)
+         g.stmts(g.f.get("requires") or [])
+         g.env = body_env
+-        g.stmts(g.f["body"])
++        periodic = g.f.get("periodic_copy_experiment")
++        if periodic is None:
++            g.stmts(g.f["body"])
++        else:
++            g.decls.add(
++                "declare i64 @__wf_periodic_copy_u8_repeated"
++                "(ptr, i64, i64, i64, i64, i64)"
++            )
++            buffer = g.env[periodic["buffer"]]
++            args = [buffer["ptr"], buffer["len"]]
++            args.extend(g.env[periodic[name]]["v"]
++                        for name in ("start", "distance", "count", "repeats"))
++            result = g.tmp()
++            g.emit(
++                f"  {result} = call i64 @__wf_periodic_copy_u8_repeated("
++                + ", ".join([f"ptr {args[0]}"] + [f"i64 {arg}" for arg in args[1:]])
++                + ")"
++            )
++            g.emit(f"  ret i64 {result}")
++            g.term = True
+         if not g.term:
+             g.emit("  ret i32 0" if g.f["name"] == "main" else ("  ret void" if rt == "void" else "  unreachable"))
+         if g.traps: g.emit("trap:\n  call void @llvm.trap()\n  unreachable")
+@@ -3251,7 +3270,257 @@ def reassociate_reductions(fns, proved):
+     for f in fns:
+         f["body"] = walk(f["body"])
+ 
+-def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
++def _periodic_direct_place(expr, name):
++    """Whether expr is the unprojected, non-dereferenced local/parameter name."""
++    if expr.get("e") != "place": return False
++    place = expr.get("p", {})
++    return (place.get("base") == name and place.get("path") == []
++            and place.get("deref") == 0 and "index" not in place
++            and "post" not in place)
++
++
++def _periodic_op(expr, op, ty, left, right):
++    return (expr.get("e") == "op" and expr.get("op") == op
++            and expr.get("tyargs") == [ty]
++            and len(expr.get("args", [])) == 2
++            and _periodic_direct_place(expr["args"][0], left)
++            and _periodic_direct_place(expr["args"][1], right))
++
++
++def _periodic_zero_let(stmt, ty="u64"):
++    expr = stmt.get("e", {})
++    return (stmt.get("s") == "let" and stmt.get("ty") == ty
++            and stmt.get("m", {}).get("kind") == "own"
++            and expr.get("e") == "lit" and expr.get("v") == 0
++            and expr.get("ty") == ty)
++
++
++def _periodic_increment(stmt, name):
++    if stmt.get("s") != "set": return False
++    place, expr = stmt.get("p", {}), stmt.get("e", {})
++    args = expr.get("args", [])
++    return (place.get("base") == name and place.get("path") == []
++            and place.get("deref") == 0 and "index" not in place
++            and expr.get("e") == "op" and expr.get("op") == "iadd.wrap"
++            and expr.get("tyargs") == ["u64"] and len(args) == 2
++            and _periodic_direct_place(args[0], name)
++            and args[1] == {"e": "lit", "v": 1, "ty": "u64"})
++
++
++def _periodic_guard(stmt, index, limit, label):
++    if stmt.get("s") != "match": return False
++    if not _periodic_op(stmt.get("scrut", {}), "ige", "u64", index, limit):
++        return False
++    arms = {arm.get("v"): arm for arm in stmt.get("arms", [])}
++    if set(arms) != {"True", "False"}: return False
++    if arms["True"].get("b") or arms["False"].get("b"): return False
++    return (arms["True"].get("body") == [{"s": "break", "l": label}]
++            and arms["False"].get("body") == [])
++
++
++def _periodic_buffer_index(place, buffer_name, index_name):
++    index = place.get("index")
++    if not isinstance(index, dict): return False
++    container = index.get("place", {})
++    return (place.get("base") == buffer_name and place.get("path") == []
++            and place.get("deref") == 1 and "post" not in place
++            and container.get("base") == buffer_name
++            and container.get("path") == [] and container.get("deref") == 1
++            and "index" not in container and "post" not in container
++            and index.get("elem") == "u8"
++            and _periodic_direct_place(index.get("atom", {}), index_name))
++
++
++def _periodic_body_plan(function):
++    """Recognize the checked canonical repeated forward-overlap-copy recurrence."""
++    params = function.get("params", [])
++    if (len(params) != 5 or function.get("rty") != "u64"
++            or function.get("rmode", {}).get("kind") != "own"):
++        return None
++    buffers = [p for p in params
++               if p.get("ty") == "buffer<u8>"
++               and p.get("mode", {}).get("kind") == "ref"
++               and p.get("mode", {}).get("uniq") is True]
++    scalars = [p for p in params
++               if p.get("ty") == "u64"
++               and p.get("mode", {}).get("kind") == "own"]
++    if len(buffers) != 1 or len(scalars) != 4: return None
++    buffer_name = buffers[0]["name"]
++    scalar_names = {p["name"] for p in scalars}
++
++    body = [stmt for stmt in function.get("body", []) if stmt.get("s") != "doc"]
++    if len(body) != 4: return None
++    position_let, outer_let, outer_loop, returned = body
++    if (position_let.get("s") != "let" or position_let.get("ty") != "u64"
++            or position_let.get("m", {}).get("kind") != "own"):
++        return None
++    position = position_let.get("n")
++    start_expr = position_let.get("e", {})
++    if start_expr.get("e") != "place": return None
++    start_place = start_expr.get("p", {})
++    start = start_place.get("base")
++    if (start not in scalar_names or not _periodic_direct_place(start_expr, start)
++            or not _periodic_zero_let(outer_let)):
++        return None
++    outer_index = outer_let.get("n")
++    if outer_loop.get("s") != "loop": return None
++    outer_label = outer_loop.get("l")
++    outer = outer_loop.get("body", [])
++    if len(outer) != 4: return None
++    outer_guard, copied_let, inner_loop, outer_step = outer
++    guard_expr = outer_guard.get("scrut", {})
++    if (guard_expr.get("e") != "op" or guard_expr.get("op") != "ige"
++            or guard_expr.get("tyargs") != ["u64"]
++            or len(guard_expr.get("args", [])) != 2
++            or not _periodic_direct_place(guard_expr["args"][0], outer_index)):
++        return None
++    repeats_expr = guard_expr["args"][1]
++    if repeats_expr.get("e") != "place": return None
++    repeats = repeats_expr.get("p", {}).get("base")
++    if repeats not in scalar_names or not _periodic_guard(
++            outer_guard, outer_index, repeats, outer_label):
++        return None
++    if not _periodic_zero_let(copied_let): return None
++    copied = copied_let.get("n")
++    if inner_loop.get("s") != "loop": return None
++    inner_label = inner_loop.get("l")
++    inner = inner_loop.get("body", [])
++    if len(inner) != 6: return None
++    inner_guard, from_let, byte_let, store, position_step, copied_step = inner
++    inner_guard_expr = inner_guard.get("scrut", {})
++    if (inner_guard_expr.get("e") != "op" or inner_guard_expr.get("op") != "ige"
++            or inner_guard_expr.get("tyargs") != ["u64"]
++            or len(inner_guard_expr.get("args", [])) != 2
++            or not _periodic_direct_place(inner_guard_expr["args"][0], copied)):
++        return None
++    count_expr = inner_guard_expr["args"][1]
++    if count_expr.get("e") != "place": return None
++    count = count_expr.get("p", {}).get("base")
++    if count not in scalar_names or not _periodic_guard(
++            inner_guard, copied, count, inner_label):
++        return None
++    if (from_let.get("s") != "let" or from_let.get("ty") != "u64"
++            or from_let.get("m", {}).get("kind") != "own"):
++        return None
++    from_name = from_let.get("n")
++    from_expr = from_let.get("e", {})
++    if (from_expr.get("e") != "op" or from_expr.get("op") != "isub.wrap"
++            or from_expr.get("tyargs") != ["u64"]
++            or len(from_expr.get("args", [])) != 2
++            or not _periodic_direct_place(from_expr["args"][0], position)):
++        return None
++    distance_expr = from_expr["args"][1]
++    if distance_expr.get("e") != "place": return None
++    distance = distance_expr.get("p", {}).get("base")
++    if (distance not in scalar_names
++            or not _periodic_direct_place(distance_expr, distance)):
++        return None
++    if (byte_let.get("s") != "let" or byte_let.get("ty") != "u8"
++            or byte_let.get("m", {}).get("kind") != "own"
++            or byte_let.get("e", {}).get("e") != "place"
++            or not _periodic_buffer_index(
++                byte_let["e"].get("p", {}), buffer_name, from_name)):
++        return None
++    byte = byte_let.get("n")
++    if (store.get("s") != "set"
++            or not _periodic_buffer_index(store.get("p", {}), buffer_name, position)
++            or not _periodic_direct_place(store.get("e", {}), byte)):
++        return None
++    if (not _periodic_increment(position_step, position)
++            or not _periodic_increment(copied_step, copied)
++            or not _periodic_increment(outer_step, outer_index)
++            or returned.get("s") != "return"
++            or not _periodic_direct_place(returned.get("e", {}), position)):
++        return None
++    if {start, distance, count, repeats} != scalar_names: return None
++    return {"buffer": buffer_name, "start": start, "distance": distance,
++            "count": count, "repeats": repeats}
++
++
++def _periodic_contract_expr(expr, local_exprs, roles):
++    """Alpha-normalize and expand the pure precondition expression DAG."""
++    kind = expr.get("e")
++    if kind == "lit":
++        return ("lit", expr.get("ty"), expr.get("v"))
++    if kind == "place":
++        place = expr.get("p", {})
++        if place.get("path") != [] or "index" in place or "post" in place:
++            return None
++        name = place.get("base")
++        if place.get("deref") == 0:
++            if name in local_exprs: return local_exprs[name]
++            if name in roles: return ("role", roles[name])
++            return None
++        if place.get("deref") == 1 and roles.get(name) == "buffer":
++            return ("deref", ("role", "buffer"))
++        return None
++    if kind == "op":
++        args = tuple(_periodic_contract_expr(a, local_exprs, roles)
++                     for a in expr.get("args", []))
++        if any(a is None for a in args): return None
++        return ("op", expr.get("op"), tuple(expr.get("tyargs", [])), args)
++    return None
++
++
++def _periodic_expected_contract():
++    role = lambda name: ("role", name)
++    lit = lambda ty, value: ("lit", ty, value)
++    op = lambda name, ty, *args: ("op", name, (ty,), args)
++    buffer, start = role("buffer"), role("start")
++    distance, count, repeats = role("distance"), role("count"), role("repeats")
++    distance_positive = op("igt", "u64", distance, lit("u64", 0))
++    distance_in_history = op("ile", "u64", distance, start)
++    distance_valid = op("ile", "u64", distance, lit("u64", 32768))
++    length_minimum = op("ige", "u64", count, lit("u64", 3))
++    length_maximum = op("ile", "u64", count, lit("u64", 258))
++    distance_shape = op("band", "Bool", distance_positive, distance_valid)
++    distance_history = op("band", "Bool", distance_shape, distance_in_history)
++    match_valid = op("band", "Bool", length_minimum, length_maximum)
++    repeats_low = op("iand", "u64", repeats, lit("u64", 4294967295))
++    repeats_high = op("ishr.wrap", "u64", repeats, lit("u32", 32))
++    product_low = op("imul.wrap", "u64", count, repeats_low)
++    product_high = op("imul.wrap", "u64", count, repeats_high)
++    product_high_low = op("iand", "u64", product_high, lit("u64", 4294967295))
++    product_high_high = op("ishr.wrap", "u64", product_high, lit("u32", 32))
++    product_shifted = op("ishl.wrap", "u64", product_high_low, lit("u32", 32))
++    product = op("iadd.wrap", "u64", product_low, product_shifted)
++    high_zero = op("ieq", "u64", product_high_high, lit("u64", 0))
++    product_no_carry = op("ige", "u64", product, product_low)
++    product_fits = op("band", "Bool", high_zero, product_no_carry)
++    total = op("iadd.wrap", "u64", start, product)
++    total_fits = op("ige", "u64", total, start)
++    output_len = ("op", "len", ("u8",), (("deref", buffer),))
++    output_fits = op("ile", "u64", total, output_len)
++    arithmetic_valid = op("band", "Bool", product_fits, total_fits)
++    capacity_valid = op("band", "Bool", arithmetic_valid, output_fits)
++    shape_valid = op("band", "Bool", distance_history, match_valid)
++    return op("band", "Bool", shape_valid, capacity_valid)
++
++
++_PERIODIC_EXPECTED_CONTRACT = _periodic_expected_contract()
++
++
++def _certify_periodic_copy(function):
++    plan = _periodic_body_plan(function)
++    requires = function.get("requires") or []
++    if plan is None or len(requires) != 28: return None
++    roles = {name: role for role, name in plan.items()}
++    locals_seen = {}
++    for stmt in requires[:-1]:
++        if (stmt.get("s") != "let" or stmt.get("m", {}).get("kind") != "own"
++                or stmt.get("n") in locals_seen):
++            return None
++        value = _periodic_contract_expr(stmt.get("e", {}), locals_seen, roles)
++        if value is None: return None
++        locals_seen[stmt["n"]] = value
++    check = requires[-1]
++    if check.get("s") != "check": return None
++    observed = _periodic_contract_expr(check.get("e", {}), locals_seen, roles)
++    return plan if observed == _PERIODIC_EXPECTED_CONTRACT else None
++
++
++def compile_program(src, alias=True, elide_bounds=False, proof_report=None,
++                    periodic_copy_experiment=False):
+     # elide_bounds is an EXPERIMENT-ONLY ceiling probe (perfect-prover upper
+     # bound): never a shipping mode; real elision arrives via the OP-4 proof
+     # tier (THE-PLAN.md bet 1).
+@@ -3259,6 +3528,11 @@ def compile_program(src, alias=True, elide_bounds=False, proof_report=None):
+         raise ValueError("proof_report must be a fresh empty list")
+     structs, enums, fns, contracts, conforms, consts = parse_program(src)
+     check_program(build_prog(structs, enums, fns, consts))
++    if periodic_copy_experiment:
++        for function in fns:
++            plan = _certify_periodic_copy(function)
++            if plan is not None:
++                function["periodic_copy_experiment"] = plan
+     type_spellings = _democ_type_spellings(structs, enums, fns, consts)
+     _validate_erased_prelude_payloads(type_spellings, enums)
+     proved = discharge_laws(contracts, conforms, fns)
+@@ -3385,11 +3659,13 @@ if __name__ == "__main__":
+     args = [a for a in sys.argv[1:] if not a.startswith('-')]
+     flags = {a for a in sys.argv[1:] if a.startswith('-')}
+     if not args:
+-        print("usage: democ.py FILE.wf [--no-facts] [--asm] [--run] [--totality]"); sys.exit(0)
++        print("usage: democ.py FILE.wf [--no-facts] [--asm] [--run] [--totality] "
++              "[--periodic-copy-experiment]"); sys.exit(0)
+     src_path = Path(args[0])
+     try:
+         ir = compile_program(src_path.read_text(), alias='--no-facts' not in flags,
+-                             elide_bounds='--elide-bounds-experiment' in flags)
++                             elide_bounds='--elide-bounds-experiment' in flags,
++                             periodic_copy_experiment='--periodic-copy-experiment' in flags)
+     except CheckError as e:
+         print(f"{src_path.name}: REJECTED {e}"); sys.exit(1)
+     out = src_path.with_suffix('.ll'); out.write_text(ir)

@@ -1,0 +1,60 @@
+fn inflate_match_copy ['o] (out: &uniq 'o buffer<u8>, seed_len: own u64, distance: own u64, match_len: own u64, repeats: own u64) -> own u64 reads('o), writes('o), traps requires {
+  let distance_positive: own Bool = igt<u64>(distance, 0_u64);
+  let distance_in_history: own Bool = ile<u64>(distance, seed_len);
+  let distance_valid: own Bool = ile<u64>(distance, 32768_u64);
+  let length_minimum: own Bool = ige<u64>(match_len, 3_u64);
+  let length_maximum: own Bool = ile<u64>(match_len, 258_u64);
+  let distance_shape: own Bool = band<Bool>(distance_positive, distance_valid);
+  let distance_history: own Bool = band<Bool>(distance_shape, distance_in_history);
+  let match_valid: own Bool = band<Bool>(length_minimum, length_maximum);
+  let repeats_low: own u64 = iand<u64>(repeats, 4294967295_u64);
+  let repeats_high: own u64 = ishr.wrap<u64>(repeats, 32_u32);
+  let product_low: own u64 = imul.wrap<u64>(match_len, repeats_low);
+  let product_high: own u64 = imul.wrap<u64>(match_len, repeats_high);
+  let product_high_low: own u64 = iand<u64>(product_high, 4294967295_u64);
+  let product_high_high: own u64 = ishr.wrap<u64>(product_high, 32_u32);
+  let product_shifted: own u64 = ishl.wrap<u64>(product_high_low, 32_u32);
+  let product: own u64 = iadd.wrap<u64>(product_low, product_shifted);
+  let high_zero: own Bool = ieq<u64>(product_high_high, 0_u64);
+  let product_no_carry: own Bool = ige<u64>(product, product_low);
+  let product_fits: own Bool = band<Bool>(high_zero, product_no_carry);
+  let total: own u64 = iadd.wrap<u64>(seed_len, product);
+  let total_fits: own Bool = ige<u64>(total, seed_len);
+  let output_len: own u64 = len<u8>(deref(out));
+  let output_fits: own Bool = ile<u64>(total, output_len);
+  let arithmetic_valid: own Bool = band<Bool>(product_fits, total_fits);
+  let capacity_valid: own Bool = band<Bool>(arithmetic_valid, output_fits);
+  let shape_valid: own Bool = band<Bool>(distance_history, match_valid);
+  let all_valid: own Bool = band<Bool>(shape_valid, capacity_valid);
+  check all_valid else trap "invalid match-copy arguments";
+} {
+  doc "Expand repeated valid DEFLATE length-distance matches using the canonical forward overlap-copy shape.";
+  let out_pos: own u64 = seed_len;
+  let match_index: own u64 = 0_u64;
+  loop @matches {
+    match ige<u64>(match_index, repeats) {
+      True() => {
+        break @matches;
+      }
+      False() => {
+      }
+    }
+    let copied: own u64 = 0_u64;
+    loop @bytes {
+      match ige<u64>(copied, match_len) {
+        True() => {
+          break @bytes;
+        }
+        False() => {
+        }
+      }
+      let from: own u64 = isub.wrap<u64>(out_pos, distance);
+      let byte: own u8 = index<u8>(deref(out), from);
+      set index<u8>(deref(out), out_pos) = byte;
+      set out_pos = iadd.wrap<u64>(out_pos, 1_u64);
+      set copied = iadd.wrap<u64>(copied, 1_u64);
+    }
+    set match_index = iadd.wrap<u64>(match_index, 1_u64);
+  }
+  return out_pos;
+}

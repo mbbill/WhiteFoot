@@ -27,6 +27,15 @@ and gitignored. Chronology and decisions live in
   semantics.
 
 ## Port studies (real programs; D9 confidence-gate evidence)
+- `zlib-core-kernels/` — deferred RFC 1951 kernel handoff. Ordinary scalar
+  lowering is not competitive for short-period match overlap and trails the
+  pinned all-literal Huffman projection; bounds-check elision alone does not
+  close either gap. Two unchanged-source stage-0 prototypes recover isolated
+  performance through periodic expansion and a guarded six-symbol bit window.
+  The directory preserves corrected raw results, compiler patches, LLVM and
+  ARM64 snapshots, candidate writer patterns, proof obligations, and production
+  pickup gates. These are feasibility results, not complete proofs or a
+  whole-inflate claim.
 - `default-floor/` — D9a protocol: a fixed low-tier model's first
   correctness-green Whitefoot artifact versus an exact unmodified shipped Rust
   library. Two separately preregistered results are complete: Terra Whitefoot beats

@@ -1,0 +1,254 @@
+declare {i32, i1} @llvm.sadd.with.overflow.i32(i32, i32)
+declare {i32, i1} @llvm.ssub.with.overflow.i32(i32, i32)
+declare {i32, i1} @llvm.smul.with.overflow.i32(i32, i32)
+declare void @llvm.trap()
+
+@__const_fixed_lencode = private unnamed_addr constant [512 x i32] [i32 1888, i32 5244928, i32 1050624, i32 7538708, i32 2033426, i32 7342080, i32 3147776, i32 12585216, i32 657168, i32 6293504, i32 2099200, i32 10488064, i32 2048, i32 8390656, i32 4196352, i32 14682368, i32 395024, i32 5769216, i32 1574912, i32 9439488, i32 3868435, i32 7866368, i32 3672064, i32 13633792, i32 1115921, i32 6817792, i32 2623488, i32 11536640, i32 526336, i32 8914944, i32 4720640, i32 15730944, i32 263952, i32 5507072, i32 1312768, i32 14878741, i32 2819859, i32 7604224, i32 3409920, i32 13109504, i32 853777, i32 6555648, i32 2361344, i32 11012352, i32 264192, i32 8652800, i32 4458496, i32 15206656, i32 526096, i32 6031360, i32 1837056, i32 9963776, i32 5441300, i32 8128512, i32 3934208, i32 14158080, i32 1509138, i32 7079936, i32 2885632, i32 12060928, i32 788480, i32 9177088, i32 4982784, i32 16255232, i32 198416, i32 5376000, i32 1181696, i32 10684437, i32 2295571, i32 7473152, i32 3278848, i32 12847360, i32 722705, i32 6424576, i32 2230272, i32 10750208, i32 133120, i32 8521728, i32 4327424, i32 14944512, i32 460560, i32 5900288, i32 1705984, i32 9701632, i32 4392724, i32 7997440, i32 3803136, i32 13895936, i32 1246994, i32 6948864, i32 2754560, i32 11798784, i32 657408, i32 9046016, i32 4851712, i32 15993088, i32 329488, i32 5638144, i32 1443840, i32 2112, i32 3344147, i32 7735296, i32 3540992, i32 13371648, i32 984849, i32 6686720, i32 2492416, i32 11274496, i32 395264, i32 8783872, i32 4589568, i32 15468800, i32 591632, i32 6162432, i32 1968128, i32 10225920, i32 6489876, i32 8259584, i32 4065280, i32 14420224, i32 1771282, i32 7211008, i32 3016704, i32 12323072, i32 919552, i32 9308160, i32 5113856, i32 16517376, i32 1888, i32 5310464, i32 1116160, i32 8587285, i32 2033426, i32 7407616, i32 3213312, i32 12716288, i32 657168, i32 6359040, i32 2164736, i32 10619136, i32 67584, i32 8456192, i32 4261888, i32 14813440, i32 395024, i32 5834752, i32 1640448, i32 9570560, i32 3868435, i32 7931904, i32 3737600, i32 13764864, i32 1115921, i32 6883328, i32 2689024, i32 11667712, i32 591872, i32 8980480, i32 4786176, i32 15862016, i32 263952, i32 5572608, i32 1378304, i32 16910352, i32 2819859, i32 7669760, i32 3475456, i32 13240576, i32 853777, i32 6621184, i32 2426880, i32 11143424, i32 329728, i32 8718336, i32 4524032, i32 15337728, i32 526096, i32 6096896, i32 1902592, i32 10094848, i32 5441300, i32 8194048, i32 3999744, i32 14289152, i32 1509138, i32 7145472, i32 2951168, i32 12192000, i32 854016, i32 9242624, i32 5048320, i32 16386304, i32 198416, i32 5441536, i32 1247232, i32 12781589, i32 2295571, i32 7538688, i32 3344384, i32 12978432, i32 722705, i32 6490112, i32 2295808, i32 10881280, i32 198656, i32 8587264, i32 4392960, i32 15075584, i32 460560, i32 5965824, i32 1771520, i32 9832704, i32 4392724, i32 8062976, i32 3868672, i32 14027008, i32 1246994, i32 7014400, i32 2820096, i32 11929856, i32 722944, i32 9111552, i32 4917248, i32 16124160, i32 329488, i32 5703680, i32 1509376, i32 2112, i32 3344147, i32 7800832, i32 3606528, i32 13502720, i32 984849, i32 6752256, i32 2557952, i32 11405568, i32 460800, i32 8849408, i32 4655104, i32 15599872, i32 591632, i32 6227968, i32 2033664, i32 10356992, i32 6489876, i32 8325120, i32 4130816, i32 14551296, i32 1771282, i32 7276544, i32 3082240, i32 12454144, i32 985088, i32 9373696, i32 5179392, i32 16648448, i32 1888, i32 5244928, i32 1050624, i32 7538708, i32 2033426, i32 7342080, i32 3147776, i32 12650752, i32 657168, i32 6293504, i32 2099200, i32 10553600, i32 2048, i32 8390656, i32 4196352, i32 14747904, i32 395024, i32 5769216, i32 1574912, i32 9505024, i32 3868435, i32 7866368, i32 3672064, i32 13699328, i32 1115921, i32 6817792, i32 2623488, i32 11602176, i32 526336, i32 8914944, i32 4720640, i32 15796480, i32 263952, i32 5507072, i32 1312768, i32 14878741, i32 2819859, i32 7604224, i32 3409920, i32 13175040, i32 853777, i32 6555648, i32 2361344, i32 11077888, i32 264192, i32 8652800, i32 4458496, i32 15272192, i32 526096, i32 6031360, i32 1837056, i32 10029312, i32 5441300, i32 8128512, i32 3934208, i32 14223616, i32 1509138, i32 7079936, i32 2885632, i32 12126464, i32 788480, i32 9177088, i32 4982784, i32 16320768, i32 198416, i32 5376000, i32 1181696, i32 10684437, i32 2295571, i32 7473152, i32 3278848, i32 12912896, i32 722705, i32 6424576, i32 2230272, i32 10815744, i32 133120, i32 8521728, i32 4327424, i32 15010048, i32 460560, i32 5900288, i32 1705984, i32 9767168, i32 4392724, i32 7997440, i32 3803136, i32 13961472, i32 1246994, i32 6948864, i32 2754560, i32 11864320, i32 657408, i32 9046016, i32 4851712, i32 16058624, i32 329488, i32 5638144, i32 1443840, i32 2112, i32 3344147, i32 7735296, i32 3540992, i32 13437184, i32 984849, i32 6686720, i32 2492416, i32 11340032, i32 395264, i32 8783872, i32 4589568, i32 15534336, i32 591632, i32 6162432, i32 1968128, i32 10291456, i32 6489876, i32 8259584, i32 4065280, i32 14485760, i32 1771282, i32 7211008, i32 3016704, i32 12388608, i32 919552, i32 9308160, i32 5113856, i32 16582912, i32 1888, i32 5310464, i32 1116160, i32 8587285, i32 2033426, i32 7407616, i32 3213312, i32 12781824, i32 657168, i32 6359040, i32 2164736, i32 10684672, i32 67584, i32 8456192, i32 4261888, i32 14878976, i32 395024, i32 5834752, i32 1640448, i32 9636096, i32 3868435, i32 7931904, i32 3737600, i32 13830400, i32 1115921, i32 6883328, i32 2689024, i32 11733248, i32 591872, i32 8980480, i32 4786176, i32 15927552, i32 263952, i32 5572608, i32 1378304, i32 16910352, i32 2819859, i32 7669760, i32 3475456, i32 13306112, i32 853777, i32 6621184, i32 2426880, i32 11208960, i32 329728, i32 8718336, i32 4524032, i32 15403264, i32 526096, i32 6096896, i32 1902592, i32 10160384, i32 5441300, i32 8194048, i32 3999744, i32 14354688, i32 1509138, i32 7145472, i32 2951168, i32 12257536, i32 854016, i32 9242624, i32 5048320, i32 16451840, i32 198416, i32 5441536, i32 1247232, i32 12781589, i32 2295571, i32 7538688, i32 3344384, i32 13043968, i32 722705, i32 6490112, i32 2295808, i32 10946816, i32 198656, i32 8587264, i32 4392960, i32 15141120, i32 460560, i32 5965824, i32 1771520, i32 9898240, i32 4392724, i32 8062976, i32 3868672, i32 14092544, i32 1246994, i32 7014400, i32 2820096, i32 11995392, i32 722944, i32 9111552, i32 4917248, i32 16189696, i32 329488, i32 5703680, i32 1509376, i32 2112, i32 3344147, i32 7800832, i32 3606528, i32 13568256, i32 984849, i32 6752256, i32 2557952, i32 11471104, i32 460800, i32 8849408, i32 4655104, i32 15665408, i32 591632, i32 6227968, i32 2033664, i32 10422528, i32 6489876, i32 8325120, i32 4130816, i32 14616832, i32 1771282, i32 7276544, i32 3082240, i32 12519680, i32 985088, i32 9373696, i32 5179392, i32 16713984]
+
+; EXPERIMENTAL guarded-bit-window certificate: shape=c1f2685fca5dfa9dbaa6094d9b0f437cbd8b9acd960ad28ef30e81efd8b1c2ea table_entries=512 window=64 batch=6
+define i64 @inflate_huffman_literals({ptr, i64} %src, {ptr, i64} %out, i64 %symbol_count) nounwind memory(argmem: readwrite, inaccessiblemem: write) {
+entry:
+  %bw_src_ptr = extractvalue {ptr, i64} %src, 0
+  %bw_src_len = extractvalue {ptr, i64} %src, 1
+  %bw_out_ptr = extractvalue {ptr, i64} %out, 0
+  %bw_out_len = extractvalue {ptr, i64} %out, 1
+  %bw_full_eighths = lshr i64 %symbol_count, 3
+  %bw_required_base = add i64 %symbol_count, %bw_full_eighths
+  %bw_remainder = and i64 %symbol_count, 7
+  %bw_remainder_zero = icmp eq i64 %bw_remainder, 0
+  %bw_input_exact = icmp uge i64 %bw_src_len, %bw_required_base
+  %bw_input_tail = icmp ugt i64 %bw_src_len, %bw_required_base
+  %bw_zero_case = and i1 %bw_remainder_zero, %bw_input_exact
+  %bw_remainder_nonzero = xor i1 %bw_remainder_zero, true
+  %bw_tail_case = and i1 %bw_remainder_nonzero, %bw_input_tail
+  %bw_input_valid = or i1 %bw_zero_case, %bw_tail_case
+  %bw_output_valid = icmp uge i64 %bw_out_len, %symbol_count
+  %bw_count_valid = icmp ule i64 %symbol_count, 16397105843297379213
+  %bw_buffers_valid = and i1 %bw_input_valid, %bw_output_valid
+  %bw_all_valid = and i1 %bw_count_valid, %bw_buffers_valid
+  %bw_contract_slot = alloca i1
+  store volatile i1 %bw_all_valid, ptr %bw_contract_slot
+  %bw_contract_observed = load volatile i1, ptr %bw_contract_slot
+  br i1 %bw_contract_observed, label %bw_contract_ok, label %trap
+bw_contract_ok:
+  br label %bw_fast_header
+bw_fast_header:
+  %bw_produced = phi i64 [ 0, %bw_contract_ok ], [ %bw_next_produced, %bw_decode5 ]
+  %bw_byte = phi i64 [ 0, %bw_contract_ok ], [ %bw_next_byte, %bw_decode5 ]
+  %bw_offset = phi i64 [ 0, %bw_contract_ok ], [ %bw_next_offset, %bw_decode5 ]
+  %bw_remaining = sub i64 %symbol_count, %bw_produced
+  %bw_has_batch = icmp uge i64 %bw_remaining, 6
+  br i1 %bw_has_batch, label %bw_fast_guard, label %bw_tail_entry
+bw_fast_guard:
+  %bw_byte_within = icmp ule i64 %bw_byte, %bw_src_len
+  %bw_src_available = sub i64 %bw_src_len, %bw_byte
+  %bw_has_word = icmp uge i64 %bw_src_available, 8
+  %bw_input_guard = and i1 %bw_byte_within, %bw_has_word
+  %bw_output_within = icmp ule i64 %bw_produced, %bw_out_len
+  %bw_out_available = sub i64 %bw_out_len, %bw_produced
+  %bw_has_output_batch = icmp uge i64 %bw_out_available, 6
+  %bw_output_guard = and i1 %bw_output_within, %bw_has_output_batch
+  %bw_bulk_guard = and i1 %bw_input_guard, %bw_output_guard
+  br i1 %bw_bulk_guard, label %bw_load_word, label %bw_tail_entry
+bw_load_word:
+  %bw_word_ptr0 = getelementptr i8, ptr %bw_src_ptr, i64 %bw_byte
+  %bw_word_byte0 = load i8, ptr %bw_word_ptr0, align 1
+  %bw_word_wide0 = zext i8 %bw_word_byte0 to i64
+  %bw_word_ptr1 = getelementptr i8, ptr %bw_word_ptr0, i64 1
+  %bw_word_byte1 = load i8, ptr %bw_word_ptr1, align 1
+  %bw_word_wide1 = zext i8 %bw_word_byte1 to i64
+  %bw_word_shifted1 = shl i64 %bw_word_wide1, 8
+  %bw_word_or1 = or i64 %bw_word_wide0, %bw_word_shifted1
+  %bw_word_ptr2 = getelementptr i8, ptr %bw_word_ptr0, i64 2
+  %bw_word_byte2 = load i8, ptr %bw_word_ptr2, align 1
+  %bw_word_wide2 = zext i8 %bw_word_byte2 to i64
+  %bw_word_shifted2 = shl i64 %bw_word_wide2, 16
+  %bw_word_or2 = or i64 %bw_word_or1, %bw_word_shifted2
+  %bw_word_ptr3 = getelementptr i8, ptr %bw_word_ptr0, i64 3
+  %bw_word_byte3 = load i8, ptr %bw_word_ptr3, align 1
+  %bw_word_wide3 = zext i8 %bw_word_byte3 to i64
+  %bw_word_shifted3 = shl i64 %bw_word_wide3, 24
+  %bw_word_or3 = or i64 %bw_word_or2, %bw_word_shifted3
+  %bw_word_ptr4 = getelementptr i8, ptr %bw_word_ptr0, i64 4
+  %bw_word_byte4 = load i8, ptr %bw_word_ptr4, align 1
+  %bw_word_wide4 = zext i8 %bw_word_byte4 to i64
+  %bw_word_shifted4 = shl i64 %bw_word_wide4, 32
+  %bw_word_or4 = or i64 %bw_word_or3, %bw_word_shifted4
+  %bw_word_ptr5 = getelementptr i8, ptr %bw_word_ptr0, i64 5
+  %bw_word_byte5 = load i8, ptr %bw_word_ptr5, align 1
+  %bw_word_wide5 = zext i8 %bw_word_byte5 to i64
+  %bw_word_shifted5 = shl i64 %bw_word_wide5, 40
+  %bw_word_or5 = or i64 %bw_word_or4, %bw_word_shifted5
+  %bw_word_ptr6 = getelementptr i8, ptr %bw_word_ptr0, i64 6
+  %bw_word_byte6 = load i8, ptr %bw_word_ptr6, align 1
+  %bw_word_wide6 = zext i8 %bw_word_byte6 to i64
+  %bw_word_shifted6 = shl i64 %bw_word_wide6, 48
+  %bw_word_or6 = or i64 %bw_word_or5, %bw_word_shifted6
+  %bw_word_ptr7 = getelementptr i8, ptr %bw_word_ptr0, i64 7
+  %bw_word_byte7 = load i8, ptr %bw_word_ptr7, align 1
+  %bw_word_wide7 = zext i8 %bw_word_byte7 to i64
+  %bw_word_shifted7 = shl i64 %bw_word_wide7, 56
+  %bw_word_or7 = or i64 %bw_word_or6, %bw_word_shifted7
+  %bw_hold0 = lshr i64 %bw_word_or7, %bw_offset
+  %bw_sum0 = add i64 %bw_offset, 0
+  %bw_index0 = and i64 %bw_hold0, 511
+  %bw_entry_ptr0 = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_index0
+  %bw_entry0 = load i32, ptr %bw_entry_ptr0, align 4
+  %bw_operation0 = and i32 %bw_entry0, 255
+  %bw_is_literal0 = icmp eq i32 %bw_operation0, 0
+  br i1 %bw_is_literal0, label %bw_decode0, label %trap
+bw_decode0:
+  %bw_symbol_word0 = lshr i32 %bw_entry0, 16
+  %bw_symbol0 = trunc i32 %bw_symbol_word0 to i8
+  %bw_out_at0 = getelementptr i8, ptr %bw_out_ptr, i64 %bw_produced
+  store i8 %bw_symbol0, ptr %bw_out_at0, align 1
+  %bw_used_shifted0 = lshr i32 %bw_entry0, 8
+  %bw_used32_0 = and i32 %bw_used_shifted0, 255
+  %bw_used0 = zext i32 %bw_used32_0 to i64
+  %bw_hold1 = lshr i64 %bw_hold0, %bw_used0
+  %bw_sum1 = add i64 %bw_sum0, %bw_used0
+  %bw_index1 = and i64 %bw_hold1, 511
+  %bw_entry_ptr1 = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_index1
+  %bw_entry1 = load i32, ptr %bw_entry_ptr1, align 4
+  %bw_operation1 = and i32 %bw_entry1, 255
+  %bw_is_literal1 = icmp eq i32 %bw_operation1, 0
+  br i1 %bw_is_literal1, label %bw_decode1, label %trap
+bw_decode1:
+  %bw_out_index1 = add i64 %bw_produced, 1
+  %bw_symbol_word1 = lshr i32 %bw_entry1, 16
+  %bw_symbol1 = trunc i32 %bw_symbol_word1 to i8
+  %bw_out_at1 = getelementptr i8, ptr %bw_out_ptr, i64 %bw_out_index1
+  store i8 %bw_symbol1, ptr %bw_out_at1, align 1
+  %bw_used_shifted1 = lshr i32 %bw_entry1, 8
+  %bw_used32_1 = and i32 %bw_used_shifted1, 255
+  %bw_used1 = zext i32 %bw_used32_1 to i64
+  %bw_hold2 = lshr i64 %bw_hold1, %bw_used1
+  %bw_sum2 = add i64 %bw_sum1, %bw_used1
+  %bw_index2 = and i64 %bw_hold2, 511
+  %bw_entry_ptr2 = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_index2
+  %bw_entry2 = load i32, ptr %bw_entry_ptr2, align 4
+  %bw_operation2 = and i32 %bw_entry2, 255
+  %bw_is_literal2 = icmp eq i32 %bw_operation2, 0
+  br i1 %bw_is_literal2, label %bw_decode2, label %trap
+bw_decode2:
+  %bw_out_index2 = add i64 %bw_produced, 2
+  %bw_symbol_word2 = lshr i32 %bw_entry2, 16
+  %bw_symbol2 = trunc i32 %bw_symbol_word2 to i8
+  %bw_out_at2 = getelementptr i8, ptr %bw_out_ptr, i64 %bw_out_index2
+  store i8 %bw_symbol2, ptr %bw_out_at2, align 1
+  %bw_used_shifted2 = lshr i32 %bw_entry2, 8
+  %bw_used32_2 = and i32 %bw_used_shifted2, 255
+  %bw_used2 = zext i32 %bw_used32_2 to i64
+  %bw_hold3 = lshr i64 %bw_hold2, %bw_used2
+  %bw_sum3 = add i64 %bw_sum2, %bw_used2
+  %bw_index3 = and i64 %bw_hold3, 511
+  %bw_entry_ptr3 = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_index3
+  %bw_entry3 = load i32, ptr %bw_entry_ptr3, align 4
+  %bw_operation3 = and i32 %bw_entry3, 255
+  %bw_is_literal3 = icmp eq i32 %bw_operation3, 0
+  br i1 %bw_is_literal3, label %bw_decode3, label %trap
+bw_decode3:
+  %bw_out_index3 = add i64 %bw_produced, 3
+  %bw_symbol_word3 = lshr i32 %bw_entry3, 16
+  %bw_symbol3 = trunc i32 %bw_symbol_word3 to i8
+  %bw_out_at3 = getelementptr i8, ptr %bw_out_ptr, i64 %bw_out_index3
+  store i8 %bw_symbol3, ptr %bw_out_at3, align 1
+  %bw_used_shifted3 = lshr i32 %bw_entry3, 8
+  %bw_used32_3 = and i32 %bw_used_shifted3, 255
+  %bw_used3 = zext i32 %bw_used32_3 to i64
+  %bw_hold4 = lshr i64 %bw_hold3, %bw_used3
+  %bw_sum4 = add i64 %bw_sum3, %bw_used3
+  %bw_index4 = and i64 %bw_hold4, 511
+  %bw_entry_ptr4 = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_index4
+  %bw_entry4 = load i32, ptr %bw_entry_ptr4, align 4
+  %bw_operation4 = and i32 %bw_entry4, 255
+  %bw_is_literal4 = icmp eq i32 %bw_operation4, 0
+  br i1 %bw_is_literal4, label %bw_decode4, label %trap
+bw_decode4:
+  %bw_out_index4 = add i64 %bw_produced, 4
+  %bw_symbol_word4 = lshr i32 %bw_entry4, 16
+  %bw_symbol4 = trunc i32 %bw_symbol_word4 to i8
+  %bw_out_at4 = getelementptr i8, ptr %bw_out_ptr, i64 %bw_out_index4
+  store i8 %bw_symbol4, ptr %bw_out_at4, align 1
+  %bw_used_shifted4 = lshr i32 %bw_entry4, 8
+  %bw_used32_4 = and i32 %bw_used_shifted4, 255
+  %bw_used4 = zext i32 %bw_used32_4 to i64
+  %bw_hold5 = lshr i64 %bw_hold4, %bw_used4
+  %bw_sum5 = add i64 %bw_sum4, %bw_used4
+  %bw_index5 = and i64 %bw_hold5, 511
+  %bw_entry_ptr5 = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_index5
+  %bw_entry5 = load i32, ptr %bw_entry_ptr5, align 4
+  %bw_operation5 = and i32 %bw_entry5, 255
+  %bw_is_literal5 = icmp eq i32 %bw_operation5, 0
+  br i1 %bw_is_literal5, label %bw_decode5, label %trap
+bw_decode5:
+  %bw_out_index5 = add i64 %bw_produced, 5
+  %bw_symbol_word5 = lshr i32 %bw_entry5, 16
+  %bw_symbol5 = trunc i32 %bw_symbol_word5 to i8
+  %bw_out_at5 = getelementptr i8, ptr %bw_out_ptr, i64 %bw_out_index5
+  store i8 %bw_symbol5, ptr %bw_out_at5, align 1
+  %bw_used_shifted5 = lshr i32 %bw_entry5, 8
+  %bw_used32_5 = and i32 %bw_used_shifted5, 255
+  %bw_used5 = zext i32 %bw_used32_5 to i64
+  %bw_hold6 = lshr i64 %bw_hold5, %bw_used5
+  %bw_sum6 = add i64 %bw_sum5, %bw_used5
+  %bw_advance = lshr i64 %bw_sum6, 3
+  %bw_next_offset = and i64 %bw_sum6, 7
+  %bw_next_byte = add i64 %bw_byte, %bw_advance
+  %bw_next_produced = add i64 %bw_produced, 6
+  br label %bw_fast_header
+bw_tail_entry:
+  br label %bw_tail_header
+bw_tail_header:
+  %bw_tail_produced = phi i64 [ %bw_produced, %bw_tail_entry ], [ %bw_tail_next_produced, %bw_tail_decode ]
+  %bw_tail_byte = phi i64 [ %bw_byte, %bw_tail_entry ], [ %bw_tail_next_byte, %bw_tail_decode ]
+  %bw_tail_offset = phi i64 [ %bw_offset, %bw_tail_entry ], [ %bw_tail_next_offset, %bw_tail_decode ]
+  %bw_tail_done = icmp uge i64 %bw_tail_produced, %symbol_count
+  br i1 %bw_tail_done, label %bw_return, label %bw_tail_guard
+bw_tail_guard:
+  %bw_tail_byte_within = icmp ule i64 %bw_tail_byte, %bw_src_len
+  %bw_tail_src_available = sub i64 %bw_src_len, %bw_tail_byte
+  %bw_tail_has_two = icmp uge i64 %bw_tail_src_available, 2
+  %bw_tail_input_guard = and i1 %bw_tail_byte_within, %bw_tail_has_two
+  %bw_tail_output_within = icmp ult i64 %bw_tail_produced, %bw_out_len
+  %bw_tail_guard_ok = and i1 %bw_tail_input_guard, %bw_tail_output_within
+  br i1 %bw_tail_guard_ok, label %bw_tail_load, label %trap
+bw_tail_load:
+  %bw_tail_ptr0 = getelementptr i8, ptr %bw_src_ptr, i64 %bw_tail_byte
+  %bw_tail_byte0 = load i8, ptr %bw_tail_ptr0, align 1
+  %bw_tail_byte1_index = add i64 %bw_tail_byte, 1
+  %bw_tail_ptr1 = getelementptr i8, ptr %bw_src_ptr, i64 %bw_tail_byte1_index
+  %bw_tail_byte1 = load i8, ptr %bw_tail_ptr1, align 1
+  %bw_tail_wide0 = zext i8 %bw_tail_byte0 to i32
+  %bw_tail_wide1 = zext i8 %bw_tail_byte1 to i32
+  %bw_tail_shifted1 = shl i32 %bw_tail_wide1, 8
+  %bw_tail_window = or i32 %bw_tail_wide0, %bw_tail_shifted1
+  %bw_tail_offset32 = trunc i64 %bw_tail_offset to i32
+  %bw_tail_hold = lshr i32 %bw_tail_window, %bw_tail_offset32
+  %bw_tail_index32 = and i32 %bw_tail_hold, 511
+  %bw_tail_index = zext i32 %bw_tail_index32 to i64
+  %bw_tail_entry_ptr = getelementptr [512 x i32], ptr @__const_fixed_lencode, i64 0, i64 %bw_tail_index
+  %bw_tail_entry_value = load i32, ptr %bw_tail_entry_ptr, align 4
+  %bw_tail_operation = and i32 %bw_tail_entry_value, 255
+  %bw_tail_is_literal = icmp eq i32 %bw_tail_operation, 0
+  br i1 %bw_tail_is_literal, label %bw_tail_decode, label %trap
+bw_tail_decode:
+  %bw_tail_symbol_word = lshr i32 %bw_tail_entry_value, 16
+  %bw_tail_symbol = trunc i32 %bw_tail_symbol_word to i8
+  %bw_tail_out_at = getelementptr i8, ptr %bw_out_ptr, i64 %bw_tail_produced
+  store i8 %bw_tail_symbol, ptr %bw_tail_out_at, align 1
+  %bw_tail_used_shifted = lshr i32 %bw_tail_entry_value, 8
+  %bw_tail_used32 = and i32 %bw_tail_used_shifted, 255
+  %bw_tail_used = zext i32 %bw_tail_used32 to i64
+  %bw_tail_sum = add i64 %bw_tail_offset, %bw_tail_used
+  %bw_tail_advance = lshr i64 %bw_tail_sum, 3
+  %bw_tail_next_offset = and i64 %bw_tail_sum, 7
+  %bw_tail_next_byte = add i64 %bw_tail_byte, %bw_tail_advance
+  %bw_tail_next_produced = add i64 %bw_tail_produced, 1
+  br label %bw_tail_header
+bw_return:
+  ret i64 %bw_tail_produced
+trap:
+  call void @llvm.trap()
+  unreachable
+}

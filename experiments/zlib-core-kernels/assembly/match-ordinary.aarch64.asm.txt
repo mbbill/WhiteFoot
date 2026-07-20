@@ -1,0 +1,105 @@
+experiments/zlib-core-kernels/build/periodic-compiler/baseline/match_copy.o:
+(__TEXT,__text) section
+_inflate_match_copy:
+       0:	ff 43 00 d1	sub	sp, sp, #0x10
+       4:	68 04 00 d1	sub	x8, x3, #0x1
+       8:	89 0c 00 d1	sub	x9, x4, #0x3
+       c:	1f 21 40 f1	cmp	x8, #0x8, lsl #12
+      10:	08 20 80 52	mov	w8, #0x100
+      14:	22 31 48 fa	ccmp	x9, x8, #0x2, lo
+      18:	e8 03 05 2a	mov	w8, w5
+      1c:	a9 fc 60 d3	lsr	x9, x5, #32
+      20:	08 7d 04 9b	mul	x8, x8, x4
+      24:	29 7d 04 9b	mul	x9, x9, x4
+      28:	0a 81 09 8b	add	x10, x8, x9, lsl #32
+      2c:	29 fd 60 d3	lsr	x9, x9, #32
+      30:	62 30 42 fa	ccmp	x3, x2, #0x2, lo
+      34:	eb 87 9f 1a	cset	w11, ls
+      38:	5f 01 08 eb	cmp	x10, x8
+      3c:	48 01 02 8b	add	x8, x10, x2
+      40:	00 21 42 fa	ccmp	x8, x2, #0x0, hs
+      44:	20 29 40 fa	ccmp	x9, #0x0, #0x0, hs
+      48:	02 01 41 fa	ccmp	x8, x1, #0x2, eq
+      4c:	e8 83 8b 1a	csel	w8, wzr, w11, hi
+      50:	e8 3f 00 39	strb	w8, [sp, #0xf]
+      54:	e8 3f 40 39	ldrb	w8, [sp, #0xf]
+      58:	1f 05 00 71	cmp	w8, #0x1
+      5c:	c1 09 00 54	b.ne	0x194
+      60:	45 09 00 b4	cbz	x5, 0x188
+      64:	24 09 00 b4	cbz	x4, 0x188
+      68:	7f 00 01 f1	cmp	x3, #0x40
+      6c:	62 02 00 54	b.hs	0xb8
+      70:	08 00 80 d2	mov	x8, #0x0
+      74:	e9 03 03 cb	neg	x9, x3
+      78:	0a 00 03 cb	sub	x10, x0, x3
+      7c:	eb 03 04 aa	mov	x11, x4
+      80:	5f 00 01 eb	cmp	x2, x1
+      84:	82 08 00 54	b.hs	0x194
+      88:	2c 01 02 8b	add	x12, x9, x2
+      8c:	9f 01 01 eb	cmp	x12, x1
+      90:	22 08 00 54	b.hs	0x194
+      94:	4c 69 62 38	ldrb	w12, [x10, x2]
+      98:	0c 68 22 38	strb	w12, [x0, x2]
+      9c:	42 04 00 91	add	x2, x2, #0x1
+      a0:	6b 05 00 f1	subs	x11, x11, #0x1
+      a4:	e1 fe ff 54	b.ne	0x80
+      a8:	08 05 00 91	add	x8, x8, #0x1
+      ac:	1f 01 05 eb	cmp	x8, x5
+      b0:	61 fe ff 54	b.ne	0x7c
+      b4:	35 00 00 14	b	0x188
+      b8:	08 00 80 d2	mov	x8, #0x0
+      bc:	89 04 00 d1	sub	x9, x4, #0x1
+      c0:	ea 03 03 cb	neg	x10, x3
+      c4:	0b 00 03 cb	sub	x11, x0, x3
+      c8:	0c 80 00 91	add	x12, x0, #0x20
+      cc:	0d 08 80 52	mov	w13, #0x40
+      d0:	4f 00 03 cb	sub	x15, x2, x3
+      d4:	3f 00 0f eb	cmp	x1, x15
+      d8:	2f 80 8f 9a	csel	x15, x1, x15, hi
+      dc:	6f 00 0f 8b	add	x15, x3, x15
+      e0:	ef 01 02 cb	sub	x15, x15, x2
+      e4:	30 00 02 eb	subs	x16, x1, x2
+      e8:	f0 33 90 9a	csel	x16, xzr, x16, lo
+      ec:	ff 01 10 eb	cmp	x15, x16
+      f0:	ef 31 90 9a	csel	x15, x15, x16, lo
+      f4:	3f 01 0f eb	cmp	x9, x15
+      f8:	30 31 8f 9a	csel	x16, x9, x15, lo
+      fc:	1f 02 01 f1	cmp	x16, #0x40
+     100:	62 00 00 54	b.hs	0x10c
+     104:	0e 00 80 d2	mov	x14, #0x0
+     108:	12 00 00 14	b	0x150
+     10c:	0e 06 00 91	add	x14, x16, #0x1
+     110:	cf 15 40 f2	ands	x15, x14, #0x3f
+     114:	b1 01 8f 9a	csel	x17, x13, x15, eq
+     118:	ce 01 11 cb	sub	x14, x14, x17
+     11c:	4f 00 0e 8b	add	x15, x2, x14
+     120:	f0 03 30 aa	mvn	x16, x16
+     124:	10 02 11 8b	add	x16, x16, x17
+     128:	71 01 02 8b	add	x17, x11, x2
+     12c:	82 01 02 8b	add	x2, x12, x2
+     130:	20 06 40 ad	ldp	q0, q1, [x17]
+     134:	22 0e 41 ad	ldp	q2, q3, [x17, #0x20]
+     138:	40 04 3f ad	stp	q0, q1, [x2, #-0x20]
+     13c:	42 0c 82 ac	stp	q2, q3, [x2], #0x40
+     140:	31 02 01 91	add	x17, x17, #0x40
+     144:	10 02 01 b1	adds	x16, x16, #0x40
+     148:	41 ff ff 54	b.ne	0x130
+     14c:	e2 03 0f aa	mov	x2, x15
+     150:	8e 00 0e cb	sub	x14, x4, x14
+     154:	5f 00 01 eb	cmp	x2, x1
+     158:	e2 01 00 54	b.hs	0x194
+     15c:	4f 01 02 8b	add	x15, x10, x2
+     160:	ff 01 01 eb	cmp	x15, x1
+     164:	82 01 00 54	b.hs	0x194
+     168:	6f 69 62 38	ldrb	w15, [x11, x2]
+     16c:	0f 68 22 38	strb	w15, [x0, x2]
+     170:	42 04 00 91	add	x2, x2, #0x1
+     174:	ce 05 00 f1	subs	x14, x14, #0x1
+     178:	e1 fe ff 54	b.ne	0x154
+     17c:	08 05 00 91	add	x8, x8, #0x1
+     180:	1f 01 05 eb	cmp	x8, x5
+     184:	61 fa ff 54	b.ne	0xd0
+     188:	e0 03 02 aa	mov	x0, x2
+     18c:	ff 43 00 91	add	sp, sp, #0x10
+     190:	c0 03 5f d6	ret
+     194:	20 00 20 d4	brk	#0x1

@@ -1,0 +1,92 @@
+experiments/zlib-core-kernels/build/huffman-compiler-baseline/kernel.o:
+(__TEXT,__text) section
+_inflate_huffman_literals:
+       0:	fd 7b bf a9	stp	x29, x30, [sp, #-0x10]!
+       4:	fd 03 00 91	mov	x29, sp
+       8:	ff 43 00 d1	sub	sp, sp, #0x10
+       c:	88 0c 44 8b	add	x8, x4, x4, lsr #3
+      10:	9f 08 40 f2	tst	x4, #0x7
+      14:	e9 17 9f 1a	cset	w9, eq
+      18:	ea 07 9f 1a	cset	w10, ne
+      1c:	3f 00 08 eb	cmp	x1, x8
+      20:	e8 33 89 1a	csel	w8, wzr, w9, lo
+      24:	e9 93 8a 1a	csel	w9, wzr, w10, ls
+      28:	08 01 09 2a	orr	w8, w8, w9
+      2c:	7f 00 04 eb	cmp	x3, x4
+      30:	e8 33 88 1a	csel	w8, wzr, w8, lo
+      34:	c9 71 9c d2	mov	x9, #0xe38e
+      38:	09 c7 b1 f2	movk	x9, #0x8e38, lsl #16
+      3c:	69 1c c7 f2	movk	x9, #0x38e3, lsl #32
+      40:	c9 71 fc f2	movk	x9, #0xe38e, lsl #48
+      44:	9f 00 09 eb	cmp	x4, x9
+      48:	e8 23 88 1a	csel	w8, wzr, w8, hs
+      4c:	a8 f3 1f 38	sturb	w8, [x29, #-0x1]
+      50:	a8 f3 5f 38	ldurb	w8, [x29, #-0x1]
+      54:	1f 05 00 71	cmp	w8, #0x1
+      58:	41 08 00 54	b.ne	0x160
+      5c:	a4 07 00 b4	cbz	x4, 0x150
+      60:	08 00 80 d2	mov	x8, #0x0
+      64:	0b 00 80 52	mov	w11, #0x0
+      68:	0c 00 80 d2	mov	x12, #0x0
+      6c:	09 00 80 d2	mov	x9, #0x0
+      70:	0a 00 00 90	adrp	x10, l___const_fixed_lencode@PAGE
+      74:	4a 01 00 91	add	x10, x10, l___const_fixed_lencode@PAGEOFF
+      78:	0f 00 00 14	b	0xb4
+      7c:	ee 03 00 91	mov	x14, sp
+      80:	cf 41 00 d1	sub	x15, x14, #0x10
+      84:	ff 01 00 91	mov	sp, x15
+      88:	df 01 1f 38	sturb	wzr, [x14, #-0x10]
+      8c:	ce 01 5f 38	ldurb	w14, [x14, #-0x10]
+      90:	df 05 00 71	cmp	w14, #0x1
+      94:	61 06 00 54	b.ne	0x160
+      98:	ae 3d 08 53	ubfx	w14, w13, #8, #8
+      9c:	ad fd 48 d3	lsr	x13, x13, #8
+      a0:	29 25 cd 9a	lsr	x9, x9, x13
+      a4:	6b 01 0e 4b	sub	w11, w11, w14
+      a8:	08 05 00 91	add	x8, x8, #0x1
+      ac:	9f 00 08 eb	cmp	x4, x8
+      b0:	00 05 00 54	b.eq	0x150
+      b4:	7f 21 00 71	cmp	w11, #0x8
+      b8:	68 02 00 54	b.hi	0x104
+      bc:	3f 00 0c eb	cmp	x1, x12
+      c0:	2e 80 8c 9a	csel	x14, x1, x12, hi
+      c4:	9f 01 01 eb	cmp	x12, x1
+      c8:	c2 04 00 54	b.hs	0x160
+      cc:	ed 03 0b 2a	mov	w13, w11
+      d0:	0f 68 6c 38	ldrb	w15, [x0, x12]
+      d4:	ed 21 cd 9a	lsl	x13, x15, x13
+      d8:	a9 01 09 aa	orr	x9, x13, x9
+      dc:	8d 05 00 91	add	x13, x12, #0x1
+      e0:	eb 00 00 35	cbnz	w11, 0xfc
+      e4:	bf 01 0e eb	cmp	x13, x14
+      e8:	c0 03 00 54	b.eq	0x160
+      ec:	0b 68 6d 38	ldrb	w11, [x0, x13]
+      f0:	8d 09 00 91	add	x13, x12, #0x2
+      f4:	29 21 0b aa	orr	x9, x9, x11, lsl #8
+      f8:	0b 01 80 52	mov	w11, #0x8
+      fc:	6b 21 00 11	add	w11, w11, #0x8
+     100:	ec 03 0d aa	mov	x12, x13
+     104:	2d 21 40 92	and	x13, x9, #0x1ff
+     108:	4d 79 6d b8	ldr	w13, [x10, x13, lsl #2]
+     10c:	bf 1d 00 72	tst	w13, #0xff
+     110:	00 01 00 54	b.eq	0x130
+     114:	ee 03 00 91	mov	x14, sp
+     118:	cf 41 00 d1	sub	x15, x14, #0x10
+     11c:	ff 01 00 91	mov	sp, x15
+     120:	df 01 1f 38	sturb	wzr, [x14, #-0x10]
+     124:	ce 01 5f 38	ldurb	w14, [x14, #-0x10]
+     128:	df 05 00 71	cmp	w14, #0x1
+     12c:	a1 01 00 54	b.ne	0x160
+     130:	2e 1d 40 92	and	x14, x9, #0xff
+     134:	df 8d 02 f1	cmp	x14, #0xa3
+     138:	20 fa ff 54	b.eq	0x7c
+     13c:	1f 01 03 eb	cmp	x8, x3
+     140:	02 01 00 54	b.hs	0x160
+     144:	ae 7d 10 53	lsr	w14, w13, #16
+     148:	4e 68 28 38	strb	w14, [x2, x8]
+     14c:	d3 ff ff 17	b	0x98
+     150:	e0 03 04 aa	mov	x0, x4
+     154:	bf 03 00 91	mov	sp, x29
+     158:	fd 7b c1 a8	ldp	x29, x30, [sp], #0x10
+     15c:	c0 03 5f d6	ret
+     160:	20 00 20 d4	brk	#0x1

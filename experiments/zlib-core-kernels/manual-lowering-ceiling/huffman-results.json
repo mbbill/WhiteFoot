@@ -1,0 +1,489 @@
+{
+  "passes": 4,
+  "rows": [
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 408710000,
+      "million_symbols_per_s": 328.3935308654058,
+      "passes": 4,
+      "sample": 0,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 410255208,
+      "million_symbols_per_s": 327.15665123256645,
+      "passes": 4,
+      "sample": 0,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 296888750,
+      "million_symbols_per_s": 452.08085520249585,
+      "passes": 4,
+      "sample": 0,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 340223000,
+      "million_symbols_per_s": 394.49925490046235,
+      "passes": 4,
+      "sample": 0,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 432185875,
+      "million_symbols_per_s": 310.5555451112325,
+      "passes": 4,
+      "sample": 1,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 366663583,
+      "million_symbols_per_s": 366.05140576504976,
+      "passes": 4,
+      "sample": 1,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 362582083,
+      "million_symbols_per_s": 370.17195910367144,
+      "passes": 4,
+      "sample": 1,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 427945916,
+      "million_symbols_per_s": 313.6324357398471,
+      "passes": 4,
+      "sample": 1,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 326602875,
+      "million_symbols_per_s": 410.9508221567247,
+      "passes": 4,
+      "sample": 2,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 351071750,
+      "million_symbols_per_s": 382.3085167063428,
+      "passes": 4,
+      "sample": 2,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 443977250,
+      "million_symbols_per_s": 302.30765202496303,
+      "passes": 4,
+      "sample": 2,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 455326041,
+      "million_symbols_per_s": 294.7727736046619,
+      "passes": 4,
+      "sample": 2,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 341039166,
+      "million_symbols_per_s": 393.5551496158655,
+      "passes": 4,
+      "sample": 3,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 428102875,
+      "million_symbols_per_s": 313.5174460110785,
+      "passes": 4,
+      "sample": 3,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 430529208,
+      "million_symbols_per_s": 311.7505560737705,
+      "passes": 4,
+      "sample": 3,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 314349583,
+      "million_symbols_per_s": 426.9696136355301,
+      "passes": 4,
+      "sample": 3,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 413981541,
+      "million_symbols_per_s": 324.21184692387044,
+      "passes": 4,
+      "sample": 4,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 409909833,
+      "million_symbols_per_s": 327.43230143493537,
+      "passes": 4,
+      "sample": 4,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 311011916,
+      "million_symbols_per_s": 431.5516965594334,
+      "passes": 4,
+      "sample": 4,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 323792916,
+      "million_symbols_per_s": 414.5171600974741,
+      "passes": 4,
+      "sample": 4,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 398950958,
+      "million_symbols_per_s": 336.42661412032504,
+      "passes": 4,
+      "sample": 5,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 316092583,
+      "million_symbols_per_s": 424.61521471384856,
+      "passes": 4,
+      "sample": 5,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 323373083,
+      "million_symbols_per_s": 415.0553248119294,
+      "passes": 4,
+      "sample": 5,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 392616791,
+      "million_symbols_per_s": 341.8542535028768,
+      "passes": 4,
+      "sample": 5,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 291940791,
+      "million_symbols_per_s": 459.74294835694957,
+      "passes": 4,
+      "sample": 6,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 318586000,
+      "million_symbols_per_s": 421.29195884313816,
+      "passes": 4,
+      "sample": 6,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 392072333,
+      "million_symbols_per_s": 342.3289753016059,
+      "passes": 4,
+      "sample": 6,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 394918625,
+      "million_symbols_per_s": 339.8617120172542,
+      "passes": 4,
+      "sample": 6,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 322189458,
+      "million_symbols_per_s": 416.5801104516585,
+      "passes": 4,
+      "sample": 7,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 408269916,
+      "million_symbols_per_s": 328.74751418128,
+      "passes": 4,
+      "sample": 7,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 425154041,
+      "million_symbols_per_s": 315.69197762840975,
+      "passes": 4,
+      "sample": 7,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 292177458,
+      "million_symbols_per_s": 459.37055144069325,
+      "passes": 4,
+      "sample": 7,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 398023000,
+      "million_symbols_per_s": 337.21096519547865,
+      "passes": 4,
+      "sample": 8,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 393343333,
+      "million_symbols_per_s": 341.2228166582399,
+      "passes": 4,
+      "sample": 8,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 292654708,
+      "million_symbols_per_s": 458.62142767920204,
+      "passes": 4,
+      "sample": 8,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 320236666,
+      "million_symbols_per_s": 419.120401409625,
+      "passes": 4,
+      "sample": 8,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 401792166,
+      "million_symbols_per_s": 334.0476279968087,
+      "passes": 4,
+      "sample": 9,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 298902833,
+      "million_symbols_per_s": 449.0346198893337,
+      "passes": 4,
+      "sample": 9,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 319404750,
+      "million_symbols_per_s": 420.21203504331106,
+      "passes": 4,
+      "sample": 9,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 407486041,
+      "million_symbols_per_s": 329.37992101672995,
+      "passes": 4,
+      "sample": 9,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 293490708,
+      "million_symbols_per_s": 457.3150574838642,
+      "passes": 4,
+      "sample": 10,
+      "symbols": 33554430,
+      "variant": "candidate"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 319359083,
+      "million_symbols_per_s": 420.2721235894831,
+      "passes": 4,
+      "sample": 10,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 391435666,
+      "million_symbols_per_s": 342.885770659437,
+      "passes": 4,
+      "sample": 10,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 390449708,
+      "million_symbols_per_s": 343.7516208873692,
+      "passes": 4,
+      "sample": 10,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 329469583,
+      "million_symbols_per_s": 407.37514758684114,
+      "passes": 4,
+      "sample": 11,
+      "symbols": 33554430,
+      "variant": "zng"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 393046416,
+      "million_symbols_per_s": 341.4805848274164,
+      "passes": 4,
+      "sample": 11,
+      "symbols": 33554430,
+      "variant": "facts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 402803166,
+      "million_symbols_per_s": 333.20919826136617,
+      "passes": 4,
+      "sample": 11,
+      "symbols": 33554430,
+      "variant": "nofacts"
+    },
+    {
+      "compressed_bytes": 35389830,
+      "digest": "3d0980e301c00625",
+      "elapsed_ns": 305772500,
+      "million_symbols_per_s": 438.94634082528677,
+      "passes": 4,
+      "sample": 11,
+      "symbols": 33554430,
+      "variant": "candidate"
+    }
+  ],
+  "samples": 12,
+  "schema": "whitefoot.zlib-core.huffman-literals.v1",
+  "symbols": 33554430,
+  "zlib_ng_commit": "12731092979c6d07f42da27da673a9f6c7b13586"
+}

@@ -1,0 +1,189 @@
+declare {i32, i1} @llvm.sadd.with.overflow.i32(i32, i32)
+declare {i32, i1} @llvm.ssub.with.overflow.i32(i32, i32)
+declare {i32, i1} @llvm.smul.with.overflow.i32(i32, i32)
+declare void @llvm.trap()
+
+define i64 @inflate_match_copy({ptr, i64} %out, i64 %seed_len, i64 %distance, i64 %match_len, i64 %repeats) nounwind memory(argmem: readwrite, inaccessiblemem: write) {
+entry:
+  %t1 = extractvalue {ptr, i64} %out, 0
+  %t2 = extractvalue {ptr, i64} %out, 1
+  %t3 = icmp ugt i64 %distance, 0
+  %t4 = alloca i1
+  store i1 %t3, ptr %t4
+  %t5 = icmp ule i64 %distance, %seed_len
+  %t6 = alloca i1
+  store i1 %t5, ptr %t6
+  %t7 = icmp ule i64 %distance, 32768
+  %t8 = alloca i1
+  store i1 %t7, ptr %t8
+  %t9 = icmp uge i64 %match_len, 3
+  %t10 = alloca i1
+  store i1 %t9, ptr %t10
+  %t11 = icmp ule i64 %match_len, 258
+  %t12 = alloca i1
+  store i1 %t11, ptr %t12
+  %t13 = load i1, ptr %t4
+  %t14 = load i1, ptr %t8
+  %t15 = and i1 %t13, %t14
+  %t16 = alloca i1
+  store i1 %t15, ptr %t16
+  %t17 = load i1, ptr %t16
+  %t18 = load i1, ptr %t6
+  %t19 = and i1 %t17, %t18
+  %t20 = alloca i1
+  store i1 %t19, ptr %t20
+  %t21 = load i1, ptr %t10
+  %t22 = load i1, ptr %t12
+  %t23 = and i1 %t21, %t22
+  %t24 = alloca i1
+  store i1 %t23, ptr %t24
+  %t25 = and i64 %repeats, 4294967295
+  %t26 = alloca i64
+  store i64 %t25, ptr %t26
+  %t27 = and i32 32, 63
+  %t28 = zext i32 %t27 to i64
+  %t29 = lshr i64 %repeats, %t28
+  %t30 = alloca i64
+  store i64 %t29, ptr %t30
+  %t31 = load i64, ptr %t26
+  %t32 = mul i64 %match_len, %t31
+  %t33 = alloca i64
+  store i64 %t32, ptr %t33
+  %t34 = load i64, ptr %t30
+  %t35 = mul i64 %match_len, %t34
+  %t36 = alloca i64
+  store i64 %t35, ptr %t36
+  %t37 = load i64, ptr %t36
+  %t38 = and i64 %t37, 4294967295
+  %t39 = alloca i64
+  store i64 %t38, ptr %t39
+  %t40 = load i64, ptr %t36
+  %t41 = and i32 32, 63
+  %t42 = zext i32 %t41 to i64
+  %t43 = lshr i64 %t40, %t42
+  %t44 = alloca i64
+  store i64 %t43, ptr %t44
+  %t45 = load i64, ptr %t39
+  %t46 = and i32 32, 63
+  %t47 = zext i32 %t46 to i64
+  %t48 = shl i64 %t45, %t47
+  %t49 = alloca i64
+  store i64 %t48, ptr %t49
+  %t50 = load i64, ptr %t33
+  %t51 = load i64, ptr %t49
+  %t52 = add i64 %t50, %t51
+  %t53 = alloca i64
+  store i64 %t52, ptr %t53
+  %t54 = load i64, ptr %t44
+  %t55 = icmp eq i64 %t54, 0
+  %t56 = alloca i1
+  store i1 %t55, ptr %t56
+  %t57 = load i64, ptr %t53
+  %t58 = load i64, ptr %t33
+  %t59 = icmp uge i64 %t57, %t58
+  %t60 = alloca i1
+  store i1 %t59, ptr %t60
+  %t61 = load i1, ptr %t56
+  %t62 = load i1, ptr %t60
+  %t63 = and i1 %t61, %t62
+  %t64 = alloca i1
+  store i1 %t63, ptr %t64
+  %t65 = load i64, ptr %t53
+  %t66 = add i64 %seed_len, %t65
+  %t67 = alloca i64
+  store i64 %t66, ptr %t67
+  %t68 = load i64, ptr %t67
+  %t69 = icmp uge i64 %t68, %seed_len
+  %t70 = alloca i1
+  store i1 %t69, ptr %t70
+  %t71 = alloca i64
+  store i64 %t2, ptr %t71
+  %t72 = load i64, ptr %t67
+  %t73 = load i64, ptr %t71
+  %t74 = icmp ule i64 %t72, %t73
+  %t75 = alloca i1
+  store i1 %t74, ptr %t75
+  %t76 = load i1, ptr %t64
+  %t77 = load i1, ptr %t70
+  %t78 = and i1 %t76, %t77
+  %t79 = alloca i1
+  store i1 %t78, ptr %t79
+  %t80 = load i1, ptr %t79
+  %t81 = load i1, ptr %t75
+  %t82 = and i1 %t80, %t81
+  %t83 = alloca i1
+  store i1 %t82, ptr %t83
+  %t84 = load i1, ptr %t20
+  %t85 = load i1, ptr %t24
+  %t86 = and i1 %t84, %t85
+  %t87 = alloca i1
+  store i1 %t86, ptr %t87
+  %t88 = load i1, ptr %t87
+  %t89 = load i1, ptr %t83
+  %t90 = and i1 %t88, %t89
+  %t91 = alloca i1
+  store i1 %t90, ptr %t91
+  %t92 = load i1, ptr %t91
+  %t94 = alloca i1
+  store volatile i1 %t92, ptr %t94
+  %t95 = load volatile i1, ptr %t94
+  br i1 %t95, label %L93, label %trap
+L93:
+  %t96 = alloca i64
+  store i64 %seed_len, ptr %t96
+  %t97 = alloca i64
+  store i64 0, ptr %t97
+  br label %L98
+L98:
+  %t100 = load i64, ptr %t97
+  %t101 = icmp uge i64 %t100, %repeats
+  br i1 %t101, label %L103, label %L104
+L103:
+  br label %L99
+L104:
+  br label %L102
+L102:
+  %t105 = alloca i64
+  store i64 0, ptr %t105
+  br label %L106
+L106:
+  %t108 = load i64, ptr %t105
+  %t109 = icmp uge i64 %t108, %match_len
+  br i1 %t109, label %L111, label %L112
+L111:
+  br label %L107
+L112:
+  br label %L110
+L110:
+  %t113 = load i64, ptr %t96
+  %t114 = sub i64 %t113, %distance
+  %t115 = alloca i64
+  store i64 %t114, ptr %t115
+  %t116 = load i64, ptr %t115
+  %t117 = getelementptr i8, ptr %t1, i64 %t116
+  %t118 = load i8, ptr %t117
+  %t119 = alloca i8
+  store i8 %t118, ptr %t119
+  %t120 = load i8, ptr %t119
+  %t121 = load i64, ptr %t96
+  %t122 = getelementptr i8, ptr %t1, i64 %t121
+  store i8 %t120, ptr %t122
+  %t123 = load i64, ptr %t96
+  %t124 = add i64 %t123, 1
+  store i64 %t124, ptr %t96
+  %t125 = load i64, ptr %t105
+  %t126 = add i64 %t125, 1
+  store i64 %t126, ptr %t105
+  br label %L106
+L107:
+  %t127 = load i64, ptr %t97
+  %t128 = add i64 %t127, 1
+  store i64 %t128, ptr %t97
+  br label %L98
+L99:
+  %t129 = load i64, ptr %t96
+  ret i64 %t129
+trap:
+  call void @llvm.trap()
+  unreachable
+}
