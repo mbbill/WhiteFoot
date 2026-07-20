@@ -72,6 +72,15 @@ The generated canonical catalog SHA-256 is
 the exact specification, source index, and authored fragments; no catalog file
 is checked in and no missing obligation is synthesized.
 
+`static-catalog.sha256` pins that canonical generated-byte identity. The
+independent identity audit rebuilds the catalog, hashes its canonical bytes,
+and requires agreement with its hardcoded reviewed value, this root lock, and
+the compiler mirror at `../../compiler/static-semantic-catalog-v0.8.sha256`.
+Compiler policy pins the mirror's exact value, and a Rust unit test binds the
+mirror to the nominal `CatalogHash` constant. The lock names exact catalog bytes
+only. It does not establish semantic completeness, compiler support, or release
+status.
+
 Five exact-byte exclusions are closed in the checker rather than inferred from
 marker words: the current deferred portions of FORM-5, FORM-7, and LEX-1; all
 of non-normative OWN-9; and only the non-normative prefix of FN-4. Every other
@@ -126,6 +135,8 @@ python3 -B tools/facet_catalog.py check
 python3 -B tools/test_facet_catalog.py
 python3 -B tools/test_semantic_catalog.py
 python3 -B tools/semantic_catalog.py check
+python3 -B tools/test_catalog_identity.py
+python3 -B tools/catalog_identity.py check
 python3 -B tools/test_facet_discrepancies.py
 python3 -B tools/facet_discrepancies.py write
 python3 -B tools/facet_discrepancies.py check

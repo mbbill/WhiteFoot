@@ -5,6 +5,8 @@ check: policy format build lint test docs reproducible
 	@echo "== RUST COMPILER FOUNDATION GREEN; IMPLEMENTATION INCOMPLETE =="
 
 policy:
+	$(PYTHON) ../tools/test_catalog_identity.py
+	$(PYTHON) ../tools/catalog_identity.py check
 	$(PYTHON) tools/test_cargo_policy.py
 	$(PYTHON) tools/test_check_workspace.py
 	$(PYTHON) tools/check_workspace.py

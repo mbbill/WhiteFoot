@@ -389,7 +389,8 @@ replay provider, so its empty overlay closes nothing; opaque receipt references
 would remain unresolved and grant nothing. Production Rust cannot contain direct
 contiguous facet-ID source occurrences. Workspace policy scans every `.rs` file
 under `compiler/crates/`, forbids `#[path]`, and permits only the exact
-specification lock as a source-level included data file. Source-splicing
+specification and static semantic-catalog locks as source-level included data.
+Source-splicing
 `include!` and local `macro_rules!` are forbidden so comments, token spacing, or
 macro generation cannot evade that scan; compile-time environment macros and
 aliased data macros are also rejected, and conditional compilation is limited to
@@ -402,7 +403,16 @@ directories, a configuration-free working directory, closed environment, exact
 toolchain, and explicit manifest; Make variables cannot replace that runner. The
 first executable adapter must pass identical-result
 tests with capability metadata absent from every input channel and with hostile
-metadata mutations. The next slice freezes the remaining stable identities and
-canonical artifact envelope. A red gate, specification conflict,
+metadata mutations. The canonical catalog identity is now a distinct nominal
+Rust type pinned through an independently recomputed digest and exact root and
+compiler locks. This is identity, not implementation or catalog-completeness
+evidence. `WFSOURCE`
+remains version 1 and exactly source plus specification identity; catalog
+identity will join canonical tree and proof-schema identities only in a real
+checked-artifact envelope. Tree, proof, and envelope identities remain unfrozen
+where the recorded v0.8 discrepancies or absent schemas prevent an honest
+contract; no placeholder `CheckedUnit` may stand in for them. The next slice
+freezes the first remaining unblocked identity together with its real producer,
+consumer, and hostile tests. A red gate, specification conflict,
 protected-surface guard, unverified authority path, unexplained verdict, or need
 for a numbered-spec change stops the affected work at that boundary.

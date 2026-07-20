@@ -36,7 +36,9 @@ crate dependencies. The workspace policy scans every `.rs` file under
 forbids `#[path]`, source-splicing `include!`, and local `macro_rules!`, rejects
 compile-time environment macros and aliased data macros, limits conditional
 compilation to canonical `#[cfg(test)]`, and permits only the exact
-specification-lock file as a source-level included data file. Crate doctest
+specification and static semantic-catalog lock files as source-level included
+data. The catalog lock carries identity only; it is not capability metadata and
+cannot authorize a semantic result. Crate doctest
 targets are disabled and gate commands forbid explicit doctest execution. Active
 compiler Cargo configuration and every rustfmt or Clippy configuration
 discoverable from source ancestry are forbidden. Every

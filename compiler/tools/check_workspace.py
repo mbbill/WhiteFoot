@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -93,7 +94,11 @@ DIRECT_FACET_ID = re.compile(
 )
 EXPECTED_COMPILE_TIME_DATA_INPUTS = {
     Path("kernel-spec-v0.8.sha256"),
+    Path("static-semantic-catalog-v0.8.sha256"),
 }
+EXPECTED_STATIC_SEMANTIC_CATALOG_SHA256 = (
+    "2fa586a8a1d9a49f344d64ad2b5f450a2ae2e8362bc187c70267097b9b427e1d"
+)
 
 
 def fail(message: str) -> None:
@@ -132,6 +137,46 @@ def read_json(path: Path) -> dict:
 def sha256(path: Path) -> str:
     """Return the exact byte identity of a regular file."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read_exact_lock(path: Path, label: str) -> str:
+    """Read one exact hash lock without following or blocking on special files."""
+    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK"):
+        fail("platform cannot provide safe identity-lock reads")
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        fail(f"cannot open {label} lock safely: {error}")
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            fail(f"{label} lock is not a regular file")
+        if before.st_size > 65:
+            fail(f"{label} lock exceeds 65 bytes")
+        raw = os.read(descriptor, 66)
+        after = os.fstat(descriptor)
+        before_identity = (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+            before.st_ctime_ns,
+        )
+        after_identity = (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+        )
+        if before_identity != after_identity or len(raw) != after.st_size:
+            fail(f"{label} lock changed while it was being read")
+    except OSError as error:
+        fail(f"cannot read {label} lock safely: {error}")
+    finally:
+        os.close(descriptor)
+    return parse_sha256_lock(raw, label)
 
 
 def relative(path: Union[str, Path], root: Path = ROOT) -> Path:
@@ -396,19 +441,39 @@ def check_toolchain() -> None:
         fail("Clippy component does not match the locked Rust commit and release")
 
 
+def parse_sha256_lock(raw: bytes, label: str) -> str:
+    """Parse exactly 64 lowercase hexadecimal digits followed by one LF."""
+    if len(raw) != 65 or not raw.endswith(b"\n"):
+        fail(f"{label} lock must be 64 lowercase hex digits plus LF")
+    digest = raw[:-1]
+    if any(byte not in b"0123456789abcdef" for byte in digest):
+        fail(f"{label} lock is not lowercase hexadecimal")
+    return digest.decode("ascii")
+
+
 def check_specification() -> None:
     """Bind the compiler workspace to the immutable v0.8 bytes."""
-    locked_text = (ROOT / "kernel-spec-v0.8.sha256").read_text(encoding="ascii")
-    if len(locked_text) != 65 or not locked_text.endswith("\n"):
-        fail("kernel specification lock must be 64 lowercase hex digits plus LF")
-    locked = locked_text[:-1]
-    if any(character not in "0123456789abcdef" for character in locked):
-        fail("kernel specification lock is not lowercase hexadecimal")
+    locked = read_exact_lock(
+        ROOT / "kernel-spec-v0.8.sha256",
+        "kernel specification",
+    )
 
     spec = REPOSITORY / "spec" / "kernel-spec-v0.8.md"
     actual = hashlib.sha256(spec.read_bytes()).hexdigest()
     if actual != locked:
         fail(f"kernel specification hash is {actual}, expected {locked}")
+
+
+def check_static_catalog_identity() -> None:
+    """Pin the compiler's nominal v0.8 catalog identity to its reviewed value."""
+    locked = read_exact_lock(
+        ROOT / "static-semantic-catalog-v0.8.sha256",
+        "static semantic catalog",
+    )
+    if locked != EXPECTED_STATIC_SEMANTIC_CATALOG_SHA256:
+        fail(
+            "static semantic catalog lock differs from the reviewed v0.8 identity"
+        )
 
 
 def manifest_table(path: Path, header: str) -> tuple[str, ...]:
@@ -745,12 +810,13 @@ def main() -> None:
     check_compile_time_inputs()
     check_toolchain()
     check_specification()
+    check_static_catalog_identity()
     check_manifest_policy()
     cargo_metadata = metadata()
     package_by_id = check_workspace_topology(cargo_metadata)
     check_dependencies(cargo_metadata, package_by_id)
     print(
-        "workspace policy: exact topology, toolchain, specification, lints, "
+        "workspace policy: exact topology, toolchain, language identities, lints, "
         "targets, dependency lock, source paths, and direct facet-ID source fence verified"
     )
 

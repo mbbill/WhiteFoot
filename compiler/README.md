@@ -11,9 +11,10 @@ conformance or release claim.
 ## Current crates
 
 - `whitefoot-contract` owns deterministic, judgment-free data contracts: the
-  exact specification identity, ordered source bundles, source identities and
-  bundle-bound spans, explicit resource ceilings, and the first canonical
-  artifact framing.
+  exact specification and static-catalog identities, ordered source bundles,
+  source identities and bundle-bound spans, explicit resource ceilings, and
+  the first canonical source-binding framing. The catalog identity is a nominal
+  byte identity only; it does not claim implementation completeness.
 - `whitefoot-verifier` depends only on `whitefoot-contract`. Its first real
   judgment verifies that an artifact is bound to the expected specification
   and exact ordered source bytes. Verified state has no public constructor.
@@ -33,8 +34,8 @@ workspace policy rejects direct contiguous static-catalog facet-ID source
 occurrences, scans every `.rs` file under `compiler/crates/`, forbids `#[path]`,
 source-splicing `include!`, and local `macro_rules!`, rejects compile-time
 environment macros and aliased data macros, limits conditional compilation to
-canonical `#[cfg(test)]`, and permits only
-the exact specification-lock file as a source-level included data file. Exact
+canonical `#[cfg(test)]`, and permits only the exact specification and static
+semantic-catalog lock files as source-level included data. Exact
 package and dependency checks keep the overlay outside crate APIs. Crate doctest
 targets are disabled and gate commands forbid explicit doctest execution;
 active compiler Cargo configuration and every rustfmt or Clippy configuration
@@ -51,6 +52,16 @@ directory, environment, arguments, and compile-time inputs, and under hostile
 overlay mutations. The compiler, verifier, lowerer, runtime, diagnostics, and
 adapter test selection must behave identically without that metadata.
 
+`static-semantic-catalog-v0.8.sha256` mirrors the compiler-independent lock at
+`../facets/v0.8/static-catalog.sha256`. The root audit rebuilds the canonical
+catalog and requires the independently derived hash, hardcoded reviewed value,
+root lock, and compiler mirror to agree. Compiler policy pins the mirror's exact
+value, and the Rust unit test binds that mirror to the nominal `CatalogHash`
+constant. Rust does not parse the catalog or capability overlay. The version-1
+`WFSOURCE` codec remains exactly source plus specification identity; catalog,
+tree, and proof identities belong to a future checked-artifact envelope after
+their canonical schemas and real consumer exist.
+
 The ordered multi-file bundle is a toolchain input envelope around v0.8's one
 closed program, not a new language rule. Each file will contain complete
 top-level items; combined declaration order is file order followed by item
@@ -65,7 +76,8 @@ Run:
 make -C compiler check
 ```
 
-The gate verifies the exact Rust toolchain fingerprint and v0.8 bytes, enforces
+The gate verifies the exact Rust toolchain fingerprint, v0.8 bytes, and static
+catalog identity, enforces
 the closed two-package dependency graph and inherited lint policy, rejects
 symlinks, build scripts, procedural macros, unapproved dependencies, and paths
 outside this workspace, then checks formatting, builds, lints, tests, and

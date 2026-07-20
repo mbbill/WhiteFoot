@@ -302,20 +302,72 @@ class CapabilityMetadataNonConsumptionTests(unittest.TestCase):
             check_workspace.check_compile_time_inputs(root)
 
     def test_spaced_commented_data_include_uses_exact_allowlist(self) -> None:
+        for lock_name in (
+            "kernel-spec-v0.8.sha256",
+            "static-semantic-catalog-v0.8.sha256",
+        ):
+            with self.subTest(lock_name=lock_name):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    source = root / "crates" / "sample" / "src" / "lib.rs"
+                    source.parent.mkdir(parents=True)
+                    source.write_text(
+                        'const LOCK: &str = include_str/**/ ! /**/('
+                        f'"../../../{lock_name}" /**/);\n',
+                        encoding="utf-8",
+                    )
+                    (root / lock_name).write_text(
+                        ("0" * 64) + "\n",
+                        encoding="ascii",
+                    )
+                    check_workspace.check_compile_time_inputs(root)
+
+    def test_static_catalog_lock_is_exact_and_pinned(self) -> None:
+        check_workspace.check_static_catalog_identity()
+        valid = (
+            check_workspace.EXPECTED_STATIC_SEMANTIC_CATALOG_SHA256 + "\n"
+        ).encode("ascii")
+        self.assertEqual(
+            check_workspace.parse_sha256_lock(valid, "probe"),
+            check_workspace.EXPECTED_STATIC_SEMANTIC_CATALOG_SHA256,
+        )
+        malformed = (
+            valid[:-1],
+            valid[:-1] + b"\r\n",
+            valid.upper(),
+            valid + b"\n",
+            b"g" + valid[1:],
+        )
+        for raw in malformed:
+            with self.subTest(raw=raw):
+                diagnostic = io.StringIO()
+                with contextlib.redirect_stderr(diagnostic):
+                    with self.assertRaises(SystemExit):
+                        check_workspace.parse_sha256_lock(raw, "probe")
+                self.assertIn("workspace policy:", diagnostic.getvalue())
+
+    def test_identity_lock_reader_rejects_indirection_and_special_files(self) -> None:
+        valid = (
+            check_workspace.EXPECTED_STATIC_SEMANTIC_CATALOG_SHA256 + "\n"
+        ).encode("ascii")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            source = root / "crates" / "sample" / "src" / "lib.rs"
-            source.parent.mkdir(parents=True)
-            source.write_text(
-                'const LOCK: &str = include_str/**/ ! /**/('
-                '"../../../kernel-spec-v0.8.sha256" /**/);\n',
-                encoding="utf-8",
-            )
-            (root / "kernel-spec-v0.8.sha256").write_text(
-                ("0" * 64) + "\n",
-                encoding="ascii",
-            )
-            check_workspace.check_compile_time_inputs(root)
+            target = root / "target"
+            target.write_bytes(valid)
+            symlink = root / "symlink"
+            symlink.symlink_to(target)
+            fifo = root / "fifo"
+            os.mkfifo(fifo)
+            oversized = root / "oversized"
+            oversized.write_bytes(valid + b"\n")
+
+            for path in (symlink, fifo, oversized):
+                with self.subTest(path=path.name):
+                    diagnostic = io.StringIO()
+                    with contextlib.redirect_stderr(diagnostic):
+                        with self.assertRaises(SystemExit):
+                            check_workspace.read_exact_lock(path, "probe")
+                    self.assertIn("workspace policy:", diagnostic.getvalue())
 
     def test_compile_time_data_macro_aliases_are_rejected(self) -> None:
         for macro in ("include_str", "include_bytes"):

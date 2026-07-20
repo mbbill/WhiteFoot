@@ -67,6 +67,18 @@ fn zero_source_binding_round_trips() {
 }
 
 #[test]
+fn source_binding_v1_empty_vector_remains_source_and_spec_only() {
+    assert_eq!(SOURCE_BINDING_CODEC_VERSION, 1);
+    let encoded = encode(&SourceBinding::new(KERNEL_SPEC_V0_8_HASH, Vec::new()));
+    let mut expected = b"WFSOURCE".to_vec();
+    expected.extend_from_slice(&1_u16.to_be_bytes());
+    expected.extend_from_slice(KERNEL_SPEC_V0_8_HASH.digest().as_bytes());
+    expected.extend_from_slice(&0_u64.to_be_bytes());
+    assert_eq!(encoded.len(), 50);
+    assert_eq!(encoded, expected);
+}
+
+#[test]
 fn framing_distinguishes_concatenations_splits_and_order() {
     let candidates = [
         bundle([SourceInput::new("a", b"bc".to_vec())]),

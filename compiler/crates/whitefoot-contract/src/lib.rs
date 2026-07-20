@@ -14,7 +14,9 @@ mod source;
 pub use binding::{
     BoundSource, DecodeError, EncodeError, SOURCE_BINDING_CODEC_VERSION, SourceBinding,
 };
-pub use digest::{KERNEL_SPEC_V0_8_HASH, Sha256Digest, SpecHash};
+pub use digest::{
+    CatalogHash, KERNEL_SPEC_V0_8_HASH, STATIC_SEMANTIC_CATALOG_V0_8_HASH, Sha256Digest, SpecHash,
+};
 pub use source::{
     ByteOffset, LogicalPath, LogicalPathError, SourceBundle, SourceBundleError, SourceFile,
     SourceId, SourceInput, SourceLimit, SourceLimits, SourceSpan, SpanError,
