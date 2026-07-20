@@ -1,3 +1,152 @@
+fn semantic_reader_writer_leaf_token_exact ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {
+  let leaf: own Bool = semantic_body_exact_children<'c>(ast: ast, node: node, want: 0_u64);
+  let token_valid: own Bool = semantic_body_node_token_valid<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  match band<Bool>(leaf, token_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let token_start: own u64 = index<u64>(deref(tokens).starts, head);
+  let token_end: own u64 = index<u64>(deref(tokens).ends, head);
+  let node_start: own u64 = index<u64>(deref(ast).starts, node);
+  let node_end: own u64 = index<u64>(deref(ast).ends, node);
+  let start_exact: own Bool = ieq<u64>(token_start, node_start);
+  let end_exact: own Bool = ieq<u64>(token_end, node_end);
+  return band<Bool>(start_exact, end_exact);
+}
+
+fn semantic_reader_writer_head_starts_node ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {
+  let token_valid: own Bool = semantic_body_node_token_valid<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  match token_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let token_start: own u64 = index<u64>(deref(tokens).starts, head);
+  let node_start: own u64 = index<u64>(deref(ast).starts, node);
+  return ieq<u64>(token_start, node_start);
+}
+
+fn semantic_reader_writer_u64_const_decl_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, declaration: own u64, use_node: own u64, use_head: own u64) -> own Bool reads('c), traps {
+  let ast_count: own u64 = deref(ast).count;
+  let declaration_valid: own Bool = ilt<u64>(declaration, ast_count);
+  let use_valid: own Bool = ilt<u64>(use_node, ast_count);
+  match band<Bool>(declaration_valid, use_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let ast_const_decl_atom: own AstKind = AstConstDecl();
+  let declaration_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: declaration, want: ast_const_decl_atom);
+  let declaration_shape: own Bool = semantic_body_exact_children<'c>(ast: ast, node: declaration, want: 3_u64);
+  let declaration_token: own Bool = semantic_reader_writer_head_starts_node<'c>(source: source, tokens: tokens, ast: ast, node: declaration);
+  let declaration_first: own Bool = band<Bool>(declaration_kind, declaration_shape);
+  match band<Bool>(declaration_first, declaration_token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let declaration_head: own u64 = index<u64>(deref(ast).heads, declaration);
+  let const_word: own Bool = parser_word5<'c, 'c>(source: source, tokens: tokens, token: declaration_head, a: 99_u8, b: 111_u8, c: 110_u8, d: 115_u8, e: 116_u8);
+  let declaration_end: own u64 = index<u64>(deref(ast).ends, declaration);
+  let use_start: own u64 = index<u64>(deref(ast).starts, use_node);
+  let declared_before_use: own Bool = ile<u64>(declaration_end, use_start);
+  match band<Bool>(const_word, declared_before_use) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let name_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: declaration, ordinal: 0_u64);
+  let type_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: declaration, ordinal: 1_u64);
+  let value_node: own u64 = semantic_body_child_at<'c>(ast: ast, node: declaration, ordinal: 2_u64);
+  let ast_const_name_atom: own AstKind = AstConstName();
+  let name_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: name_node, want: ast_const_name_atom);
+  let name_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: name_node);
+  match band<Bool>(name_kind, name_token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let name_head: own u64 = index<u64>(deref(ast).heads, name_node);
+  let name_word: own Bool = symbol_name_token_valid<'c, 'c>(source: source, tokens: tokens, token: name_head, want_kind: 1_u64);
+  let binding_matches: own Bool = token_text_equal<'c, 'c>(source: source, tokens: tokens, left: name_head, right: use_head);
+  match band<Bool>(name_word, binding_matches) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let ast_const_type_atom: own AstKind = AstConstType();
+  let type_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: type_node);
+  let value_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: value_node);
+  match band<Bool>(type_token, value_token) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let exact_u64_type: own Bool = semantic_buffer_type_node_valid<'c>(source: source, tokens: tokens, ast: ast, node: type_node, kind: ast_const_type_atom, type_id: semantic_buffer_type_u64);
+  let value_type: own u64 = semantic_reader_literal_type<'c>(source: source, tokens: tokens, ast: ast, node: value_node);
+  let exact_u64_value: own Bool = ieq<u64>(value_type, semantic_buffer_type_u64);
+  return band<Bool>(exact_u64_type, exact_u64_value);
+}
+
+fn semantic_reader_writer_global_u64_type_id ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, node: own u64) -> own u64 reads('c), traps {
+  let ast_place_use_atom: own AstKind = AstPlaceUse();
+  let place_kind: own Bool = semantic_body_kind_is<'c>(ast: ast, node: node, want: ast_place_use_atom);
+  let place_token: own Bool = semantic_reader_writer_leaf_token_exact<'c>(source: source, tokens: tokens, ast: ast, node: node);
+  match band<Bool>(place_kind, place_token) {
+    True() => {
+    }
+    False() => {
+      return semantic_facts_none;
+    }
+  }
+  let use_head: own u64 = index<u64>(deref(ast).heads, node);
+  let symbol_value_atom: own SymbolNamespace = SymbolValue();
+  let lookup: own SymbolLookupResult = symbol_lookup_in_scope<'c, 'c, 'c>(source: source, tokens: tokens, symbols: symbols, space: symbol_value_atom, scope: symbol_none, name_token: use_head);
+  match lookup.status {
+    SymbolLookupFound() => {
+    }
+    SymbolLookupNotFound() => {
+      return semantic_facts_none;
+    }
+    SymbolLookupInvalidTape() => {
+      return semantic_facts_none;
+    }
+    SymbolLookupInvalidToken() => {
+      return semantic_facts_none;
+    }
+  }
+  let declaration_valid: own Bool = semantic_reader_writer_u64_const_decl_valid<'c>(source: source, tokens: tokens, ast: ast, declaration: lookup.declaration, use_node: node, use_head: use_head);
+  match declaration_valid {
+    True() => {
+      return semantic_buffer_type_u64;
+    }
+    False() => {
+      return semantic_facts_none;
+    }
+  }
+}
+
 fn semantic_reader_writer_enum_constructor_matches ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, enum_decl: own u64, constructor_head: own u64) -> own u64 reads('c), traps {
   let ast_count: own u64 = deref(ast).count;
   match ilt<u64>(enum_decl, ast_count) {

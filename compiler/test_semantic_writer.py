@@ -59,6 +59,14 @@ def assert_reader_flat_report_writer(library):
         b"  return unit;\n"
         b"}\n"
     )
+    global_writer = (
+        b"const writer_zero: u64 = 18446744073709551615_u64;\n"
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_global ['w] (cell: &uniq 'w WriterCell) -> own unit "
+        b"writes('w) {\n"
+        b"  set deref(cell).value = writer_zero;\n"
+        b"  return unit;\n}\n"
+    )
 
     def classify(source):
         case = parsed(library, source)
@@ -91,6 +99,7 @@ def assert_reader_flat_report_writer(library):
 
     assert_clean(report_writer)
     assert_clean(literal_writer)
+    assert_clean(global_writer)
 
     # `unit` and exclusive borrows do not become general reader capabilities.
     assert_unsupported(
@@ -192,13 +201,39 @@ def assert_reader_flat_report_writer(library):
         b"  return unit;\n}\n"
     )
 
-    # Numeric RHS values retain FORM-5 canonicality and exact width. Global
-    # scalar constants remain the next explicit tranche rather than being
-    # treated as local places by accident.
+    # Numeric RHS values retain FORM-5 canonicality and exact width. The only
+    # admitted global form is a prior, exact u64 constant whose initializer is
+    # itself a canonical u64 literal.
     assert_unsupported(literal_writer.replace(b"0_u64", b"00_u64"))
     assert_unsupported(literal_writer.replace(b"7_u8", b"256_u8"))
     assert_unsupported(
+        global_writer.replace(
+            b"const writer_zero: u64 = 18446744073709551615_u64;",
+            b"const writer_zero: u8 = 0_u8;",
+        )
+    )
+    assert_unsupported(
+        global_writer.replace(
+            b"18446744073709551615_u64",
+            b"018446744073709551615_u64",
+        )
+    )
+    assert_unsupported(
+        global_writer.replace(
+            b"18446744073709551615_u64",
+            b"18446744073709551616_u64",
+        )
+    )
+    assert_unsupported(
+        b"struct WriterCell {\n  value: u64;\n}\n"
+        b"fn writer_global ['w] (cell: &uniq 'w WriterCell) -> own unit "
+        b"writes('w) {\n"
+        b"  set deref(cell).value = writer_zero;\n"
+        b"  return unit;\n}\n"
         b"const writer_zero: u64 = 0_u64;\n"
+    )
+    assert_unsupported(
+        b"fn writer_zero () -> own u64 pure {\n  return 0_u64;\n}\n"
         b"struct WriterCell {\n  value: u64;\n}\n"
         b"fn writer_global ['w] (cell: &uniq 'w WriterCell) -> own unit "
         b"writes('w) {\n"
@@ -218,8 +253,8 @@ def assert_reader_flat_report_writer(library):
         ), (kind, report.status, report.function, report.related)
         assert_output_guards(work)
 
-    def assert_direct_constructor_mutation_rejected(mutate):
-        case, function = assert_clean(literal_writer)
+    def assert_direct_reader_mutation_rejected(source, mutate):
+        case, function = assert_clean(source)
         mutate(case)
         work = make_work(library, case[5].count)
         report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
@@ -238,6 +273,9 @@ def assert_reader_flat_report_writer(library):
             FIX_NONE,
         )
         assert_output_guards(work)
+
+    def assert_direct_constructor_mutation_rejected(mutate):
+        assert_direct_reader_mutation_rejected(literal_writer, mutate)
 
     def field_target_kind(case):
         statement = next(
@@ -309,6 +347,68 @@ def assert_reader_flat_report_writer(library):
         first = case[4][4][case[5].root]
         case[4][6][last] = first
 
+    def global_const_header(case):
+        declaration = next(
+            node
+            for node in children_of(case[4], case[5].root)
+            if case[4][0][node] == AST["AstConstDecl"]
+        )
+        function = top_level_functions(case)[-1]
+        case[4][1][declaration] = case[4][1][function]
+
+    def global_const_value_kind(case):
+        declaration = next(
+            node
+            for node in children_of(case[4], case[5].root)
+            if case[4][0][node] == AST["AstConstDecl"]
+        )
+        value = children_of(case[4], declaration)[2]
+        case[4][0][value] = AST["AstPlaceUse"]
+
+    def global_const_name_head(case):
+        declaration = next(
+            node
+            for node in children_of(case[4], case[5].root)
+            if case[4][0][node] == AST["AstConstDecl"]
+        )
+        name = children_of(case[4], declaration)[0]
+        function = top_level_functions(case)[-1]
+        statement = next(
+            node
+            for node in range(case[5].count)
+            if case[4][0][node] == AST["AstSet"]
+            and function <= node
+        )
+        value = children_of(case[4], statement)[1]
+        case[4][1][name] = case[4][1][value]
+
+    def assert_redirected_global_rejected():
+        source = (
+            b"const writer_zero: u64 = 0_u64;\n"
+            b"const writer_one: u64 = 1_u64;\n"
+            + global_writer.split(b"\n", 1)[1]
+        )
+        case, function = assert_clean(source)
+        constants = [
+            node
+            for node in children_of(case[4], case[5].root)
+            if case[4][0][node] == AST["AstConstDecl"]
+        ]
+        slot = next(
+            index
+            for index in range(case[9].count)
+            if case[7][3][index] == constants[0]
+        )
+        case[7][3][slot] = constants[1]
+        work = make_work(library, case[5].count)
+        kind, report = invoke_dispatch(library, case, function, work)
+        assert (kind, report.status, report.function) == (
+            CAPABILITY_UNSUPPORTED,
+            BODY_UNSUPPORTED,
+            function,
+        ), (kind, report.status, report.function, report.related)
+        assert_output_guards(work)
+
     assert_mutation_unsupported(report_writer, field_target_kind)
     assert_mutation_unsupported(report_writer, deref_base_kind)
     assert_mutation_unsupported(report_writer, uniq_mode_kind)
@@ -316,6 +416,10 @@ def assert_reader_flat_report_writer(library):
     assert_direct_constructor_mutation_rejected(constructor_payload_shape)
     assert_direct_constructor_mutation_rejected(constructor_enum_header)
     assert_direct_constructor_mutation_rejected(constructor_root_terminal)
+    assert_direct_reader_mutation_rejected(global_writer, global_const_header)
+    assert_direct_reader_mutation_rejected(global_writer, global_const_value_kind)
+    assert_direct_reader_mutation_rejected(global_writer, global_const_name_head)
+    assert_redirected_global_rejected()
 
 def main():
     with tempfile.TemporaryDirectory() as raw_directory:
@@ -324,8 +428,9 @@ def main():
         assert_reader_flat_report_writer(library)
     print(
         "semantic writer: exact exclusive-root flat writes from own values, "
-        "canonical integers, and nullary tags; effect, nominal, shape, "
-        "topology, and deferred-profile fences pass"
+        "canonical integers, prior direct u64 constants, and nullary tags; "
+        "effect, nominal, binding, shape, topology, and deferred-profile "
+        "fences pass"
     )
 
 

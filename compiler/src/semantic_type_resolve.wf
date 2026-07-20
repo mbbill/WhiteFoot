@@ -15,8 +15,6 @@ struct SemanticTypeResolveReport {
   related: u64;
 }
 
-const semantic_type_u64_max_digits: array<u8, 20> = [49_u8, 56_u8, 52_u8, 52_u8, 54_u8, 55_u8, 52_u8, 52_u8, 48_u8, 55_u8, 51_u8, 55_u8, 48_u8, 57_u8, 53_u8, 53_u8, 49_u8, 54_u8, 49_u8, 53_u8];
-
 fn semantic_type_resolve_set_report ['w] (report: &uniq 'w SemanticTypeResolveReport, status: own SemanticTypeResolveStatus, node: own u64, related: own u64) -> own unit writes('w) {
   set deref(report).status = status;
   set deref(report).node = node;
@@ -246,7 +244,7 @@ fn semantic_type_resolve_decimal_const ['s, 't] (source: &'s buffer<u8>, tokens:
     }
     let range_position: own u64 = iadd.trap<u64>(start, offset);
     let range_digit: own u8 = index<u8>(deref(source), range_position);
-    let maximum: own u8 = index<u8>(semantic_type_u64_max_digits, offset);
+    let maximum: own u8 = index<u8>(semantic_u64_max_digits, offset);
     match ilt<u8>(range_digit, maximum) {
       True() => {
         return True();

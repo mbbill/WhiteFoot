@@ -1,3 +1,5 @@
+const semantic_u64_max_digits: array<u8, 20> = [49_u8, 56_u8, 52_u8, 52_u8, 54_u8, 55_u8, 52_u8, 52_u8, 48_u8, 55_u8, 51_u8, 55_u8, 48_u8, 57_u8, 53_u8, 53_u8, 49_u8, 54_u8, 49_u8, 53_u8];
+
 enum SemanticBodyStatus {
   SemanticBodyClean();
   SemanticBodyInvalidTokenTape();

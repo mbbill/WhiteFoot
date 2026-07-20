@@ -2827,7 +2827,7 @@ fn semantic_reader_u64_literal_canonical ['c] (source: &'c buffer<u8>, tokens: &
   }
   let mant_len: own u64 = isub.wrap<u64>(width, 4_u64);
   let len_lo: own Bool = ige<u64>(mant_len, 1_u64);
-  let len_hi: own Bool = ile<u64>(mant_len, 19_u64);
+  let len_hi: own Bool = ile<u64>(mant_len, 20_u64);
   match band<Bool>(len_lo, len_hi) {
     True() => {
     }
@@ -2840,7 +2840,7 @@ fn semantic_reader_u64_literal_canonical ['c] (source: &'c buffer<u8>, tokens: &
   loop @semantic_reader_u64_literal_digits {
     match ige<u64>(scan, mant_end) {
       True() => {
-        return True();
+        break @semantic_reader_u64_literal_digits;
       }
       False() => {
       }
@@ -2872,6 +2872,41 @@ fn semantic_reader_u64_literal_canonical ['c] (source: &'c buffer<u8>, tokens: &
     }
     set scan = iadd.trap<u64>(scan, 1_u64);
     set position = iadd.trap<u64>(position, 1_u64);
+  }
+  match ilt<u64>(mant_len, 20_u64) {
+    True() => {
+      return True();
+    }
+    False() => {
+    }
+  }
+  let range_offset: own u64 = 0_u64;
+  loop @semantic_reader_u64_literal_range {
+    match ige<u64>(range_offset, mant_len) {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+    let range_position: own u64 = iadd.trap<u64>(start, range_offset);
+    let range_digit: own u8 = index<u8>(deref(source), range_position);
+    let maximum_digit: own u8 = index<u8>(semantic_u64_max_digits, range_offset);
+    match ilt<u8>(range_digit, maximum_digit) {
+      True() => {
+        return True();
+      }
+      False() => {
+      }
+    }
+    match igt<u8>(range_digit, maximum_digit) {
+      True() => {
+        return False();
+      }
+      False() => {
+        set range_offset = iadd.trap<u64>(range_offset, 1_u64);
+      }
+    }
   }
 }
 
@@ -3521,6 +3556,24 @@ fn semantic_reader_analyze_set ['c, 'w] (source: &'c buffer<u8>, tokens: &'c Tok
   match band<Bool>(target_is_field, value_is_constructor) {
     True() => {
       set value_type = semantic_reader_writer_constructor_type_id<'c>(source: source, tokens: tokens, ast: ast, node: value);
+    }
+    False() => {
+    }
+  }
+  let value_is_place: own Bool = eeq<AstKind>(value_kind, ast_place_use_atom);
+  match band<Bool>(target_is_field, value_is_place) {
+    True() => {
+      let local_value_type: own u64 = semantic_facts_none;
+      region 'semantic_reader_set_value_local {
+        set local_value_type = semantic_reader_place_type<'c, 'semantic_reader_set_value_local>(source: source, tokens: tokens, ast: ast, scratch: &'semantic_reader_set_value_local deref(scratch), node: value);
+      }
+      match ieq<u64>(local_value_type, semantic_facts_none) {
+        True() => {
+          set value_type = semantic_reader_writer_global_u64_type_id<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, node: value);
+        }
+        False() => {
+        }
+      }
     }
     False() => {
     }
