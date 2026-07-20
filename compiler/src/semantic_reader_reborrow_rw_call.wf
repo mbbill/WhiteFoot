@@ -323,7 +323,15 @@ fn semantic_reader_reborrow_rw_body_valid ['c] (source: &'c buffer<u8>, tokens: 
   }
   match push_shape {
     True() => {
-      return semantic_reader_reborrow_rw_push_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+      let push_body: own Bool = semantic_reader_reborrow_rw_push_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+      match push_body {
+        True() => {
+          return True();
+        }
+        False() => {
+          return semantic_reader_reborrow_u64_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+        }
+      }
     }
     False() => {
       match wrapper_shape {

@@ -130,7 +130,7 @@ fn semantic_reader_reborrow_rw_parameter_header_valid ['c] (source: &'c buffer<u
   return band<Bool>(first, second);
 }
 
-fn semantic_reader_reborrow_rw_push_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, expected_type: own u64) -> own Bool reads('c), traps {
+fn semantic_reader_reborrow_rw_two_parameter_signature_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64, expected_struct_type: own u64, expected_value_type: own u64) -> own Bool reads('c), traps {
   let function_shape: own Bool = semantic_body_exact_children(ast: ast, node: function, want: 10_u64);
   let function_start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: function);
   let function_head: own u64 = index<u64>(deref(ast).heads, function);
@@ -146,7 +146,7 @@ fn semantic_reader_reborrow_rw_push_signature_valid ['c] (source: &'c buffer<u8>
   let function_name: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 0_u64);
   let regions_node: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 1_u64);
   let output_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 2_u64);
-  let byte_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 3_u64);
+  let value_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 3_u64);
   let return_mode: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 4_u64);
   let return_type: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 5_u64);
   let reads_node: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 6_u64);
@@ -155,8 +155,8 @@ fn semantic_reader_reborrow_rw_push_signature_valid ['c] (source: &'c buffer<u8>
   let body: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 9_u64);
   let name_valid: own Bool = semantic_reader_reborrow_rw_function_name_valid(source: source, tokens: tokens, ast: ast, node: function_name);
   let output_header: own Bool = semantic_reader_reborrow_rw_parameter_header_valid(source: source, tokens: tokens, ast: ast, node: output_parameter);
-  let byte_header: own Bool = semantic_reader_reborrow_rw_parameter_header_valid(source: source, tokens: tokens, ast: ast, node: byte_parameter);
-  let parameter_headers: own Bool = band<Bool>(output_header, byte_header);
+  let value_header: own Bool = semantic_reader_reborrow_rw_parameter_header_valid(source: source, tokens: tokens, ast: ast, node: value_parameter);
+  let parameter_headers: own Bool = band<Bool>(output_header, value_header);
   match band<Bool>(name_valid, parameter_headers) {
     True() => {
     }
@@ -173,7 +173,7 @@ fn semantic_reader_reborrow_rw_push_signature_valid ['c] (source: &'c buffer<u8>
     }
   }
   let output_type: own u64 = semantic_reader_param_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, parameter: output_parameter);
-  let output_matches: own Bool = ieq<u64>(output_type, expected_type);
+  let output_matches: own Bool = ieq<u64>(output_type, expected_struct_type);
   let output_struct: own Bool = ige<u64>(output_type, semantic_reader_struct_type_base);
   let output_mode: own SemanticValueMode = semantic_reader_param_mode(source: source, tokens: tokens, ast: ast, parameter: output_parameter);
   let uniq_mode: own SemanticValueMode = SemanticModeUniq();
@@ -186,12 +186,12 @@ fn semantic_reader_reborrow_rw_push_signature_valid ['c] (source: &'c buffer<u8>
       return False();
     }
   }
-  let byte_type: own u64 = semantic_reader_param_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, parameter: byte_parameter);
-  let byte_u8: own Bool = ieq<u64>(byte_type, semantic_buffer_type_u8);
-  let byte_mode: own SemanticValueMode = semantic_reader_param_mode(source: source, tokens: tokens, ast: ast, parameter: byte_parameter);
+  let value_type: own u64 = semantic_reader_param_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, parameter: value_parameter);
+  let value_type_matches: own Bool = ieq<u64>(value_type, expected_value_type);
+  let value_mode: own SemanticValueMode = semantic_reader_param_mode(source: source, tokens: tokens, ast: ast, parameter: value_parameter);
   let own_mode: own SemanticValueMode = SemanticModeOwn();
-  let byte_own: own Bool = eeq<SemanticValueMode>(byte_mode, own_mode);
-  match band<Bool>(byte_u8, byte_own) {
+  let value_own: own Bool = eeq<SemanticValueMode>(value_mode, own_mode);
+  match band<Bool>(value_type_matches, value_own) {
     True() => {
     }
     False() => {

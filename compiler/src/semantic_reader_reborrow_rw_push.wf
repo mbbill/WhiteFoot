@@ -153,7 +153,7 @@ fn semantic_reader_reborrow_rw_arm_set ['c] (source: &'c buffer<u8>, tokens: &'c
 fn semantic_reader_reborrow_rw_push_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64) -> own Bool reads('c), traps {
   let output_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 2_u64);
   let output_type: own u64 = semantic_reader_param_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, parameter: output_parameter);
-  let signature_valid: own Bool = semantic_reader_reborrow_rw_push_signature_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, expected_type: output_type);
+  let signature_valid: own Bool = semantic_reader_reborrow_rw_two_parameter_signature_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, expected_struct_type: output_type, expected_value_type: semantic_buffer_type_u8);
   match signature_valid {
     True() => {
     }

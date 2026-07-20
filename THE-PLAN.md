@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-627 functions: 159 clean, 468 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,679,443 source bytes, 338,276 tokens, and
-167,874 unique-head AST nodes. The parser census is 4,581 regionful calls: 496
-explicit and 4,085 staged omissions. LLVM support remains the same
+637 functions: 160 clean, 477 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,721,479 source bytes, 347,440 tokens, and
+172,434 unique-head AST nodes. The parser census is 4,772 regionful calls: 496
+explicit and 4,276 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Kernel v0.8 and its tag-only enum equality implementation are complete.
@@ -614,6 +614,43 @@ and the general reader remains 6,748 lines. Fresh inventory leaves four
 Unsupported chunk-plus-recursive-number callers. Their next common prerequisite
 is the exact recursive decimal emitter `byte_tape_emit_u64`, selected as the
 next bounded F4 boundary before admitting any composite caller.
+
+The seventh bounded F4 slice admits that exact terminating recursive decimal
+emitter. Its same-region signature has one exclusive struct output, one owned
+`u64` value, exact singleton reads and writes rows plus traps, and own unit.
+The body compares the value with canonical `10_u64`; only the true arm divides
+by the same nonzero constant and recursively calls itself on the quotient in a
+fresh one-statement region. For unsigned values at least ten, that quotient is
+strictly smaller, so recursion terminates in at most twenty decimal digits.
+The tail takes the remainder modulo ten, then indexes an independently resolved
+immutable `array<u8, 10>` containing exactly the canonical bytes 48 through 57, and
+passes the resulting owned `u8` local through a second fresh region to the
+independently re-proven byte-push callee. Both local regions differ from the
+outer region, from every binding, and from each other; the first child ends
+before the tail resumes the parent. No quotient, remainder, global value, or
+bounds result is exported as an optimizer fact, and this slice adds no lowering
+authority. Ordinary flow support is limited to exact trapping divide or
+remainder by ten, the exact immutable digit table, owned local `u8` arguments
+to the proven push, and calls to a fully re-proven emitter. The same-region
+effect gate still returns the exact emitter-body verdict directly. Hostile
+review pins the signature and effects, comparison, divisor and operation
+modes, strict recursive decrease, self-call identity, local confinement,
+shared, deeper, explicit, and bound calls, exact table type, length, order, and
+values, remainder subscript, push-callee honesty, binding and region
+uniqueness, source anchoring, and cyclic topology. It also caught and corrected
+three initially mis-targeted source mutations before shipping. Exactly
+`byte_tape_emit_u64` moves to CLEAN; no prior CLEAN function is lost and all ten
+new helpers remain Unsupported. The unit is 637 total / 160 CLEAN / 477
+Unsupported / 0 rejected; the exact 15-function LLVM module is unchanged. The
+parser census is 4,772 regionful calls = 496 explicit + 4,276 staged omissions;
+self-parse is deterministic at 1,721,479 bytes / 347,440 tokens / 172,434
+nodes. The proof is split across 283-, 214-, and 199-line modules with a
+332-line hostile suite; the shared signature and caller gate remain 231 and
+347 lines, and the general reader is 6,779 lines. Fresh inventory leaves the
+four exact chunk-plus-number wrappers `llvm_text_emit_value`,
+`llvm_text_emit_place`, `llvm_text_emit_block`, and
+`llvm_text_emit_block_ref` Unsupported; that closed four-function family is
+the next bounded F4 boundary.
 
 `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. Remaining F4

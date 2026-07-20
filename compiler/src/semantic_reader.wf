@@ -810,6 +810,19 @@ fn semantic_reader_analyze_table_call ['c, 'w] (source: &'c buffer<u8>, tokens: 
     False() => {
     }
   }
+  let left_head: own u64 = index<u64>(deref(ast).heads, left_node);
+  let exact_divide_ten: own Bool = semantic_reader_reborrow_u64_binary_valid(source: source, tokens: tokens, ast: ast, node: node, left_head: left_head, operation: 1_u64);
+  let exact_remainder_ten: own Bool = semantic_reader_reborrow_u64_binary_valid(source: source, tokens: tokens, ast: ast, node: node, left_head: left_head, operation: 2_u64);
+  let exact_decimal_arithmetic: own Bool = bor<Bool>(exact_divide_ten, exact_remainder_ten);
+  match exact_decimal_arithmetic {
+    True() => {
+      set matched = True();
+      set result_type = semantic_buffer_type_u64;
+      set operation_ok = operand_u64;
+    }
+    False() => {
+    }
+  }
   match matched {
     True() => {
     }
@@ -981,7 +994,16 @@ fn semantic_reader_analyze_index ['c, 'w] (source: &'c buffer<u8>, tokens: &'c T
     False() => {
     }
   }
-  let base_recognized: own Bool = bor<Bool>(base_is_deref, base_is_field);
+  let base_is_digits: own Bool = semantic_reader_reborrow_u64_digits_base_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, node: base_node);
+  match base_is_digits {
+    True() => {
+      set base_element = semantic_buffer_type_u8;
+    }
+    False() => {
+    }
+  }
+  let base_local: own Bool = bor<Bool>(base_is_deref, base_is_field);
+  let base_recognized: own Bool = bor<Bool>(base_local, base_is_digits);
   match base_recognized {
     True() => {
     }
@@ -4537,6 +4559,15 @@ fn semantic_reader_analyze_block ['c, 'w] (source: &'c buffer<u8>, tokens: &'c T
           False() => {
             region 'semantic_reader_stmt_reborrow_chunk_wrapper_region {
               set region_clean = semantic_reader_analyze_reborrow_chunk_wrapper_region(source: source, tokens: tokens, ast: ast, symbols: symbols, regions_node: regions_node, statement: statement, scratch: &'semantic_reader_stmt_reborrow_chunk_wrapper_region deref(scratch), report: &uniq 'semantic_reader_stmt_reborrow_chunk_wrapper_region deref(report));
+            }
+          }
+        }
+        match region_clean {
+          True() => {
+          }
+          False() => {
+            region 'semantic_reader_stmt_reborrow_u64_region {
+              set region_clean = semantic_reader_analyze_reborrow_u64_region(source: source, tokens: tokens, ast: ast, symbols: symbols, regions_node: regions_node, statement: statement, scratch: &'semantic_reader_stmt_reborrow_u64_region deref(scratch), report: &uniq 'semantic_reader_stmt_reborrow_u64_region deref(report));
             }
           }
         }

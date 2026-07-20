@@ -1,0 +1,199 @@
+fn semantic_reader_reborrow_u64_digit_index_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, node: own u64, remainder_head: own u64) -> own Bool reads('c), traps {
+  let ast_index_place_atom: own AstKind = AstIndexPlace();
+  let kind: own Bool = semantic_body_kind_is(ast: ast, node: node, want: ast_index_place_atom);
+  let shape: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 3_u64);
+  let start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: node);
+  let head: own u64 = index<u64>(deref(ast).heads, node);
+  let word: own Bool = parser_word5(source: source, tokens: tokens, token: head, a: 105_u8, b: 110_u8, c: 100_u8, d: 101_u8, e: 120_u8);
+  let first: own Bool = band<Bool>(kind, shape);
+  let second: own Bool = band<Bool>(start, word);
+  match band<Bool>(first, second) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let type_node: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 0_u64);
+  let base: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 1_u64);
+  let subscript: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 2_u64);
+  let ast_type_argument_atom: own AstKind = AstTypeArgument();
+  let type_valid: own Bool = semantic_buffer_type_node_valid(source: source, tokens: tokens, ast: ast, node: type_node, kind: ast_type_argument_atom, type_id: semantic_buffer_type_u8);
+  let type_exact: own Bool = semantic_reader_writer_leaf_token_exact(source: source, tokens: tokens, ast: ast, node: type_node);
+  let base_valid: own Bool = semantic_reader_reborrow_u64_digits_base_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, node: base);
+  let subscript_valid: own Bool = semantic_reader_reborrow_rw_place_matches(source: source, tokens: tokens, ast: ast, node: subscript, expected_head: remainder_head);
+  let type_ok: own Bool = band<Bool>(type_valid, type_exact);
+  let value_ok: own Bool = band<Bool>(base_valid, subscript_valid);
+  return band<Bool>(type_ok, value_ok);
+}
+
+fn semantic_reader_reborrow_u64_names_distinct ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, output_head: own u64, value_head: own u64, has_higher_head: own u64, higher_head: own u64, remainder_head: own u64, digit_head: own u64, recursive_region_head: own u64, push_region_head: own u64) -> own Bool reads('c), traps {
+  let first_group: own Bool = semantic_reader_reborrow_rw_names_distinct(source: source, tokens: tokens, first: output_head, second: value_head, third: has_higher_head, fourth: higher_head, fifth: remainder_head);
+  let second_group: own Bool = semantic_reader_reborrow_rw_names_distinct(source: source, tokens: tokens, first: output_head, second: value_head, third: digit_head, fourth: recursive_region_head, fifth: push_region_head);
+  match band<Bool>(first_group, second_group) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let has_digit: own Bool = token_text_equal(source: source, tokens: tokens, left: has_higher_head, right: digit_head);
+  let has_recursive: own Bool = token_text_equal(source: source, tokens: tokens, left: has_higher_head, right: recursive_region_head);
+  let has_push: own Bool = token_text_equal(source: source, tokens: tokens, left: has_higher_head, right: push_region_head);
+  let higher_digit: own Bool = token_text_equal(source: source, tokens: tokens, left: higher_head, right: digit_head);
+  let higher_recursive: own Bool = token_text_equal(source: source, tokens: tokens, left: higher_head, right: recursive_region_head);
+  let higher_push: own Bool = token_text_equal(source: source, tokens: tokens, left: higher_head, right: push_region_head);
+  let remainder_digit: own Bool = token_text_equal(source: source, tokens: tokens, left: remainder_head, right: digit_head);
+  let remainder_recursive: own Bool = token_text_equal(source: source, tokens: tokens, left: remainder_head, right: recursive_region_head);
+  let remainder_push: own Bool = token_text_equal(source: source, tokens: tokens, left: remainder_head, right: push_region_head);
+  let duplicate_a: own Bool = bor<Bool>(has_digit, has_recursive);
+  let duplicate_b: own Bool = bor<Bool>(has_push, higher_digit);
+  let duplicate_c: own Bool = bor<Bool>(higher_recursive, higher_push);
+  let duplicate_d: own Bool = bor<Bool>(remainder_digit, remainder_recursive);
+  let duplicate_ab: own Bool = bor<Bool>(duplicate_a, duplicate_b);
+  let duplicate_cd: own Bool = bor<Bool>(duplicate_c, duplicate_d);
+  let duplicate_abcd: own Bool = bor<Bool>(duplicate_ab, duplicate_cd);
+  let duplicate: own Bool = bor<Bool>(duplicate_abcd, remainder_push);
+  return bnot<Bool>(duplicate);
+}
+
+fn semantic_reader_reborrow_u64_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64) -> own Bool reads('c), traps {
+  let output_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 2_u64);
+  let output_type: own u64 = semantic_reader_param_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, parameter: output_parameter);
+  let signature: own Bool = semantic_reader_reborrow_rw_two_parameter_signature_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, expected_struct_type: output_type, expected_value_type: semantic_buffer_type_u64);
+  match signature {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let value_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 3_u64);
+  let output_head: own u64 = index<u64>(deref(ast).heads, output_parameter);
+  let value_head: own u64 = index<u64>(deref(ast).heads, value_parameter);
+  let regions_node: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 1_u64);
+  let outer_region: own u64 = semantic_body_child_at(ast: ast, node: regions_node, ordinal: 0_u64);
+  let outer_region_head: own u64 = index<u64>(deref(ast).heads, outer_region);
+  let body: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 9_u64);
+  let body_shape: own Bool = semantic_body_exact_children(ast: ast, node: body, want: 6_u64);
+  match body_shape {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let has_higher_let: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 0_u64);
+  let higher_match: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 1_u64);
+  let remainder_let: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 2_u64);
+  let digit_let: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 3_u64);
+  let push_region: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 4_u64);
+  let return_node: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 5_u64);
+
+  let has_higher_header: own Bool = semantic_reader_let_header_valid(source: source, tokens: tokens, ast: ast, node: has_higher_let, type_id: semantic_buffer_type_bool);
+  let has_higher_name: own u64 = semantic_body_child_at(ast: ast, node: has_higher_let, ordinal: 0_u64);
+  let has_higher_head: own u64 = index<u64>(deref(ast).heads, has_higher_name);
+  let has_higher_value: own u64 = semantic_body_child_at(ast: ast, node: has_higher_let, ordinal: 3_u64);
+  let compare_valid: own Bool = semantic_reader_reborrow_u64_binary_valid(source: source, tokens: tokens, ast: ast, node: has_higher_value, left_head: value_head, operation: 0_u64);
+  match band<Bool>(has_higher_header, compare_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let match_header: own Bool = semantic_reader_reborrow_chunk_match_header_valid(source: source, tokens: tokens, ast: ast, node: higher_match);
+  let scrutinee: own u64 = semantic_body_child_at(ast: ast, node: higher_match, ordinal: 0_u64);
+  let true_arm: own u64 = semantic_body_child_at(ast: ast, node: higher_match, ordinal: 1_u64);
+  let false_arm: own u64 = semantic_body_child_at(ast: ast, node: higher_match, ordinal: 2_u64);
+  let scrutinee_valid: own Bool = semantic_reader_reborrow_rw_place_matches(source: source, tokens: tokens, ast: ast, node: scrutinee, expected_head: has_higher_head);
+  let true_atom: own Bool = True();
+  let false_atom: own Bool = False();
+  let true_header: own Bool = semantic_reader_arm_valid(source: source, tokens: tokens, ast: ast, arm: true_arm, truth: true_atom);
+  let false_header: own Bool = semantic_reader_arm_valid(source: source, tokens: tokens, ast: ast, arm: false_arm, truth: false_atom);
+  let match_first: own Bool = band<Bool>(match_header, scrutinee_valid);
+  let match_second: own Bool = band<Bool>(true_header, false_header);
+  match band<Bool>(match_first, match_second) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let true_block: own u64 = semantic_body_child_at(ast: ast, node: true_arm, ordinal: 0_u64);
+  let false_block: own u64 = semantic_body_child_at(ast: ast, node: false_arm, ordinal: 0_u64);
+  let true_shape: own Bool = semantic_reader_reborrow_chunk_block_valid(source: source, tokens: tokens, ast: ast, node: true_block, statement_count: 2_u64);
+  let false_shape: own Bool = semantic_reader_reborrow_chunk_block_valid(source: source, tokens: tokens, ast: ast, node: false_block, statement_count: 0_u64);
+  match band<Bool>(true_shape, false_shape) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let higher_let: own u64 = semantic_body_child_at(ast: ast, node: true_block, ordinal: 0_u64);
+  let recursive_region: own u64 = semantic_body_child_at(ast: ast, node: true_block, ordinal: 1_u64);
+  let higher_header: own Bool = semantic_reader_let_header_valid(source: source, tokens: tokens, ast: ast, node: higher_let, type_id: semantic_buffer_type_u64);
+  let higher_name: own u64 = semantic_body_child_at(ast: ast, node: higher_let, ordinal: 0_u64);
+  let higher_head: own u64 = index<u64>(deref(ast).heads, higher_name);
+  let higher_value: own u64 = semantic_body_child_at(ast: ast, node: higher_let, ordinal: 3_u64);
+  let division_valid: own Bool = semantic_reader_reborrow_u64_binary_valid(source: source, tokens: tokens, ast: ast, node: higher_value, left_head: value_head, operation: 1_u64);
+  match band<Bool>(higher_header, division_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let recursive_valid: own Bool = semantic_reader_reborrow_u64_self_region_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, outer_parameter_head: output_head, outer_type: output_type, outer_region_head: outer_region_head, value_head: higher_head, node: recursive_region);
+  match recursive_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let remainder_header: own Bool = semantic_reader_let_header_valid(source: source, tokens: tokens, ast: ast, node: remainder_let, type_id: semantic_buffer_type_u64);
+  let remainder_name: own u64 = semantic_body_child_at(ast: ast, node: remainder_let, ordinal: 0_u64);
+  let remainder_head: own u64 = index<u64>(deref(ast).heads, remainder_name);
+  let remainder_value: own u64 = semantic_body_child_at(ast: ast, node: remainder_let, ordinal: 3_u64);
+  let remainder_valid: own Bool = semantic_reader_reborrow_u64_binary_valid(source: source, tokens: tokens, ast: ast, node: remainder_value, left_head: value_head, operation: 2_u64);
+  match band<Bool>(remainder_header, remainder_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let digit_header: own Bool = semantic_reader_let_header_valid(source: source, tokens: tokens, ast: ast, node: digit_let, type_id: semantic_buffer_type_u8);
+  let digit_name: own u64 = semantic_body_child_at(ast: ast, node: digit_let, ordinal: 0_u64);
+  let digit_head: own u64 = index<u64>(deref(ast).heads, digit_name);
+  let digit_value: own u64 = semantic_body_child_at(ast: ast, node: digit_let, ordinal: 3_u64);
+  let digit_valid: own Bool = semantic_reader_reborrow_u64_digit_index_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, node: digit_value, remainder_head: remainder_head);
+  match band<Bool>(digit_header, digit_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let push_valid: own Bool = semantic_reader_reborrow_chunk_region_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, outer_parameter_head: output_head, outer_type: output_type, outer_region_head: outer_region_head, byte_parameter_head: digit_head, node: push_region);
+  match push_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let recursive_local: own u64 = semantic_body_child_at(ast: ast, node: recursive_region, ordinal: 0_u64);
+  let push_local: own u64 = semantic_body_child_at(ast: ast, node: push_region, ordinal: 0_u64);
+  let recursive_region_head: own u64 = index<u64>(deref(ast).heads, recursive_local);
+  let push_region_head: own u64 = index<u64>(deref(ast).heads, push_local);
+  let names_distinct: own Bool = semantic_reader_reborrow_u64_names_distinct(source: source, tokens: tokens, output_head: output_head, value_head: value_head, has_higher_head: has_higher_head, higher_head: higher_head, remainder_head: remainder_head, digit_head: digit_head, recursive_region_head: recursive_region_head, push_region_head: push_region_head);
+  let return_valid: own Bool = semantic_reader_reborrow_return_unit_valid(source: source, tokens: tokens, ast: ast, node: return_node);
+  return band<Bool>(names_distinct, return_valid);
+}

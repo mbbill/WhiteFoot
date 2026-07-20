@@ -34,6 +34,9 @@ src/semantic_reader_reborrow_chunk_guard.wf
 src/semantic_reader_reborrow_chunk_call.wf
 src/semantic_reader_reborrow_chunk.wf
 src/semantic_reader_reborrow_chunk_wrapper.wf
+src/semantic_reader_reborrow_u64_value.wf
+src/semantic_reader_reborrow_u64_call.wf
+src/semantic_reader_reborrow_u64.wf
 src/semantic_unit.wf
 src/semantic_types.wf
 src/semantic_globals.wf

@@ -166,11 +166,7 @@ fn semantic_reader_analyze_reborrow_chunk_region ['c, 'w] (source: &'c buffer<u8
   let byte_mode: own SemanticValueMode = index<SemanticValueMode>(deref(scratch).modes, byte_slot);
   let own_atom: own SemanticValueMode = SemanticModeOwn();
   let byte_own: own Bool = eeq<SemanticValueMode>(byte_mode, own_atom);
-  let byte_declaration: own u64 = index<u64>(deref(scratch).declarations, byte_slot);
-  let ast_parameter_atom: own AstKind = AstParameter();
-  let byte_parameter: own Bool = semantic_body_kind_is(ast: ast, node: byte_declaration, want: ast_parameter_atom);
-  let byte_first: own Bool = band<Bool>(byte_u8, byte_own);
-  match band<Bool>(byte_first, byte_parameter) {
+  match band<Bool>(byte_u8, byte_own) {
     True() => {
     }
     False() => {
