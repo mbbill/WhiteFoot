@@ -294,9 +294,9 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-563 functions: 104 clean, 459 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,468,548 source bytes, 292,820 tokens, and
-145,329 unique-head AST nodes. The parser census is 3,687 regionful calls: 345
+563 functions: 105 clean, 458 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,470,022 source bytes, 293,059 tokens, and
+145,446 unique-head AST nodes. The parser census is 3,690 regionful calls: 348
 explicit and 3,342 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
@@ -331,7 +331,7 @@ loop/local-mutation unlock; admitting owned-parameter mutation also conflicts
 with stage-0 lowering and unlocked zero compiler functions, so that experiment
 was fully reverted and the bounded F2 compiler-family tranche is complete.
 
-The first six bounded F3 writer slices are complete. The writes-only profile admits one or more exclusive
+The first seven bounded F3 writer slices are complete. The writes-only profile admits one or more exclusive
 borrows of structs in exactly one declared region, an exact writes-only row for
 that region, one or more flat direct scalar/tag-only-enum field assignments from
 own parameters, canonical `u8`/`u64` literals, or exact nullary `Bool`/tag-only-
@@ -391,15 +391,24 @@ target must be `index<T>(deref(exclusive_struct).buffer_field,
 own_u64_parameter)`, the root must belong to the singleton write region, the
 element and right-hand-side types must match exactly, and the bounds-checked
 target supplies `traps` without fabricating a read of the exclusive root.
-Literal or global subscripts, direct buffer roots, shared or cross-region roots,
+Immutable-global subscripts, direct buffer roots, shared or cross-region roots,
 mixed read/write rows, and malformed target topology remain unsupported.
 Hostile review additionally source-anchors every semantics-bearing target head
 and leaf, including same-spelling token redirects. Exactly
 `semantic_body_set_value_fact`, `semantic_buffer_write_result_fact`, and
 `semantic_buffer_write_place_fact` move to CLEAN. Target logic lives in a
-focused 368-line module and a separate 318-line hostile test; extracting the
+focused module and a separate hostile test; extracting the
 prior field-target proof reduces the writer module to 814 lines and the general
-reader to 6,612 lines. F3 remains active for the deferred broader indexed and
+reader. The seventh slice extends only the indexed-target subscript boundary to
+canonical `u64` numeric literals. The shared index analyzer receives an explicit
+capability flag that is false for ordinary indexed reads and true only for writer
+targets; independent target validation rechecks the literal kind, canonical value,
+and exact source anchoring. Leading-zero, wrong-width, and out-of-range literals,
+same-spelling token redirects, immutable-global subscripts, and literal subscripts
+on ordinary indexed reads remain Unsupported. Exactly
+`semantic_body_initialize_types` moves to CLEAN. The target module is 388 lines,
+its hostile test is 356 lines, the writer module remains 814 lines, and the general
+reader is 6,623 lines. F3 remains active for the deferred broader indexed and
 control-flow writer profiles. `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. F4 bounded statement-scoped
 reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in

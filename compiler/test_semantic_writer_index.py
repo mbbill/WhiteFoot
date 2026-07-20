@@ -48,6 +48,18 @@ INDEX_WRITER = (
     b"}\n"
 )
 
+LITERAL_INDEX_WRITER = (
+    b"struct WriterLiteralRows {\n"
+    b"  type_ids: buffer<u64>;\n"
+    b"}\n"
+    b"fn writer_literal_index ['w] (rows: &uniq 'w WriterLiteralRows, "
+    b"value: own u64) -> own unit writes('w), traps {\n"
+    b"  set index<u64>(deref(rows).type_ids, 0_u64) = value;\n"
+    b"  set index<u64>(deref(rows).type_ids, 1_u64) = value;\n"
+    b"  return unit;\n"
+    b"}\n"
+)
+
 
 def assert_index_writer_boundary(library):
     def classify(source):
@@ -80,6 +92,7 @@ def assert_index_writer_boundary(library):
         assert_output_guards(work)
 
     assert_clean(INDEX_WRITER)
+    assert_clean(LITERAL_INDEX_WRITER)
 
     # The indexed target itself exhibits the bounds trap, but it does not read
     # the exclusive root. Both declared rows remain exact in both directions.
@@ -110,19 +123,13 @@ def assert_index_writer_boundary(library):
         b"  set deref(cell).value = value;\n"
         b"  return unit;\n}\n"
     )
-    # The first slice accepts only a buffer field below an exclusive struct
-    # root and only a direct own-u64 parameter as the subscript.
+    # Targets remain confined to buffer fields below an exclusive struct root.
+    # Subscripts are either direct own-u64 parameters or canonical u64 literals;
+    # immutable globals remain a separate boundary.
     assert_unsupported(
         b"fn writer_direct ['w] (values: &uniq 'w buffer<u8>, node: own u64, "
         b"value: own u8) -> own unit writes('w), traps {\n"
         b"  set index<u8>(deref(values), node) = value;\n"
-        b"  return unit;\n}\n"
-    )
-    assert_unsupported(
-        b"struct WriterIndexRows {\n  type_ids: buffer<u64>;\n}\n"
-        b"fn writer_literal ['w] (rows: &uniq 'w WriterIndexRows, "
-        b"value: own u64) -> own unit writes('w), traps {\n"
-        b"  set index<u64>(deref(rows).type_ids, 0_u64) = value;\n"
         b"  return unit;\n}\n"
     )
     assert_unsupported(
@@ -139,6 +146,23 @@ def assert_index_writer_boundary(library):
         b"node: own u8, value: own u64) -> own unit writes('w), traps {\n"
         b"  set index<u64>(deref(rows).type_ids, node) = value;\n"
         b"  return unit;\n}\n"
+    )
+    assert_unsupported(LITERAL_INDEX_WRITER.replace(b"0_u64", b"00_u64"))
+    assert_unsupported(LITERAL_INDEX_WRITER.replace(b"0_u64", b"0_u8"))
+    assert_unsupported(
+        LITERAL_INDEX_WRITER.replace(
+            b"0_u64", b"18446744073709551616_u64"
+        )
+    )
+
+    # Literal subscripts are writer-local; the identical indexed read remains
+    # outside the read-only expression profile.
+    assert_unsupported(
+        b"struct WriterLiteralRows {\n  type_ids: buffer<u64>;\n}\n"
+        b"fn reader_literal_index ['r] (rows: &'r WriterLiteralRows) "
+        b"-> own u64 reads('r), traps {\n"
+        b"  return index<u64>(deref(rows).type_ids, 0_u64);\n"
+        b"}\n"
     )
 
     # Element and constructor typing remains exact and nominal.
@@ -181,8 +205,8 @@ def assert_index_writer_boundary(library):
         b"  return unit;\n}\n"
     )
 
-    def assert_direct_reader_mutation_rejected(mutate):
-        case, function = assert_clean(INDEX_WRITER)
+    def assert_direct_reader_mutation_rejected(mutate, source=INDEX_WRITER):
+        case, function = assert_clean(source)
         mutate(case, function)
         work = make_work(library, case[5].count)
         report = SemanticBodyReport(99, 123, 456, 99, 99, 789)
@@ -286,6 +310,11 @@ def assert_index_writer_boundary(library):
         second_subscript = children_of(case[4], targets[1])[2]
         case[4][1][first_subscript] = case[4][1][second_subscript]
 
+    def literal_subscript_kind(case, function):
+        target = first_index_target(case, function)
+        subscript = children_of(case[4], target)[2]
+        case[4][0][subscript] = AST["AstPlaceUse"]
+
     for mutate in (
         target_kind,
         target_terminal,
@@ -301,6 +330,14 @@ def assert_index_writer_boundary(library):
     ):
         assert_direct_reader_mutation_rejected(mutate)
 
+    literal_same_word = LITERAL_INDEX_WRITER.replace(b"1_u64", b"0_u64")
+    assert_direct_reader_mutation_rejected(
+        literal_subscript_kind, literal_same_word
+    )
+    assert_direct_reader_mutation_rejected(
+        subscript_same_word_head, literal_same_word
+    )
+
 
 def main():
     with tempfile.TemporaryDirectory() as raw_directory:
@@ -309,8 +346,9 @@ def main():
         assert_index_writer_boundary(library)
     print(
         "semantic indexed writer: exact exclusive struct-field buffer targets, "
-        "own-u64 subscripts, target traps, nominal values, and hostile effect, "
-        "provenance, shape, topology, and deferred-profile fences pass"
+        "own-u64 or canonical literal subscripts, target traps, nominal values, "
+        "and hostile effect, provenance, source anchoring, shape, topology, and "
+        "deferred-profile fences pass"
     )
 
 
