@@ -294,9 +294,9 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-549 functions: 83 clean, 466 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,421,992 source bytes, 282,607 tokens, and
-140,433 unique-head AST nodes. The parser census is 3,566 regionful calls: 222
+552 functions: 90 clean, 462 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,433,056 source bytes, 284,908 tokens, and
+141,518 unique-head AST nodes. The parser census is 3,587 regionful calls: 243
 explicit and 3,344 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
@@ -331,21 +331,31 @@ loop/local-mutation unlock; admitting owned-parameter mutation also conflicts
 with stage-0 lowering and unlocked zero compiler functions, so that experiment
 was fully reverted and the bounded F2 compiler-family tranche is complete.
 
-The first bounded F3 writer slice is complete. It admits exactly one exclusive
+The first two bounded F3 writer slices are complete. They admit exactly one exclusive
 borrow of a struct in exactly one declared region, an exact writes-only row for
 that region, one or more flat direct scalar/tag-only-enum field assignments from
-own parameters, and a final `return unit`. Shared or multiple exclusive roots,
-general `unit` readers, constructor or borrowed RHS values, missing/spurious or
-wrong-region writes, nested control, writer calls, and non-unit returns remain
-unsupported. Exactly four pre-existing functions move to CLEAN:
+own parameters, canonical `u8`/`u64` literals, or exact nullary `Bool`/tag-only-
+enum constructors, and a final `return unit`. Constructor resolution is confined
+to this field-writer path: a bounded whole-unit scan proves one globally unique
+direct nullary variant, a tag-only owning enum, and exact nominal field equality.
+Shared or multiple exclusive roots, general `unit` readers, borrowed RHS values,
+global scalar constants, payload or ambiguous constructors, general constructor
+expressions, missing/spurious or wrong-region writes, nested control, writer
+calls, and non-unit returns remain unsupported. The first slice moved exactly
+four pre-existing functions to CLEAN:
 `symbol_report`, `semantic_body_set_report`,
 `semantic_type_resolve_set_report`, and `llvm_supported_fail`. Hostile review
 caught and closed an initial widening that also admitted three read-only
 exclusive-borrow helpers; both exclusive borrows and `unit` are now fenced to
 the exact writer profile, and the body independently verifies the exclusive
-target and flat direct-parameter RHS shape. F3 remains active for the remaining
-writer profiles. `lexer_scan_string` remains the source-order frontier, blocked
-by aggregate return and other deferred forms. F4 bounded statement-scoped
+target and flat RHS shape. The second slice moves exactly seven more pre-existing
+functions to CLEAN: `byte_tape_reset`, `semantic_all_types_fail`,
+`frontend_token_tape_reset`, `llvm_scalar_fail`, `llvm_linear_fail`,
+`llvm_buffer_fail`, and `llvm_scanner_fail`. Its writer-specific implementation
+and hostile tests live in focused files rather than enlarging the general reader
+and unit-test modules. F3 remains active for the deferred global-constant and
+mixed-effect writer profiles. `lexer_scan_string` remains the source-order
+frontier, blocked by aggregate return and other deferred forms. F4 bounded statement-scoped
 reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in
 that order. Whole-unit LLVM lowering, including production emission of general
 `eeq`/`ene` calls after revalidating their domain, remains the separate Phase-2
