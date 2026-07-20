@@ -1,0 +1,149 @@
+fn semantic_reader_reborrow_call_argument_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {
+  let ast_named_argument_atom: own AstKind = AstNamedArgument();
+  let kind: own Bool = semantic_body_kind_is(ast: ast, node: node, want: ast_named_argument_atom);
+  let shape: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 1_u64);
+  let name: own Bool = semantic_buffer_declaration_word_valid(source: source, tokens: tokens, ast: ast, node: node);
+  let start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: node);
+  let first: own Bool = band<Bool>(kind, shape);
+  let second: own Bool = band<Bool>(name, start);
+  return band<Bool>(first, second);
+}
+
+fn semantic_reader_reborrow_call_region_shape_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, byte_parameter_head: own u64, byte_is_literal: own Bool) -> own Bool reads('c), traps {
+  let ast_region_block_atom: own AstKind = AstRegionBlock();
+  let region_kind: own Bool = semantic_body_kind_is(ast: ast, node: node, want: ast_region_block_atom);
+  let region_shape: own Bool = semantic_body_exact_children(ast: ast, node: node, want: 2_u64);
+  let region_start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: node);
+  let region_head: own u64 = index<u64>(deref(ast).heads, node);
+  let region_word: own Bool = parser_word6(source: source, tokens: tokens, token: region_head, a: 114_u8, b: 101_u8, c: 103_u8, d: 105_u8, e: 111_u8, f: 110_u8);
+  let region_first: own Bool = band<Bool>(region_kind, region_shape);
+  let region_second: own Bool = band<Bool>(region_start, region_word);
+  match band<Bool>(region_first, region_second) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let local_region: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 0_u64);
+  let inner_block: own u64 = semantic_body_child_at(ast: ast, node: node, ordinal: 1_u64);
+  let local_valid: own Bool = semantic_reader_reborrow_region_leaf_valid(source: source, tokens: tokens, ast: ast, node: local_region);
+  let ast_block_atom: own AstKind = AstBlock();
+  let block_kind: own Bool = semantic_body_kind_is(ast: ast, node: inner_block, want: ast_block_atom);
+  let block_shape: own Bool = semantic_body_exact_children(ast: ast, node: inner_block, want: 1_u64);
+  let block_token: own Bool = semantic_buffer_single_symbol_node(source: source, tokens: tokens, ast: ast, node: inner_block, want: 123_u8);
+  let block_first: own Bool = band<Bool>(block_kind, block_shape);
+  let block_valid: own Bool = band<Bool>(block_first, block_token);
+  match band<Bool>(local_valid, block_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let expression: own u64 = semantic_body_child_at(ast: ast, node: inner_block, ordinal: 0_u64);
+  let ast_expression_statement_atom: own AstKind = AstExpressionStatement();
+  let expression_kind: own Bool = semantic_body_kind_is(ast: ast, node: expression, want: ast_expression_statement_atom);
+  let expression_shape: own Bool = semantic_body_exact_children(ast: ast, node: expression, want: 1_u64);
+  let expression_token: own Bool = semantic_buffer_single_symbol_node(source: source, tokens: tokens, ast: ast, node: expression, want: 59_u8);
+  let expression_end: own Bool = semantic_reader_writer_head_ends_node(source: source, tokens: tokens, ast: ast, node: expression);
+  let expression_first: own Bool = band<Bool>(expression_kind, expression_shape);
+  let expression_second: own Bool = band<Bool>(expression_token, expression_end);
+  match band<Bool>(expression_first, expression_second) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let call: own u64 = semantic_body_child_at(ast: ast, node: expression, ordinal: 0_u64);
+  let ast_user_call_atom: own AstKind = AstUserCall();
+  let call_kind: own Bool = semantic_body_kind_is(ast: ast, node: call, want: ast_user_call_atom);
+  let call_shape: own Bool = semantic_body_exact_children(ast: ast, node: call, want: 2_u64);
+  let call_name: own Bool = semantic_buffer_declaration_word_valid(source: source, tokens: tokens, ast: ast, node: call);
+  let call_start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: call);
+  let call_first: own Bool = band<Bool>(call_kind, call_shape);
+  let call_second: own Bool = band<Bool>(call_name, call_start);
+  match band<Bool>(call_first, call_second) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let output_argument: own u64 = semantic_body_child_at(ast: ast, node: call, ordinal: 0_u64);
+  let byte_argument: own u64 = semantic_body_child_at(ast: ast, node: call, ordinal: 1_u64);
+  let output_valid: own Bool = semantic_reader_reborrow_call_argument_valid(source: source, tokens: tokens, ast: ast, node: output_argument);
+  let byte_valid: own Bool = semantic_reader_reborrow_call_argument_valid(source: source, tokens: tokens, ast: ast, node: byte_argument);
+  match band<Bool>(output_valid, byte_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let borrow: own u64 = semantic_body_child_at(ast: ast, node: output_argument, ordinal: 0_u64);
+  let ast_uniq_borrow_atom: own AstKind = AstUniqBorrow();
+  let borrow_kind: own Bool = semantic_body_kind_is(ast: ast, node: borrow, want: ast_uniq_borrow_atom);
+  let borrow_shape: own Bool = semantic_body_exact_children(ast: ast, node: borrow, want: 2_u64);
+  let borrow_start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: borrow);
+  let borrow_head: own u64 = index<u64>(deref(ast).heads, borrow);
+  let borrow_token: own Bool = parser_kind_at_is(tokens: tokens, token: borrow_head, want: 11_u64);
+  let borrow_first: own Bool = band<Bool>(borrow_kind, borrow_shape);
+  let borrow_second: own Bool = band<Bool>(borrow_start, borrow_token);
+  match band<Bool>(borrow_first, borrow_second) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let child_region: own u64 = semantic_body_child_at(ast: ast, node: borrow, ordinal: 0_u64);
+  let deref_place: own u64 = semantic_body_child_at(ast: ast, node: borrow, ordinal: 1_u64);
+  let child_region_valid: own Bool = semantic_reader_reborrow_region_leaf_valid(source: source, tokens: tokens, ast: ast, node: child_region);
+  let ast_deref_place_atom: own AstKind = AstDerefPlace();
+  let deref_kind: own Bool = semantic_body_kind_is(ast: ast, node: deref_place, want: ast_deref_place_atom);
+  let deref_shape: own Bool = semantic_body_exact_children(ast: ast, node: deref_place, want: 1_u64);
+  let deref_start: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: deref_place);
+  let deref_head: own u64 = index<u64>(deref(ast).heads, deref_place);
+  let deref_word: own Bool = parser_word5(source: source, tokens: tokens, token: deref_head, a: 100_u8, b: 101_u8, c: 114_u8, d: 101_u8, e: 102_u8);
+  let deref_first: own Bool = band<Bool>(deref_kind, deref_shape);
+  let deref_second: own Bool = band<Bool>(deref_start, deref_word);
+  let deref_valid: own Bool = band<Bool>(deref_first, deref_second);
+  match band<Bool>(child_region_valid, deref_valid) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let parent: own u64 = semantic_body_child_at(ast: ast, node: deref_place, ordinal: 0_u64);
+  let ast_place_use_atom: own AstKind = AstPlaceUse();
+  let parent_kind: own Bool = semantic_body_kind_is(ast: ast, node: parent, want: ast_place_use_atom);
+  let parent_token: own Bool = semantic_reader_writer_leaf_token_exact(source: source, tokens: tokens, ast: ast, node: parent);
+  let parent_name: own Bool = semantic_buffer_declaration_word_valid(source: source, tokens: tokens, ast: ast, node: parent);
+  let parent_first: own Bool = band<Bool>(parent_kind, parent_token);
+  match band<Bool>(parent_first, parent_name) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let byte_value: own u64 = semantic_body_child_at(ast: ast, node: byte_argument, ordinal: 0_u64);
+  match byte_is_literal {
+    True() => {
+      return semantic_reader_reborrow_rw_u8_literal_valid(source: source, tokens: tokens, ast: ast, node: byte_value);
+    }
+    False() => {
+      match ieq<u64>(byte_parameter_head, ast_none) {
+        True() => {
+          return semantic_reader_reborrow_rw_place_valid(source: source, tokens: tokens, ast: ast, node: byte_value);
+        }
+        False() => {
+          return semantic_reader_reborrow_rw_place_matches(source: source, tokens: tokens, ast: ast, node: byte_value, expected_head: byte_parameter_head);
+        }
+      }
+    }
+  }
+}

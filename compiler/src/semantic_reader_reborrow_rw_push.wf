@@ -1,11 +1,15 @@
-fn semantic_reader_reborrow_rw_place_matches ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, expected_head: own u64) -> own Bool reads('c), traps {
+fn semantic_reader_reborrow_rw_place_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64) -> own Bool reads('c), traps {
   let ast_place_use_atom: own AstKind = AstPlaceUse();
   let kind: own Bool = semantic_body_kind_is(ast: ast, node: node, want: ast_place_use_atom);
   let token: own Bool = semantic_reader_writer_leaf_token_exact(source: source, tokens: tokens, ast: ast, node: node);
+  return band<Bool>(kind, token);
+}
+
+fn semantic_reader_reborrow_rw_place_matches ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, node: own u64, expected_head: own u64) -> own Bool reads('c), traps {
+  let valid: own Bool = semantic_reader_reborrow_rw_place_valid(source: source, tokens: tokens, ast: ast, node: node);
   let head: own u64 = index<u64>(deref(ast).heads, node);
   let same: own Bool = token_text_equal(source: source, tokens: tokens, left: head, right: expected_head);
-  let first: own Bool = band<Bool>(kind, token);
-  return band<Bool>(first, same);
+  return band<Bool>(valid, same);
 }
 
 fn semantic_reader_reborrow_rw_names_distinct ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, first: own u64, second: own u64, third: own u64, fourth: own u64, fifth: own u64) -> own Bool reads('c), traps {

@@ -22,6 +22,7 @@ check:
 	$(PY) test_semantic_writer_control.py
 	$(PY) test_semantic_reborrow.py
 	$(PY) test_semantic_reborrow_rw.py
+	$(PY) test_semantic_reborrow_chunk.py
 	$(PY) test_semantic_types.py
 	$(PY) test_semantic_globals.py
 	$(PY) test_semantic_type_resolve.py

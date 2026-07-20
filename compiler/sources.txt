@@ -26,8 +26,13 @@ src/semantic_reader_reborrow_writer.wf
 src/semantic_reader_reborrow_rw.wf
 src/semantic_reader_reborrow_rw_struct.wf
 src/semantic_reader_reborrow_rw_push.wf
+src/semantic_reader_reborrow_call_shape.wf
 src/semantic_reader_reborrow_rw_region.wf
 src/semantic_reader_reborrow_rw_call.wf
+src/semantic_reader_reborrow_chunk_signature.wf
+src/semantic_reader_reborrow_chunk_guard.wf
+src/semantic_reader_reborrow_chunk_call.wf
+src/semantic_reader_reborrow_chunk.wf
 src/semantic_unit.wf
 src/semantic_types.wf
 src/semantic_globals.wf

@@ -249,7 +249,9 @@ fn semantic_reader_reborrow_rw_body_valid ['c] (source: &'c buffer<u8>, tokens: 
   }
   let push_shape: own Bool = semantic_body_exact_children(ast: ast, node: function, want: 10_u64);
   let wrapper_shape: own Bool = semantic_body_exact_children(ast: ast, node: function, want: 9_u64);
-  match bor<Bool>(push_shape, wrapper_shape) {
+  let chunk_shape: own Bool = semantic_body_exact_children(ast: ast, node: function, want: 18_u64);
+  let narrow_shape: own Bool = bor<Bool>(push_shape, wrapper_shape);
+  match bor<Bool>(narrow_shape, chunk_shape) {
     True() => {
     }
     False() => {
@@ -267,9 +269,18 @@ fn semantic_reader_reborrow_rw_body_valid ['c] (source: &'c buffer<u8>, tokens: 
       set expected_block = semantic_body_child_at(ast: ast, node: function, ordinal: 9_u64);
     }
     False() => {
-      set expected_reads = semantic_body_child_at(ast: ast, node: function, ordinal: 5_u64);
-      set expected_writes = semantic_body_child_at(ast: ast, node: function, ordinal: 6_u64);
-      set expected_block = semantic_body_child_at(ast: ast, node: function, ordinal: 8_u64);
+      match wrapper_shape {
+        True() => {
+          set expected_reads = semantic_body_child_at(ast: ast, node: function, ordinal: 5_u64);
+          set expected_writes = semantic_body_child_at(ast: ast, node: function, ordinal: 6_u64);
+          set expected_block = semantic_body_child_at(ast: ast, node: function, ordinal: 8_u64);
+        }
+        False() => {
+          set expected_reads = semantic_body_child_at(ast: ast, node: function, ordinal: 14_u64);
+          set expected_writes = semantic_body_child_at(ast: ast, node: function, ordinal: 15_u64);
+          set expected_block = semantic_body_child_at(ast: ast, node: function, ordinal: 17_u64);
+        }
+      }
     }
   }
   let regions_match: own Bool = ieq<u64>(expected_regions, regions_node);
@@ -290,7 +301,14 @@ fn semantic_reader_reborrow_rw_body_valid ['c] (source: &'c buffer<u8>, tokens: 
       return semantic_reader_reborrow_rw_push_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
     }
     False() => {
-      return semantic_reader_reborrow_rw_wrapper_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+      match wrapper_shape {
+        True() => {
+          return semantic_reader_reborrow_rw_wrapper_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+        }
+        False() => {
+          return semantic_reader_reborrow_chunk_body_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+        }
+      }
     }
   }
 }

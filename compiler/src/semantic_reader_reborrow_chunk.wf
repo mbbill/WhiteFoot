@@ -1,0 +1,85 @@
+fn semantic_reader_reborrow_chunk_body_valid ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, function: own u64) -> own Bool reads('c), traps {
+  let signature: own Bool = semantic_reader_reborrow_chunk_signature_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function);
+  match signature {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let regions_node: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 1_u64);
+  let output_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 2_u64);
+  let count_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 3_u64);
+  let writes_node: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 15_u64);
+  let body: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: 17_u64);
+  let body_shape: own Bool = semantic_body_exact_children(ast: ast, node: body, want: 11_u64);
+  match body_shape {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+  let outer_region: own u64 = semantic_body_child_at(ast: ast, node: regions_node, ordinal: 0_u64);
+  let writes_region: own u64 = semantic_body_child_at(ast: ast, node: writes_node, ordinal: 0_u64);
+  let outer_region_head: own u64 = index<u64>(deref(ast).heads, outer_region);
+  let writes_region_head: own u64 = index<u64>(deref(ast).heads, writes_region);
+  let output_head: own u64 = index<u64>(deref(ast).heads, output_parameter);
+  let count_head: own u64 = index<u64>(deref(ast).heads, count_parameter);
+  let output_type: own u64 = semantic_reader_param_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, parameter: output_parameter);
+  let struct_decl: own u64 = isub.wrap<u64>(output_type, semantic_reader_struct_type_base);
+
+  let valid_let: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 0_u64);
+  let valid_header: own Bool = semantic_reader_let_header_valid(source: source, tokens: tokens, ast: ast, node: valid_let, type_id: semantic_buffer_type_bool);
+  let valid_name: own u64 = semantic_body_child_at(ast: ast, node: valid_let, ordinal: 0_u64);
+  let valid_head: own u64 = index<u64>(deref(ast).heads, valid_name);
+  let valid_initializer: own u64 = semantic_body_child_at(ast: ast, node: valid_let, ordinal: 3_u64);
+  let want_ile: own Bool = False();
+  let valid_compare: own Bool = semantic_reader_reborrow_chunk_compare_valid(source: source, tokens: tokens, ast: ast, node: valid_initializer, left_head: count_head, literal_value: 8_u64, want_ige: want_ile);
+  let valid_name_fresh: own Bool = semantic_reader_reborrow_chunk_name_outside_parameters(source: source, tokens: tokens, ast: ast, function: function, name_head: valid_head);
+  let valid_first: own Bool = band<Bool>(valid_header, valid_compare);
+  match band<Bool>(valid_first, valid_name_fresh) {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let invalid_match: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 1_u64);
+  let invalid_valid: own Bool = semantic_reader_reborrow_chunk_invalid_match_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, struct_decl: struct_decl, writes_region_head: writes_region_head, valid_head: valid_head, node: invalid_match);
+  match invalid_valid {
+    True() => {
+    }
+    False() => {
+      return False();
+    }
+  }
+
+  let threshold: own u64 = 1_u64;
+  loop @semantic_reader_reborrow_chunk_thresholds {
+    let statement_ordinal: own u64 = iadd.trap<u64>(threshold, 1_u64);
+    let byte_parameter_ordinal: own u64 = iadd.trap<u64>(threshold, 3_u64);
+    let threshold_match: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: statement_ordinal);
+    let byte_parameter: own u64 = semantic_body_child_at(ast: ast, node: function, ordinal: byte_parameter_ordinal);
+    let byte_parameter_head: own u64 = index<u64>(deref(ast).heads, byte_parameter);
+    let threshold_valid: own Bool = semantic_reader_reborrow_chunk_threshold_match_valid(source: source, tokens: tokens, ast: ast, symbols: symbols, node: threshold_match, count_head: count_head, threshold: threshold, outer_parameter_head: output_head, outer_type: output_type, outer_region_head: outer_region_head, byte_parameter_head: byte_parameter_head);
+    match threshold_valid {
+      True() => {
+      }
+      False() => {
+        return False();
+      }
+    }
+    match ieq<u64>(threshold, 8_u64) {
+      True() => {
+        break @semantic_reader_reborrow_chunk_thresholds;
+      }
+      False() => {
+      }
+    }
+    set threshold = iadd.trap<u64>(threshold, 1_u64);
+  }
+  let return_node: own u64 = semantic_body_child_at(ast: ast, node: body, ordinal: 10_u64);
+  return semantic_reader_reborrow_return_unit_valid(source: source, tokens: tokens, ast: ast, node: return_node);
+}

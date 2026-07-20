@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-604 functions: 121 clean, 483 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,629,024 source bytes, 327,643 tokens, and
-162,547 unique-head AST nodes. The parser census is 4,370 regionful calls: 496
-explicit and 3,874 staged omissions. LLVM support remains the same
+619 functions: 122 clean, 497 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,663,946 source bytes, 335,070 tokens, and
+166,278 unique-head AST nodes. The parser census is 4,525 regionful calls: 496
+explicit and 4,029 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Kernel v0.8 and its tag-only enum equality implementation are complete.
@@ -489,6 +489,41 @@ it has eight guarded whole-parent calls to the proven push using owned `u8`
 parameters, and it is the prerequisite for 37 simple fixed ten-argument chunk
 wrappers (30 one-region, six two-region, and one four-region). General sibling
 overlap and recursive numeric emission remain later F4 work.
+
+The third bounded F4 slice admits the exact guarded eight-byte chunk callee.
+Its signature has one exclusive struct root, one owned `u64` count, eight
+distinct owned `u8` parameters, exact singleton `reads(root)` and
+`writes(root)` rows plus `traps`, and an own-unit result. The body first proves
+the count is at most canonical `8_u64`; its exact invalid arm writes a nullary
+constructor belonging to an enum field of the same root and returns. Eight
+ordered `ige<u64>(count, N_u64)` matches then either return early or enter one
+statement-scoped region and call the independently proven push callee with a
+whole-parent unique reborrow and the corresponding `u8` parameter. The eighth
+false arm is empty and the body ends with `return unit`. Every operation,
+threshold, arm tag and statement count, parameter and named-argument order,
+nominal type, source head, and topology is revalidated without recognizing
+project names. The ordinary body analyzer's new fallback accepts only an owned
+`u8` parameter as the second argument of this already-bounded region-call
+shape; the same-region effect gate still requires the complete exact chunk
+body before returning CLEAN, so the flow support cannot lend authority to any
+other mixed read/write function. Hostile review pins wrong or missing rows,
+parameter modes and types, count guards, threshold order, early-return shape,
+status-field and constructor types, local-region confinement, shared or deeper
+borrows, explicit call regions, argument order and binding, dishonest callees,
+same-spelling source-head redirection in both directions, and cyclic topology.
+Exactly `byte_tape_emit_chunk` moves to CLEAN; no prior CLEAN function is lost,
+and all fifteen new helpers remain Unsupported. The unit is 619 total / 122
+CLEAN / 497 Unsupported / 0 rejected; the exact 15-function LLVM module is
+unchanged. The parser census is 4,525 regionful calls = 496 explicit + 4,029
+staged omissions; self-parse is deterministic at 1,663,946 bytes / 335,070
+tokens / 166,278 nodes. A shared 149-line region-call shape module reduces the
+prior region module from 201 to 64 lines; chunk logic is split across 187-,
+131-, 195-, and 85-line modules with a 382-line hostile test, and the general
+reader is 6,739 lines. A fresh inventory finds 41 Unsupported callers of the
+now-proven chunk: 30 are exact one-region, two-statement fixed-literal wrappers;
+six contain two chunk regions, one contains four, and four compose one chunk
+with recursive numeric emission. The exact 30-wrapper one-region family is the
+next bounded F4 boundary; multi-region and numeric composition remain later.
 
 `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. Remaining F4

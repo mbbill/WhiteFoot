@@ -416,19 +416,22 @@ def canonical_path(columns, root, target):
 # passed alone to independently-proven flat writes-only unit callees.
 # The second F4 profile admits the exact same-region byte push body and a
 # one-statement whole-parent unique reborrow to that independently-proven
-# callee, with one canonical u8 literal argument. Every listed function is
-# validated legal by the stage-0 reference checker at build time.
+# callee, with one canonical u8 literal argument. The third F4 profile admits
+# the exact guarded eight-step chunk body whose statement-scoped whole-parent
+# calls pass the eight owned u8 parameters to that same independently-proven
+# callee. Every listed function is validated legal by the stage-0 reference
+# checker at build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 22, 23, 24, 29, 30, 31, 34, 63, 64, 65, 88, 89, 96, 98, 102, 104, 105,
+    21, 22, 23, 24, 29, 30, 31, 34, 63, 64, 65, 88, 89, 90, 96, 98, 102, 104, 105,
     106, 110, 111, 118, 119,
     123, 124, 125, 126, 143, 144, 145, 146, 147, 148, 149, 150, 152, 158, 159,
     162, 163, 164, 175,
     185, 190, 191, 204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 287, 288,
-    296, 356, 365, 367, 373, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406,
-    408, 409, 428, 429, 430, 433, 434, 435, 436, 437, 438, 439, 440, 441, 465,
-    466, 468, 472, 475, 476, 477, 479, 480, 481, 487, 494, 529, 557, 574, 575,
-    597,
+    296, 371, 380, 382, 388, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421,
+    423, 424, 443, 444, 445, 448, 449, 450, 451, 452, 453, 454, 455, 456, 480,
+    481, 483, 487, 490, 491, 492, 494, 495, 496, 502, 509, 544, 572, 589, 590,
+    612,
 )
 
 
@@ -436,15 +439,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 604
+    assert len(functions) == 619
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        604,
-        121,
-        483,
+        619,
+        122,
+        497,
         0,
         functions[18],
         AST_NONE,
@@ -3179,9 +3182,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        604,
-        121,
-        483,
+        619,
+        122,
+        497,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -3240,7 +3243,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 604 total / 121 clean / 483 unsupported / "
+        "semantic unit: compiler 619 total / 122 clean / 497 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "
@@ -3250,7 +3253,7 @@ def main():
         "flat field, exact trapping indexed writers, exact indexed "
         "row-clearing control writers, and exact one-child statement-scoped "
         "reborrow writers, exact same-region byte push and whole-parent-u8 "
-        "reborrow calls, "
+        "reborrow calls, exact guarded eight-byte chunk reborrows, "
         "structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "
