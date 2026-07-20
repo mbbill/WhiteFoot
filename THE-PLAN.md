@@ -344,8 +344,14 @@ one decision-log entry. Fact channels and new safety judgments require hostile
 review before shipment. Keep project artifacts in English and `AGENTS.md` and
 `CLAUDE.md` byte-identical.
 
-Phase 2 is active. The next step is the clean Rust workspace, exact source and
-artifact contracts, facet-catalog skeleton, adapter protocol, and independent
-verifier boundary. A red gate, specification conflict, protected-surface guard,
-unverified authority path, unexplained verdict, or need for a numbered-spec
-change stops the affected work at that boundary.
+Phase 2 is active. It establishes the Rust workspace, exact source and artifact
+contracts, facet catalog, adapter protocol, and independent verifier boundary.
+The first foundation slice now supplies the pinned, dependency-policed
+safe-Rust workspace, ordered raw-source bundle, canonical source/spec binding
+codec, and separately typed source-binding verifier. Token,
+tree, declaration, type, instantiation, check, and proof identities remain
+deliberately unfrozen until their canonical schemas exist; traversal counters
+must not become artifact authority. The next slice is the static v0.8 facet
+catalog and capability-overlay boundary. A red gate, specification conflict,
+protected-surface guard, unverified authority path, unexplained verdict, or
+need for a numbered-spec change stops the affected work at that boundary.

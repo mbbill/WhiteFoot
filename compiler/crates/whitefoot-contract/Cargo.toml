@@ -1,0 +1,11 @@
+[package]
+name = "whitefoot-contract"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Deterministic data contracts for the Whitefoot compiler"
+publish = false
+
+[lints]
+workspace = true

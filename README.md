@@ -50,8 +50,9 @@ The repository is in the Rust compiler foundation phase.
   active.
 - The focused Python reference checker and model checker remain active as
   bounded independent evidence, not as a compiler.
-- No active compiler exists at the transition commit. The first Phase-2 step
-  creates the Rust workspace and adds its real development gate.
+- The active safe-Rust workspace now pins the exact toolchain and specification,
+  owns the ordered raw-source contract, and independently verifies exact
+  source/spec binding. It has no compiler executable or conformance adapter yet.
 - Existing performance experiments are evidence with explicit scope and
   caveats; they are not claims about a finished language or compiler.
 
@@ -61,8 +62,8 @@ Run the currently applicable repository gate with:
 make check
 ```
 
-Until the Rust workspace lands, the gate explicitly reports that it covers the
-repository foundation rather than compiler conformance. A production release
+The gate reports the exact incomplete development state and runs the Rust
+workspace checks; it does not claim compiler conformance. A production release
 cannot pass while any normative v0.8 facet is pending, skipped, xfail, or
 unsupported.
 
@@ -103,6 +104,7 @@ as production rewrites.
 |---|---|
 | Current execution order and authorization | [THE-PLAN.md](THE-PLAN.md) |
 | Language specification | [spec/kernel-spec-v0.8.md](spec/kernel-spec-v0.8.md) |
+| Active Rust compiler workspace | [compiler/](compiler/README.md) |
 | Project law and writer patterns | [CONSTITUTION.md](CONSTITUTION.md), [PATTERNS.md](PATTERNS.md) |
 | Compiler-independent behavior corpus | [conformance/](conformance/README.md) |
 | Proof/code-shape premise corpus | [codegen-corpus/](codegen-corpus/README.md) |

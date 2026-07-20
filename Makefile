@@ -1,14 +1,10 @@
-# Whitefoot repository foundation gate.
-#
-# Phase 2 has no active compiler yet. `make check` validates the durable
-# specification, governance, reference model, and conformance data. The Rust
-# compiler gate is added as the first Phase-2 implementation step; until then a
-# compiler or release claim is intentionally unavailable.
+# Whitefoot development gate. The active Rust workspace is incomplete; this
+# gate validates its current exact capability without making a release claim.
 
 PY=python3 -B
 
-check: project-state spec-guard spec reference-model conformance
-	@echo "== REPOSITORY FOUNDATION GATE GREEN; NO ACTIVE COMPILER =="
+check: project-state spec-guard spec reference-model conformance compiler
+	@echo "== DEVELOPMENT GATE GREEN; RUST FOUNDATION ACTIVE; NO RELEASE CLAIM =="
 
 project-state:
 	$(PY) tools/test_verify_project_state.py
@@ -31,11 +27,14 @@ reference-model:
 conformance:
 	$(PY) conformance/runner.py coverage
 
+compiler:
+	$(MAKE) -C compiler check
+
 conformance-run:
 	$(PY) conformance/runner.py run
 
 release-check:
-	@echo "release gate unavailable: Phase 2 has no active Rust compiler"
+	@echo "release gate unavailable: the exact-v0.8 Rust compiler is incomplete"
 	@false
 
-.PHONY: check project-state spec-guard approve-spec spec reference-model conformance conformance-run release-check
+.PHONY: check project-state spec-guard approve-spec spec reference-model conformance compiler conformance-run release-check

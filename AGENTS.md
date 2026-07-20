@@ -19,13 +19,12 @@ discharges them — speed is earned by proof, never by weakening a check.
 
 ## Verify
 
-- `make check` is always required. During the Phase-2 foundation it checks
-  repository structure, specification governance and integrity, the retained
-  focused reference model, and conformance data. Its output explicitly says
-  that no compiler exists yet.
-- Once Phase 2 creates `compiler/`, `make -C compiler check` is also required
-  before and after compiler work. The root gate must incorporate it in the same
-  tranche.
+- `make check` is always required. During Phase 2 it checks repository
+  structure, specification governance and integrity, the retained focused
+  reference model, conformance data, and the active Rust foundation. Its green
+  result is an exact development-capability statement, never a release claim.
+- `make -C compiler check` is also required before and after compiler work. The
+  root gate incorporates it.
 - A release claim uses the separate release gate defined by `THE-PLAN.md`; a
   green development gate is not a completeness claim.
 
@@ -76,7 +75,7 @@ discharges them — speed is earned by proof, never by weakening a check.
   and hostile near misses; its old democ runner is dormant until replaced.
 - `prototype/checker/` — retained focused reference model, never compiler or
   language authority.
-- `compiler/` — the fresh Rust production compiler once Phase 2 creates it.
+- `compiler/` — the active safe-Rust production compiler workspace.
 - `tools/` — active repository, governance, and verification tooling.
 - `experiments/` — measured evidence and open development workloads.
 - `optimizer-language-research/` — owner directives, decision log, design
