@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-572 functions: 107 clean, 465 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,507,599 source bytes, 301,854 tokens, and
-149,730 unique-head AST nodes. The parser census is 3,836 regionful calls: 494
-explicit and 3,342 staged omissions. LLVM support remains the same
+584 functions: 108 clean, 476 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,561,065 source bytes, 313,033 tokens, and
+155,257 unique-head AST nodes. The parser census is 4,067 regionful calls: 495
+explicit and 3,572 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Kernel v0.8 and its tag-only enum equality implementation are complete.
@@ -432,10 +432,37 @@ non-cursor subscripts, and same-spelling type/name/label token redirection befor
 the slice landed. Exactly `semantic_body_initialize_facts` moves to CLEAN; no
 other pre-existing function moves and no prior CLEAN function is lost. Control
 logic is isolated in a 674-line module with a 325-line focused hostile test;
-the general reader is 6,644 lines. A fresh post-slice inventory leaves
+the general reader is 6,644 lines. The post-slice inventory left
 `frontend_unit_reset` as the only Unsupported function with writes but neither
 reads nor allocation; it is a statement-scoped reborrow/call-composition shape,
-so the bounded F3 compiler-family tranche is complete and F4 is next.
+so the bounded F3 compiler-family tranche is complete.
+
+The first bounded F4 slice implements that exact compiler shape. It admits one
+exclusive struct parameter in one caller region and a nonempty sequence of
+distinct local region statements. Each local region contains exactly one
+expression-statement call with exactly one named argument: an unbound unique
+child borrow of one direct field of the parent. The local region spelling must
+match the child, cannot shadow the caller region or another local region, and
+ends with that statement; the call returns own `unit`; the parent is
+structurally suspended because no sibling or other argument exists. The callee
+has exactly one unique parameter, an exact writes-only row for its formal
+region, and an independently validated flat writer body, so a dishonest or
+unsupported callee cannot supply the effect fact. This implements the exact
+ancestor effect exemption without widening the ordinary field reader. Shared
+children, whole-parent or deeper suffixes, explicit call-region arguments,
+bound results, multiple arguments, siblings, let-bound parents, read/write
+callees, and borrow returns remain Unsupported. Hostile review pins local-region
+confinement and uniqueness, parent suspension, non-escape, dishonest callees,
+disjoint and overlapping deferred siblings, exact nominal field types,
+semantics-bearing source heads, and cyclic topology. Exactly
+`frontend_unit_reset` moves to CLEAN and no prior CLEAN function is lost. F4
+logic is isolated in 590- and 389-line modules with a 366-line focused test; the
+general reader is 6,692 lines. A fresh inventory identifies the next F4
+boundary as single child calls with additional scalar/shared arguments and a
+read/write effect through the same exclusive parent, led by the `ByteTape`
+emitters and the `llvm_text_emit_*` wrappers; sibling overlap remains a later
+F4 slice.
+
 `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. F4 bounded statement-scoped
 reborrow, F5 aggregate construction/return, and F6 `allocates`/`move` follow in

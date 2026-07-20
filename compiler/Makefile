@@ -20,6 +20,7 @@ check:
 	$(PY) test_semantic_writer.py
 	$(PY) test_semantic_writer_index.py
 	$(PY) test_semantic_writer_control.py
+	$(PY) test_semantic_reborrow.py
 	$(PY) test_semantic_types.py
 	$(PY) test_semantic_globals.py
 	$(PY) test_semantic_type_resolve.py

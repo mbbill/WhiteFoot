@@ -411,6 +411,9 @@ def canonical_path(columns, root, target):
 # exact nullary tag constructors, plus one exact two-region mixed writer whose
 # call RHS values carry explicit read-region attribution, and one exact
 # zero-cursor loop that clears indexed rows before direct field tail writes).
+# The first F4 profile additionally admits one unique struct parent whose direct
+# field children are reborrowed into distinct one-statement local regions and
+# passed alone to independently-proven flat writes-only unit callees.
 # Every listed
 # function is validated legal by the stage-0 reference checker at build time.
 COMPILER_CLEAN_ORDINALS = (
@@ -419,10 +422,10 @@ COMPILER_CLEAN_ORDINALS = (
     110, 111, 118, 119,
     123, 124, 125, 126, 143, 144, 145, 146, 147, 148, 149, 150, 152, 158, 159,
     162, 163, 164, 175,
-    185, 190, 191, 204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 286, 287,
-    295, 324, 333, 335, 341, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374,
-    377, 433, 434, 436, 440, 443, 444, 445, 447, 448, 449, 455, 462, 497, 525,
-    542, 543, 565,
+    185, 190, 191, 204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 287, 288,
+    296, 336, 345, 347, 353, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386,
+    388, 389, 445, 446, 448, 452, 455, 456, 457, 459, 460, 461, 467, 474, 509,
+    537, 554, 555, 577,
 )
 
 
@@ -430,15 +433,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 572
+    assert len(functions) == 584
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        572,
-        107,
-        465,
+        584,
+        108,
+        476,
         0,
         functions[18],
         AST_NONE,
@@ -3173,9 +3176,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        572,
-        107,
-        465,
+        584,
+        108,
+        476,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -3234,15 +3237,16 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 572 total / 107 clean / 465 unsupported / "
+        "semantic unit: compiler 584 total / 108 clean / 476 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "
         "and multi-variant enum matches, "
         "structured loops and owned-let mutation, "
         "enum values and tag-only-enum buffer reads, "
-        "flat field, exact trapping indexed writers, and exact indexed "
-        "row-clearing control writers, "
+        "flat field, exact trapping indexed writers, exact indexed "
+        "row-clearing control writers, and exact one-child statement-scoped "
+        "reborrow writers, "
         "structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "

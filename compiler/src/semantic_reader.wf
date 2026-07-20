@@ -1183,11 +1183,10 @@ fn semantic_reader_struct_decl_valid ['c] (ast: &'c AstTape, struct_decl: own u6
   return semantic_body_kind_is(ast: ast, node: struct_decl, want: ast_struct_decl_atom);
 }
 
-fn semantic_reader_type_node_struct_id ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, type_node: own u64) -> own u64 reads('c), traps {
-  let ast_parameter_type_atom: own AstKind = AstParameterType();
-  let kind_ok: own Bool = semantic_body_kind_is(ast: ast, node: type_node, want: ast_parameter_type_atom);
+fn semantic_reader_named_struct_type_id ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, type_node: own u64, type_kind: own AstKind) -> own u64 reads('c), traps {
+  let kind_ok: own Bool = semantic_body_kind_is(ast: ast, node: type_node, want: type_kind);
   let leaf_ok: own Bool = semantic_body_exact_children(ast: ast, node: type_node, want: 0_u64);
-  let token_ok: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: type_node);
+  let token_ok: own Bool = semantic_reader_writer_leaf_token_exact(source: source, tokens: tokens, ast: ast, node: type_node);
   let first: own Bool = band<Bool>(kind_ok, leaf_ok);
   let all: own Bool = band<Bool>(first, token_ok);
   match all {
@@ -1226,7 +1225,7 @@ fn semantic_reader_type_node_struct_id ['c] (source: &'c buffer<u8>, tokens: &'c
   let ast_struct_name_atom: own AstKind = AstStructName();
   let struct_name_kind: own Bool = semantic_body_kind_is(ast: ast, node: struct_name, want: ast_struct_name_atom);
   let struct_name_leaf: own Bool = semantic_body_exact_children(ast: ast, node: struct_name, want: 0_u64);
-  let struct_name_token: own Bool = semantic_body_node_token_valid(source: source, tokens: tokens, ast: ast, node: struct_name);
+  let struct_name_token: own Bool = semantic_reader_writer_leaf_token_exact(source: source, tokens: tokens, ast: ast, node: struct_name);
   let struct_name_shape: own Bool = band<Bool>(struct_name_kind, struct_name_leaf);
   match band<Bool>(struct_name_shape, struct_name_token) {
     True() => {
@@ -1245,6 +1244,11 @@ fn semantic_reader_type_node_struct_id ['c] (source: &'c buffer<u8>, tokens: &'c
     }
   }
   return iadd.trap<u64>(struct_decl, semantic_reader_struct_type_base);
+}
+
+fn semantic_reader_type_node_struct_id ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, type_node: own u64) -> own u64 reads('c), traps {
+  let ast_parameter_type_atom: own AstKind = AstParameterType();
+  return semantic_reader_named_struct_type_id(source: source, tokens: tokens, ast: ast, symbols: symbols, type_node: type_node, type_kind: ast_parameter_type_atom);
 }
 
 fn semantic_reader_struct_field_type ['c] (source: &'c buffer<u8>, tokens: &'c TokenTape, ast: &'c AstTape, symbols: &'c SymbolTape, struct_decl: own u64, field_name_head: own u64) -> own u64 reads('c), traps {
@@ -1267,6 +1271,15 @@ fn semantic_reader_struct_field_type ['c] (source: &'c buffer<u8>, tokens: &'c T
     let is_field: own Bool = eeq<AstKind>(child_kind, ast_field_atom);
     match is_field {
       True() => {
+        let field_shape: own Bool = semantic_body_exact_children(ast: ast, node: child, want: 1_u64);
+        let field_source: own Bool = semantic_reader_writer_head_starts_node(source: source, tokens: tokens, ast: ast, node: child);
+        match band<Bool>(field_shape, field_source) {
+          True() => {
+          }
+          False() => {
+            return semantic_facts_none;
+          }
+        }
         let field_head: own u64 = index<u64>(deref(ast).heads, child);
         let same: own Bool = token_text_equal(source: source, tokens: tokens, left: field_head, right: field_name_head);
         match same {
@@ -1274,7 +1287,9 @@ fn semantic_reader_struct_field_type ['c] (source: &'c buffer<u8>, tokens: &'c T
             let field_type_node: own u64 = index<u64>(deref(ast).first_children, child);
             let ft_leaf: own Bool = semantic_body_exact_children(ast: ast, node: field_type_node, want: 0_u64);
             let ft_kind: own Bool = semantic_body_kind_is(ast: ast, node: field_type_node, want: ast_field_type_atom);
-            match band<Bool>(ft_leaf, ft_kind) {
+            let ft_source: own Bool = semantic_reader_writer_leaf_token_exact(source: source, tokens: tokens, ast: ast, node: field_type_node);
+            let ft_first: own Bool = band<Bool>(ft_leaf, ft_kind);
+            match band<Bool>(ft_first, ft_source) {
               True() => {
               }
               False() => {
@@ -4388,6 +4403,8 @@ fn semantic_reader_analyze_block ['c, 'w] (source: &'c buffer<u8>, tokens: &'c T
     let is_loop: own Bool = eeq<AstKind>(statement_kind, ast_loop_atom);
     let ast_break_atom: own AstKind = AstBreak();
     let is_break: own Bool = eeq<AstKind>(statement_kind, ast_break_atom);
+    let ast_region_block_atom: own AstKind = AstRegionBlock();
+    let is_region_block: own Bool = eeq<AstKind>(statement_kind, ast_region_block_atom);
 
     let statement_flow: own SemanticReaderFlow = SemanticReaderFlowFalls();
     let statement_error: own Bool = False();
@@ -4480,6 +4497,25 @@ fn semantic_reader_analyze_block ['c, 'w] (source: &'c buffer<u8>, tokens: &'c T
         match break_clean {
           True() => {
             set statement_flow = SemanticReaderFlowBreaks();
+          }
+          False() => {
+            set statement_error = True();
+          }
+        }
+      }
+      False() => {
+      }
+    }
+    match is_region_block {
+      True() => {
+        set statement_handled = True();
+        let region_clean: own Bool = False();
+        region 'semantic_reader_stmt_reborrow_region {
+          set region_clean = semantic_reader_analyze_reborrow_region(source: source, tokens: tokens, ast: ast, symbols: symbols, regions_node: regions_node, statement: statement, scratch: &'semantic_reader_stmt_reborrow_region deref(scratch), report: &uniq 'semantic_reader_stmt_reborrow_region deref(report));
+        }
+        match region_clean {
+          True() => {
+            set statement_flow = SemanticReaderFlowFalls();
           }
           False() => {
             set statement_error = True();
@@ -6249,7 +6285,19 @@ fn semantic_reader_effects_reconcile ['c] (source: &'c buffer<u8>, tokens: &'c T
         False() => {
         }
       }
-      let writer_body_ok: own Bool = bor<Bool>(flat_writer_body_ok, control_writer_body_ok);
+      let reborrow_writer_body_ok: own Bool = False();
+      let no_traps: own Bool = bnot<Bool>(traps_declared);
+      let allow_reborrow: own Bool = band<Bool>(no_reads, no_traps);
+      match allow_reborrow {
+        True() => {
+          let reborrow_candidate: own Bool = semantic_reader_reborrow_writer_body_valid<'c>(source: source, tokens: tokens, ast: ast, symbols: symbols, function: function, writes_node: writes_node, block: block);
+          set reborrow_writer_body_ok = reborrow_candidate;
+        }
+        False() => {
+        }
+      }
+      let writer_body_first: own Bool = bor<Bool>(flat_writer_body_ok, control_writer_body_ok);
+      let writer_body_ok: own Bool = bor<Bool>(writer_body_first, reborrow_writer_body_ok);
       match writer_body_ok {
         True() => {
         }
