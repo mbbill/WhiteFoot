@@ -53,6 +53,9 @@ The repository is in the Rust compiler foundation phase.
 - The active safe-Rust workspace now pins the exact toolchain and specification,
   owns the ordered raw-source contract, and independently verifies exact
   source/spec binding. It has no compiler executable or conformance adapter yet.
+- The exact-v0.8 structural source index is generated independently of compiler
+  code. Its counts are integrity facts, not an implementation-progress measure;
+  authored semantic decomposition and compiler capability remain separate.
 - Existing performance experiments are evidence with explicit scope and
   caveats; they are not claims about a finished language or compiler.
 
@@ -104,6 +107,7 @@ as production rewrites.
 |---|---|
 | Current execution order and authorization | [THE-PLAN.md](THE-PLAN.md) |
 | Language specification | [spec/kernel-spec-v0.8.md](spec/kernel-spec-v0.8.md) |
+| Specification source index and facet work | [facets/v0.8/](facets/v0.8/README.md) |
 | Active Rust compiler workspace | [compiler/](compiler/README.md) |
 | Project law and writer patterns | [CONSTITUTION.md](CONSTITUTION.md), [PATTERNS.md](PATTERNS.md) |
 | Compiler-independent behavior corpus | [conformance/](conformance/README.md) |

@@ -3,7 +3,7 @@
 
 PY=python3 -B
 
-check: project-state spec-guard spec reference-model conformance compiler
+check: project-state spec-guard spec facets reference-model conformance compiler
 	@echo "== DEVELOPMENT GATE GREEN; RUST FOUNDATION ACTIVE; NO RELEASE CLAIM =="
 
 project-state:
@@ -19,6 +19,10 @@ approve-spec:
 
 spec:
 	$(PY) tools/spec_ci.py
+
+facets:
+	$(PY) tools/test_facet_catalog.py
+	$(PY) tools/facet_catalog.py check
 
 reference-model:
 	cd prototype/checker && $(PY) test_checker.py -v
@@ -37,4 +41,4 @@ release-check:
 	@echo "release gate unavailable: the exact-v0.8 Rust compiler is incomplete"
 	@false
 
-.PHONY: check project-state spec-guard approve-spec spec reference-model conformance compiler conformance-run release-check
+.PHONY: check project-state spec-guard approve-spec spec facets reference-model conformance compiler conformance-run release-check

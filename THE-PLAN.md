@@ -102,15 +102,23 @@ rule-cited rejection, run, trap, exact pending facet, internal error, timeout,
 artifact-verifier failure, backend failure, and toolchain failure. No exception
 or crash is translated into `Unsupported`.
 
-A specification-hash-bound facet catalog owns every normative grammar
-production, semantic premise and transition, operation-table row and edge case,
-ownership transition, effect clause, diagnostic obligation, artifact
-obligation, runtime behavior, lowering obligation, and whole-program rule. Each
-facet records its owning stage, handler, positive and negative witnesses,
-composition and malformed witnesses, diagnostic and artifact consequences,
-lowering disposition, and implementation and verification status. Coherent
-tranches may close multiple dependent facets; the catalog is not a new
-one-facet-at-a-time work counter.
+A specification-hash-bound source index accounts mechanically for every rule,
+syntax production, operation-table row, report row, and byte-exact normative
+block. An authored semantic decomposition maps stable facets to exact source
+atoms, one abstract owning stage, required pipeline lanes, and required evidence
+classes. It contains no compiler symbol, implementation state, concrete witness,
+expected verdict, semantic fallback, or replacement normative prose. A generated
+static catalog binds those two inputs.
+
+A separate compiler capability overlay binds the catalog hash and records shared
+generic handlers and concrete evidence. Capability is derived: a facet remains
+pending when any required lane or evidence class is absent, and there is no
+editable completeness flag. Production code neither dispatches on facet IDs nor
+reads the overlay to decide acceptance or lowering. Open specification or
+protected-surface discrepancies live in a separate machine-checked sidecar,
+cannot waive an obligation, prevent affected facets from closing, and block a
+release. Coherent tranches may close multiple dependent facets; catalog counts
+are integrity facts, not a work selector or progress measure.
 
 Verification combines:
 
@@ -176,7 +184,10 @@ Freeze and implement:
 - the ordered multi-file `SourceBundle` contract;
 - stable source, token, node, declaration, type, function, instantiation,
   check, and proof identities;
-- the v0.8 facet-catalog generator and checker;
+- the exact-v0.8 structural source index, authored semantic decomposition, and
+  generated static facet-catalog checker;
+- the separately validated compiler capability overlay and open-discrepancy
+  sidecar;
 - the canonical artifact envelope and codec;
 - selectable conformance adapters with capability state separate from
   normative expectations;
@@ -206,11 +217,13 @@ dependency-coherent tranches:
    rules, and whole-unit closure; and
 5. canonical diagnostics, proof records, artifact completeness, and reports.
 
-Each tranche updates the facet catalog, compiler-independent tests, checker
-producer, independent verifier, artifact projection, and lowering disposition.
-Handlers operate over arbitrary legal names, list lengths, nesting, source
-order, and graph shape. Whole-unit publication is failure-atomic. A tranche
-cannot leave a parallel semantic path or temporary acceptance authority.
+Each tranche updates compiler-independent tests, checker producer, independent
+verifier, artifact projection, lowering implementation, and the capability
+overlay's concrete evidence. It does not rewrite the static catalog to report
+progress; an index or decomposition correction is a separately reviewed catalog
+change. Handlers operate over arbitrary legal names, list lengths, nesting,
+source order, and graph shape. Whole-unit publication is failure-atomic. A
+tranche cannot leave a parallel semantic path or temporary acceptance authority.
 
 **Exit:** every normative v0.8 facet is owned and independently verified; all
 declared bodies and concrete instantiations are checked; valid programs are
@@ -346,12 +359,17 @@ review before shipment. Keep project artifacts in English and `AGENTS.md` and
 
 Phase 2 is active. It establishes the Rust workspace, exact source and artifact
 contracts, facet catalog, adapter protocol, and independent verifier boundary.
-The first foundation slice now supplies the pinned, dependency-policed
-safe-Rust workspace, ordered raw-source bundle, canonical source/spec binding
-codec, and separately typed source-binding verifier. Token,
-tree, declaration, type, instantiation, check, and proof identities remain
-deliberately unfrozen until their canonical schemas exist; traversal counters
-must not become artifact authority. The next slice is the static v0.8 facet
-catalog and capability-overlay boundary. A red gate, specification conflict,
-protected-surface guard, unverified authority path, unexplained verdict, or
-need for a numbered-spec change stops the affected work at that boundary.
+The first foundation slice supplies the pinned, dependency-policed safe-Rust
+workspace, ordered raw-source bundle, canonical source/spec binding codec, and
+separately typed source-binding verifier. The current catalog slice supplies a
+fail-closed exact-v0.8 structural index; it explicitly distinguishes 57 fenced
+grammar productions from two EFF-1 inline productions and records the unresolved
+OP-1 dotless-name set mismatch without choosing an interpretation. It makes no
+semantic-decomposition or compiler-completeness claim. Token, tree, declaration,
+type, instantiation, check, and proof identities remain deliberately unfrozen
+until their canonical schemas exist; traversal counters must not become artifact
+authority. The next slice is the authored semantic decomposition, generated
+static catalog, discrepancy sidecar, and separately validated capability-overlay
+boundary. A red gate, specification conflict, protected-surface guard, unverified
+authority path, unexplained verdict, or need for a numbered-spec change stops the
+affected work at that boundary.
