@@ -432,21 +432,25 @@ def canonical_path(columns, root, target):
 # an exact recursive-u64 region that consumes the caller's owned u64 parameter.
 # The ninth F4 profile admits exact reset, fixed-prefix, and recursive-u64
 # regions in sequence, followed by unit return.
+# The tenth F4 profile admits the exact two-region shared-input span emitter:
+# start <= end <= len(source), a cursor that exits at end, one checked source
+# byte per iteration, one statement-scoped whole-output child, and trapping
+# progress by canonical one.
 # Every listed function is validated legal by the stage-0 reference checker at
 # build time.
 COMPILER_CLEAN_ORDINALS = (
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    21, 22, 23, 24, 29, 30, 31, 34, 63, 64, 65, 88, 89, 90, 91, 92, 95, 96, 98,
+    21, 22, 23, 24, 29, 30, 31, 34, 63, 64, 65, 88, 89, 90, 91, 92, 93, 95, 96, 98,
     102, 104, 105, 106, 110, 111, 118, 119,
     123, 124, 125, 126, 143, 144, 145, 146, 147, 148, 149, 150, 152, 158, 159,
     162, 163, 164, 175,
     185, 190, 191, 204, 207, 208, 209, 214, 216, 228, 229, 230, 235, 287, 288,
-    296, 396, 405, 407, 413, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446,
-    448, 449, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467,
-    468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482,
-    483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497,
-    498, 499, 500, 501, 502, 503, 504, 505, 506, 508, 512, 515, 516, 517, 519,
-    520, 521, 522, 527, 534, 554, 569, 597, 614, 615, 637,
+    296, 407, 416, 418, 424, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457,
+    459, 460, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478,
+    479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493,
+    494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508,
+    509, 510, 511, 512, 513, 514, 515, 516, 517, 519, 523, 526, 527, 528, 530,
+    531, 532, 533, 538, 545, 565, 580, 608, 625, 626, 648,
 )
 
 
@@ -454,15 +458,15 @@ def assert_compiler_coverage(library):
     data = compiler_source().encode("ascii")
     case = parsed(library, data)
     functions = top_level_functions(case)
-    assert len(functions) == 644
+    assert len(functions) == 655
 
     work = make_work(library, case[5].count)
     first = invoke_unit(library, case, work)
     expected = (
         UNIT_CLEAN,
-        644,
-        165,
-        479,
+        655,
+        166,
+        489,
         0,
         functions[18],
         AST_NONE,
@@ -3197,9 +3201,9 @@ def assert_hostile_inputs_and_capacities(library, case, full_work):
     )
     assert unit_report_tuple(refreshed) == (
         UNIT_CLEAN,
-        644,
-        165,
-        479,
+        655,
+        166,
+        489,
         0,
         top_level_functions(case)[18],
         AST_NONE,
@@ -3258,7 +3262,7 @@ def main():
         assert_dynamic_linear_capacity(library)
         assert_hostile_inputs_and_capacities(library, case, work)
     print(
-        "semantic unit: compiler 644 total / 165 clean / 479 unsupported / "
+        "semantic unit: compiler 655 total / 166 clean / 489 unsupported / "
         "0 rejected; exact clean ordinals, source-order frontier, legal "
         "nonprofile, reader bool-equality rejection, reader bool-return "
         "admission, exact arbitrary-arity call-region attribution, general signatures "
@@ -3271,7 +3275,7 @@ def main():
         "reborrow calls, exact guarded eight-byte chunk reborrows and exact "
         "one-, two-, and four-region fixed-literal chunk wrappers, "
         "exact terminating recursive u64 decimal emission and exact "
-        "fixed-chunk-plus-number wrappers and output probe, "
+        "fixed-chunk-plus-number wrappers, output probe, and guarded span, "
         "structural rename, real "
         "reject, deterministic repeat, "
         "fresh validation, bounded paths, transactional diagnostics, "

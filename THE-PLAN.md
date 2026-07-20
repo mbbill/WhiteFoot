@@ -294,10 +294,10 @@ the authorized seven-phase scope.
 
 Phase 2 is active. The canonical rejection ABI, explicit call-region retention,
 and arbitrary-arity exact call substitution are complete. The current unit has
-644 functions: 165 clean, 479 legal but unsupported, and zero rejected. Its
-self-parse is deterministic at 1,740,995 source bytes, 351,552 tokens, and
-174,487 unique-head AST nodes. The parser census is 4,860 regionful calls: 496
-explicit and 4,364 staged omissions. LLVM support remains the same
+655 functions: 166 clean, 489 legal but unsupported, and zero rejected. Its
+self-parse is deterministic at 1,783,808 source bytes, 360,726 tokens, and
+179,036 unique-head AST nodes. The parser census is 5,065 regionful calls: 497
+explicit and 4,568 staged omissions. LLVM support remains the same
 byte-identical 15-function module.
 
 Stage 0 now emits every fixed-size stack slot once in the LLVM entry block.
@@ -724,6 +724,38 @@ span emitter is the next bounded F4 boundary: it combines already-supported
 guarded loop flow and shared source reads with one statement-scoped whole-output
 child per owned byte; the span probe remains blocked until that prerequisite is
 CLEAN.
+
+The tenth bounded F4 slice admits `byte_tape_emit_span`. Its exact four-
+parameter, two-region signature has one shared `buffer<u8>` source, owned
+`u64` start and end indices, one exclusive struct output, exact source/output
+reads, output writes, traps, and own unit. The body proves
+`start <= end <= len(source)`, returns through the exact invalid-status match
+when that guard fails, initializes a cursor to start, and enters an exact
+terminating loop. Each nonterminal iteration proves `cursor < end`, reads
+`source[cursor]`, passes the resulting owned byte with a fresh statement-local
+whole-output unique child to the independently re-proven byte-push callee, and
+increments the cursor with trapping addition. Since `end <= len(source)`, the
+index is in bounds; since `cursor < end <= u64::MAX`, the increment cannot
+overflow; strict progress terminates at end. The child is unbound and confined
+to its call statement, so the parent is suspended only for that statement and
+no unique siblings coexist. No range, cursor, global value, call result, or
+optimizer fact is exported, and no lowering authority is added. Hostile review
+returned GO after pinning signature modes, nominal types, region roots, effect
+rows and order, guard operations and operands, invalid arm, cursor lifecycle,
+loop arms, source index, reborrow depth/mode/confinement, region freshness,
+increment, callee honesty, source-head redirection, and cyclic topology.
+Fail-closed ordering defects found during negative testing were corrected so
+malformed effect rows and parameter modes are rejected before dependent child
+lookups. Exactly `byte_tape_emit_span` moves to CLEAN; no prior CLEAN function
+is lost and all eleven new helpers remain Unsupported. The unit is 655 total /
+166 CLEAN / 489 Unsupported / 0 rejected; the exact 15-function LLVM module is
+unchanged. The parser census is 5,065 regionful calls = 497 explicit + 4,568
+staged omissions; self-parse is deterministic at 1,783,808 bytes / 360,726
+tokens / 179,036 nodes. Maintainability review splits the proof across 264-,
+133-, 220-, and 165-line modules with a 375-line hostile suite; the general
+reader is 6,807 lines. The dependent `byte_tape_emit_span_probe` at output
+ordinal 94 is the next bounded F4 boundary; `llvm_text_emit_token` follows it
+in the dependency chain.
 
 `lexer_scan_string` remains the source-order
 frontier, blocked by aggregate return and other deferred forms. Remaining F4

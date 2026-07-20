@@ -39,6 +39,10 @@ src/semantic_reader_reborrow_u64_call.wf
 src/semantic_reader_reborrow_u64.wf
 src/semantic_reader_reborrow_numeric_wrapper.wf
 src/semantic_reader_reborrow_probe.wf
+src/semantic_reader_reborrow_span_signature.wf
+src/semantic_reader_reborrow_span_value.wf
+src/semantic_reader_reborrow_span_loop.wf
+src/semantic_reader_reborrow_span.wf
 src/semantic_unit.wf
 src/semantic_types.wf
 src/semantic_globals.wf
