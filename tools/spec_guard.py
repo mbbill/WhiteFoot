@@ -11,7 +11,7 @@ recomputes the guarded surface, compares it against the approved baseline
 (`governance/guard-baseline.json`), and fails `make check` when
 
   * a numbered kernel spec is added, removed, or edited in place;
-  * an existing conformance expected verdict or case source changes;
+  * an existing conformance expected verdict or any case file changes;
   * a frozen oracle digest is changed or regenerated;
   * an existing guarded reference test is removed or rewritten; or
   * the baseline itself was regenerated without a matching logged approval.
@@ -56,6 +56,19 @@ GUARDED_TEST_FILES = (                            # active reference semantics; 
 
 HEX_DIGEST = re.compile(r'"([0-9a-f]{64}|[0-9a-f]{40})"')
 APPROVAL_BASELINE_LINE = re.compile(r"^- baseline:\s*([0-9a-f]{64})\s*$", re.M)
+
+# The current approved baseline predates the explicit all-files case inventory.
+# It already pins every manifested case through ``conformance``, but it omitted
+# this one tracked, unmanifested case. Bind the migration to the exact approved
+# baseline bytes so it cannot silently apply to a different baseline. The next
+# owner-approved regeneration will write ``conformance_case_files`` directly
+# and no longer use this compatibility entry.
+LEGACY_CASE_FILE_INVENTORIES = {
+    "9d4ff925668a3341543d555c5243ef0b74ca5e7e275617ff4808d90c290dc48a": {
+        "conformance/cases/pending-const2-item.wf":
+            "ae99d9b9b99e02e9c6c5f2af54f0924b7b1a0f5ee0422d29958b01b597adf759",
+    },
+}
 
 FIX_HINT = (
     "obtain the owner's approval for the exact delta, then record it with "
@@ -106,6 +119,18 @@ def conformance_surface() -> dict[str, str]:
     return out
 
 
+def conformance_case_files_surface() -> dict[str, str]:
+    """Hash every regular file below the protected conformance case tree."""
+    out: dict[str, str] = {}
+    if not CONFORMANCE_CASES.is_dir():
+        return out
+    for path in sorted(CONFORMANCE_CASES.rglob("*")):
+        if path.is_file():
+            rel = path.relative_to(ROOT).as_posix()
+            out[rel] = sha256_bytes(path.read_bytes())
+    return out
+
+
 def oracle_surface() -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     for rel in ORACLE_FILES:
@@ -150,6 +175,7 @@ def build_surface() -> dict:
     return {
         "kernel_specs": spec_surface(),
         "conformance": conformance_surface(),
+        "conformance_case_files": conformance_case_files_surface(),
         "oracles": oracle_surface(),
         "tests": tests_surface(),
     }
@@ -184,6 +210,14 @@ def diff_surface(baseline: dict, live: dict) -> list[str]:
                 f"conformance expected verdict or case source changed without approval: {case_id}"
             )
 
+    base_case_files = baseline.get("conformance_case_files", {})
+    live_case_files = live.get("conformance_case_files", {})
+    for path, digest in base_case_files.items():
+        if path not in live_case_files:
+            violations.append(f"conformance case file removed without approval: {path}")
+        elif live_case_files[path] != digest:
+            violations.append(f"conformance case file changed without approval: {path}")
+
     base_oracle = baseline.get("oracles", {})
     live_oracle = live.get("oracles", {})
     for rel, values in base_oracle.items():
@@ -212,7 +246,18 @@ def diff_surface(baseline: dict, live: dict) -> list[str]:
 def load_baseline() -> dict | None:
     if not BASELINE.is_file():
         return None
-    return json.loads(BASELINE.read_text(encoding="utf-8"))
+    raw = BASELINE.read_bytes()
+    baseline = json.loads(raw.decode("utf-8"))
+    if "conformance_case_files" not in baseline:
+        digest = sha256_bytes(raw)
+        legacy_inventory = LEGACY_CASE_FILE_INVENTORIES.get(digest)
+        if legacy_inventory is None:
+            raise ValueError(
+                "approved baseline predates the all-files conformance inventory "
+                "and has no exact migration pin"
+            )
+        baseline["conformance_case_files"] = dict(legacy_inventory)
+    return baseline
 
 
 def write_baseline(surface: dict) -> str:
@@ -231,7 +276,11 @@ def latest_logged_baseline() -> str | None:
 
 
 def cmd_check() -> int:
-    baseline = load_baseline()
+    try:
+        baseline = load_baseline()
+    except ValueError as error:
+        print(f"spec-guard: invalid governance baseline: {error}", file=sys.stderr)
+        return 1
     if baseline is None:
         print(
             "spec-guard: missing governance/guard-baseline.json; "
@@ -263,8 +312,8 @@ def cmd_check() -> int:
         return 1
 
     print(
-        "spec-guard: kernel spec, conformance verdicts, oracle digests, and reference "
-        "tests match the approved baseline"
+        "spec-guard: kernel spec, conformance verdicts and case files, oracle digests, "
+        "and reference tests match the approved baseline"
     )
     return 0
 

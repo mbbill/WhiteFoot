@@ -3,8 +3,9 @@
 
 These pin the exact violation shapes the guard must catch — the ones the parked
 `parked_edits` branch (D20-R3) walked through: an in-place numbered-spec edit, a
-flipped conformance expected verdict, a regenerated oracle digest, and a rewritten
-reference test. Additions must stay free.
+flipped conformance expected verdict, a changed or removed unmanifested case
+file, a regenerated oracle digest, and a rewritten reference test. Additions
+must stay free.
 """
 
 from __future__ import annotations
@@ -22,6 +23,10 @@ def base() -> dict:
     return {
         "kernel_specs": {"spec/kernel-spec-v0.6.md": "aaaa"},
         "conformance": {"own1-neg-x": "c1", "rule:META-1": "c2"},
+        "conformance_case_files": {
+            "conformance/cases/own1-neg-x.wf": "m1",
+            "conformance/cases/unmanifested.wf": "u1",
+        },
         "oracles": {"tools/codegen_parity.py": ["deadbeef"]},
         "tests": {"prototype/checker/test_checker.py": {"Negative.test_x": "t1"}},
     }
@@ -80,6 +85,55 @@ def test_added_conformance_case_is_free() -> None:
     live = base()
     live["conformance"] = {**base()["conformance"], "own1-pos-new": "brand-new"}
     check("added conformance case is allowed", diff_is_empty(base(), live))
+
+
+def test_changed_unmanifested_conformance_case_file_is_caught() -> None:
+    live = base()
+    live["conformance_case_files"] = {
+        **base()["conformance_case_files"],
+        "conformance/cases/unmanifested.wf": "CHANGED",
+    }
+    violations = spec_guard.diff_surface(base(), live)
+    check(
+        "changed unmanifested conformance case file flagged",
+        any("unmanifested.wf" in v and "changed" in v for v in violations),
+    )
+
+
+def test_removed_unmanifested_conformance_case_file_is_caught() -> None:
+    live = base()
+    live["conformance_case_files"] = {
+        "conformance/cases/own1-neg-x.wf": "m1",
+    }
+    violations = spec_guard.diff_surface(base(), live)
+    check(
+        "removed unmanifested conformance case file flagged",
+        any("unmanifested.wf" in v and "removed" in v for v in violations),
+    )
+
+
+def test_added_unmanifested_conformance_case_file_is_free() -> None:
+    live = base()
+    live["conformance_case_files"] = {
+        **base()["conformance_case_files"],
+        "conformance/cases/new-unmanifested.wf": "new",
+    }
+    check(
+        "added unmanifested conformance case file is allowed",
+        diff_is_empty(base(), live),
+    )
+
+
+def test_real_legacy_orphan_is_in_protected_inventory() -> None:
+    baseline = spec_guard.load_baseline()
+    check("approved baseline loads", baseline is not None)
+    assert baseline is not None
+    path = "conformance/cases/pending-const2-item.wf"
+    check(
+        "legacy unmanifested case is pinned",
+        baseline["conformance_case_files"].get(path)
+        == spec_guard.conformance_case_files_surface().get(path),
+    )
 
 
 def test_regenerated_oracle_digest_is_caught() -> None:
