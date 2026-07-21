@@ -1,9 +1,10 @@
-- No source-to-code compiler is active during the foundation phase. The sole moving implementation is a safe-Rust production compiler for the exact normative content of kernel specification v0.8, SHA-256 `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
+- No source-to-code compiler is active during the foundation phase. Exact v0.8 remains the immutable evidence baseline, but its recorded grammar contradictions block a production parser until a separately approved numbered successor resolves them.
 - The Rust implementation starts directly with the permanent checked-artifact architecture; there is no disposable compiler or parallel implementation ladder.
 - The production workspace forbids Rust `unsafe`. The declared trusted computing base includes the pinned Rust toolchain and dependencies, LLVM and native tools, the runtime and allocator, the operating system, and foreign call frames.
 - Retired wfc and democ snapshots are inert historical evidence. Neither implementation defines language semantics, lowering behavior, build success, or release readiness.
 - No active build or source import crosses from the archive. Valuable general regressions are re-derived additively against permanent interfaces rather than transplanted with retired architecture.
 - Self-hosting is outside current authorization. One production compiler moves until exact-v0.8 completion and later product qualification justify a new owner decision.
+- The first active implementation tranche is a standalone grammar-change verifier outside the production compiler dependency graph; its reports and proposal bytes grant no language authority.
 
 ## Facts
 
@@ -15,6 +16,7 @@
 - 2026-07-20 measurement: a safe-Rust typed-index `Vec` experiment reached the measured AST storage ceiling, while a safe bump representation remained within 21 percent of its time; mature host-language storage can satisfy the production compiler's measured structural needs without an unsafe arena. (sourced)
 - 2026-07-20 implementation boundary: the conformance manifest and cases are compiler-independent and can be exercised through named implementation adapters without changing normative expectations. (sourced)
 - 2026-07-20 (75b768ba) repository inspection: no Rust compiler implementation existed when the production-Rust direction was selected. (code)
+- 2026-07-21 (4ecc14d) owner ruling: all top-level function signatures are visible throughout the future closed compilation unit, while locals, regions, labels, and named constants remain declaration-before-use; implementation waits for exact successor-specification encoding. (sourced)
 
 ## Moves
 

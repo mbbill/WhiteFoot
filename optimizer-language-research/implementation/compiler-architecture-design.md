@@ -721,8 +721,8 @@ schema/profile, or implementation beyond an open entrance gate.
 - [x] Decision 18's path/API/dependency/allocation audit receipt is complete.
 - [ ] Exact release resource, target, backend, and host-filesystem profiles are
   evidence-selected.
-- [ ] Owner approves the roadmap revision.
+- [x] Owner approves the roadmap revision.
 
 Until every unchecked entrance item is complete, the correct project status is
-**design ready for owner discussion; production semantic implementation
-paused**.
+**architecture adopted; audited foundation handoff active; production parser
+and semantic implementation paused at their named entrance gates**.
