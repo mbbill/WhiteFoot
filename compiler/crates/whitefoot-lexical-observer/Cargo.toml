@@ -1,0 +1,22 @@
+[package]
+name = "whitefoot-lexical-observer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Bounded non-authorizing lexical observation adapter for Whitefoot v0.8"
+publish = false
+autobins = false
+
+[dependencies]
+whitefoot-contract = { path = "../whitefoot-contract" }
+whitefoot-frontend = { path = "../whitefoot-frontend" }
+
+[[bin]]
+name = "whitefoot-lexical-observer"
+path = "src/main.rs"
+test = true
+doc = false
+
+[lints]
+workspace = true

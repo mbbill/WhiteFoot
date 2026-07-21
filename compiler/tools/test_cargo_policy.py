@@ -228,6 +228,18 @@ class CargoIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "allowlisted Cargo command"):
             cargo_policy.run_cargo(("run",))
 
+    def test_observer_builder_yields_only_the_fresh_declared_executable(self) -> None:
+        with cargo_policy.built_lexical_observer() as executable:
+            self.assertEqual(executable.name, "whitefoot-lexical-observer")
+            self.assertTrue(executable.is_file())
+            self.assertTrue(os.access(executable, os.X_OK))
+            temporary_root = next(
+                parent
+                for parent in executable.parents
+                if parent.name.startswith("whitefoot-observer-build-")
+            )
+        self.assertFalse(temporary_root.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

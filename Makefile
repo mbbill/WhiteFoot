@@ -39,6 +39,7 @@ capabilities:
 
 lexical-model:
 	$(PY) tools/test_v08_lexical_model.py
+	$(PY) tools/test_v08_lexical_observer.py
 
 reference-model:
 	cd prototype/checker && $(PY) test_checker.py -v

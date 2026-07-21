@@ -29,6 +29,12 @@ EXPECTED_TARGETS = {
         ("lib",),
     ),
     (
+        "crates/whitefoot-lexical-observer/Cargo.toml",
+        "whitefoot-lexical-observer",
+        ("bin",),
+        ("bin",),
+    ),
+    (
         "crates/whitefoot-verifier/Cargo.toml",
         "whitefoot_verifier",
         ("lib",),
@@ -254,12 +260,27 @@ def build(
             declared.append((Path(executable), "executable"))
         if not declared:
             fail(f"Cargo declared no artifacts for {target_identity}")
-        suffixes = tuple(sorted(path.suffix for path, _ in declared))
-        if suffixes != (".rlib", ".rmeta"):
-            fail(
-                f"workspace library artifact set drifted for {target_identity}: "
-                f"{suffixes}"
-            )
+        if cargo_target["kind"] == ["lib"]:
+            suffixes = tuple(sorted(path.suffix for path, _ in declared))
+            if suffixes != (".rlib", ".rmeta"):
+                fail(
+                    f"workspace library artifact set drifted for {target_identity}: "
+                    f"{suffixes}"
+                )
+        elif cargo_target["kind"] == ["bin"]:
+            expected_name = cargo_target["name"] + (".exe" if os.name == "nt" else "")
+            if (
+                len(declared) != 1
+                or declared[0][0].name != expected_name
+                or executable is None
+                or declared[0][0] != Path(executable)
+            ):
+                fail(
+                    f"workspace binary artifact set drifted for {target_identity}: "
+                    f"{declared!r}"
+                )
+        else:
+            fail(f"unreviewed workspace target kind for {target_identity}")
         for path, role in declared:
             if not path.is_file():
                 fail(f"Cargo-declared artifact does not exist: {path}")

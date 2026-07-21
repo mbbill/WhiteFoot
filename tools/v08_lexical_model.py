@@ -18,6 +18,9 @@ STATIC_CATALOG_SHA256 = (
     "2fa586a8a1d9a49f344d64ad2b5f450a2ae2e8362bc187c70267097b9b427e1d"
 )
 
+U32_MAX = (1 << 32) - 1
+U64_MAX = (1 << 64) - 1
+
 OUTCOME_KINDS = frozenset(("complete", "source_issue", "resource_failure"))
 
 TOKEN_KINDS = frozenset(
@@ -108,8 +111,11 @@ class LexLimits:
 
     def __post_init__(self) -> None:
         for name, value in vars(self).items():
-            if type(value) is not int or value < 0:
-                raise ValueError(f"{name} must be a non-negative integer")
+            maximum = U32_MAX if name == "max_sources" else U64_MAX
+            if type(value) is not int or not 0 <= value <= maximum:
+                raise ValueError(
+                    f"{name} must be an integer from 0 through {maximum}"
+                )
 
 
 @dataclass(frozen=True)

@@ -22,11 +22,15 @@ REPOSITORY = ROOT.parent
 EXPECTED_MEMBERS = (
     "whitefoot-contract",
     "whitefoot-frontend",
+    "whitefoot-lexical-observer",
     "whitefoot-verifier",
 )
 EXPECTED_MANIFESTS = {
     "whitefoot-contract": Path("crates/whitefoot-contract/Cargo.toml"),
     "whitefoot-frontend": Path("crates/whitefoot-frontend/Cargo.toml"),
+    "whitefoot-lexical-observer": Path(
+        "crates/whitefoot-lexical-observer/Cargo.toml"
+    ),
     "whitefoot-verifier": Path("crates/whitefoot-verifier/Cargo.toml"),
 }
 EXPECTED_TARGETS = {
@@ -35,6 +39,7 @@ EXPECTED_TARGETS = {
         "kind": ["lib"],
         "crate_types": ["lib"],
         "source": Path("crates/whitefoot-contract/src/lib.rs"),
+        "doc": True,
         "doctest": False,
     },
     "whitefoot-frontend": {
@@ -42,6 +47,15 @@ EXPECTED_TARGETS = {
         "kind": ["lib"],
         "crate_types": ["lib"],
         "source": Path("crates/whitefoot-frontend/src/lib.rs"),
+        "doc": True,
+        "doctest": False,
+    },
+    "whitefoot-lexical-observer": {
+        "name": "whitefoot-lexical-observer",
+        "kind": ["bin"],
+        "crate_types": ["bin"],
+        "source": Path("crates/whitefoot-lexical-observer/src/main.rs"),
+        "doc": False,
         "doctest": False,
     },
     "whitefoot-verifier": {
@@ -49,12 +63,17 @@ EXPECTED_TARGETS = {
         "kind": ["lib"],
         "crate_types": ["lib"],
         "source": Path("crates/whitefoot-verifier/src/lib.rs"),
+        "doc": True,
         "doctest": False,
     },
 }
 EXPECTED_EDGES = {
     "whitefoot-contract": (),
     "whitefoot-frontend": ("whitefoot-contract",),
+    "whitefoot-lexical-observer": (
+        "whitefoot-contract",
+        "whitefoot-frontend",
+    ),
     "whitefoot-verifier": ("whitefoot-contract",),
 }
 DEPENDENCY_FIELDS = {
@@ -599,6 +618,34 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
                 Path("crates/whitefoot-contract"),
             ),
         ),
+        "whitefoot-lexical-observer": (
+            (
+                "whitefoot-contract",
+                "*",
+                None,
+                None,
+                False,
+                True,
+                (),
+                None,
+                None,
+                None,
+                Path("crates/whitefoot-contract"),
+            ),
+            (
+                "whitefoot-frontend",
+                "*",
+                None,
+                None,
+                False,
+                True,
+                (),
+                None,
+                None,
+                None,
+                Path("crates/whitefoot-frontend"),
+            ),
+        ),
         "whitefoot-verifier": (
             (
                 "whitefoot-contract",
@@ -636,7 +683,7 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
 
         target_rows = package.get("targets", [])
         if len(target_rows) != 1:
-            fail(f"{name} must have exactly one library target")
+            fail(f"{name} must have exactly one reviewed target")
         target = target_rows[0]
         expected_target = EXPECTED_TARGETS[name]
         if (
@@ -645,7 +692,7 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
             or target.get("crate_types") != expected_target["crate_types"]
             or relative(target["src_path"]) != expected_target["source"]
             or target.get("edition") != "2024"
-            or target.get("doc") is not True
+            or target.get("doc") is not expected_target["doc"]
             or target.get("doctest") is not expected_target["doctest"]
             or target.get("test") is not True
         ):

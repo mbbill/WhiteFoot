@@ -280,6 +280,36 @@ class ModelContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             model.LexLimits(-1, 0, 0, 0, 0, 0)
 
+    def test_limit_values_match_the_rust_wire_domain_exactly(self) -> None:
+        maximum = model.LexLimits(
+            model.U32_MAX,
+            model.U64_MAX,
+            model.U64_MAX,
+            model.U64_MAX,
+            model.U64_MAX,
+            model.U64_MAX,
+        )
+        self.assertEqual(maximum.max_sources, model.U32_MAX)
+        self.assertEqual(maximum.max_lexemes, model.U64_MAX)
+
+        fields = tuple(vars(maximum))
+        for field in fields:
+            with self.subTest(field=field, value="bool"):
+                values = vars(maximum) | {field: True}
+                with self.assertRaises(ValueError):
+                    model.LexLimits(**values)
+            with self.subTest(field=field, value="negative"):
+                values = vars(maximum) | {field: -1}
+                with self.assertRaises(ValueError):
+                    model.LexLimits(**values)
+            with self.subTest(field=field, value="overflow"):
+                field_maximum = (
+                    model.U32_MAX if field == "max_sources" else model.U64_MAX
+                )
+                values = vars(maximum) | {field: field_maximum + 1}
+                with self.assertRaises(ValueError):
+                    model.LexLimits(**values)
+
 
 if __name__ == "__main__":
     unittest.main()

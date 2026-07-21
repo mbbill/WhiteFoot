@@ -363,8 +363,9 @@ review before shipment. Keep project artifacts in English and `AGENTS.md` and
 
 Phase 2 is active. The completed foundation now consists of:
 
-- a pinned, dependency-policed three-crate safe-Rust workspace with exact build
-  and cross-copy reproducibility gates;
+- a pinned, dependency-policed safe-Rust workspace with three permanent library
+  crates, one binary-only lexical observer, and exact build and cross-copy
+  reproducibility gates;
 - an ordered raw-source bundle, canonical source/specification binding codec,
   nominal specification and static-catalog identities, and an independently
   typed source-binding verifier;
@@ -375,15 +376,21 @@ Phase 2 is active. The completed foundation now consists of:
   non-authorizing capability overlay outside the Cargo workspace; and
 - a permanent lossless lexer that partitions every source byte into a
   shape-only token or retained trivia under explicit limits, plus a small
-  compiler-independent byte model and fixture corpus.
+  compiler-independent byte model and fixture corpus; and
+- a hard-bounded lexical observation protocol and closed fresh-build runner
+  whose 942-case Rust/model differential freezes every request input under
+  manifest SHA-256
+  `5f84cc0982cd74c46fc9350da4ee6611ec5a513f0c3ede1d2f76dceeeab39ff9`.
 
 The static catalog SHA-256 remains
 `2fa586a8a1d9a49f344d64ad2b5f450a2ae2e8362bc187c70267097b9b427e1d`.
-The lexer changes no catalog or capability state: `Complete` means only an
-exact lexical partition, its token handles are source-bound runtime handles
-rather than portable artifact identities, and its pre-tree issues are internal
+The lexer and observer change no catalog or capability state: `Complete` means
+only an exact lexical partition, token handles are source-bound runtime handles
+rather than portable artifact identities, and pre-tree issues are internal
 locations without rule IDs, canonical node paths, or verdict authority. The
-independent model is not a Rust differential or evidence receipt. Consequently
+observer returns only the four existing lexical outcome families. Its exact
+request/response pair and the independent differential are test observations,
+not a checked artifact, normative verdict, or evidence receipt. Consequently
 the capability overlay remains empty and this foundation closes zero facets.
 
 Canonical tree, node, declaration, type, instantiation, check, proof, and
@@ -410,13 +417,16 @@ normalize effect rows, issue normative diagnostics, or claim language
 acceptance. An independent bounded grammar oracle and hostile observation tests
 must accompany the real producer before any parser capability claim.
 
-The next unblocked Phase-2 slice is an executable lexical observation adapter
-and independent Rust/model differential over authored and generated hostile
-bytes. It must bind the exact specification and source bundle, restrict model
-limits to the Rust `u32`/`u64` domain, keep capability metadata absent from all
-compiler input channels, and report only the existing non-authorizing lexical
-outcomes. It closes no facet until a separately reviewed evidence provider and
-receipt replay boundary exist.
+That lexical observation slice is complete. No single-derivation parser or
+tree-authority slice is now unblocked under exact v0.8: proceeding would require
+inventing terminal priority, reserving an unstated keyword set, or otherwise
+choosing among the recorded competing derivations. The next semantic design
+decision must therefore be owner-reviewed at this boundary. An
+ambiguity-preserving grammar result is a possible permanent architecture, but
+it is not authorized merely as a workaround; it needs a bounded design,
+complexity argument, downstream resolution rule, and hostile review before
+implementation. Do not fill the pause with placeholder tree or artifact
+schemas, because their identities depend on the real grammar result.
 
 Phase 2 remains open until its artifact, adapter, identity, and verifier
 boundaries are real and executable. A red gate, specification conflict,

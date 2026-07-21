@@ -22,6 +22,15 @@ conformance or release claim.
   explicitly bounded; this does not extend that claim backward to source-bundle
   construction. This is lossless frontend infrastructure, not a
   language-acceptance, semantic-capability, or catalog-facet claim.
+- `whitefoot-lexical-observer` is a binary-only development adapter depending
+  on the contract and frontend. It accepts one bounded canonical source
+  binding on standard input and projects only the lexer's four existing
+  outcome families through a closed binary protocol. Its output has no rule,
+  verdict, parser, capability, receipt, or portable token-identity field. The
+  exact request/response pair is test observation data, not a checked compiler
+  artifact. Conservative ingress limits bound the current infallible
+  source-binding and bundle-construction allocations; allocator termination in
+  that path remains a toolchain failure, not a lexical result.
 - `whitefoot-verifier` depends only on `whitefoot-contract`. Its first real
   judgment verifies that an artifact is bound to the expected specification
   and exact ordered source bytes. Verified state has no public constructor.
@@ -54,11 +63,13 @@ working directory, closed environment, exact toolchain, and explicit manifest;
 Make variables cannot replace that runner. No evidence replay provider exists
 yet, so the overlay cannot close any semantic obligation.
 
-When an executable conformance adapter is added, its gate must compare identical
-results with the overlay and derived report absent from the filesystem, working
-directory, environment, arguments, and compile-time inputs, and under hostile
-overlay mutations. The compiler, verifier, lowerer, runtime, diagnostics, and
-adapter test selection must behave identically without that metadata.
+The lexical observer is built from a compiler-only source root and invoked by
+its differential gate as the exact Cargo-declared executable from a fresh
+target. Its working directory, environment, arguments, and standard input
+contain no capability overlay or derived report; hostile lookalikes do not
+change its response. A future executable conformance adapter must satisfy the
+same boundary for the compiler, verifier, lowerer, runtime, diagnostics, and
+test selection before it can report normative verdicts.
 
 `static-semantic-catalog-v0.8.sha256` mirrors the compiler-independent lock at
 `../facets/v0.8/static-catalog.sha256`. The root audit rebuilds the canonical
@@ -86,7 +97,7 @@ make -C compiler check
 
 The gate verifies the exact Rust toolchain fingerprint, v0.8 bytes, and static
 catalog identity, enforces
-the closed three-package dependency graph and inherited lint policy, rejects
+the closed four-package dependency graph and inherited lint policy, rejects
 symlinks, build scripts, procedural macros, unapproved dependencies, and paths
 outside this workspace, then checks formatting, builds, lints, tests, and
 rustdoc. The reproducibility layer copies the complete compiler source to two
@@ -94,7 +105,7 @@ different paths and physical files, builds both release graphs, and compares
 every Cargo-declared workspace artifact under collision-checked logical keys.
 
 Absolute checkout paths otherwise enter stable-rustc library metadata and make
-all six current release artifacts differ across source copies. The gate uses
+all seven current release artifacts differ across source copies. The gate uses
 stable `--remap-path-prefix` flags for both the copied source root and its target
 directory. The two builds never share a checkout or target directory, and the
 gate uses no nightly compiler option.

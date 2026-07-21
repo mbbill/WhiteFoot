@@ -8,8 +8,9 @@ import os
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Sequence
+from typing import Iterator, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,11 @@ RUSTUP_HOME = Path(
         str(Path(os.environ.get("HOME") or Path.home()) / ".rustup"),
     )
 ).resolve()
+LEXICAL_OBSERVER_PACKAGE = "whitefoot-lexical-observer"
+LEXICAL_OBSERVER_TARGET = "whitefoot-lexical-observer"
+LEXICAL_OBSERVER_MANIFEST = Path(
+    "crates/whitefoot-lexical-observer/Cargo.toml"
+)
 
 
 def ambient_tool_configuration_files(
@@ -164,6 +170,106 @@ def run_cargo(
             stderr=subprocess.PIPE if capture_output else None,
             text=True,
         )
+
+
+@contextmanager
+def built_lexical_observer(
+    *, workspace: Path = ROOT
+) -> Iterator[Path]:
+    """Build and yield the exact observer executable from one fresh target."""
+
+    workspace = workspace.resolve()
+    with tempfile.TemporaryDirectory(
+        prefix="whitefoot-observer-build-"
+    ) as temporary:
+        temporary_root = Path(temporary)
+        working_directory = temporary_root / "work"
+        cargo_home = temporary_root / "cargo-home"
+        target_directory = temporary_root / "target"
+        home_directory = temporary_root / "home"
+        child_temporary_directory = temporary_root / "tmp"
+        for directory in (
+            working_directory,
+            cargo_home,
+            home_directory,
+            child_temporary_directory,
+        ):
+            directory.mkdir()
+        configurations = ambient_tool_configuration_files(
+            working_directory,
+            cargo_home,
+            workspace,
+        )
+        if configurations:
+            names = ", ".join(str(path) for path in configurations)
+            raise RuntimeError(f"Cargo configuration reached observer build: {names}")
+
+        arguments = (
+            "build",
+            "--package",
+            LEXICAL_OBSERVER_PACKAGE,
+            "--bin",
+            LEXICAL_OBSERVER_TARGET,
+            "--locked",
+            "--offline",
+            "--message-format=json-render-diagnostics",
+        )
+        result = subprocess.run(
+            cargo_command(arguments, workspace),
+            cwd=working_directory,
+            env=closed_environment(
+                cargo_home,
+                target_directory,
+                home_directory,
+                child_temporary_directory,
+                "build",
+            ),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            detail = result.stderr.strip() or "observer build failed without a diagnostic"
+            raise RuntimeError(detail)
+
+        expected_manifest = (workspace / LEXICAL_OBSERVER_MANIFEST).resolve()
+        executables: list[Path] = []
+        for line in result.stdout.splitlines():
+            try:
+                message = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise RuntimeError("Cargo emitted a malformed JSON build message") from error
+            if message.get("reason") != "compiler-artifact":
+                continue
+            if Path(message.get("manifest_path", "")).resolve() != expected_manifest:
+                continue
+            target = message.get("target", {})
+            if (
+                target.get("name") != LEXICAL_OBSERVER_TARGET
+                or target.get("kind") != ["bin"]
+                or target.get("crate_types") != ["bin"]
+            ):
+                raise RuntimeError("Cargo observer target identity drifted")
+            executable = message.get("executable")
+            if not isinstance(executable, str):
+                raise RuntimeError("Cargo did not declare the observer executable")
+            executables.append(Path(executable))
+
+        if len(executables) != 1:
+            raise RuntimeError(
+                f"Cargo declared {len(executables)} observer executables, expected one"
+            )
+        executable = executables[0]
+        try:
+            executable.resolve().relative_to(target_directory.resolve())
+        except ValueError as error:
+            raise RuntimeError("Cargo observer executable escaped its fresh target") from error
+        if executable.is_symlink() or not executable.is_file():
+            raise RuntimeError("Cargo observer executable is not one regular file")
+        if not os.access(executable, os.X_OK):
+            raise RuntimeError("Cargo observer executable is not executable")
+        yield executable
 
 
 def main() -> None:
