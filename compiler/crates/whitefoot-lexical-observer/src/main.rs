@@ -14,8 +14,11 @@ mod protocol;
 use std::io::{self, Write};
 use std::process::ExitCode;
 
-use whitefoot_contract::{KERNEL_SPEC_V0_8_HASH, SourceBinding, SourceBundle, SourceInput};
-use whitefoot_frontend::lex_v0_8;
+use whitefoot_contract::{
+    DecodeError, EncodeError, KERNEL_SPEC_V0_8_HASH, SourceBinding, SourceBundle,
+    SourceBundleError, SourceInput,
+};
+use whitefoot_lexer::lex_v0_8;
 
 use crate::projection::encode_observation;
 use crate::protocol::{AdapterError, read_request};
@@ -24,24 +27,32 @@ fn observe() -> Result<(), AdapterError> {
     let input = io::stdin();
     let request = read_request(&mut input.lock())?;
     let candidate = SourceBinding::decode_canonical(&request.binding, request.source_limits)
-        .map_err(|_| AdapterError::BindingInvalid)?;
+        .map_err(map_binding_decode_error)?;
     if candidate.spec_hash() != KERNEL_SPEC_V0_8_HASH {
         return Err(AdapterError::SpecificationMismatch);
     }
 
-    let inputs = candidate
-        .sources()
-        .iter()
-        .map(|source| SourceInput::new(source.logical_path().as_str(), source.bytes().to_vec()));
-    let bundle = SourceBundle::with_limits(inputs, request.source_limits)
-        .map_err(|_| AdapterError::SourceBundleInvalid)?;
-    let reconstructed = SourceBinding::from_bundle(KERNEL_SPEC_V0_8_HASH, &bundle);
+    let mut inputs = Vec::<SourceInput<'_>>::new();
+    inputs
+        .try_reserve_exact(candidate.sources().len())
+        .map_err(|_| AdapterError::SourceBundleStorageUnavailable)?;
+    for source in candidate.sources() {
+        inputs.push(SourceInput::new(
+            source.logical_path().as_str(),
+            source.bytes(),
+        ));
+    }
+    let bundle = SourceBundle::with_limits(&inputs, request.source_limits)
+        .map_err(map_source_bundle_error)?;
+    let reconstructed =
+        SourceBinding::try_from_bundle(KERNEL_SPEC_V0_8_HASH, &bundle, request.source_limits)
+            .map_err(map_binding_encode_error)?;
     if reconstructed != candidate {
         return Err(AdapterError::SourceBindingDisagreement);
     }
     let canonical = reconstructed
         .encode_canonical(request.source_limits)
-        .map_err(|_| AdapterError::SourceBindingDisagreement)?;
+        .map_err(map_binding_encode_error)?;
     if canonical != request.binding {
         return Err(AdapterError::SourceBindingDisagreement);
     }
@@ -52,6 +63,29 @@ fn observe() -> Result<(), AdapterError> {
         .lock()
         .write_all(&response)
         .map_err(|_| AdapterError::OutputWrite)
+}
+
+fn map_binding_decode_error(error: DecodeError) -> AdapterError {
+    match error {
+        DecodeError::StorageUnavailable { .. } => AdapterError::SourceBindingStorageUnavailable,
+        _ => AdapterError::BindingInvalid,
+    }
+}
+
+fn map_source_bundle_error(error: SourceBundleError) -> AdapterError {
+    match error {
+        SourceBundleError::StorageUnavailable { .. } => {
+            AdapterError::SourceBundleStorageUnavailable
+        }
+        _ => AdapterError::SourceBundleInvalid,
+    }
+}
+
+fn map_binding_encode_error(error: EncodeError) -> AdapterError {
+    match error {
+        EncodeError::StorageUnavailable { .. } => AdapterError::SourceBindingStorageUnavailable,
+        _ => AdapterError::SourceBindingDisagreement,
+    }
 }
 
 fn main() -> ExitCode {

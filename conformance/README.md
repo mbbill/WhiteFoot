@@ -2,7 +2,8 @@
 
 A **spec-anchored, rule-keyed, toolchain-agnostic** test system. It tests the
 *language* — `source → verdict` — rather than compiler internals, so the same
-suite validates the fresh Rust compiler and any later replacement.
+suite can validate the future production Rust compiler and any later
+replacement.
 
 It is a production artifact of the toolchain. Compiler implementations are
 replaceable; the guarantees this suite pins are not.
@@ -10,7 +11,8 @@ replaceable; the guarantees this suite pins are not.
 ## Layout
 - `cases/<id>.wf` — one canonical Whitefoot program per case (also a FORM-1/2 byte-exact fixture).
 - `manifest.jsonl` — one JSON object per case: the rule id(s) it exercises + the expected verdict + status.
-- `runner.py` — the runner (a toolchain **adapter**) + the coverage tracker.
+- `runner.py` — the coverage tracker plus an intentionally unpopulated
+  toolchain **adapter** slot.
 
 ## A case
 ```json
@@ -35,7 +37,7 @@ replaceable; the guarantees this suite pins are not.
 python3 conformance/runner.py run        # requires an installed compiler adapter
 python3 conformance/runner.py coverage   # which of the spec's rules have a case
 python3 conformance/runner.py all -v     # run plus coverage; unavailable before adapter
-make conformance                         # corpus/coverage integrity during Phase 2
+make conformance                         # current corpus/coverage integrity gate
 ```
 
 ## Adding a case
@@ -43,9 +45,12 @@ Write `cases/<id>.wf` in canonical form, add a manifest line tagging the rule(s)
 expected verdict. Prefer one rule per negative case (so the coverage map is precise). To
 close a coverage gap, target a rule from the `untested` list the coverage report prints.
 
-## Plugging in a compiler
+## Plugging in a future compiler
 
-Phase 2 replaces the temporary `ADAPTER` slot in `runner.py` with a selectable,
-structured adapter protocol. Semantic expectations stay in this corpus;
-compiler capability and failures stay in adapter-owned data. The corpus is the
-contract and the implementation behind an adapter is replaceable.
+Phase 2 does not install a compiler adapter. After the roadmap's applicable
+frontend, semantic, artifact, and lowering entrance gates are satisfied, a
+separately authorized integration may replace the `ADAPTER` slot with a
+selectable, structured adapter protocol. Semantic expectations stay in this
+corpus; compiler capability and failures stay in adapter-owned data. The
+corpus is the contract and the implementation behind an adapter is
+replaceable.

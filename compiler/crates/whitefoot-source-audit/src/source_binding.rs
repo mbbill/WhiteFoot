@@ -31,11 +31,11 @@ impl<'binding> VerifiedSource<'binding> {
     }
 }
 
-/// A source/spec binding that exactly matches the verifier's external inputs.
+/// A source/spec binding that exactly matches the audit invocation's inputs.
 ///
 /// The constructor is private. Later verification stages can require this type
 /// rather than accepting an unverified [`SourceBinding`].
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct VerifiedSourceBinding {
     binding: SourceBinding,
 }
@@ -53,7 +53,7 @@ impl VerifiedSourceBinding {
         self.binding.sources().len()
     }
 
-    /// Iterates narrow verified views in authoritative source order.
+    /// Iterates narrow verified views in candidate transport order.
     pub fn sources(&self) -> impl Iterator<Item = VerifiedSource<'_>> {
         (0_u32..)
             .zip(self.binding.sources())
@@ -67,7 +67,7 @@ impl VerifiedSourceBinding {
 /// Verifies exact specification identity, source order, names, and raw bytes.
 ///
 /// This is deliberately not a language judgment. Exceeding a source limit or
-/// providing malformed source remains an input/toolchain or later frontend
+/// providing malformed source remains an input/toolchain or later lexer
 /// result, never a Whitefoot rule rejection produced here.
 pub fn verify_source_binding(
     expected_spec: SpecHash,
@@ -92,11 +92,7 @@ pub fn verify_source_binding(
     {
         let source_id = SourceId::from_ordinal(ordinal);
         if actual.logical_path() != expected.logical_path() {
-            return Err(VerifySourceBindingError::LogicalPathMismatch {
-                source: source_id,
-                expected: expected.logical_path().clone(),
-                actual: actual.logical_path().clone(),
-            });
+            return Err(VerifySourceBindingError::LogicalPathMismatch { source: source_id });
         }
         if actual.bytes() != expected.bytes() {
             let first_difference = actual
@@ -122,7 +118,7 @@ pub fn verify_source_binding(
     Ok(VerifiedSourceBinding { binding: candidate })
 }
 
-/// Why a candidate is not bound to the verifier's exact source/spec input.
+/// Why a candidate is not bound to the audit invocation's source/spec input.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VerifySourceBindingError {
     /// The candidate names another numbered specification.
@@ -143,10 +139,6 @@ pub enum VerifySourceBindingError {
     LogicalPathMismatch {
         /// Implicit source identity.
         source: SourceId,
-        /// Invocation path.
-        expected: LogicalPath,
-        /// Candidate path.
-        actual: LogicalPath,
     },
     /// One source position carries different raw bytes.
     SourceBytesMismatch {
@@ -181,14 +173,9 @@ impl fmt::Display for VerifySourceBindingError {
                     "source count mismatch: expected {expected}, got {actual}"
                 )
             }
-            Self::LogicalPathMismatch {
-                source,
-                expected,
-                actual,
-            } => write!(
-                formatter,
-                "logical path mismatch at source {source}: expected {expected}, got {actual}"
-            ),
+            Self::LogicalPathMismatch { source } => {
+                write!(formatter, "logical path mismatch at source {source}")
+            }
             Self::SourceBytesMismatch {
                 source,
                 first_difference,
@@ -219,33 +206,33 @@ mod tests {
 
     fn expected_bundle() -> SourceBundle {
         SourceBundle::with_limits(
-            [
-                SourceInput::new("z.wf", b"first".to_vec()),
-                SourceInput::new("a.wf", vec![0xff, 0x00, b'\n']),
+            &[
+                SourceInput::new("z.wf", b"first"),
+                SourceInput::new("a.wf", &[0xff, 0x00, b'\n']),
             ],
             whitefoot_contract::SourceLimits::REPRESENTABLE,
         )
         .unwrap()
     }
 
-    fn path(value: &str) -> LogicalPath {
-        LogicalPath::parse(value).unwrap()
-    }
-
-    fn candidate(sources: Vec<(&str, &[u8])>) -> SourceBinding {
-        SourceBinding::new(
+    fn candidate(sources: &[SourceInput<'_>]) -> SourceBinding {
+        SourceBinding::try_from_sources(
             KERNEL_SPEC_V0_8_HASH,
-            sources
-                .into_iter()
-                .map(|(name, bytes)| BoundSource::new(path(name), bytes.to_vec()))
-                .collect(),
+            sources,
+            whitefoot_contract::SourceLimits::REPRESENTABLE,
         )
+        .unwrap()
     }
 
     #[test]
     fn exact_candidate_yields_unforgeable_verified_state() {
         let expected = expected_bundle();
-        let candidate = SourceBinding::from_bundle(KERNEL_SPEC_V0_8_HASH, &expected);
+        let candidate = SourceBinding::try_from_bundle(
+            KERNEL_SPEC_V0_8_HASH,
+            &expected,
+            whitefoot_contract::SourceLimits::REPRESENTABLE,
+        )
+        .unwrap();
         let verified = verify_source_binding(KERNEL_SPEC_V0_8_HASH, &expected, candidate).unwrap();
         assert_eq!(verified.spec_hash(), KERNEL_SPEC_V0_8_HASH);
         assert_eq!(verified.source_count(), 2);
@@ -259,7 +246,12 @@ mod tests {
     fn specification_mutation_fails_first() {
         let expected = expected_bundle();
         let wrong = SpecHash::from_sha256([0x55; 32]);
-        let candidate = SourceBinding::new(wrong, Vec::new());
+        let candidate = SourceBinding::try_from_sources(
+            wrong,
+            &[],
+            whitefoot_contract::SourceLimits::REPRESENTABLE,
+        )
+        .unwrap();
         assert!(matches!(
             verify_source_binding(KERNEL_SPEC_V0_8_HASH, &expected, candidate),
             Err(VerifySourceBindingError::SpecificationMismatch { .. })
@@ -269,7 +261,10 @@ mod tests {
     #[test]
     fn source_order_and_path_mutations_are_distinct() {
         let expected = expected_bundle();
-        let swapped = candidate(vec![("a.wf", &[0xff, 0x00, b'\n']), ("z.wf", b"first")]);
+        let swapped = candidate(&[
+            SourceInput::new("a.wf", &[0xff, 0x00, b'\n']),
+            SourceInput::new("z.wf", b"first"),
+        ]);
         assert!(matches!(
             verify_source_binding(KERNEL_SPEC_V0_8_HASH, &expected, swapped),
             Err(VerifySourceBindingError::LogicalPathMismatch {
@@ -278,7 +273,10 @@ mod tests {
             }) if source == SourceId::from_ordinal(0)
         ));
 
-        let renamed = candidate(vec![("other.wf", b"first"), ("a.wf", &[0xff, 0x00, b'\n'])]);
+        let renamed = candidate(&[
+            SourceInput::new("other.wf", b"first"),
+            SourceInput::new("a.wf", &[0xff, 0x00, b'\n']),
+        ]);
         assert!(matches!(
             verify_source_binding(KERNEL_SPEC_V0_8_HASH, &expected, renamed),
             Err(VerifySourceBindingError::LogicalPathMismatch {
@@ -291,7 +289,10 @@ mod tests {
     #[test]
     fn byte_mutation_reports_the_first_difference() {
         let expected = expected_bundle();
-        let changed = candidate(vec![("z.wf", b"firzt"), ("a.wf", &[0xff, 0x00, b'\n'])]);
+        let changed = candidate(&[
+            SourceInput::new("z.wf", b"firzt"),
+            SourceInput::new("a.wf", &[0xff, 0x00, b'\n']),
+        ]);
         assert!(matches!(
             verify_source_binding(KERNEL_SPEC_V0_8_HASH, &expected, changed),
             Err(VerifySourceBindingError::SourceBytesMismatch {
@@ -305,7 +306,10 @@ mod tests {
     #[test]
     fn duplicate_candidate_paths_fail_at_the_first_positional_mismatch() {
         let expected = expected_bundle();
-        let duplicate = candidate(vec![("z.wf", b"first"), ("z.wf", &[0xff, 0x00, b'\n'])]);
+        let duplicate = candidate(&[
+            SourceInput::new("z.wf", b"first"),
+            SourceInput::new("z.wf", &[0xff, 0x00, b'\n']),
+        ]);
         assert!(matches!(
             verify_source_binding(KERNEL_SPEC_V0_8_HASH, &expected, duplicate),
             Err(VerifySourceBindingError::LogicalPathMismatch { source, .. })
@@ -316,7 +320,10 @@ mod tests {
     #[test]
     fn canonical_decode_does_not_bypass_verification() {
         let expected = expected_bundle();
-        let wrong = candidate(vec![("z.wf", b"wrong"), ("a.wf", &[0xff, 0x00, b'\n'])]);
+        let wrong = candidate(&[
+            SourceInput::new("z.wf", b"wrong"),
+            SourceInput::new("a.wf", &[0xff, 0x00, b'\n']),
+        ]);
         let encoded = wrong
             .encode_canonical(whitefoot_contract::SourceLimits::REPRESENTABLE)
             .unwrap();

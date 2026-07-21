@@ -1,9 +1,9 @@
 [workspace]
 members = [
   "crates/whitefoot-contract",
-  "crates/whitefoot-frontend",
+  "crates/whitefoot-lexer",
   "crates/whitefoot-lexical-observer",
-  "crates/whitefoot-verifier",
+  "crates/whitefoot-source-audit",
 ]
 resolver = "3"
 

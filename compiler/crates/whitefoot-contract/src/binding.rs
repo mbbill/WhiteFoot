@@ -1,7 +1,9 @@
 use core::fmt;
-use std::sync::Arc;
 
-use crate::{LogicalPath, LogicalPathError, SourceBundle, SourceLimit, SourceLimits, SpecHash};
+use crate::{
+    LogicalPath, LogicalPathError, SourceBundle, SourceFile, SourceInput, SourceLimit,
+    SourceLimits, SpecHash,
+};
 
 const MAGIC: [u8; 8] = *b"WFSOURCE";
 
@@ -12,10 +14,10 @@ pub const SOURCE_BINDING_CODEC_VERSION: u16 = 1;
 ///
 /// Its [`crate::SourceId`] is implicit from sequence position and is therefore
 /// not redundantly encoded.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub struct BoundSource {
     logical_path: LogicalPath,
-    bytes: Arc<[u8]>,
+    bytes: Vec<u8>,
 }
 
 impl fmt::Debug for BoundSource {
@@ -29,15 +31,6 @@ impl fmt::Debug for BoundSource {
 }
 
 impl BoundSource {
-    /// Creates an unverified source record from a valid logical path and raw bytes.
-    #[must_use]
-    pub fn new(logical_path: LogicalPath, bytes: impl Into<Arc<[u8]>>) -> Self {
-        Self {
-            logical_path,
-            bytes: bytes.into(),
-        }
-    }
-
     /// Returns the exact logical source name.
     #[must_use]
     pub const fn logical_path(&self) -> &LogicalPath {
@@ -52,10 +45,35 @@ impl BoundSource {
 }
 
 /// Canonical, but not yet verified, binding of ordered source bytes to a spec.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub struct SourceBinding {
     spec_hash: SpecHash,
-    sources: Box<[BoundSource]>,
+    sources: Vec<BoundSource>,
+}
+
+trait SourceRecordView {
+    fn record_path(&self) -> &str;
+    fn record_bytes(&self) -> &[u8];
+}
+
+impl SourceRecordView for SourceInput<'_> {
+    fn record_path(&self) -> &str {
+        self.logical_path()
+    }
+
+    fn record_bytes(&self) -> &[u8] {
+        self.bytes()
+    }
+}
+
+impl SourceRecordView for SourceFile {
+    fn record_path(&self) -> &str {
+        self.logical_path().as_str()
+    }
+
+    fn record_bytes(&self) -> &[u8] {
+        self.bytes()
+    }
 }
 
 impl fmt::Debug for SourceBinding {
@@ -69,25 +87,116 @@ impl fmt::Debug for SourceBinding {
 }
 
 impl SourceBinding {
-    /// Creates a candidate binding without claiming that it matches an input bundle.
-    #[must_use]
-    pub fn new(spec_hash: SpecHash, sources: Vec<BoundSource>) -> Self {
-        Self {
-            spec_hash,
-            sources: sources.into_boxed_slice(),
-        }
+    /// Fallibly copies candidate records under the complete binding ceilings.
+    pub fn try_from_sources(
+        spec_hash: SpecHash,
+        records: &[SourceInput<'_>],
+        limits: SourceLimits,
+    ) -> Result<Self, EncodeError> {
+        Self::try_from_records(spec_hash, records, limits)
     }
 
-    /// Constructs the canonical candidate for an existing source bundle.
-    #[must_use]
-    pub fn from_bundle(spec_hash: SpecHash, bundle: &SourceBundle) -> Self {
-        let sources = bundle
-            .iter()
-            .map(|(_, source)| {
-                BoundSource::new(source.logical_path().clone(), source.shared_bytes())
-            })
-            .collect();
-        Self::new(spec_hash, sources)
+    fn try_from_records<Record>(
+        spec_hash: SpecHash,
+        records: &[Record],
+        limits: SourceLimits,
+    ) -> Result<Self, EncodeError>
+    where
+        Record: SourceRecordView,
+    {
+        let source_capacity = records.len();
+        let source_count =
+            u64::try_from(source_capacity).map_err(|_| EncodeError::LengthOverflow)?;
+        check_encode_limit(
+            SourceLimit::Sources,
+            u64::from(limits.max_sources()),
+            source_count,
+        )?;
+
+        let mut total_source_bytes = 0_u64;
+        let mut encoded_len = 8_u64 + 2 + 32 + 8;
+        check_encode_limit(
+            SourceLimit::BindingBytes,
+            limits.max_binding_bytes(),
+            encoded_len,
+        )?;
+
+        for record in records {
+            let path = record.record_path();
+            let bytes = record.record_bytes();
+            let path_len = u64::try_from(path.len()).map_err(|_| EncodeError::LengthOverflow)?;
+            check_encode_limit(
+                SourceLimit::LogicalPathBytes,
+                limits.max_logical_path_bytes(),
+                path_len,
+            )?;
+            let source_len = u64::try_from(bytes.len()).map_err(|_| EncodeError::LengthOverflow)?;
+            check_encode_limit(
+                SourceLimit::SourceBytes,
+                limits.max_source_bytes(),
+                source_len,
+            )?;
+            total_source_bytes = total_source_bytes
+                .checked_add(source_len)
+                .ok_or(EncodeError::LengthOverflow)?;
+            check_encode_limit(
+                SourceLimit::TotalSourceBytes,
+                limits.max_total_source_bytes(),
+                total_source_bytes,
+            )?;
+            encoded_len = encoded_len
+                .checked_add(8)
+                .and_then(|length| length.checked_add(path_len))
+                .and_then(|length| length.checked_add(8))
+                .and_then(|length| length.checked_add(source_len))
+                .ok_or(EncodeError::LengthOverflow)?;
+            check_encode_limit(
+                SourceLimit::BindingBytes,
+                limits.max_binding_bytes(),
+                encoded_len,
+            )?;
+        }
+
+        for record in records {
+            LogicalPath::validate(record.record_path()).map_err(map_encode_path_error)?;
+        }
+
+        let mut sources = Vec::new();
+        try_reserve_encode(
+            &mut sources,
+            source_capacity,
+            SourceLimit::Sources,
+            source_count,
+        )?;
+        for record in records {
+            let path = record.record_path();
+            let bytes = record.record_bytes();
+            let logical_path = LogicalPath::parse(path).map_err(map_encode_path_error)?;
+            let source_len = u64::try_from(bytes.len()).map_err(|_| EncodeError::LengthOverflow)?;
+            let mut owned_bytes = Vec::new();
+            try_reserve_encode(
+                &mut owned_bytes,
+                bytes.len(),
+                SourceLimit::SourceBytes,
+                source_len,
+            )?;
+            owned_bytes.extend_from_slice(bytes);
+            sources.push(BoundSource {
+                logical_path,
+                bytes: owned_bytes,
+            });
+        }
+
+        Ok(Self { spec_hash, sources })
+    }
+
+    /// Fallibly constructs the canonical candidate for an existing source bundle.
+    pub fn try_from_bundle(
+        spec_hash: SpecHash,
+        bundle: &SourceBundle,
+        limits: SourceLimits,
+    ) -> Result<Self, EncodeError> {
+        Self::try_from_records(spec_hash, bundle.files(), limits)
     }
 
     /// Returns the exact specification identity carried by the candidate.
@@ -105,7 +214,9 @@ impl SourceBinding {
     /// Encodes the binding in its unique versioned byte form under explicit ceilings.
     pub fn encode_canonical(&self, limits: SourceLimits) -> Result<Vec<u8>, EncodeError> {
         let capacity = self.encoded_capacity(limits)?;
-        let mut encoded = Vec::with_capacity(capacity);
+        let requested = u64::try_from(capacity).map_err(|_| EncodeError::LengthOverflow)?;
+        let mut encoded = Vec::new();
+        try_reserve_encode(&mut encoded, capacity, SourceLimit::BindingBytes, requested)?;
         encoded.extend_from_slice(&MAGIC);
         encoded.extend_from_slice(&SOURCE_BINDING_CODEC_VERSION.to_be_bytes());
         encoded.extend_from_slice(self.spec_hash.digest().as_bytes());
@@ -202,7 +313,15 @@ impl SourceBinding {
             return Err(DecodeError::ImpossibleSourceCount(source_count));
         }
 
+        let source_capacity =
+            usize::try_from(source_count).map_err(|_| DecodeError::LengthOverflow)?;
         let mut sources = Vec::new();
+        try_reserve_decode(
+            &mut sources,
+            source_capacity,
+            SourceLimit::Sources,
+            source_count,
+        )?;
         let mut total_source_bytes = 0_u64;
         for _ in 0..source_count {
             let path_len = reader.read_u64()?;
@@ -214,7 +333,7 @@ impl SourceBinding {
             let path_bytes = reader.take_u64(path_len)?;
             let path_text =
                 core::str::from_utf8(path_bytes).map_err(|_| DecodeError::LogicalPathNotUtf8)?;
-            let logical_path = LogicalPath::parse(path_text).map_err(DecodeError::LogicalPath)?;
+            let logical_path = LogicalPath::parse(path_text).map_err(map_decode_path_error)?;
 
             let source_len = reader.read_u64()?;
             check_decode_limit(
@@ -230,15 +349,70 @@ impl SourceBinding {
                 limits.max_total_source_bytes(),
                 total_source_bytes,
             )?;
-            let bytes: Arc<[u8]> = Arc::from(reader.take_u64(source_len)?);
-            sources.push(BoundSource::new(logical_path, bytes));
+            let source_bytes = reader.take_u64(source_len)?;
+            let mut bytes = Vec::new();
+            try_reserve_decode(
+                &mut bytes,
+                source_bytes.len(),
+                SourceLimit::SourceBytes,
+                source_len,
+            )?;
+            bytes.extend_from_slice(source_bytes);
+            sources.push(BoundSource {
+                logical_path,
+                bytes,
+            });
         }
 
         if reader.remaining() != 0 {
             return Err(DecodeError::TrailingBytes(reader.remaining()));
         }
-        Ok(Self::new(spec_hash, sources))
+        Ok(Self { spec_hash, sources })
     }
+}
+
+fn map_encode_path_error(error: LogicalPathError) -> EncodeError {
+    match error {
+        LogicalPathError::LengthOverflow => EncodeError::LengthOverflow,
+        LogicalPathError::StorageUnavailable { requested } => EncodeError::StorageUnavailable {
+            limit: SourceLimit::LogicalPathBytes,
+            requested,
+        },
+        error => EncodeError::LogicalPath(error),
+    }
+}
+
+fn map_decode_path_error(error: LogicalPathError) -> DecodeError {
+    match error {
+        LogicalPathError::LengthOverflow => DecodeError::LengthOverflow,
+        LogicalPathError::StorageUnavailable { requested } => DecodeError::StorageUnavailable {
+            limit: SourceLimit::LogicalPathBytes,
+            requested,
+        },
+        error => DecodeError::LogicalPath(error),
+    }
+}
+
+fn try_reserve_encode<T>(
+    values: &mut Vec<T>,
+    additional: usize,
+    limit: SourceLimit,
+    requested: u64,
+) -> Result<(), EncodeError> {
+    values
+        .try_reserve_exact(additional)
+        .map_err(|_| EncodeError::StorageUnavailable { limit, requested })
+}
+
+fn try_reserve_decode<T>(
+    values: &mut Vec<T>,
+    additional: usize,
+    limit: SourceLimit,
+    requested: u64,
+) -> Result<(), DecodeError> {
+    values
+        .try_reserve_exact(additional)
+        .map_err(|_| DecodeError::StorageUnavailable { limit, requested })
 }
 
 fn write_len(encoded: &mut Vec<u8>, length: usize) -> Result<(), EncodeError> {
@@ -322,12 +496,14 @@ impl<'a> Reader<'a> {
     }
 }
 
-/// Why canonical source-binding encoding cannot complete.
+/// Why candidate source-binding construction or canonical encoding cannot complete.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EncodeError {
     /// A host collection length does not fit the portable `u64` framing.
     LengthOverflow,
-    /// An explicit artifact-output resource ceiling was exceeded.
+    /// A candidate logical path violates the portable path contract.
+    LogicalPath(LogicalPathError),
+    /// An explicit candidate or source-binding wire ceiling was exceeded.
     LimitExceeded {
         /// Ceiling category.
         limit: SourceLimit,
@@ -336,19 +512,31 @@ pub enum EncodeError {
         /// Value that would be encoded.
         actual: u64,
     },
+    /// The allocator could not reserve validated binding storage.
+    StorageUnavailable {
+        /// Storage category that could not be reserved.
+        limit: SourceLimit,
+        /// Exact requested count or byte length.
+        requested: u64,
+    },
 }
 
 impl fmt::Display for EncodeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::LengthOverflow => formatter.write_str("source-binding length exceeds u64"),
+            Self::LogicalPath(error) => write!(formatter, "{error}"),
             Self::LimitExceeded {
                 limit,
                 maximum,
                 actual,
             } => write!(
                 formatter,
-                "source-binding output limit {limit:?} is {maximum}, attempted {actual}"
+                "source-binding limit {limit:?} is {maximum}, attempted {actual}"
+            ),
+            Self::StorageUnavailable { limit, requested } => write!(
+                formatter,
+                "storage unavailable for source binding {limit:?}, requested {requested}"
             ),
         }
     }
@@ -376,7 +564,7 @@ pub enum DecodeError {
     LogicalPathNotUtf8,
     /// A logical path violates the portable path contract.
     LogicalPath(LogicalPathError),
-    /// An explicit artifact-input resource ceiling was exceeded.
+    /// An explicit source-binding input ceiling was exceeded.
     LimitExceeded {
         /// Ceiling category.
         limit: SourceLimit,
@@ -384,6 +572,13 @@ pub enum DecodeError {
         maximum: u64,
         /// Encoded value.
         actual: u64,
+    },
+    /// The allocator could not reserve validated decoded storage.
+    StorageUnavailable {
+        /// Storage category that could not be reserved.
+        limit: SourceLimit,
+        /// Exact requested count or byte length.
+        requested: u64,
     },
     /// Complete decoding left extra, unauthenticated bytes.
     TrailingBytes(usize),
@@ -420,6 +615,10 @@ impl fmt::Display for DecodeError {
             } => write!(
                 formatter,
                 "source-binding limit {limit:?} is {maximum}, encoded {actual}"
+            ),
+            Self::StorageUnavailable { limit, requested } => write!(
+                formatter,
+                "storage unavailable while decoding source binding {limit:?}, requested {requested}"
             ),
             Self::TrailingBytes(count) => {
                 write!(formatter, "source binding has {count} trailing bytes")

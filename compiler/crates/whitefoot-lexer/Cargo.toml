@@ -1,10 +1,10 @@
 [package]
-name = "whitefoot-frontend"
+name = "whitefoot-lexer"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Lossless deterministic frontend for Whitefoot v0.8"
+description = "Lossless deterministic shape lexer for Whitefoot v0.8"
 publish = false
 
 [dependencies]

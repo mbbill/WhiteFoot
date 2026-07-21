@@ -7,7 +7,7 @@ name = "whitefoot-contract"
 version = "0.1.0"
 
 [[package]]
-name = "whitefoot-frontend"
+name = "whitefoot-lexer"
 version = "0.1.0"
 dependencies = [
  "whitefoot-contract",
@@ -18,11 +18,11 @@ name = "whitefoot-lexical-observer"
 version = "0.1.0"
 dependencies = [
  "whitefoot-contract",
- "whitefoot-frontend",
+ "whitefoot-lexer",
 ]
 
 [[package]]
-name = "whitefoot-verifier"
+name = "whitefoot-source-audit"
 version = "0.1.0"
 dependencies = [
  "whitefoot-contract",

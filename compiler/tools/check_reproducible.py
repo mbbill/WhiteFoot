@@ -23,8 +23,8 @@ EXPECTED_TARGETS = {
         ("lib",),
     ),
     (
-        "crates/whitefoot-frontend/Cargo.toml",
-        "whitefoot_frontend",
+        "crates/whitefoot-lexer/Cargo.toml",
+        "whitefoot_lexer",
         ("lib",),
         ("lib",),
     ),
@@ -35,8 +35,8 @@ EXPECTED_TARGETS = {
         ("bin",),
     ),
     (
-        "crates/whitefoot-verifier/Cargo.toml",
-        "whitefoot_verifier",
+        "crates/whitefoot-source-audit/Cargo.toml",
+        "whitefoot_source_audit",
         ("lib",),
         ("lib",),
     ),

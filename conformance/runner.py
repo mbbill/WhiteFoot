@@ -4,7 +4,7 @@
 Each case is a canonical `.wf` source (conformance/cases/<id>.wf) plus a manifest
 entry (conformance/manifest.jsonl) declaring the rule id(s) it exercises and the
 expected verdict. Cases are driven through a named toolchain adapter. No active
-adapter exists during the Rust compiler foundation phase; coverage remains
+adapter exists during the current grammar-evidence phase; coverage remains
 available and an attempted semantic run fails explicitly.
 
 Because it tests the LANGUAGE (source -> verdict), not a compiler's internals, this
@@ -29,8 +29,9 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 CASES = HERE / "cases"
 MANIFEST = HERE / "manifest.jsonl"
-# Phase 2 installs a named Rust adapter. Keeping this explicit prevents a
-# missing compiler, crash, or broad exception from becoming `Unsupported`.
+# A later entrance-gated integration may install a named Rust adapter. Keeping
+# this explicit prevents a missing compiler, crash, or broad exception from
+# becoming `Unsupported`.
 ADAPTER = None
 
 
@@ -57,7 +58,8 @@ def load_manifest():
 def run_cases(cases):
     if ADAPTER is None:
         raise RuntimeError(
-            "no active compiler adapter; use `coverage` until Phase 2 installs one"
+            "no active compiler adapter; use `coverage` until an entrance-gated "
+            "integration installs one"
         )
     results = []
     for c in cases:

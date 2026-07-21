@@ -37,8 +37,9 @@ codegen-corpus/
 
 The source families and their premise/near-miss classifications remain active
 compiler-independent data. The former democ runner is dormant after the
-2026-07-20 toolchain reset; Phase 2 must bind these manifests to the Rust
-adapter before any family regains gate authority. Historical commands were:
+2026-07-20 toolchain reset. Phase 2 does not execute these manifests; a later,
+entrance-gated backend tranche must bind them to a Rust harness adapter before
+any family regains gate authority. Historical commands were:
 
 ```sh
 make corpus

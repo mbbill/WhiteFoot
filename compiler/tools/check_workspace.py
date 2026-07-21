@@ -21,17 +21,17 @@ REPOSITORY = ROOT.parent
 
 EXPECTED_MEMBERS = (
     "whitefoot-contract",
-    "whitefoot-frontend",
+    "whitefoot-lexer",
     "whitefoot-lexical-observer",
-    "whitefoot-verifier",
+    "whitefoot-source-audit",
 )
 EXPECTED_MANIFESTS = {
     "whitefoot-contract": Path("crates/whitefoot-contract/Cargo.toml"),
-    "whitefoot-frontend": Path("crates/whitefoot-frontend/Cargo.toml"),
+    "whitefoot-lexer": Path("crates/whitefoot-lexer/Cargo.toml"),
     "whitefoot-lexical-observer": Path(
         "crates/whitefoot-lexical-observer/Cargo.toml"
     ),
-    "whitefoot-verifier": Path("crates/whitefoot-verifier/Cargo.toml"),
+    "whitefoot-source-audit": Path("crates/whitefoot-source-audit/Cargo.toml"),
 }
 EXPECTED_TARGETS = {
     "whitefoot-contract": {
@@ -42,11 +42,11 @@ EXPECTED_TARGETS = {
         "doc": True,
         "doctest": False,
     },
-    "whitefoot-frontend": {
-        "name": "whitefoot_frontend",
+    "whitefoot-lexer": {
+        "name": "whitefoot_lexer",
         "kind": ["lib"],
         "crate_types": ["lib"],
-        "source": Path("crates/whitefoot-frontend/src/lib.rs"),
+        "source": Path("crates/whitefoot-lexer/src/lib.rs"),
         "doc": True,
         "doctest": False,
     },
@@ -58,23 +58,23 @@ EXPECTED_TARGETS = {
         "doc": False,
         "doctest": False,
     },
-    "whitefoot-verifier": {
-        "name": "whitefoot_verifier",
+    "whitefoot-source-audit": {
+        "name": "whitefoot_source_audit",
         "kind": ["lib"],
         "crate_types": ["lib"],
-        "source": Path("crates/whitefoot-verifier/src/lib.rs"),
+        "source": Path("crates/whitefoot-source-audit/src/lib.rs"),
         "doc": True,
         "doctest": False,
     },
 }
 EXPECTED_EDGES = {
     "whitefoot-contract": (),
-    "whitefoot-frontend": ("whitefoot-contract",),
+    "whitefoot-lexer": ("whitefoot-contract",),
     "whitefoot-lexical-observer": (
         "whitefoot-contract",
-        "whitefoot-frontend",
+        "whitefoot-lexer",
     ),
-    "whitefoot-verifier": ("whitefoot-contract",),
+    "whitefoot-source-audit": ("whitefoot-contract",),
 }
 DEPENDENCY_FIELDS = {
     "name",
@@ -603,7 +603,7 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
 
     expected_dependency_rows = {
         "whitefoot-contract": (),
-        "whitefoot-frontend": (
+        "whitefoot-lexer": (
             (
                 "whitefoot-contract",
                 "*",
@@ -633,7 +633,7 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
                 Path("crates/whitefoot-contract"),
             ),
             (
-                "whitefoot-frontend",
+                "whitefoot-lexer",
                 "*",
                 None,
                 None,
@@ -643,10 +643,10 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
                 None,
                 None,
                 None,
-                Path("crates/whitefoot-frontend"),
+                Path("crates/whitefoot-lexer"),
             ),
         ),
-        "whitefoot-verifier": (
+        "whitefoot-source-audit": (
             (
                 "whitefoot-contract",
                 "*",

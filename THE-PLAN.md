@@ -1,9 +1,8 @@
 # THE PLAN
 
 Status: CANONICAL ROADMAP, updated 2026-07-21. Phase 1's audited foundation
-handoff is active. After that repository-preparation slice closes, Phase 2's
-standalone grammar-change verifier and evidence package are the only authorized
-implementation tranche.
+handoff is complete. Phase 2's standalone grammar-change verifier and evidence
+package are active as the only authorized implementation tranche.
 
 ## Objective
 
@@ -82,10 +81,9 @@ acceptance from optimizer proof.
 
 Current execution authority is deliberately narrow:
 
-1. Phase 1's exact audit-selected foundation migration is authorized now as the
-   current repository-preparation slice.
+1. Phase 1's exact audit-selected foundation migration is complete.
 2. Phase 2's standalone grammar-change verifier and exact evidence preparation
-   are authorized as the next implementation tranche.
+   are authorized now as the current implementation tranche.
 3. Phases 3 onward define mandatory order and entrance gates. They do not
    authorize a specification edit, protected-surface change, active-target
    switch, production parser, semantic schema, artifact schema, backend
@@ -265,8 +263,8 @@ implementation waits for exact normative or owner-approved profile authority.
 
 ## Phase 1: complete the audited foundation handoff
 
-Status: active. The read-only audit receipt is complete, and D25 authorizes
-exactly the migration below for the current repository-preparation slice.
+Status: complete. The read-only audit receipt and D25-authorized migration are
+durable in the repository.
 
 The receipt is
 `optimizer-language-research/implementation/compiler-foundation-audit-2026-07-21.md`.
@@ -292,19 +290,20 @@ This foundation proves only its named contracts. It contains no production
 parser, canonical syntax authority, semantic acceptance path, checked
 artifact, lowerer, executable compiler, or release capability.
 
-Apply the fixed audit disposition:
+The completed migration applied the fixed audit disposition:
 
-- keep the source contract, lossless lexer, lexical observer, and
+- kept the source contract, lossless lexer, lexical observer, and
   source-equality audit;
-- narrow `whitefoot-frontend` to lexer responsibility and
-  `whitefoot-verifier` to source-audit responsibility;
-- make owned-source and source-binding construction audibly fallible under
+- renamed `whitefoot-frontend` to `whitefoot-lexer` and
+  `whitefoot-verifier` to `whitefoot-source-audit`, with their responsibilities
+  narrowed to match those names;
+- made owned-source and source-binding construction audibly fallible under
   exact limits before whole-compiler boundedness is claimed;
-- preserve the current source-binding wire contract;
-- retain the catalog, discrepancies, and capability metadata outside
+- preserved the current source-binding wire contract;
+- retained the catalog, discrepancies, and capability metadata outside
   production dispatch;
-- delete nothing; and
-- create no parser, semantic, identity, artifact, or crate placeholder.
+- deleted nothing; and
+- created no parser, semantic, identity, artifact, or crate placeholder.
 
 The migration may perform only the receipt's exact renames, API/allocation
 repairs, dependency-policy updates, documentation alignment, and tests.
@@ -318,8 +317,8 @@ append-only decision entry.
 
 ## Phase 2: grammar-change verifier and evidence package
 
-Status: authorized next. It begins only after Phase 1 exits and is the sole
-post-handoff implementation tranche currently authorized.
+Status: active. Phase 1 has exited, and this is the sole post-handoff
+implementation tranche currently authorized.
 
 Build one separately runnable verification entry point outside the production
 compiler dependency graph. Normal compilation never links or invokes it. It
@@ -694,20 +693,18 @@ manifest SHA-256
 These close no semantic facet and grant no parser, artifact, or release
 authority.
 
-Phase 1 is active. Current implementation is limited to the exact D25 handoff
-migration above. After its exit, the next implementation is only the
+Phase 1 is complete. Phase 2 is active, and the next implementation is only the
 standalone grammar-change verifier and its tests. Its next evidence products
 are the exact-v0.8 baseline report, exact non-authoritative proposal report,
 `deref(x)` transition witness, protected-surface impact census, and
 owner-selected A-01 proposal encoding.
 
-Until the applicable Phase 1 and Phase 2 exits and every later gate is
-separately satisfied:
+Until Phase 2 exits and every later gate is separately satisfied:
 
 - do not edit a numbered specification or protected expectation;
 - do not switch the active target;
 - do not build a production classifier, parser, syntax tree schema, portable
   identity, resolver, semantic record, artifact envelope, replay API, target
   profile, lowerer, or publication path; and
-- do not extend the authorized handoff migration beyond the exact audit
-  disposition.
+- do not link or invoke the grammar-change verifier from normal compilation or
+  treat its reports as specification or compiler authority.

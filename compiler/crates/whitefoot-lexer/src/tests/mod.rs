@@ -20,13 +20,11 @@ fn generous_limits() -> LexLimits {
 }
 
 fn bundle(inputs: &[(&str, &[u8])]) -> SourceBundle {
-    SourceBundle::with_limits(
-        inputs
-            .iter()
-            .map(|(path, bytes)| SourceInput::new(*path, bytes.to_vec())),
-        SourceLimits::REPRESENTABLE,
-    )
-    .unwrap()
+    let inputs: Vec<_> = inputs
+        .iter()
+        .map(|(path, bytes)| SourceInput::new(path, bytes))
+        .collect();
+    SourceBundle::with_limits(&inputs, SourceLimits::REPRESENTABLE).unwrap()
 }
 
 fn complete(source: &SourceBundle) -> LexedBundle<'_> {

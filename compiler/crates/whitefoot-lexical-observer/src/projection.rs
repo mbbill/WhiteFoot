@@ -1,5 +1,5 @@
 use whitefoot_contract::{KERNEL_SPEC_V0_8_HASH, SourceBundle, SourceId};
-use whitefoot_frontend::{
+use whitefoot_lexer::{
     LexCompilerFailure, LexLimit, LexOutcome, LexResourceFailure, LexStorage, Lexeme,
     SourceIssueKind, TokenKind, TriviaKind,
 };

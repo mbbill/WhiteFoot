@@ -35,13 +35,14 @@ discharges them — speed is earned by proof, never by weakening a check.
   English prose. Formal notation, programming-language tokens, numeric data,
   and external proper names are allowed.
 - `AGENTS.md` and `CLAUDE.md` must remain byte-identical.
-- The exact first implementation target is
+- The active numbered specification and evidence baseline is
   `spec/kernel-spec-v0.8.md`, SHA-256
   `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
-  The implementation does not reinterpret or edit that numbered file.
+  Compiler code does not reinterpret or edit that numbered file.
 - Kernel-spec changes are owner-gated in advance. Present the exact delta, get
   explicit approval, create a new numbered version and update every live
-  reference, then record the approval in `governance/APPROVALS.md`.
+  reference, then run `make approve-spec REASON="..."` to regenerate the
+  guarded baseline and append the governance entry.
 - Earn a specification change with independent evidence, never implementation
   convenience. A compiler/spec discrepancy stops for investigation; compiler
   behavior cannot define the language.
@@ -54,6 +55,14 @@ discharges them — speed is earned by proof, never by weakening a check.
 - The conformance corpus is implementation-independent authority. Compiler
   capability, internal errors, timeouts, verifier failures, and backend
   failures live in adapter results, not normative expectations.
+- Production acceptance has one semantic kernel. The originating invocation
+  must project, decode, and completely replay its canonical artifact through
+  that same kernel before lowering authority can exist. There is no second
+  production semantic verifier; replay checks the artifact boundary and is not
+  independent semantic evidence.
+- `SourceBundle` order is transport order only. Multi-file composition,
+  declaration order, and program-root meaning require an approved successor
+  specification.
 - Facts that can increase optimizer authority require hostile adversarial
   review before shipment. A green gate is not a review.
 - Never trade a source check for speed. Proof-elision is the only path.
@@ -87,8 +96,18 @@ discharges them — speed is earned by proof, never by weakening a check.
 ## Current authority
 
 The owner replaced the self-host-first wfc/democ route on 2026-07-20. The old
-implementations are archived, the exact v0.8 Rust implementation is the active
-direction, and there is no disposable Rust compiler. `THE-PLAN.md` authorizes
-phases 1 through 5 in order through the production v0.8 compiler baseline.
-Specification changes, Phase-7 product qualification, and any later
-self-hosting require their stated separate owner gates.
+implementations are archived and there is no disposable Rust compiler. Exact
+v0.8 remains the immutable active specification and evidence baseline, but its
+recorded contradictions block a production parser pending an approved
+successor. Phase 1's audited Rust-foundation handoff is complete. Phase 2's
+standalone grammar-change verifier and evidence package are the active and sole
+authorized implementation tranche. A specification change, active-target
+switch, production parser, Phase 3 or later work, release claim, and any future
+self-hosting require the separate gates in `THE-PLAN.md`.
+
+The active foundation contains `whitefoot-contract`, `whitefoot-lexer`,
+`whitefoot-source-audit`, and the binary-only
+`whitefoot-lexical-observer`. The observer is evidence only, and the source
+audit checks exact source/specification binding only. No production parser,
+semantic kernel, artifact, backend, compiler executable, or release capability
+exists yet.

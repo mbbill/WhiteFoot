@@ -4,7 +4,7 @@
 PY=python3 -B
 
 check: project-state spec-guard spec facets catalog-identity capabilities lexical-model reference-model conformance compiler
-	@echo "== DEVELOPMENT GATE GREEN; RUST FOUNDATION ACTIVE; NO RELEASE CLAIM =="
+	@echo "== DEVELOPMENT GATE GREEN; GRAMMAR EVIDENCE ACTIVE; NO RELEASE CLAIM =="
 
 project-state:
 	$(PY) tools/test_verify_project_state.py

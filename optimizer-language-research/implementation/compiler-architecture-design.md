@@ -724,5 +724,6 @@ schema/profile, or implementation beyond an open entrance gate.
 - [x] Owner approves the roadmap revision.
 
 Until every unchecked entrance item is complete, the correct project status is
-**architecture adopted; audited foundation handoff active; production parser
-and semantic implementation paused at their named entrance gates**.
+**architecture adopted; audited foundation handoff complete; grammar-change
+evidence active; production parser and semantic implementation paused at their
+named entrance gates**.

@@ -1,11 +1,11 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! Judgment-free data contracts shared by the Whitefoot compiler and verifier.
+//! Judgment-free data contracts shared by Whitefoot compiler components.
 //!
 //! This crate does not decide whether source is legal Whitefoot. In particular,
-//! source bundles retain arbitrary bytes so the frontend can issue the exact
-//! FORM-2 diagnostic for invalid UTF-8 or noncanonical formatting.
+//! source bundles retain arbitrary bytes for separately authorized lexical,
+//! syntax, and source-form stages.
 
 mod binding;
 mod digest;

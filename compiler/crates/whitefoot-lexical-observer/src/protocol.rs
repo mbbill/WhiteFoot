@@ -1,7 +1,7 @@
 use std::io::Read;
 
 use whitefoot_contract::SourceLimits;
-use whitefoot_frontend::LexLimits;
+use whitefoot_lexer::LexLimits;
 
 const REQUEST_MAGIC: [u8; 8] = *b"WFLEXREQ";
 const REQUEST_VERSION: u16 = 1;
@@ -36,6 +36,8 @@ pub(crate) enum AdapterError {
     BindingInvalid,
     SpecificationMismatch,
     SourceBundleInvalid,
+    SourceBundleStorageUnavailable,
+    SourceBindingStorageUnavailable,
     SourceBindingDisagreement,
     ProjectionInvariant,
     ResponseLimitExceeded,
@@ -57,6 +59,8 @@ impl AdapterError {
             Self::BindingInvalid => "source-binding-invalid",
             Self::SpecificationMismatch => "specification-mismatch",
             Self::SourceBundleInvalid => "source-bundle-invalid",
+            Self::SourceBundleStorageUnavailable => "source-bundle-storage-unavailable",
+            Self::SourceBindingStorageUnavailable => "source-binding-storage-unavailable",
             Self::SourceBindingDisagreement => "source-binding-reconstruction-disagrees",
             Self::ProjectionInvariant => "lexical-projection-invariant-failed",
             Self::ResponseLimitExceeded => "observation-response-limit-exceeded",

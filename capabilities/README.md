@@ -20,10 +20,11 @@ Each canonical fragment has only these fields:
 - `evidence`, containing only receipt IDs and exact receipt digests.
 
 The overlay never carries evidence class, exercised lanes, a verdict, or a
-release decision. No evidence replay provider exists in the foundation phase,
-so every receipt reference remains unresolved and grants nothing. A later
-class-specific provider must independently replay and validate its exact
-receipt before any referenced evidence can contribute to closure.
+release decision. No evidence replay provider exists in the current
+grammar-evidence tranche, so every receipt reference remains unresolved and
+grants nothing. A later class-specific provider must independently replay and
+validate its exact receipt before any referenced evidence can contribute to
+closure.
 
 The audit derives missing handlers, unexercised lanes, missing evidence classes,
 and live discrepancy blockers. No status, completion, waiver, fallback,

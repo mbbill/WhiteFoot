@@ -1,122 +1,121 @@
 # Whitefoot production compiler
 
-This is the permanent safe-Rust implementation of the Whitefoot compiler. Its
-exact initial language target is `spec/kernel-spec-v0.8.md`, SHA-256
-`d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
+This directory contains the one permanent safe-Rust implementation of the
+Whitefoot compiler. There is no disposable compiler and no parallel
+self-hosting track.
 
-The workspace is in Phase 2. It establishes production contracts and
-verification boundaries; it is not yet a source-to-code compiler and makes no
-conformance or release claim.
+The immutable active specification and evidence baseline is
+`../spec/kernel-spec-v0.8.md`, SHA-256
+`d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
+Recorded contradictions in that specification block a production parser until
+an exact successor is separately approved and installed. Compiler code may not
+invent a resolution. `../THE-PLAN.md` is the sole source for implementation
+order and authorization.
+
+## Handoff state
+
+Phase 1's audited foundation handoff is complete. The workspace establishes
+source, lexical, identity, resource, and build boundaries only. It is not yet a
+source-to-code compiler and makes no conformance or release claim.
+
+Phase 2's standalone grammar-change verifier and evidence package are active as
+the sole authorized implementation tranche. That tool stays outside the
+production compiler dependency graph. It may prepare exact, non-authoritative
+successor bytes and impact evidence, but it may not edit a numbered
+specification, switch the active target, or create production parser or
+artifact structures.
 
 ## Current crates
 
-- `whitefoot-contract` owns deterministic, judgment-free data contracts: the
-  exact specification and static-catalog identities, ordered source bundles,
-  source identities and bundle-bound spans, explicit resource ceilings, and
-  the first canonical source-binding framing. The catalog identity is a nominal
-  byte identity only; it does not claim implementation completeness.
-- `whitefoot-frontend` depends only on `whitefoot-contract`. A complete lexer
-  result partitions the exact source bytes while classifying v0.8 lexical
-  shapes. Source issues, resource exhaustion, and compiler failures remain
-  distinct internal outcomes. Lexer-owned output allocation is fallible and
-  explicitly bounded; this does not extend that claim backward to source-bundle
-  construction. This is lossless frontend infrastructure, not a
-  language-acceptance, semantic-capability, or catalog-facet claim.
-- `whitefoot-lexical-observer` is a binary-only development adapter depending
-  on the contract and frontend. It accepts one bounded canonical source
-  binding on standard input and projects only the lexer's four existing
-  outcome families through a closed binary protocol. Its output has no rule,
-  verdict, parser, capability, receipt, or portable token-identity field. The
-  exact request/response pair is test observation data, not a checked compiler
-  artifact. Conservative ingress limits bound the current infallible
-  source-binding and bundle-construction allocations; allocator termination in
-  that path remains a toolchain failure, not a lexical result.
-- `whitefoot-verifier` depends only on `whitefoot-contract`. Its first real
-  judgment verifies that an artifact is bound to the expected specification
-  and exact ordered source bytes. Verified state has no public constructor.
+- `whitefoot-contract` owns judgment-free contracts: exact specification and
+  nominal catalog identities, bounded ordered source transport, source
+  identities and spans, resource ceilings, and the version-1 source-binding
+  wire format. Owned construction reports limit and allocation failures.
+- `whitefoot-lexer` depends only on `whitefoot-contract`. It losslessly
+  partitions exact source bytes into shape-only tokens and retained trivia
+  under explicit ceilings. It does not classify grammar terminals, parse,
+  resolve, or accept a program.
+- `whitefoot-source-audit` depends only on `whitefoot-contract`. It checks that
+  a decoded candidate binding names the expected specification and reproduces
+  the exact source transport. It does not replace the binding codec's separate
+  canonical-byte validation and is not an artifact verifier, semantic checker,
+  or independent production authority.
+- `whitefoot-lexical-observer` is a binary-only development adapter over the
+  contract and lexer. It exposes the lexer's closed outcome families to an
+  independent byte-level model. Requests and responses are observation data,
+  not tokens with portable identity, parser output, verdicts, receipts, or
+  checked artifacts.
 
-Semantic, normative diagnostic, and command-line modules will be added only
-when they contain real production behavior. The independent verifier remains a
-separate crate and has no dependency on the frontend. Lowering becomes a
-separate crate when a real backend exists, so the dependency graph can prevent
-raw frontend state from reaching it.
+The `SourceBundle` sequence is transport order only. It does not define
+normative file composition, declaration order, zero-source behavior, or program
+root extent. Those meanings require an approved successor specification.
 
-No active code imports the retired implementations under `archive/`.
+No production terminal classifier, parser, syntax tree authority, resolver,
+semantic kernel, semantic record, artifact schema, backend, compiler
+executable, conformance adapter, or release capability exists here yet. No
+active code imports the retired implementations under `../archive/`.
 
-## Capability audit boundary
+## Later production authority path
 
-The implementation overlay lives at `../capabilities/whitefoot-rust/v0.8/`,
-outside this Cargo workspace. It is audit metadata, not a compiler input. The
-workspace policy rejects direct contiguous static-catalog facet-ID source
-occurrences, scans every `.rs` file under `compiler/crates/`, forbids `#[path]`,
-source-splicing `include!`, and local `macro_rules!`, rejects compile-time
-environment macros and aliased data macros, limits conditional compilation to
-canonical `#[cfg(test)]`, and permits only the exact specification and static
-semantic-catalog lock files as source-level included data. Exact
-package and dependency checks keep the overlay outside crate APIs. Crate doctest
-targets are disabled and gate commands forbid explicit doctest execution;
-active compiler Cargo configuration and every rustfmt or Clippy configuration
-discoverable from source ancestry are forbidden. Every
-workspace-resolving or compiling gate Cargo command uses isolated Cargo and
-process homes, fresh target and temporary directories, a configuration-free
-working directory, closed environment, exact toolchain, and explicit manifest;
-Make variables cannot replace that runner. No evidence replay provider exists
-yet, so the overlay cannot close any semantic obligation.
+After the specification and phase gates permit it, production acceptance uses
+one semantic kernel:
 
-The lexical observer is built from a compiler-only source root and invoked by
-its differential gate as the exact Cargo-declared executable from a fresh
-target. Its working directory, environment, arguments, and standard input
-contain no capability overlay or derived report; hostile lookalikes do not
-change its response. A future executable conformance adapter must satisfy the
-same boundary for the compiler, verifier, lowerer, runtime, diagnostics, and
-test selection before it can report normative verdicts.
+```text
+canonical syntax
+  -> one semantic kernel
+  -> private checked draft
+  -> target qualification
+  -> canonical artifact projection
+  -> artifact-only decode and complete replay through the same kernel
+  -> accepted compilation from replay-decoded state
+  -> conservative generic lowering
+```
 
-`static-semantic-catalog-v0.8.sha256` mirrors the compiler-independent lock at
-`../facets/v0.8/static-catalog.sha256`. The root audit rebuilds the canonical
-catalog and requires the independently derived hash, hardcoded reviewed value,
-root lock, and compiler mirror to agree. Compiler policy pins the mirror's exact
-value, and the Rust unit test binds that mirror to the nominal `CatalogHash`
-constant. Rust does not parse the catalog or capability overlay. The version-1
-`WFSOURCE` codec remains exactly source plus specification identity; catalog,
-tree, and proof identities belong to a future checked-artifact envelope after
-their canonical schemas and real consumer exist.
+Only mandatory replay in the originating invocation may construct lowering
+authority. There is no second production semantic certificate verifier.
+Same-kernel replay detects incomplete projection, codec, reference, and
+corruption defects; it is not independent semantic evidence and does not
+reduce the trusted semantic kernel. The current source-audit crate is not a
+placeholder for that future replay boundary.
 
-The ordered multi-file bundle is a toolchain input envelope around v0.8's one
-closed program, not a new language rule. Each file will contain complete
-top-level items; combined declaration order is file order followed by item
-order, while per-file UTF-8 and canonical formatting remain FORM-2 frontend
-judgments. Invalid raw bytes therefore survive bundle construction.
+Optional optimizer propositions are a separate later overlay with their own
+independent family verifiers. The canonical empty overlay must always lower
+correctly, preserving every unproved runtime check.
 
-## Gate
+## Non-authority data
 
-Run:
+The capability overlay at `../capabilities/whitefoot-rust/v0.8/`, the static
+semantic catalog, discrepancy registry, source index, corpora, and experiment
+receipts are audit evidence only. Production code must not read them to select
+acceptance, semantic handling, or lowering. A digest proves byte identity, not
+truth, completeness, or implementation capability.
+
+The version-1 `WFSOURCE` codec remains exactly source transport plus
+specification identity. Catalog, tree, proof, semantic, target, and backend
+identities do not belong in it. No future artifact envelope should be created
+until its canonical schema and real consumer are authorized.
+
+## Gates
+
+Run the compiler gate from the repository root:
 
 ```sh
 make -C compiler check
 ```
 
-The gate verifies the exact Rust toolchain fingerprint, v0.8 bytes, and static
-catalog identity, enforces
-the closed four-package dependency graph and inherited lint policy, rejects
-symlinks, build scripts, procedural macros, unapproved dependencies, and paths
-outside this workspace, then checks formatting, builds, lints, tests, and
-rustdoc. The reproducibility layer copies the complete compiler source to two
-different paths and physical files, builds both release graphs, and compares
-every Cargo-declared workspace artifact under collision-checked logical keys.
+Run the complete development gate before and after a completed repository
+slice:
 
-Absolute checkout paths otherwise enter stable-rustc library metadata and make
-all seven current release artifacts differ across source copies. The gate uses
-stable `--remap-path-prefix` flags for both the copied source root and its target
-directory. The two builds never share a checkout or target directory, and the
-gate uses no nightly compiler option.
+```sh
+make check
+```
 
-The toolchain alias is `1.91`; `toolchain-lock.json` closes that alias to exact
-rustc and Cargo releases and commits, LLVM, rustfmt, Clippy, profile, and
-component set. Dependency resolution and builds run with Cargo's locked,
-offline controls (`--locked --offline`), so the exact toolchain must already be
-installed. The current graph has no external package. Before one is admitted,
-the clean reproducibility builds need a reviewed vendoring or deterministic
-source-population strategy; an ordinary caller cache is insufficient. This is
-an offline Cargo guarantee, not a claim that rustup can install a missing
-toolchain without network access. `dependencies.json` binds its complete
-external-package allowlist to the exact `Cargo.lock` bytes.
+The compiler gate pins the exact Rust toolchain, v0.8 bytes, static catalog
+identity, package graph, dependencies, source policy, formatting, linting,
+tests, rustdoc, and cross-path reproducibility. Builds are locked and offline;
+the required toolchain must already be installed. The workspace forbids
+`unsafe`, build scripts, procedural macros, unapproved dependencies,
+source-splicing, and archive imports.
+
+A green gate describes only this incomplete foundation. It does not claim that
+Whitefoot source can be parsed, accepted, lowered, or released.

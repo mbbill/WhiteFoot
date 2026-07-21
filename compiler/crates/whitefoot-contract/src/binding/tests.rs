@@ -7,15 +7,23 @@ use crate::{KERNEL_SPEC_V0_8_HASH, SourceInput};
 
 const MAXIMUM: SourceLimits = SourceLimits::REPRESENTABLE;
 
-fn bundle(inputs: impl IntoIterator<Item = SourceInput>) -> SourceBundle {
+fn bundle(inputs: &[SourceInput<'_>]) -> SourceBundle {
     SourceBundle::with_limits(inputs, MAXIMUM).unwrap()
 }
 
 fn sample_bundle() -> SourceBundle {
-    bundle([
-        SourceInput::new("z.wf", vec![0xff, 0x00]),
-        SourceInput::new("a.wf", b"fn bytes".to_vec()),
+    bundle(&[
+        SourceInput::new("z.wf", &[0xff, 0x00]),
+        SourceInput::new("a.wf", b"fn bytes"),
     ])
+}
+
+fn candidate(spec_hash: SpecHash, records: &[SourceInput<'_>]) -> SourceBinding {
+    SourceBinding::try_from_sources(spec_hash, records, MAXIMUM).unwrap()
+}
+
+fn binding_for_bundle(bundle: &SourceBundle) -> SourceBinding {
+    SourceBinding::try_from_bundle(KERNEL_SPEC_V0_8_HASH, bundle, MAXIMUM).unwrap()
 }
 
 fn encode(binding: &SourceBinding) -> Vec<u8> {
@@ -40,7 +48,7 @@ fn push_record(encoded: &mut Vec<u8>, path: &[u8], bytes: &[u8]) {
 
 #[test]
 fn canonical_round_trip_preserves_order_paths_and_raw_bytes() {
-    let binding = SourceBinding::from_bundle(KERNEL_SPEC_V0_8_HASH, &sample_bundle());
+    let binding = binding_for_bundle(&sample_bundle());
     let encoded = encode(&binding);
     let decoded = SourceBinding::decode_canonical(&encoded, MAXIMUM).unwrap();
     assert_eq!(decoded, binding);
@@ -49,8 +57,8 @@ fn canonical_round_trip_preserves_order_paths_and_raw_bytes() {
 
 #[test]
 fn canonical_encoding_has_one_pinned_field_order() {
-    let bundle = bundle([SourceInput::new("a", b"bc".to_vec())]);
-    let encoded = encode(&SourceBinding::from_bundle(KERNEL_SPEC_V0_8_HASH, &bundle));
+    let bundle = bundle(&[SourceInput::new("a", b"bc")]);
+    let encoded = encode(&binding_for_bundle(&bundle));
     let mut expected = header(1);
     push_record(&mut expected, b"a", b"bc");
     assert_eq!(encoded, expected);
@@ -58,7 +66,7 @@ fn canonical_encoding_has_one_pinned_field_order() {
 
 #[test]
 fn zero_source_binding_round_trips() {
-    let binding = SourceBinding::new(KERNEL_SPEC_V0_8_HASH, Vec::new());
+    let binding = candidate(KERNEL_SPEC_V0_8_HASH, &[]);
     let encoded = encode(&binding);
     assert_eq!(
         SourceBinding::decode_canonical(&encoded, MAXIMUM),
@@ -69,7 +77,7 @@ fn zero_source_binding_round_trips() {
 #[test]
 fn source_binding_v1_empty_vector_remains_source_and_spec_only() {
     assert_eq!(SOURCE_BINDING_CODEC_VERSION, 1);
-    let encoded = encode(&SourceBinding::new(KERNEL_SPEC_V0_8_HASH, Vec::new()));
+    let encoded = encode(&candidate(KERNEL_SPEC_V0_8_HASH, &[]));
     let mut expected = b"WFSOURCE".to_vec();
     expected.extend_from_slice(&1_u16.to_be_bytes());
     expected.extend_from_slice(KERNEL_SPEC_V0_8_HASH.digest().as_bytes());
@@ -81,30 +89,21 @@ fn source_binding_v1_empty_vector_remains_source_and_spec_only() {
 #[test]
 fn framing_distinguishes_concatenations_splits_and_order() {
     let candidates = [
-        bundle([SourceInput::new("a", b"bc".to_vec())]),
-        bundle([SourceInput::new("ab", b"c".to_vec())]),
-        bundle([
-            SourceInput::new("a", b"b".to_vec()),
-            SourceInput::new("c", b"c".to_vec()),
-        ]),
-        bundle([
-            SourceInput::new("c", b"c".to_vec()),
-            SourceInput::new("a", b"b".to_vec()),
-        ]),
+        bundle(&[SourceInput::new("a", b"bc")]),
+        bundle(&[SourceInput::new("ab", b"c")]),
+        bundle(&[SourceInput::new("a", b"b"), SourceInput::new("c", b"c")]),
+        bundle(&[SourceInput::new("c", b"c"), SourceInput::new("a", b"b")]),
     ];
     let encodings: BTreeSet<_> = candidates
         .iter()
-        .map(|bundle| encode(&SourceBinding::from_bundle(KERNEL_SPEC_V0_8_HASH, bundle)))
+        .map(|bundle| encode(&binding_for_bundle(bundle)))
         .collect();
     assert_eq!(encodings.len(), candidates.len());
 }
 
 #[test]
 fn every_truncated_valid_prefix_is_rejected_without_panicking() {
-    let encoded = encode(&SourceBinding::from_bundle(
-        KERNEL_SPEC_V0_8_HASH,
-        &sample_bundle(),
-    ));
+    let encoded = encode(&binding_for_bundle(&sample_bundle()));
     for end in 0..encoded.len() {
         let result = SourceBinding::decode_canonical(&encoded[..end], MAXIMUM);
         assert!(result.is_err(), "accepted prefix ending at {end}");
@@ -197,13 +196,10 @@ fn invalid_path_transport_and_spelling_are_distinct() {
 
 #[test]
 fn decoder_enforces_every_resource_limit() {
-    let encoded = encode(&SourceBinding::from_bundle(
-        KERNEL_SPEC_V0_8_HASH,
-        &bundle([
-            SourceInput::new("aa", b"12".to_vec()),
-            SourceInput::new("bb", b"34".to_vec()),
-        ]),
-    ));
+    let encoded = encode(&binding_for_bundle(&bundle(&[
+        SourceInput::new("aa", b"12"),
+        SourceInput::new("bb", b"34"),
+    ])));
     let cases = [
         (
             SourceLimits {
@@ -266,7 +262,7 @@ fn decoder_enforces_every_resource_limit() {
 
 #[test]
 fn encoder_enforces_aggregate_and_output_limits_before_allocation() {
-    let binding = SourceBinding::from_bundle(KERNEL_SPEC_V0_8_HASH, &sample_bundle());
+    let binding = binding_for_bundle(&sample_bundle());
     assert!(matches!(
         binding.encode_canonical(SourceLimits {
             max_sources: 2,
@@ -296,11 +292,72 @@ fn encoder_enforces_aggregate_and_output_limits_before_allocation() {
 }
 
 #[test]
-fn inserted_and_deleted_source_bytes_do_not_decode_as_the_same_binding() {
-    let encoded = encode(&SourceBinding::from_bundle(
-        KERNEL_SPEC_V0_8_HASH,
-        &sample_bundle(),
+fn candidate_construction_checks_limits_before_owned_copy() {
+    let limits = SourceLimits {
+        max_sources: 1,
+        max_logical_path_bytes: 1,
+        max_source_bytes: 1,
+        max_total_source_bytes: 1,
+        max_binding_bytes: 128,
+    };
+    assert!(matches!(
+        SourceBinding::try_from_sources(
+            KERNEL_SPEC_V0_8_HASH,
+            &[SourceInput::new("long", b"")],
+            limits,
+        ),
+        Err(EncodeError::LimitExceeded {
+            limit: SourceLimit::LogicalPathBytes,
+            maximum: 1,
+            actual: 4,
+        })
     ));
+    assert!(matches!(
+        SourceBinding::try_from_sources(
+            KERNEL_SPEC_V0_8_HASH,
+            &[SourceInput::new("a\\b", b"")],
+            MAXIMUM,
+        ),
+        Err(EncodeError::LogicalPath(
+            LogicalPathError::InvalidByte { .. }
+        ))
+    ));
+}
+
+#[test]
+fn impossible_binding_reservations_are_explicit_failures() {
+    let mut encode_values = Vec::<u8>::new();
+    assert_eq!(
+        try_reserve_encode(
+            &mut encode_values,
+            usize::MAX,
+            SourceLimit::BindingBytes,
+            u64::MAX,
+        ),
+        Err(EncodeError::StorageUnavailable {
+            limit: SourceLimit::BindingBytes,
+            requested: u64::MAX,
+        })
+    );
+
+    let mut decode_values = Vec::<u8>::new();
+    assert_eq!(
+        try_reserve_decode(
+            &mut decode_values,
+            usize::MAX,
+            SourceLimit::SourceBytes,
+            u64::MAX,
+        ),
+        Err(DecodeError::StorageUnavailable {
+            limit: SourceLimit::SourceBytes,
+            requested: u64::MAX,
+        })
+    );
+}
+
+#[test]
+fn inserted_and_deleted_source_bytes_do_not_decode_as_the_same_binding() {
+    let encoded = encode(&binding_for_bundle(&sample_bundle()));
     let mut inserted = encoded.clone();
     inserted.push(0);
     assert!(matches!(
@@ -344,23 +401,20 @@ fn deterministic_arbitrary_bytes_never_panic() {
 #[test]
 fn small_domain_encodings_are_injective_and_canonical() {
     let byte_values: &[&[u8]] = &[b"", &[0], &[1], &[0, 1]];
-    let mut bindings = vec![SourceBinding::new(KERNEL_SPEC_V0_8_HASH, Vec::new())];
+    let mut bindings = vec![candidate(KERNEL_SPEC_V0_8_HASH, &[])];
     for path in ["a", "b"] {
         for bytes in byte_values {
-            bindings.push(SourceBinding::new(
+            bindings.push(candidate(
                 KERNEL_SPEC_V0_8_HASH,
-                vec![BoundSource::new(LogicalPath::parse(path).unwrap(), *bytes)],
+                &[SourceInput::new(path, bytes)],
             ));
         }
     }
     for first in byte_values {
         for second in byte_values {
-            bindings.push(SourceBinding::new(
+            bindings.push(candidate(
                 KERNEL_SPEC_V0_8_HASH,
-                vec![
-                    BoundSource::new(LogicalPath::parse("a").unwrap(), *first),
-                    BoundSource::new(LogicalPath::parse("b").unwrap(), *second),
-                ],
+                &[SourceInput::new("a", first), SourceInput::new("b", second)],
             ));
         }
     }

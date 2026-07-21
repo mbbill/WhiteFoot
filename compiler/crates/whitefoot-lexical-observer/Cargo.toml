@@ -10,7 +10,7 @@ autobins = false
 
 [dependencies]
 whitefoot-contract = { path = "../whitefoot-contract" }
-whitefoot-frontend = { path = "../whitefoot-frontend" }
+whitefoot-lexer = { path = "../whitefoot-lexer" }
 
 [[bin]]
 name = "whitefoot-lexical-observer"

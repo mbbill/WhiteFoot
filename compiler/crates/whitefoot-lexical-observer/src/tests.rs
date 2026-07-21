@@ -1,9 +1,10 @@
 use std::io::Cursor;
 
-use whitefoot_contract::{ByteOffset, KERNEL_SPEC_V0_8_HASH, SourceId, SourceLimits};
-use whitefoot_frontend::{
-    LexCompilerFailure, LexLimit, LexOutcome, LexResourceFailure, LexStorage,
+use whitefoot_contract::{
+    ByteOffset, DecodeError, EncodeError, KERNEL_SPEC_V0_8_HASH, SourceBundleError, SourceId,
+    SourceLimit, SourceLimits,
 };
+use whitefoot_lexer::{LexCompilerFailure, LexLimit, LexOutcome, LexResourceFailure, LexStorage};
 
 use crate::protocol::{AdapterError, RESPONSE_MAGIC, RESPONSE_VERSION, read_request};
 
@@ -73,6 +74,34 @@ fn truncation_and_trailing_bytes_are_tool_failures() {
 }
 
 #[test]
+fn owned_source_storage_failures_remain_distinct_from_invalid_input() {
+    let binding_failure = DecodeError::StorageUnavailable {
+        limit: SourceLimit::SourceBytes,
+        requested: 7,
+    };
+    assert_eq!(
+        super::map_binding_decode_error(binding_failure),
+        AdapterError::SourceBindingStorageUnavailable
+    );
+    let bundle_failure = SourceBundleError::StorageUnavailable {
+        limit: SourceLimit::Sources,
+        requested: 3,
+    };
+    assert_eq!(
+        super::map_source_bundle_error(bundle_failure),
+        AdapterError::SourceBundleStorageUnavailable
+    );
+    let encode_failure = EncodeError::StorageUnavailable {
+        limit: SourceLimit::BindingBytes,
+        requested: 11,
+    };
+    assert_eq!(
+        super::map_binding_encode_error(encode_failure),
+        AdapterError::SourceBindingStorageUnavailable
+    );
+}
+
+#[test]
 fn magic_version_and_hard_profile_fail_before_payload_allocation() {
     let encoded = request(&empty_binding());
     let mut magic = encoded.clone();
@@ -118,14 +147,10 @@ fn magic_version_and_hard_profile_fail_before_payload_allocation() {
 
 #[test]
 fn empty_complete_response_has_one_exact_neutral_shape() {
-    let bundle = whitefoot_contract::SourceBundle::with_limits(
-        Vec::<whitefoot_contract::SourceInput>::new(),
-        SOURCE_LIMITS,
-    )
-    .unwrap();
-    let outcome = whitefoot_frontend::lex_v0_8(
+    let bundle = whitefoot_contract::SourceBundle::with_limits(&[], SOURCE_LIMITS).unwrap();
+    let outcome = whitefoot_lexer::lex_v0_8(
         &bundle,
-        whitefoot_frontend::LexLimits {
+        whitefoot_lexer::LexLimits {
             max_sources: 8,
             max_source_bytes: 1_024,
             max_total_source_bytes: 2_048,
@@ -146,11 +171,7 @@ fn empty_complete_response_has_one_exact_neutral_shape() {
 }
 
 fn empty_bundle() -> whitefoot_contract::SourceBundle {
-    whitefoot_contract::SourceBundle::with_limits(
-        Vec::<whitefoot_contract::SourceInput>::new(),
-        SOURCE_LIMITS,
-    )
-    .unwrap()
+    whitefoot_contract::SourceBundle::with_limits(&[], SOURCE_LIMITS).unwrap()
 }
 
 fn payload(outcome: LexOutcome<'_>, bundle: &whitefoot_contract::SourceBundle) -> Vec<u8> {
@@ -268,13 +289,13 @@ fn maximum_alternating_response_is_reserved_and_encoded_once() {
         max_binding_bytes: 2_097_152,
     };
     let bundle = whitefoot_contract::SourceBundle::with_limits(
-        [whitefoot_contract::SourceInput::new("maximum.wf", exact)],
+        &[whitefoot_contract::SourceInput::new("maximum.wf", &exact)],
         limits,
     )
     .unwrap();
-    let outcome = whitefoot_frontend::lex_v0_8(
+    let outcome = whitefoot_lexer::lex_v0_8(
         &bundle,
-        whitefoot_frontend::LexLimits {
+        whitefoot_lexer::LexLimits {
             max_sources: 1,
             max_source_bytes: SOURCE_BYTES as u64,
             max_total_source_bytes: SOURCE_BYTES as u64,

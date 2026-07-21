@@ -1,12 +1,12 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
-//! Lossless, resource-bounded frontend components for Whitefoot v0.8.
+//! Lossless, resource-bounded lexical shapes for Whitefoot v0.8.
 //!
 //! The current entry point performs byte-preserving lexical partitioning. A
 //! complete lexical result is not a language-acceptance verdict: parsing,
-//! canonical formatting, semantic checking, and normative diagnostics remain
-//! separate stages.
+//! terminal classification, canonical formatting, semantic checking, and
+//! normative diagnostics remain separate stages.
 
 mod outcome;
 mod scanner;

@@ -1,10 +1,10 @@
 [package]
-name = "whitefoot-verifier"
+name = "whitefoot-source-audit"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Independent verifier for Whitefoot checked artifacts"
+description = "Exact Whitefoot source and specification binding audit"
 publish = false
 
 [lib]

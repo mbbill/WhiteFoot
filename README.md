@@ -1,111 +1,104 @@
 # Whitefoot
 
-Whitefoot is an experimental systems language for AI-written, human-approved
-code. It is designed so that memory corruption, data races, uninitialized
-reads, and silent overflow are unrepresentable in accepted source. There is no
-writer-accessible unsafe escape. Runtime safety checks remain enabled unless a
-machine-verified proof discharges them.
+Whitefoot is a systems language for AI-written, human-approved code. It is
+designed so that memory corruption, data races, uninitialized reads, and silent
+overflow are unrepresentable in accepted source. There is no writer-accessible
+unsafe escape. Runtime safety checks remain enabled unless a machine-verified
+proof authorizes their removal.
 
-The exact first implementation target is
-[kernel specification v0.8](spec/kernel-spec-v0.8.md). The production compiler
-is being built from scratch in safe Rust. The former Python demo compiler and
-the incomplete Whitefoot self-hosting compiler are preserved under
-[archive/toolchains/self-hosting-2026-07-20](archive/toolchains/self-hosting-2026-07-20/README.md)
-as historical evidence; they have no active authority.
+[THE-PLAN.md](THE-PLAN.md) is the sole source for current execution order,
+authorization, gates, and stop conditions.
 
-The current execution order and gates are in [THE-PLAN.md](THE-PLAN.md).
+## Authority and handoff state
 
-## Design
+[Kernel specification v0.8](spec/kernel-spec-v0.8.md), SHA-256
+`d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`,
+remains the immutable active specification and evidence baseline. Its recorded
+grammar and semantic contradictions block a production parser. Compiler code
+may not silently resolve them.
 
-Whitefoot exposes facts that an ordinary compiler often has to recover
-imperfectly:
+The audited Rust-foundation handoff is complete. The active and sole authorized
+implementation tranche is the standalone grammar-change verifier and its exact
+evidence package. That tool is outside the production compiler dependency
+graph. It prepares reproducible evidence and non-authoritative proposal bytes;
+it does not edit a numbered specification, change protected expectations,
+switch the active target, or authorize a parser. Those actions retain their
+separate owner gates.
 
-- ownership and exclusive loans establish aliasing facts;
-- exact effect rows state what a function can read, write, allocate, or trap;
-- arithmetic modes make overflow behavior local and explicit;
-- checked laws can authorize transformations only after verification; and
-- canonical source gives one byte-level spelling for a program.
+## Production design
 
-A source-level option may never weaken a safety check for speed. The permanent
-pipeline is:
+Whitefoot exposes ownership, effects, numeric modes, cleanup, checks, and
+verified laws as explicit semantic facts. A source-level option may never
+weaken a safety check for speed.
+
+The future production path uses one semantic kernel:
 
 ```text
-source
-  -> Rust frontend and syntax-directed checker
-  -> candidate proof-bearing CheckedUnit
-  -> independent verifier
-  -> VerifiedCheckedUnit
-  -> generic LLVM lowering
+exact source transport
+  -> lossless lexer and canonical syntax
+  -> one semantic kernel
+  -> private checked draft
+  -> canonical artifact bytes
+  -> artifact-only decode and complete replay through the same kernel
+  -> accepted compilation
+  -> conservative generic lowering
 ```
 
-Optimizer facts are a later, independently verified overlay. They can improve
-code for an already accepted program but cannot change acceptance.
+The originating invocation must complete that same-kernel replay before it can
+construct lowering authority. There is no second production semantic verifier.
+Replay checks that the canonical artifact fully and consistently records the
+accepted invocation; it is not independent semantic evidence and does not make
+the kernel less trusted. Independent models, hostile tests, and differentials
+remain mandatory evidence around the production path.
 
-## Current status
+Optional optimizer facts form a later, independently verified overlay. The
+empty overlay always works, and an optional fact can improve an already
+accepted program but cannot change acceptance, semantic identity, or required
+checks.
 
-The repository is in the Rust compiler foundation phase.
+## What exists now
 
-- v0.8 is frozen as the exact initial implementation target.
-- The compiler-independent conformance corpus and codegen premise corpus remain
-  active.
-- The focused Python reference checker and model checker remain active as
-  bounded independent evidence, not as a compiler.
-- The active safe-Rust workspace now pins the exact toolchain and specification,
-  owns the ordered raw-source contract, and independently verifies exact
-  source/spec binding. Its first frontend boundary losslessly partitions exact
-  source bytes into shape-only tokens and retained trivia under explicit
-  ceilings; this is not yet parsing or language acceptance. It has no compiler
-  executable or conformance adapter yet.
-- A small byte-exact lexical corpus and independent model exercise that same
-  non-authorizing boundary without importing compiler code. They do not yet
-  constitute a compiler differential or capability receipt.
-- The exact-v0.8 structural source index is generated independently of compiler
-  code. Its counts are integrity facts, not an implementation-progress measure;
-  authored semantic decomposition and compiler capability remain separate.
-- Existing performance experiments are evidence with explicit scope and
-  caveats; they are not claims about a finished language or compiler.
+The safe-Rust foundation contains four narrowly scoped crates:
 
-Run the currently applicable repository gate with:
+- `whitefoot-contract` owns exact identities, bounded source transport, spans,
+  ceilings, and the version-1 source-binding wire contract.
+- `whitefoot-lexer` losslessly partitions exact source bytes into shape-only
+  tokens and retained trivia. It does not parse or accept programs.
+- `whitefoot-source-audit` checks exact source/specification binding only. It
+  is not an artifact verifier or semantic checker.
+- `whitefoot-lexical-observer` is a binary-only development adapter for an
+  independent byte-level lexical differential. Its output is evidence only.
+
+`SourceBundle` ordering is transport order, not normative multi-file or
+declaration-order semantics. The workspace has no production terminal
+classifier, parser, syntax authority, resolver, semantic kernel, checked
+artifact, backend, compiler executable, or release capability.
+
+The compiler-independent conformance corpus, proof/code-shape premise corpus,
+focused reference models, and measured experiments remain active evidence.
+None is compiler authority, and a corpus count or passing example is not a
+completeness claim.
+
+Run the development gates with:
 
 ```sh
+make -C compiler check
 make check
 ```
 
-The gate reports the exact incomplete development state and runs the Rust
-workspace checks; it does not claim compiler conformance. A production release
-cannot pass while any normative v0.8 facet is pending, skipped, xfail, or
-unsupported.
+A green result states only the capabilities that currently exist. It is not a
+compiler-conformance or release claim. Compiler failures and resource outcomes
+belong to adapter results, never to normative expected behavior.
 
 ## Durable verification
 
-The compiler implementation is replaceable. The durable verification system
-includes:
-
-- specification-versioned source and expected verdicts;
-- a complete spec-derived facet catalog;
-- focused independent semantic models;
-- hand-authored valid and hostile artifact vectors;
-- property, metamorphic, fuzz, and mutation testing;
-- facts-on/facts-off controls; and
-- full compatibility protocols for real replacement projects.
-
-Compiler capability and implementation failures belong to adapter-owned data,
-never to normative expected behavior.
-
-## Evidence boundary
-
-The repository contains measured wins, losses, and failed hypotheses under
-[experiments/](experiments/README.md). For example, the base64 experiment showed
-that proof-driven check removal can make a direct indexed loop reach the same
-performance class as expert safe Rust, while the zlib kernel study showed that
-literal lowering is insufficient for important overlapping-copy and decode
-shapes. These are mechanism findings, not general performance claims.
-
-Real projects become product evidence only when the complete declared interface
-passes upstream compatibility tests, differential fuzzing, downstream
-integration, resource and failure testing, reproducibility, and
-preregistered target-specific performance gates. Isolated kernels do not count
-as production rewrites.
+The compiler implementation is replaceable; the evidence is intended to
+survive it. The durable system includes specification-versioned conformance,
+independent grammar and semantic models, valid and hostile artifact vectors,
+property and mutation testing, facts-on/facts-off controls, and full-project
+compatibility protocols. Measured experiments under
+[experiments/](experiments/README.md) remain mechanism findings with explicit
+scope, not general performance or product claims.
 
 ## Repository guide
 
@@ -113,7 +106,7 @@ as production rewrites.
 |---|---|
 | Current execution order and authorization | [THE-PLAN.md](THE-PLAN.md) |
 | Language specification | [spec/kernel-spec-v0.8.md](spec/kernel-spec-v0.8.md) |
-| Specification source index and facet work | [facets/v0.8/](facets/v0.8/README.md) |
+| Specification source index and semantic catalog | [facets/v0.8/](facets/v0.8/README.md) |
 | Active Rust compiler workspace | [compiler/](compiler/README.md) |
 | Project law and writer patterns | [CONSTITUTION.md](CONSTITUTION.md), [PATTERNS.md](PATTERNS.md) |
 | Compiler-independent behavior corpus | [conformance/](conformance/README.md) |

@@ -1,6 +1,4 @@
 use core::fmt;
-use std::collections::BTreeMap;
-use std::sync::Arc;
 
 /// Dense source ordinal interpreted within an accompanying source context.
 ///
@@ -111,13 +109,12 @@ impl<'bundle> SourceSpan<'bundle> {
 ///
 /// Logical paths use `/` separators and ASCII components containing only
 /// letters, digits, `.`, `_`, and `-`. They are never host filesystem paths.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct LogicalPath(Box<str>);
+#[derive(Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct LogicalPath(String);
 
 impl LogicalPath {
-    /// Validates a logical source path without normalizing it.
-    pub fn parse(value: impl Into<Box<str>>) -> Result<Self, LogicalPathError> {
-        let value = value.into();
+    /// Checks a logical source path without allocating or normalizing it.
+    pub(crate) fn validate(value: &str) -> Result<(), LogicalPathError> {
         if value.is_empty() {
             return Err(LogicalPathError::Empty);
         }
@@ -138,7 +135,19 @@ impl LogicalPath {
                 return Err(LogicalPathError::DotComponent);
             }
         }
-        Ok(Self(value))
+        Ok(())
+    }
+
+    /// Validates and fallibly owns a logical source path without normalizing it.
+    pub fn parse(value: &str) -> Result<Self, LogicalPathError> {
+        Self::validate(value)?;
+        let requested = u64::try_from(value.len()).map_err(|_| LogicalPathError::LengthOverflow)?;
+        let mut owned = String::new();
+        owned
+            .try_reserve_exact(value.len())
+            .map_err(|_| LogicalPathError::StorageUnavailable { requested })?;
+        owned.push_str(value);
+        Ok(Self(owned))
     }
 
     /// Returns the exact logical path text.
@@ -155,7 +164,7 @@ impl fmt::Display for LogicalPath {
 }
 
 /// Why a logical source path is not a portable relative path.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LogicalPathError {
     /// The path has no bytes.
     Empty,
@@ -172,6 +181,13 @@ pub enum LogicalPathError {
         /// Offending byte value.
         byte: u8,
     },
+    /// The host path length does not fit the portable length domain.
+    LengthOverflow,
+    /// The allocator could not reserve the exact validated path spelling.
+    StorageUnavailable {
+        /// Requested path bytes.
+        requested: u64,
+    },
 }
 
 impl fmt::Display for LogicalPathError {
@@ -187,6 +203,13 @@ impl fmt::Display for LogicalPathError {
                     "logical path byte {index} is not portable: 0x{byte:02x}"
                 )
             }
+            Self::LengthOverflow => formatter.write_str("logical path length exceeds u64"),
+            Self::StorageUnavailable { requested } => {
+                write!(
+                    formatter,
+                    "storage unavailable for logical path of {requested} bytes"
+                )
+            }
         }
     }
 }
@@ -194,13 +217,13 @@ impl fmt::Display for LogicalPathError {
 impl std::error::Error for LogicalPathError {}
 
 /// One caller-supplied source before bundle validation.
-#[derive(Clone, Eq, PartialEq)]
-pub struct SourceInput {
-    logical_path: Box<str>,
-    bytes: Vec<u8>,
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct SourceInput<'input> {
+    logical_path: &'input str,
+    bytes: &'input [u8],
 }
 
-impl fmt::Debug for SourceInput {
+impl fmt::Debug for SourceInput<'_> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("SourceInput")
@@ -210,22 +233,30 @@ impl fmt::Debug for SourceInput {
     }
 }
 
-impl SourceInput {
-    /// Creates an input while preserving its exact path spelling and source bytes.
+impl<'input> SourceInput<'input> {
+    /// Creates a borrowed input view without allocating or normalizing it.
     #[must_use]
-    pub fn new(logical_path: impl Into<Box<str>>, bytes: Vec<u8>) -> Self {
+    pub const fn new(logical_path: &'input str, bytes: &'input [u8]) -> Self {
         Self {
-            logical_path: logical_path.into(),
+            logical_path,
             bytes,
         }
+    }
+
+    pub(crate) const fn logical_path(&self) -> &'input str {
+        self.logical_path
+    }
+
+    pub(crate) const fn bytes(&self) -> &'input [u8] {
+        self.bytes
     }
 }
 
 /// One validated source in a bundle.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub struct SourceFile {
     logical_path: LogicalPath,
-    bytes: Arc<[u8]>,
+    bytes: Vec<u8>,
     byte_len: u64,
 }
 
@@ -256,10 +287,6 @@ impl SourceFile {
     #[must_use]
     pub const fn byte_len(&self) -> u64 {
         self.byte_len
-    }
-
-    pub(crate) fn shared_bytes(&self) -> Arc<[u8]> {
-        Arc::clone(&self.bytes)
     }
 }
 
@@ -337,42 +364,75 @@ impl SourceLimits {
     }
 }
 
-/// One closed, explicitly ordered collection of source files.
+/// One closed, explicitly ordered transport collection of source files.
 ///
-/// File order is caller authority. Paths never sort the bundle. Later parsing
-/// combines complete top-level items in file order, then item order within each
-/// file; no token or item may cross a file boundary.
-#[derive(Clone, Debug, Eq, PartialEq)]
+/// File order is caller-supplied source identity, not normative compilation-
+/// unit or declaration order. The current lexer never crosses a file boundary.
+/// Language meaning for multi-file composition remains separately gated.
+#[derive(Debug, Eq, PartialEq)]
 pub struct SourceBundle {
-    files: Box<[SourceFile]>,
+    files: Vec<SourceFile>,
     total_bytes: u64,
+}
+
+fn try_reserve_exact<T>(
+    values: &mut Vec<T>,
+    additional: usize,
+    limit: SourceLimit,
+    requested: u64,
+) -> Result<(), SourceBundleError> {
+    values
+        .try_reserve_exact(additional)
+        .map_err(|_| SourceBundleError::StorageUnavailable { limit, requested })
+}
+
+fn find_duplicate_paths(
+    inputs: &[SourceInput<'_>],
+) -> Result<Option<(usize, usize)>, SourceBundleError> {
+    let requested =
+        u64::try_from(inputs.len()).map_err(|_| SourceBundleError::ArithmeticOverflow)?;
+    let mut order = Vec::new();
+    try_reserve_exact(&mut order, inputs.len(), SourceLimit::Sources, requested)?;
+    order.extend(0..inputs.len());
+    order.sort_unstable_by(|left, right| {
+        inputs[*left]
+            .logical_path
+            .cmp(inputs[*right].logical_path)
+            .then_with(|| left.cmp(right))
+    });
+
+    let mut duplicate = None;
+    for pair in order.windows(2) {
+        let first = pair[0];
+        let next = pair[1];
+        if inputs[first].logical_path == inputs[next].logical_path
+            && duplicate.is_none_or(|(_, previous)| next < previous)
+        {
+            duplicate = Some((first, next));
+        }
+    }
+    Ok(duplicate)
 }
 
 impl SourceBundle {
     /// Builds a bundle under explicit toolchain resource ceilings.
     pub fn with_limits(
-        inputs: impl IntoIterator<Item = SourceInput>,
+        inputs: &[SourceInput<'_>],
         limits: SourceLimits,
     ) -> Result<Self, SourceBundleError> {
-        let mut files = Vec::new();
-        let mut first_positions = BTreeMap::<LogicalPath, u32>::new();
+        let source_count = inputs.len();
+        let source_count_u64 =
+            u64::try_from(source_count).map_err(|_| SourceBundleError::ArithmeticOverflow)?;
+        if source_count_u64 > u64::from(limits.max_sources) {
+            return Err(SourceBundleError::LimitExceeded {
+                limit: SourceLimit::Sources,
+                maximum: u64::from(limits.max_sources),
+                actual: source_count_u64,
+            });
+        }
+
         let mut total_bytes = 0_u64;
-
         for input in inputs {
-            let position =
-                u32::try_from(files.len()).map_err(|_| SourceBundleError::LimitExceeded {
-                    limit: SourceLimit::Sources,
-                    maximum: u64::from(limits.max_sources),
-                    actual: u64::MAX,
-                })?;
-            if position >= limits.max_sources {
-                return Err(SourceBundleError::LimitExceeded {
-                    limit: SourceLimit::Sources,
-                    maximum: u64::from(limits.max_sources),
-                    actual: u64::from(position) + 1,
-                });
-            }
-
             let path_len = u64::try_from(input.logical_path.len())
                 .map_err(|_| SourceBundleError::ArithmeticOverflow)?;
             if path_len > limits.max_logical_path_bytes {
@@ -382,16 +442,6 @@ impl SourceBundle {
                     actual: path_len,
                 });
             }
-            let logical_path =
-                LogicalPath::parse(input.logical_path).map_err(SourceBundleError::LogicalPath)?;
-            if let Some(first_position) = first_positions.get(&logical_path) {
-                return Err(SourceBundleError::DuplicateLogicalPath {
-                    path: logical_path,
-                    first_position: *first_position,
-                    duplicate_position: position,
-                });
-            }
-
             let source_len = u64::try_from(input.bytes.len())
                 .map_err(|_| SourceBundleError::ArithmeticOverflow)?;
             if source_len > limits.max_source_bytes {
@@ -401,29 +451,82 @@ impl SourceBundle {
                     actual: source_len,
                 });
             }
-            total_bytes = total_bytes
+            let next_total_bytes = total_bytes
                 .checked_add(source_len)
                 .ok_or(SourceBundleError::ArithmeticOverflow)?;
-            if total_bytes > limits.max_total_source_bytes {
+            if next_total_bytes > limits.max_total_source_bytes {
                 return Err(SourceBundleError::LimitExceeded {
                     limit: SourceLimit::TotalSourceBytes,
                     maximum: limits.max_total_source_bytes,
-                    actual: total_bytes,
+                    actual: next_total_bytes,
                 });
             }
+            LogicalPath::validate(input.logical_path).map_err(SourceBundleError::LogicalPath)?;
+            total_bytes = next_total_bytes;
+        }
 
-            first_positions.insert(logical_path.clone(), position);
+        if let Some((first, duplicate)) = find_duplicate_paths(inputs)? {
+            let path =
+                LogicalPath::parse(inputs[duplicate].logical_path).map_err(
+                    |error| match error {
+                        LogicalPathError::LengthOverflow => SourceBundleError::ArithmeticOverflow,
+                        LogicalPathError::StorageUnavailable { requested } => {
+                            SourceBundleError::StorageUnavailable {
+                                limit: SourceLimit::LogicalPathBytes,
+                                requested,
+                            }
+                        }
+                        error => SourceBundleError::LogicalPath(error),
+                    },
+                )?;
+            let first_position =
+                u32::try_from(first).map_err(|_| SourceBundleError::ArithmeticOverflow)?;
+            let duplicate_position =
+                u32::try_from(duplicate).map_err(|_| SourceBundleError::ArithmeticOverflow)?;
+            return Err(SourceBundleError::DuplicateLogicalPath {
+                path,
+                first_position,
+                duplicate_position,
+            });
+        }
+
+        let mut files = Vec::new();
+        try_reserve_exact(
+            &mut files,
+            source_count,
+            SourceLimit::Sources,
+            source_count_u64,
+        )?;
+        for input in inputs {
+            let logical_path =
+                LogicalPath::parse(input.logical_path).map_err(|error| match error {
+                    LogicalPathError::LengthOverflow => SourceBundleError::ArithmeticOverflow,
+                    LogicalPathError::StorageUnavailable { requested } => {
+                        SourceBundleError::StorageUnavailable {
+                            limit: SourceLimit::LogicalPathBytes,
+                            requested,
+                        }
+                    }
+                    error => SourceBundleError::LogicalPath(error),
+                })?;
+            let source_len = u64::try_from(input.bytes.len())
+                .map_err(|_| SourceBundleError::ArithmeticOverflow)?;
+            let mut bytes = Vec::new();
+            try_reserve_exact(
+                &mut bytes,
+                input.bytes.len(),
+                SourceLimit::SourceBytes,
+                source_len,
+            )?;
+            bytes.extend_from_slice(input.bytes);
             files.push(SourceFile {
                 logical_path,
-                bytes: Arc::from(input.bytes),
+                bytes,
                 byte_len: source_len,
             });
         }
 
-        Ok(Self {
-            files: files.into_boxed_slice(),
-            total_bytes,
-        })
+        Ok(Self { files, total_bytes })
     }
 
     /// Returns the number of ordered source files.
@@ -444,9 +547,9 @@ impl SourceBundle {
         self.total_bytes
     }
 
-    /// Returns source files in authoritative caller-supplied order.
+    /// Returns source files in caller-supplied transport order.
     #[must_use]
-    pub const fn files(&self) -> &[SourceFile] {
+    pub fn files(&self) -> &[SourceFile] {
         &self.files
     }
 
@@ -458,7 +561,7 @@ impl SourceBundle {
             .and_then(|index| self.files.get(index))
     }
 
-    /// Iterates in authoritative bundle order with derived source identities.
+    /// Iterates in transport order with derived source identities.
     pub fn iter(&self) -> impl Iterator<Item = (SourceId, &SourceFile)> {
         (0_u32..)
             .zip(self.files.iter())
@@ -496,7 +599,7 @@ impl SourceBundle {
 }
 
 /// Why source inputs cannot form a bundle.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum SourceBundleError {
     /// One logical path is structurally invalid.
     LogicalPath(LogicalPathError),
@@ -517,6 +620,13 @@ pub enum SourceBundleError {
         maximum: u64,
         /// Attempted value.
         actual: u64,
+    },
+    /// The allocator could not reserve validated input storage.
+    StorageUnavailable {
+        /// Storage category that could not be reserved.
+        limit: SourceLimit,
+        /// Exact requested count or byte length.
+        requested: u64,
     },
     /// A byte count cannot be represented without wrapping.
     ArithmeticOverflow,
@@ -541,6 +651,10 @@ impl fmt::Display for SourceBundleError {
             } => write!(
                 formatter,
                 "source input limit {limit:?} is {maximum}, attempted {actual}"
+            ),
+            Self::StorageUnavailable { limit, requested } => write!(
+                formatter,
+                "storage unavailable for source input {limit:?}, requested {requested}"
             ),
             Self::ArithmeticOverflow => formatter.write_str("source byte count overflow"),
         }
