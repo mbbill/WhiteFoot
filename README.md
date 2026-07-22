@@ -19,9 +19,9 @@ compiler must eventually emit and run real programs. Product-scale resource
 controls, stable artifact protocols, distribution, and release engineering are
 not current goals.
 
-[THE-PLAN.md](THE-PLAN.md) is the sole source for current execution order and
-authorization. [AGENTS.md](AGENTS.md) records the priority rule future agents
-must apply.
+[docs/roadmap.md](docs/roadmap.md) is the sole source for current execution
+order and authorization. [AGENTS.md](AGENTS.md) records the priority rule and
+structure discipline future agents must apply.
 
 ## Current state
 
@@ -48,90 +48,33 @@ executable, or runnable Whitefoot program. The immediate path is to activate
 v0.10, reproduce the frontend, implement direct general name resolution, and
 then drive the first coherent semantic slice through LLVM.
 
-## What exists
+## Repository layout
 
-The active compiler workspace contains:
+The top level is a small, curated set. Each entry has one clear purpose; scripts
+live next to what they check.
 
-- `whitefoot-contract` for specification identity, ordered source transport,
-  spans, and shared frontend contracts;
-- `whitefoot-language-data` for specification-derived terminal predicates;
-- `whitefoot-lexer` for lossless shape-only lexical formation;
-- `whitefoot-syntax-data` for generated grammar and predictive data;
-- `whitefoot-syntax` for classification, parsing, finalization, and canonical
-  source validation;
-- `whitefoot-source-audit` for exact source/specification binding; and
-- `whitefoot-lexical-observer` as a development adapter for the independent
-  lexical model.
-
-The standalone `grammar-verifier/` is a specification-development tool, not a
-normal compiler dependency. The conformance corpus, code-shape corpus, focused
-reference models, and experiments are evidence. None defines compiler behavior
-or licenses source-specific handling.
-
-The retired wfc and democ implementations remain inert under `archive/`. No
-active source, build, test, or tool imports from them.
+| Directory | What it is |
+|---|---|
+| [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
+| [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
+| [compiler/](compiler/README.md) | The safe-Rust compiler (frontend today; resolver → checker → IR → LLVM to come) |
+| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `lexical/` fixtures + model, `spec-catalogs/` spec decomposition, `codegen/` optimization-proof corpus (dormant) |
+| [governance/](governance/) | Owner approvals, the guard baseline, the append-only [decision log](governance/decision-log.md), standing directives, the integrity guards, and the `spec-evolution/` machinery (candidate generator + grammar verifier) |
+| [research/](research/) | Design memory: the [decision tree](research/design-tree/), measured `experiments/`, and exploratory notes |
+| [examples/](examples/) | Dogfood and example Whitefoot programs (grows as the compiler can run them) |
+| [archive/](archive/) | Retired and superseded material, inert — no active source, build, test, or tool depends on it |
 
 ## Verification
 
-Run:
-
 ```sh
-make -C compiler check
-make check
+make check                 # fast essential correctness on the current structure
+make spec-evolution        # opt-in: heavier grammar + v0.10-candidate evidence
 ```
 
-A green result states only the capabilities those checks exercise. It does not
-claim that the language or compiler is complete.
-
-## Repository guide
-
-The top level is small and ordered so the most important things come first: the
-plan, the language specification, and the compiler. Everything below that is
-supporting evidence, gate tooling, design history, and retired code. Many of
-these paths are pinned by the project's spec-and-test guard or wired into the
-build, so the layout is deliberately stable.
-
-**Start here**
-
-| Purpose | Location |
-|---|---|
-| Current execution order and authorization (sole source) | [THE-PLAN.md](THE-PLAN.md) |
-| Project law | [CONSTITUTION.md](CONSTITUTION.md) |
-| Writer forms (pattern doctrine) | [PATTERNS.md](PATTERNS.md) |
-| Agent instructions (byte-identical) | [AGENTS.md](AGENTS.md) / [CLAUDE.md](CLAUDE.md) |
-
-**The language and the compiler**
-
-| Purpose | Location |
-|---|---|
-| Numbered kernel specifications; the active one defines the language (append-only) | [spec/](spec/) |
-| Active safe-Rust compiler | [compiler/](compiler/README.md) |
-
-**Behavior evidence and gate tooling**
-
-| Purpose | Location |
-|---|---|
-| Compiler-independent behavior corpus (owner-gated) | [conformance/](conformance/README.md) |
-| Repository gate scripts (spec guard, catalogs, models) | [tools/](tools/) |
-| Owner approvals and the guard baseline | [governance/](governance/) |
-| Standalone grammar and spec-development evidence (holds the v0.10 candidate) | [grammar-verifier/](grammar-verifier/README.md) |
-| Focused reference semantics | [prototype/checker/](prototype/checker/) |
-| Proof, catalog, and fixture evidence | [codegen-corpus/](codegen-corpus/README.md), [facets/](facets/), [capabilities/](capabilities/README.md), [frontend-corpus/](frontend-corpus/) |
-
-**Design memory and research**
-
-| Purpose | Location |
-|---|---|
-| Design decision tree (why the language is the way it is) | [mcts_mem/](mcts_mem/) |
-| Design dossiers, notes, the append-only decision log, and the v0.10 successor generator | [optimizer-language-research/](optimizer-language-research/) |
-| Vision and rationale prose | [docs/why-whitefoot.md](docs/why-whitefoot.md) |
-| Measured performance experiments | [experiments/](experiments/README.md) |
-
-**History**
-
-| Purpose | Location |
-|---|---|
-| Retired implementations, inert (no active dependency) | [archive/](archive/) |
+Every check lives next to what it checks (guards in `governance/`, catalog and
+lexical checks in `tests/`, compiler policy in `compiler/tools/`). A green result
+states only the capabilities those checks exercise; it does not claim the
+language or compiler is complete.
 
 ## License
 

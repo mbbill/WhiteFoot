@@ -140,13 +140,17 @@ def run_cargo(
         temporary_root = Path(temporary)
         working_directory = temporary_root / "work"
         cargo_home = temporary_root / "cargo-home"
-        target_directory = temporary_root / "target"
+        # Persistent target cache shared across the five cargo commands and across
+        # gate runs — the dominant speed win. Everything else stays isolated per
+        # run. Lives under the gitignored compiler/target/.
+        target_directory = workspace / "target" / "policy-cache"
         home_directory = temporary_root / "home"
         child_temporary_directory = temporary_root / "tmp"
         working_directory.mkdir()
         cargo_home.mkdir()
         home_directory.mkdir()
         child_temporary_directory.mkdir()
+        target_directory.mkdir(parents=True, exist_ok=True)
         configurations = ambient_tool_configuration_files(
             working_directory,
             cargo_home,
