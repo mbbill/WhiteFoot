@@ -59,10 +59,13 @@ evidence.
 
 The review-ready, non-authoritative v0.11 candidate is
 `governance/spec-evolution/kernel-spec-v0.11-candidate.md`, SHA-256
-`e4b3368a84c46235ad2bf6d91df6506050e116773cf183e001213b67f36cec1f`.
-The native grammar-preservation check and three independent hostile reviews
-pass. Exact owner approval and append-only activation are still required before
-it can define compiler behavior.
+`050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc`.
+It replaces the Result-forwarding spelling `try` with `propagate`, with no
+compatibility alias; `try` becomes an ordinary IDENT. The native
+grammar-isomorphism check and three independent hostile reviews pass. Exact
+owner approval and append-only activation are still required before it can
+define compiler behavior. The earlier `e4b3368a...` freeze is superseded and
+non-authoritative.
 
 The Rust compiler currently has source transport, a lossless lexer, terminal
 classification, a strong-LL(2) parser, one finalized syntax tree, exact FORM-2
@@ -109,14 +112,17 @@ consistency is the responsibility of whoever changes the spec; it is not
 machine-enforced, and derived material is never silently weakened to make a
 check pass.
 
-**Grammar proposal check.** The native `whitefoot-grammar` tool now verifies a
-grammar-preserving candidate against the complete active lexer/grammar
-contract, checks every compiler SELECT_2 decision, and runs the compiler's real
-lexer and parser. It deliberately fails closed on a grammar change. A future
-proposal that changes source grammar must extend this same native path to
-generate and check the changed compiler tables; it may not revive the archived
-independent grammar engines. This tool is run for specification proposals, not
-routine compilation.
+**Grammar proposal check.** The native `whitefoot-grammar` tool verifies an
+unchanged frontend contract, or v0.11's exact one-for-one Result-propagation
+terminal and production rename, against the active compiler. For the rename it
+proves that inverse translation is byte-identical to the complete active
+FORM-1-through-GRAM frontend contract and translates the same fixed-terminal,
+IDENT, production, and SELECT_2 tables. The candidate `propagate` spelling goes
+through the real raw lexer; the inverse-translated `try` form then goes through
+the active classifier and parser. It deliberately fails closed on every other
+grammar change. A future structural proposal must extend this same native
+path; it may not revive the archived independent grammar engines. This tool is
+run for specification proposals, not routine compilation.
 
 ## What “good enough” requires
 

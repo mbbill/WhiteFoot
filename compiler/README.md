@@ -21,18 +21,22 @@ The frontend targets the exact bytes of
 `../spec/kernel-spec-v0.10.md`. `cargo run --bin whitefoot-spec` checks that
 those bytes are the approved candidate and that the terminal and grammar data
 name the same specification identity. The committed grammar tables are
-ordinary compiler data. For a grammar-preserving specification proposal, run
-the native verifier through this compiler:
+ordinary compiler data. For a specification proposal, run the native verifier
+through this compiler:
 
 ```sh
 cargo run --bin whitefoot-grammar -- ../governance/spec-evolution/CANDIDATE.md
 ```
 
-It compares the proposal's complete lexer/grammar contract with the active
-contract, checks the compiler's terminal inventory and every strong-LL(2)
-decision, and runs the real lexer and parser. It fails closed when a proposal
-changes the grammar; such a future proposal must first extend the same native
-tool to generate and check the changed compiler tables rather than reviving an
+It compares the proposal's complete canonical-format, lexer, and grammar
+contract with the active contract and checks the compiler's terminal inventory
+and every strong-LL(2) decision. In addition to an unchanged grammar, it accepts
+v0.11's exact one-for-one `try_let_rhs` / `"try"` to
+`propagate_let_rhs` / `"propagate"` rename. The candidate spelling passes
+through the real raw lexer; inverse translation then proves the active
+classifier and parser exercise the identical structure, including the changed
+fixed-terminal/IDENT partition. It fails closed on every other grammar change;
+a structural change must extend this same native path rather than reviving an
 independent grammar engine.
 
 The resolver covers every v0.10 declaration, lexical-use, and deferred
