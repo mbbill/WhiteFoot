@@ -993,3 +993,21 @@ projection remains SHA-256
 It authorizes only the reviewed sequence and its consistent active-target
 installation; later language deltas and protected changes remain separately
 owner-gated.
+
+## D27 (2026-07-21): Approve the exact Phase-5 successor proposal
+
+The owner approved the exact Phase-5 successor proposal SHA-256
+`7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d`
+and its generated 118,314-byte v0.10 candidate SHA-256
+`71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
+The approval covers the exact ten-item boundary in `PROPOSAL.md`: the numbered
+language delta, three TYPEID domains, OP-1 reservation inventory, complete
+role/scope matrices, diagnostic event and payload order, the schema-only R-04
+invocation-wide resolver resource contract, architecture consequences C-01
+through C-06, and the explicitly limited census and abstract evidence claims.
+
+This approval selects no numerical hard maximum. It does not install v0.10,
+change an active target or protected surface, regenerate the guarded baseline,
+reproduce the canonical frontend against successor identity, or authorize
+resolver implementation. Those remain the three separate stops recorded by
+the approved packet.

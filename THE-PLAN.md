@@ -3,8 +3,10 @@
 Status: CANONICAL ROADMAP, updated 2026-07-21. Phases 1 through 4 are complete:
 the audited foundation, standalone grammar evidence, exact owner-approved v0.9
 installation, and source-bound canonical frontend are durable. Phase 5 remains
-conditional on closing every applicable discrepancy and A-question; current
-implementation authority stops at `CanonicalSyntaxUnit`.
+stopped before implementation while the owner-approved successor delta awaits
+evidence-selected numerical hard maxima, guarded installation, and successor-
+bound frontend reproduction; current implementation authority stops at
+`CanonicalSyntaxUnit`.
 
 ## Objective
 
@@ -90,6 +92,13 @@ Current execution authority is deliberately narrow:
    `CanonicalSyntaxUnit`; semantic schemas, artifacts, backends, releases, and
    later phases retain their own entrance gates. Phase 5 is not activated by
    frontend completion.
+5. The owner approved the exact Phase-5 successor proposal SHA-256
+   `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d`
+   and generated v0.10 candidate SHA-256
+   `71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
+   This authorizes the recorded language and architecture delta only. It does
+   not activate those bytes, select numerical maxima, or authorize resolver
+   implementation.
 
 ## Specification and protected-surface protocol
 
@@ -488,12 +497,13 @@ acceptance claim exists.
 Status: conditional on exact normative authority for every affected rule.
 The first entrance review exposed blockers but its proposed combined
 nominal/constructor namespace and standalone resolver limits were invalid.
-It is superseded for approval by the exact non-authoritative packet at
+It is superseded by the exact owner-approved but not-yet-installed packet at
 `optimizer-language-research/implementation/phase5-successor-proposal/PROPOSAL.md`.
 Exact v0.9 remains active. Complete resolver work remains stopped until the
-successor language and architecture delta are approved and installed, the
-Decision-15 invocation-wide resource profile has evidence-selected numerical
-hard maxima, and the successor-bound canonical frontend is reproduced.
+approved successor language and architecture delta is installed, the Decision-
+15 invocation-wide resource profile has separately owner-approved evidence-
+selected numerical hard maxima, and the successor-bound canonical frontend is
+reproduced.
 
 Implement one syntax-directed semantic kernel in this order:
 

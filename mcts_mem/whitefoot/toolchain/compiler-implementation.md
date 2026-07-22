@@ -20,6 +20,7 @@
 - 2026-07-21 (4ecc14d) owner ruling: all top-level function signatures are visible throughout the future closed compilation unit, while locals, regions, labels, and named constants remain declaration-before-use; implementation waits for exact successor-specification encoding. (sourced)
 - 2026-07-21 owner-approved target switch: `spec/kernel-spec-v0.9.md`, SHA-256 `bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68`, is the exact production target. It encodes the closed-unit function-visibility ruling and closes the parser entrance boundary; later semantic questions, profiles, artifacts, backends, and release authority remain separately gated. (sourced)
 - 2026-07-21 implementation finding: exact FORM-2 comparison needs one bounded gap-style record per terminal plus direct per-source byte iteration; fixed-token spellings come from the checked grammar leaf, variable-token interiors come from the bound leaf, and no duplicate rendered-source buffer is required. (code)
+- 2026-07-21 owner approval: the exact Phase-5 successor proposal SHA-256 `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and generated v0.10 candidate SHA-256 `71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9` are selected for the next guarded target transition; exact v0.9 remains active until separately approved numerical maxima, guarded installation, and successor-frontend reproduction, and resolver implementation remains separately gated. (sourced)
 
 ## Moves
 
