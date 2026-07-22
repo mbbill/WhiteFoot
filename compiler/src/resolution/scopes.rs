@@ -1,5 +1,5 @@
 use crate::syntax::{FinalizedTopology, NodeId};
-use crate::{NodePath, ProductionV0_10};
+use crate::{NodePath, ProductionV0_11};
 
 use super::{ResolutionCompilerFailure, ScopeId, ScopeKind, ScopeRecord};
 
@@ -43,13 +43,13 @@ impl ScopeBuild {
 
             let mut child_scopes = vec![current_scope; children.len()];
             match node.production {
-                ProductionV0_10::StructDecl
-                | ProductionV0_10::EnumDecl
-                | ProductionV0_10::ContractDecl => {
+                ProductionV0_11::StructDecl
+                | ProductionV0_11::EnumDecl
+                | ProductionV0_11::ContractDecl => {
                     if children.iter().any(|child| {
                         topology
                             .node(*child)
-                            .is_some_and(|record| record.production == ProductionV0_10::Generics)
+                            .is_some_and(|record| record.production == ProductionV0_11::Generics)
                     }) {
                         let generic = build.push_scope(
                             Some(current_scope),
@@ -59,11 +59,11 @@ impl ScopeBuild {
                         child_scopes.fill(generic);
                     }
                 }
-                ProductionV0_10::FnDecl => {
+                ProductionV0_11::FnDecl => {
                     let generic = if children.iter().any(|child| {
                         topology
                             .node(*child)
-                            .is_some_and(|record| record.production == ProductionV0_10::Generics)
+                            .is_some_and(|record| record.production == ProductionV0_11::Generics)
                     }) {
                         build.push_scope(
                             Some(current_scope),
@@ -86,18 +86,18 @@ impl ScopeBuild {
                             .ok_or(ResolutionCompilerFailure::InvalidCanonicalTree)?
                             .production;
                         child_scopes[index] = match production {
-                            ProductionV0_10::Generics => generic,
-                            ProductionV0_10::RequiresBlock => build.push_scope(
+                            ProductionV0_11::Generics => generic,
+                            ProductionV0_11::RequiresBlock => build.push_scope(
                                 Some(signature),
                                 ScopeKind::RequiresBlock,
                                 path.clone(),
                             )?,
-                            ProductionV0_10::Doc | ProductionV0_10::Stmt => body,
+                            ProductionV0_11::Doc | ProductionV0_11::Stmt => body,
                             _ => signature,
                         };
                     }
                 }
-                ProductionV0_10::FnSig => {
+                ProductionV0_11::FnSig => {
                     let signature = build.push_scope(
                         Some(current_scope),
                         ScopeKind::ContractSignature,
@@ -105,7 +105,7 @@ impl ScopeBuild {
                     )?;
                     child_scopes.fill(signature);
                 }
-                ProductionV0_10::LoopStmt => {
+                ProductionV0_11::LoopStmt => {
                     let label = build.push_scope(
                         Some(current_scope),
                         ScopeKind::LoopLabel,
@@ -116,7 +116,7 @@ impl ScopeBuild {
                     build.declaration_scopes[node_id.index()] = Some(label);
                     assign_nested_body_scopes(topology, children, &mut child_scopes, label, body)?;
                 }
-                ProductionV0_10::RegionStmt => {
+                ProductionV0_11::RegionStmt => {
                     let region = build.push_scope(
                         Some(current_scope),
                         ScopeKind::LocalRegion,
@@ -127,7 +127,7 @@ impl ScopeBuild {
                     build.declaration_scopes[node_id.index()] = Some(region);
                     assign_nested_body_scopes(topology, children, &mut child_scopes, region, body)?;
                 }
-                ProductionV0_10::Arm => {
+                ProductionV0_11::Arm => {
                     let arm =
                         build.push_scope(Some(current_scope), ScopeKind::Arm, path.clone())?;
                     let body = build.push_scope(Some(arm), ScopeKind::NestedBody, path.clone())?;
@@ -223,7 +223,7 @@ fn assign_nested_body_scopes(
             .node(*child)
             .ok_or(ResolutionCompilerFailure::InvalidCanonicalTree)?
             .production;
-        child_scopes[index] = if production == ProductionV0_10::Stmt {
+        child_scopes[index] = if production == ProductionV0_11::Stmt {
             body
         } else {
             introduced

@@ -11,8 +11,8 @@ fn step(x: own i32) -> own Result<i32, ErrA> pure {
 }
 
 fn use(x: own i32) -> own Result<i32, ErrB> pure {
-  doc "`try` requires inner and outer E to match (no conversions) [ERR-3]; ErrA != ErrB.";
-  let y: own i32 = try step(x: x);
+  doc "`propagate` requires inner and outer E to match (no conversions) [ERR-3]; ErrA != ErrB.";
+  let y: own i32 = propagate step(x: x);
   return Ok(value: y);
 }
 

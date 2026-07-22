@@ -11,6 +11,7 @@
 - 2026-07-22 implementation: exact v0.10 is active and the lexer, terminal classifier, strong-LL(2) parser, finalized source-bound tree, and FORM-2 audit pass in one safe-Rust crate. (code)
 - 2026-07-22 repository finding: compiler-independent conformance expectations and the focused ownership model remain useful, while the dormant codegen runner targets retired compiler interfaces. (code)
 - 2026-07-22 roadmap: direct general name resolution is the next capability, followed by the first coherent semantic slice through LLVM. (sourced)
+- 2026-07-22 implementation: exact owner-approved v0.11 is active; the frontend, direct resolver, conformance identities and source, and focused reference model use `propagate` for Result forwarding, while `try` is an ordinary IDENT. (code)
 
 ## Moves
 

@@ -1,5 +1,5 @@
-use crate::syntax::grammar::ProductionV0_10;
-use crate::syntax::terminal::{FixedTerminalV0_10, TerminalPredicateV0_10};
+use crate::syntax::grammar::ProductionV0_11;
+use crate::syntax::terminal::{FixedTerminalV0_11, TerminalPredicateV0_11};
 
 use super::{AuditWork, Stop};
 use crate::syntax::parser::finalize::outcome::{
@@ -21,24 +21,24 @@ fn is_line_bearing(topology: &FinalizedTopology, node: NodeId) -> Result<bool, S
         .ok_or(CanonicalCompilerFailure::InvalidFinalizedTree)?;
     let fixed = matches!(
         record.production,
-        ProductionV0_10::Field
-            | ProductionV0_10::Variant
-            | ProductionV0_10::FnSig
-            | ProductionV0_10::Law
-            | ProductionV0_10::FnBind
-            | ProductionV0_10::ConstDecl
-            | ProductionV0_10::Doc
-            | ProductionV0_10::SetStmt
-            | ProductionV0_10::ExprStmt
-            | ProductionV0_10::ReturnStmt
-            | ProductionV0_10::BreakStmt
-            | ProductionV0_10::CheckStmt
-            | ProductionV0_10::GiveStmt
+        ProductionV0_11::Field
+            | ProductionV0_11::Variant
+            | ProductionV0_11::FnSig
+            | ProductionV0_11::Law
+            | ProductionV0_11::FnBind
+            | ProductionV0_11::ConstDecl
+            | ProductionV0_11::Doc
+            | ProductionV0_11::SetStmt
+            | ProductionV0_11::ExprStmt
+            | ProductionV0_11::ReturnStmt
+            | ProductionV0_11::BreakStmt
+            | ProductionV0_11::CheckStmt
+            | ProductionV0_11::GiveStmt
     );
     if fixed {
         return Ok(true);
     }
-    if record.production != ProductionV0_10::LetStmt {
+    if record.production != ProductionV0_11::LetStmt {
         return Ok(false);
     }
     let children = topology
@@ -48,26 +48,26 @@ fn is_line_bearing(topology: &FinalizedTopology, node: NodeId) -> Result<bool, S
         topology.node(*child).is_some_and(|nested| {
             matches!(
                 nested.production,
-                ProductionV0_10::OrdinaryLetRhs | ProductionV0_10::TryLetRhs
+                ProductionV0_11::OrdinaryLetRhs | ProductionV0_11::PropagateLetRhs
             )
         })
     }))
 }
 
-fn is_block_bearing(production: ProductionV0_10) -> bool {
+fn is_block_bearing(production: ProductionV0_11) -> bool {
     matches!(
         production,
-        ProductionV0_10::StructDecl
-            | ProductionV0_10::EnumDecl
-            | ProductionV0_10::ContractDecl
-            | ProductionV0_10::ConformDecl
-            | ProductionV0_10::FnDecl
-            | ProductionV0_10::RequiresBlock
-            | ProductionV0_10::LoopStmt
-            | ProductionV0_10::RegionStmt
-            | ProductionV0_10::MatchStmt
-            | ProductionV0_10::ValueMatch
-            | ProductionV0_10::Arm
+        ProductionV0_11::StructDecl
+            | ProductionV0_11::EnumDecl
+            | ProductionV0_11::ContractDecl
+            | ProductionV0_11::ConformDecl
+            | ProductionV0_11::FnDecl
+            | ProductionV0_11::RequiresBlock
+            | ProductionV0_11::LoopStmt
+            | ProductionV0_11::RegionStmt
+            | ProductionV0_11::MatchStmt
+            | ProductionV0_11::ValueMatch
+            | ProductionV0_11::Arm
     )
 }
 
@@ -161,7 +161,7 @@ pub(super) fn build_gap_styles(
             .ok_or(CanonicalCompilerFailure::CounterOverflow)?;
         mark_before(&mut gaps, topology, after_open, GapStyle::Break)?;
         mark_before(&mut gaps, topology, close, GapStyle::Break)?;
-        if record.production != ProductionV0_10::RequiresBlock {
+        if record.production != ProductionV0_11::RequiresBlock {
             let after_close = close
                 .checked_add(1)
                 .ok_or(CanonicalCompilerFailure::CounterOverflow)?;
@@ -204,32 +204,32 @@ pub(super) fn build_gap_styles(
     Ok(gaps)
 }
 
-fn left_attaches(predicate: TerminalPredicateV0_10) -> bool {
+fn left_attaches(predicate: TerminalPredicateV0_11) -> bool {
     matches!(
         predicate,
-        TerminalPredicateV0_10::Fixed(
-            FixedTerminalV0_10::LeftParen
-                | FixedTerminalV0_10::LeftBracket
-                | FixedTerminalV0_10::LeftAngle
-                | FixedTerminalV0_10::Ampersand
-                | FixedTerminalV0_10::Dot
+        TerminalPredicateV0_11::Fixed(
+            FixedTerminalV0_11::LeftParen
+                | FixedTerminalV0_11::LeftBracket
+                | FixedTerminalV0_11::LeftAngle
+                | FixedTerminalV0_11::Ampersand
+                | FixedTerminalV0_11::Dot
         )
     )
 }
 
-fn right_attaches(predicate: TerminalPredicateV0_10) -> bool {
+fn right_attaches(predicate: TerminalPredicateV0_11) -> bool {
     matches!(
         predicate,
-        TerminalPredicateV0_10::Fixed(
-            FixedTerminalV0_10::RightParen
-                | FixedTerminalV0_10::RightBracket
-                | FixedTerminalV0_10::RightAngle
-                | FixedTerminalV0_10::Comma
-                | FixedTerminalV0_10::Semicolon
-                | FixedTerminalV0_10::Dot
-                | FixedTerminalV0_10::Colon
-                | FixedTerminalV0_10::LeftParen
-                | FixedTerminalV0_10::LeftAngle
+        TerminalPredicateV0_11::Fixed(
+            FixedTerminalV0_11::RightParen
+                | FixedTerminalV0_11::RightBracket
+                | FixedTerminalV0_11::RightAngle
+                | FixedTerminalV0_11::Comma
+                | FixedTerminalV0_11::Semicolon
+                | FixedTerminalV0_11::Dot
+                | FixedTerminalV0_11::Colon
+                | FixedTerminalV0_11::LeftParen
+                | FixedTerminalV0_11::LeftAngle
         )
     )
 }
@@ -255,8 +255,8 @@ pub(super) fn gap_matches(
     actual: &[u8],
     style: GapStyle,
     depth: u32,
-    left: Option<TerminalPredicateV0_10>,
-    right: Option<TerminalPredicateV0_10>,
+    left: Option<TerminalPredicateV0_11>,
+    right: Option<TerminalPredicateV0_11>,
     work: &mut AuditWork,
 ) -> Result<(bool, u64), Stop> {
     let (matches, expected_len) = match style {

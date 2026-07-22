@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::syntax::terminal::TerminalPredicateV0_10;
+use crate::syntax::terminal::TerminalPredicateV0_11;
 use crate::syntax::{FinalizedTopology, NodeId};
-use crate::{ByteOffset, CanonicalSyntaxUnit, ProductionV0_10, SyntaxCoordinate};
+use crate::{ByteOffset, CanonicalSyntaxUnit, ProductionV0_11, SyntaxCoordinate};
 
 use super::super::scopes::ScopeBuild;
 use super::super::{
@@ -46,11 +46,11 @@ pub(super) fn classify_roles(
             return Err(ResolutionCompilerFailure::InvalidCanonicalTree);
         }
         let is_name = [
-            TerminalPredicateV0_10::Identifier,
-            TerminalPredicateV0_10::TypeIdentifier,
-            TerminalPredicateV0_10::RegionIdentifier,
-            TerminalPredicateV0_10::Label,
-            TerminalPredicateV0_10::OperationName,
+            TerminalPredicateV0_11::Identifier,
+            TerminalPredicateV0_11::TypeIdentifier,
+            TerminalPredicateV0_11::RegionIdentifier,
+            TerminalPredicateV0_11::Label,
+            TerminalPredicateV0_11::OperationName,
         ]
         .iter()
         .any(|predicate| token.terminals().contains(*predicate));
@@ -136,7 +136,7 @@ fn direct_terminals_by_owner(
 
 fn classify_node(
     classified: &crate::ClassifiedBundle<'_, '_>,
-    production: ProductionV0_10,
+    production: ProductionV0_11,
     owner: NodeId,
     direct: &[usize],
     roles: &mut Vec<RawRole>,
@@ -148,7 +148,7 @@ fn classify_node(
         .filter(|index| name_predicate(classified, *index).is_some())
         .collect();
     match production {
-        ProductionV0_10::FnDecl => add_single(
+        ProductionV0_11::FnDecl => add_single(
             classified,
             owner,
             &names,
@@ -156,7 +156,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::StructDecl => add_single(
+        ProductionV0_11::StructDecl => add_single(
             classified,
             owner,
             &names,
@@ -164,7 +164,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::EnumDecl => add_single(
+        ProductionV0_11::EnumDecl => add_single(
             classified,
             owner,
             &names,
@@ -172,7 +172,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Variant => add_single(
+        ProductionV0_11::Variant => add_single(
             classified,
             owner,
             &names,
@@ -180,7 +180,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::ContractDecl => add_single(
+        ProductionV0_11::ContractDecl => add_single(
             classified,
             owner,
             &names,
@@ -188,7 +188,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::ConstDecl => add_single(
+        ProductionV0_11::ConstDecl => add_single(
             classified,
             owner,
             &names,
@@ -196,12 +196,12 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Gparam => {
+        ProductionV0_11::Gparam => {
             let Some(first) = names.first().copied() else {
                 return Err(ResolutionCompilerFailure::InvalidRoleShape);
             };
             match name_predicate(classified, first) {
-                Some(TerminalPredicateV0_10::TypeIdentifier) => {
+                Some(TerminalPredicateV0_11::TypeIdentifier) => {
                     add_complete(
                         classified,
                         owner,
@@ -224,7 +224,7 @@ fn classify_node(
                         return Err(ResolutionCompilerFailure::InvalidRoleShape);
                     }
                 }
-                Some(TerminalPredicateV0_10::Identifier) if names.len() == 1 => {
+                Some(TerminalPredicateV0_11::Identifier) if names.len() == 1 => {
                     add_complete(
                         classified,
                         owner,
@@ -237,7 +237,7 @@ fn classify_node(
                 _ => return Err(ResolutionCompilerFailure::InvalidRoleShape),
             }
         }
-        ProductionV0_10::RegionParams => add_all(
+        ProductionV0_11::RegionParams => add_all(
             classified,
             owner,
             &names,
@@ -245,7 +245,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Param => add_single(
+        ProductionV0_11::Param => add_single(
             classified,
             owner,
             &names,
@@ -253,7 +253,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::LetStmt => add_single(
+        ProductionV0_11::LetStmt => add_single(
             classified,
             owner,
             &names,
@@ -261,7 +261,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::LoopStmt => add_single(
+        ProductionV0_11::LoopStmt => add_single(
             classified,
             owner,
             &names,
@@ -269,7 +269,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::RegionStmt => add_single(
+        ProductionV0_11::RegionStmt => add_single(
             classified,
             owner,
             &names,
@@ -277,7 +277,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Field => add_single(
+        ProductionV0_11::Field => add_single(
             classified,
             owner,
             &names,
@@ -285,7 +285,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Vfield => add_single(
+        ProductionV0_11::Vfield => add_single(
             classified,
             owner,
             &names,
@@ -293,7 +293,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::FnSig => add_single(
+        ProductionV0_11::FnSig => add_single(
             classified,
             owner,
             &names,
@@ -301,7 +301,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Fieldbind => {
+        ProductionV0_11::Fieldbind => {
             if let [field, binder] = names.as_slice() {
                 add_complete(
                     classified,
@@ -323,18 +323,18 @@ fn classify_node(
                 return Err(ResolutionCompilerFailure::InvalidRoleShape);
             }
         }
-        ProductionV0_10::Type => add_names_by_predicate(
+        ProductionV0_11::Type => add_names_by_predicate(
             classified,
             owner,
             &names,
-            TerminalPredicateV0_10::TypeIdentifier,
+            TerminalPredicateV0_11::TypeIdentifier,
             RawRoleKind::LexicalUse(LexicalUseRole::Type),
-            TerminalPredicateV0_10::RegionIdentifier,
+            TerminalPredicateV0_11::RegionIdentifier,
             RawRoleKind::LexicalUse(LexicalUseRole::TypeRegion),
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::ConformDecl => add_single(
+        ProductionV0_11::ConformDecl => add_single(
             classified,
             owner,
             &names,
@@ -342,7 +342,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Construct => add_single(
+        ProductionV0_11::Construct => add_single(
             classified,
             owner,
             &names,
@@ -350,7 +350,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Arm => add_single(
+        ProductionV0_11::Arm => add_single(
             classified,
             owner,
             &names,
@@ -358,7 +358,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Mode if !names.is_empty() => add_single(
+        ProductionV0_11::Mode if !names.is_empty() => add_single(
             classified,
             owner,
             &names,
@@ -366,7 +366,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Targ if !names.is_empty() => add_single(
+        ProductionV0_11::Targ if !names.is_empty() => add_single(
             classified,
             owner,
             &names,
@@ -374,7 +374,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Effect if !names.is_empty() => add_all(
+        ProductionV0_11::Effect if !names.is_empty() => add_all(
             classified,
             owner,
             &names,
@@ -382,7 +382,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::BorrowExpr => add_single(
+        ProductionV0_11::BorrowExpr => add_single(
             classified,
             owner,
             &names,
@@ -390,7 +390,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::BreakStmt => add_single(
+        ProductionV0_11::BreakStmt => add_single(
             classified,
             owner,
             &names,
@@ -398,7 +398,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Const => add_single(
+        ProductionV0_11::Const => add_single(
             classified,
             owner,
             &names,
@@ -406,7 +406,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Cvalue => {
+        ProductionV0_11::Cvalue => {
             if !names.is_empty() {
                 add_single(
                     classified,
@@ -418,7 +418,7 @@ fn classify_node(
                 )?;
             }
         }
-        ProductionV0_10::Pbase => {
+        ProductionV0_11::Pbase => {
             if !names.is_empty() {
                 add_single(
                     classified,
@@ -430,13 +430,13 @@ fn classify_node(
                 )?;
             }
         }
-        ProductionV0_10::Callee => {
+        ProductionV0_11::Callee => {
             let [callee] = names.as_slice() else {
                 return Err(ResolutionCompilerFailure::InvalidRoleShape);
             };
             let use_role = match name_predicate(classified, *callee) {
-                Some(TerminalPredicateV0_10::Identifier) => LexicalUseRole::IdentifierCallee,
-                Some(TerminalPredicateV0_10::OperationName) => LexicalUseRole::OperationCallee,
+                Some(TerminalPredicateV0_11::Identifier) => LexicalUseRole::IdentifierCallee,
+                Some(TerminalPredicateV0_11::OperationName) => LexicalUseRole::OperationCallee,
                 _ => return Err(ResolutionCompilerFailure::InvalidRoleShape),
             };
             add_complete(
@@ -448,7 +448,7 @@ fn classify_node(
                 complete_counts,
             )?;
         }
-        ProductionV0_10::FnBind => {
+        ProductionV0_11::FnBind => {
             if let [member, function] = names.as_slice() {
                 add_complete(
                     classified,
@@ -470,7 +470,7 @@ fn classify_node(
                 return Err(ResolutionCompilerFailure::InvalidRoleShape);
             }
         }
-        ProductionV0_10::Fieldinit => add_single(
+        ProductionV0_11::Fieldinit => add_single(
             classified,
             owner,
             &names,
@@ -478,7 +478,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Psuffix => add_single(
+        ProductionV0_11::Psuffix => add_single(
             classified,
             owner,
             &names,
@@ -486,7 +486,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::Law => add_single(
+        ProductionV0_11::Law => add_single(
             classified,
             owner,
             &names,
@@ -494,7 +494,7 @@ fn classify_node(
             roles,
             complete_counts,
         )?,
-        ProductionV0_10::LawArg => {
+        ProductionV0_11::LawArg => {
             let [argument] = direct else {
                 return Err(ResolutionCompilerFailure::InvalidRoleShape);
             };
@@ -511,7 +511,7 @@ fn classify_node(
     }
     if matches!(
         production,
-        ProductionV0_10::Atom | ProductionV0_10::Cvalue | ProductionV0_10::LawArg
+        ProductionV0_11::Atom | ProductionV0_11::Cvalue | ProductionV0_11::LawArg
     ) {
         for terminal in direct {
             add_generic_suffix(classified, owner, *terminal, roles)?;
@@ -523,14 +523,14 @@ fn classify_node(
 fn name_predicate(
     classified: &crate::ClassifiedBundle<'_, '_>,
     terminal: usize,
-) -> Option<TerminalPredicateV0_10> {
+) -> Option<TerminalPredicateV0_11> {
     let set = classified.tokens().get(terminal)?.terminals();
     [
-        TerminalPredicateV0_10::Identifier,
-        TerminalPredicateV0_10::TypeIdentifier,
-        TerminalPredicateV0_10::RegionIdentifier,
-        TerminalPredicateV0_10::Label,
-        TerminalPredicateV0_10::OperationName,
+        TerminalPredicateV0_11::Identifier,
+        TerminalPredicateV0_11::TypeIdentifier,
+        TerminalPredicateV0_11::RegionIdentifier,
+        TerminalPredicateV0_11::Label,
+        TerminalPredicateV0_11::OperationName,
     ]
     .into_iter()
     .find(|predicate| set.contains(*predicate))
@@ -572,9 +572,9 @@ fn add_names_by_predicate(
     classified: &crate::ClassifiedBundle<'_, '_>,
     owner: NodeId,
     terminals: &[usize],
-    first_predicate: TerminalPredicateV0_10,
+    first_predicate: TerminalPredicateV0_11,
     first_kind: RawRoleKind,
-    second_predicate: TerminalPredicateV0_10,
+    second_predicate: TerminalPredicateV0_11,
     second_kind: RawRoleKind,
     roles: &mut Vec<RawRole>,
     counts: &mut [u8],
@@ -643,7 +643,7 @@ fn add_generic_suffix(
         .ok_or(ResolutionCompilerFailure::InvalidCanonicalTree)?;
     if !classified_token
         .terminals()
-        .contains(TerminalPredicateV0_10::Literal)
+        .contains(TerminalPredicateV0_11::Literal)
     {
         return Ok(());
     }

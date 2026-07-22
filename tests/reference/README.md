@@ -4,7 +4,7 @@ This directory is an independent executable model of the ownership/effect
 subset described at the top of `checker.py`. It is intentionally small and
 uses a toy AST so that compiler and model bugs are unlikely to share an
 implementation. It does not define the language, parse Whitefoot source, or
-claim coverage of all v0.10 semantics.
+claim coverage of all v0.11 semantics.
 
 During development, add a focused model judgment when an ownership rule would
 benefit from a genuinely independent differential or bounded state search.

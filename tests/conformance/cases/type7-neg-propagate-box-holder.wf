@@ -3,7 +3,7 @@ enum StepError {
 }
 
 fn forward(holder: own box<Result<i32, StepError>>) -> own Result<i32, StepError> pure {
-  doc "TYPE-7: try cannot implicitly read a Result from a box holder; write deref(holder).";
-  let value: own i32 = try holder;
+  doc "TYPE-7: propagate cannot implicitly read a Result from a box holder; write deref(holder).";
+  let value: own i32 = propagate holder;
   return Ok(value: value);
 }

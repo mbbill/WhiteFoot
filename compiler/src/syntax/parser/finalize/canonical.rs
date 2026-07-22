@@ -1,6 +1,6 @@
 mod format;
 
-use crate::syntax::terminal::TerminalPredicateV0_10;
+use crate::syntax::terminal::TerminalPredicateV0_11;
 use crate::{ByteOffset, SourceId};
 
 use crate::syntax::parser::{DerivationElement, SyntaxCoordinate};
@@ -64,7 +64,7 @@ impl AuditWork {
 fn terminal_element<'source>(
     finalized: &FinalizedBundle<'_, '_, 'source>,
     ordinal: usize,
-) -> Result<(crate::lexer::Token<'source>, TerminalPredicateV0_10), Stop> {
+) -> Result<(crate::lexer::Token<'source>, TerminalPredicateV0_11), Stop> {
     let record = finalized
         .topology
         .terminals
@@ -84,13 +84,13 @@ fn terminal_element<'source>(
 
 fn expected_terminal_bytes<'a, 'source>(
     token: crate::lexer::Token<'source>,
-    predicate: TerminalPredicateV0_10,
+    predicate: TerminalPredicateV0_11,
 ) -> &'a [u8]
 where
     'source: 'a,
 {
     match predicate {
-        TerminalPredicateV0_10::Fixed(fixed) => fixed.spelling(),
+        TerminalPredicateV0_11::Fixed(fixed) => fixed.spelling(),
         _ => token.span().bytes(),
     }
 }
@@ -444,7 +444,7 @@ fn audit(
 
 /// Audits exact per-source FORM-2 bytes from the finalized derivation tree.
 #[must_use]
-pub fn audit_canonical_v0_10<'classified, 'lexed, 'source>(
+pub fn audit_canonical_v0_11<'classified, 'lexed, 'source>(
     finalized: FinalizedBundle<'classified, 'lexed, 'source>,
     limits: CanonicalLimits,
 ) -> CanonicalOutcome<'classified, 'lexed, 'source> {

@@ -1,6 +1,6 @@
 """Retained checker-core reference model for a kernel-spec-v0.8 subset.
 
-This focused historical model is not the active compiler or a complete v0.10
+This focused historical model is not the active compiler or a complete v0.11
 semantic oracle. Its still-relevant judgments remain independent evidence.
 
 Implements the v0.6 ownership calculus (OWN-1..13 incl. the 2026-07-10 tag-only-copy
@@ -183,10 +183,10 @@ class Checker:
 
     def check_stmt(self, s):
         k = s["kind"]
-        if k == "try":                                 # [ERR-3] flow: consumes operand
+        if k == "propagate":                                 # [ERR-3] flow: consumes operand
             ex = s["expr"]
             if isinstance(ex, dict) and ex.get("kind") == "use":
-                self._require_explicit_deref(ex["place"], "try operand")
+                self._require_explicit_deref(ex["place"], "propagate operand")
                 ex = {"kind": "move", "place": ex["place"]}
             self.check_expr(ex)
             b = Binding(s["name"], {"kind": "own"}, self.ctx.depth())
@@ -1034,13 +1034,13 @@ class TypeChecker:
             mode, ty = self.deliver[-1]
             d = self.expr_desc(s["expr"])
             self.expect_mode_ty(d, mode, ty, "give")
-        elif k == "try":                               # [ERR-3] let x: own T = try e;
+        elif k == "propagate":                               # [ERR-3] let x: own T = propagate e;
             if s["name"] in self.env:
                 raise CheckError("TYPE-6",
                     f"redeclaration of live name '{s['name']}' (no shadowing)")
             ex = s["expr"]
             if isinstance(ex, dict) and ex.get("kind") == "use":
-                # `try` consumes its Result place. Resolve it once so an index
+                # `propagate` consumes its Result place. Resolve it once so an index
                 # atom receives one ordinary type judgment, not a preflight and
                 # a second expression judgment.
                 d = self.place_desc(ex["place"])
@@ -1048,27 +1048,27 @@ class TypeChecker:
                 d = self.expr_desc(ex)
             if (d["cat"] == "ref" or d["ty"].get("kind") in ("box", "arena")):
                 raise CheckError("TYPE-7",
-                    "try operand is a reference/box/arena holder; write deref(.)")
+                    "propagate operand is a reference/box/arena holder; write deref(.)")
             dt = d["ty"]
             if not (dt.get("kind") == "named" and dt.get("name") == "Result"):
                 raise CheckError("ERR-3",
-                    f"try operand must be a Result, got {_ty_str(dt)}")
+                    f"propagate operand must be a Result, got {_ty_str(dt)}")
             args = dt.get("args")
             if args is None:
                 raise CheckError("ERR-3",
-                    "try operand's Result payload types are unknown (erased); "
+                    "propagate operand's Result payload types are unknown (erased); "
                     "same-error-type propagation cannot be verified")
             okT, errT = args
-            self.expect_value({"cat": "val", "ty": okT}, s["ty"], f"try {s['name']}")
+            self.expect_value({"cat": "val", "ty": okT}, s["ty"], f"propagate {s['name']}")
             rt = self.fn["rty"]
             if not (isinstance(rt, dict) and rt.get("kind") == "named"
                     and rt.get("name") == "Result" and rt.get("args") is not None):
                 raise CheckError("ERR-3",
-                    "try requires the enclosing fn to return Result<U, E> with "
+                    "propagate requires the enclosing fn to return Result<U, E> with "
                     "known payload types")
             if not _ty_eq(errT, rt["args"][1]) or rt["args"][1].get("kind") == "any":
                 raise CheckError("ERR-3",
-                    f"try error type {_ty_str(errT)} != enclosing fn error type "
+                    f"propagate error type {_ty_str(errT)} != enclosing fn error type "
                     f"{_ty_str(rt['args'][1])} (same E required; no conversions)")
             self.env[s["name"]] = (s["mode"], okT)
         elif k == "expr":
@@ -1526,7 +1526,7 @@ def _exhibits_traps(fn, declared_traps):
             match(s)
         elif k in ("return", "give", "expr"):
             expr(s.get("expr"))
-        elif k == "try":                       # [ERR-3] scrutinee can trap (e.g. index in a try)
+        elif k == "propagate":                       # [ERR-3] scrutinee can trap (e.g. index in a propagate form)
             expr(s.get("expr"))
         elif k == "set":
             place(s.get("place")); expr(s.get("expr"))
@@ -1579,7 +1579,7 @@ def _check_reserved_match(match):
 def _check_reserved_block(body):
     for stmt in body:
         kind = stmt.get("kind")
-        if kind in ("let", "try"):
+        if kind in ("let", "propagate"):
             _check_binding_ident(stmt.get("name"), f"{kind} binder")
         if kind == "let" and stmt.get("init", {}).get("kind") == "match":
             _check_reserved_match(stmt["init"])

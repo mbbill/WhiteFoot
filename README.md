@@ -25,10 +25,10 @@ structure discipline future agents must apply.
 
 ## Current state
 
-[Kernel specification v0.10](spec/kernel-spec-v0.10.md), SHA-256
-`71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`,
-is the immutable active specification. Exact v0.8 and v0.9 remain immutable
-history.
+[Kernel specification v0.11](spec/kernel-spec-v0.11.md), SHA-256
+`050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc`,
+is the immutable active specification. Exact v0.8 through v0.10 remain
+immutable history.
 
 The safe-Rust compiler currently implements:
 
@@ -40,14 +40,13 @@ ordered source bundle
   -> one finalized source-bound syntax tree
   -> exact FORM-2 source validation
   -> CanonicalSyntaxUnit
-  -> direct v0.10 lexical name resolution
+  -> direct v0.11 lexical name resolution
   -> ResolvedSyntaxUnit
 ```
 
 There is not yet a semantic checker, IR, LLVM backend, compiler executable, or
-runnable Whitefoot program. The immediate path is to close the one protected
-v0.10 conformance discrepancy recorded in the roadmap, then implement the first
-coherent semantic slice through LLVM.
+runnable Whitefoot program. The immediate work is the first coherent v0.11
+semantic slice through LLVM.
 
 ## Repository layout
 

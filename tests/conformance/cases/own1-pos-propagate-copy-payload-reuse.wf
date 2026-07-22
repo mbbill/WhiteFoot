@@ -7,8 +7,8 @@ enum StepError {
 }
 
 fn forward(incoming: own Result<State, StepError>) -> own Result<i32, StepError> pure {
-  doc "OWN-1: try records the concrete tag-only Ok payload type, so the bound state remains Copy across repeated matches.";
-  let state: own State = try incoming;
+  doc "OWN-1: propagate records the concrete tag-only Ok payload type, so the bound state remains Copy across repeated matches.";
+  let state: own State = propagate incoming;
   match state {
     Ready() => {
     }

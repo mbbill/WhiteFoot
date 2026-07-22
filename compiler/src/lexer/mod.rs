@@ -1,4 +1,4 @@
-//! Lossless, resource-bounded lexical shapes for Whitefoot v0.10.
+//! Lossless, resource-bounded lexical shapes for Whitefoot v0.11.
 //!
 //! The versioned entry points perform byte-preserving lexical partitioning. A
 //! complete lexical result is not a language-acceptance verdict: parsing,
@@ -13,7 +13,7 @@ pub use outcome::{
     LexCompilerFailure, LexLimit, LexLimits, LexOutcome, LexResourceFailure, LexStorage,
     LexedBundle, SourceIssue, SourceIssueKind,
 };
-pub use scanner::lex_v0_10;
+pub use scanner::lex_v0_11;
 pub use token::{Lexeme, Token, TokenId, TokenKind, Trivia, TriviaKind};
 
 #[cfg(test)]

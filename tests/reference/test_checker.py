@@ -598,10 +598,10 @@ class ProgramLayer(unittest.TestCase):
                     return_unit,
                 ])},
             },
-            "try binder": {
+            "propagate binder": {
                 "structs": {}, "enums": {},
                 "fns": {"f": pfn([
-                    {"kind": "try", "name": "trap", "mode": own(),
+                    {"kind": "propagate", "name": "trap", "mode": own(),
                      "ty": I32, "expr": lit()},
                     return_unit,
                 ])},
@@ -1010,7 +1010,7 @@ class ProgramLayer(unittest.TestCase):
                 self.expect("TYPE-7", {"structs": {}, "enums": {},
                                        "fns": {"main": main}})
 
-    def test_type7_try_holders_require_deref(self):
+    def test_type7_propagate_holders_require_deref(self):
         error = named("Overflow")
         result = {"kind": "named", "name": "Result", "args": [I32, error]}
         holders = [
@@ -1021,7 +1021,7 @@ class ProgramLayer(unittest.TestCase):
         for mode, holder_ty in holders:
             with self.subTest(holder=holder_ty.get("kind")):
                 main = pfn([
-                    {"kind": "try", "name": "value", "mode": own(),
+                    {"kind": "propagate", "name": "value", "mode": own(),
                      "ty": I32, "expr": use(var("holder"))},
                     {"kind": "return", "expr": construct(
                         "Ok", [("value", lit(UNIT))])},
@@ -1257,7 +1257,7 @@ class ProgramLayer(unittest.TestCase):
                 ], params=[{"name": "container", "mode": own(), "ty": payload_ty}])
                 self.ok({"structs": {}, "enums": {}, "fns": {"main": main}})
 
-    def test_own1_try_copy_payload_binder_can_be_matched_twice(self):
+    def test_own1_propagate_copy_payload_binder_can_be_matched_twice(self):
         states = {"State": [{"variant": "Ready", "fields": []}]}
         error = named("Overflow")
         incoming = {"kind": "named", "name": "Result",
@@ -1266,7 +1266,7 @@ class ProgramLayer(unittest.TestCase):
         nested = {"kind": "match", "scrut": use(var("state")),
                   "arms": [{"variant": "Ready", "binders": [], "body": []}]}
         main = pfn([
-            {"kind": "try", "name": "state", "mode": own(),
+            {"kind": "propagate", "name": "state", "mode": own(),
              "ty": named("State"), "expr": use(var("incoming"))},
             nested,
             nested,

@@ -3,7 +3,7 @@
 
 //! The Whitefoot research compiler.
 //!
-//! The crate currently contains the v0.10 source frontend and direct lexical
+//! The crate currently contains the v0.11 source frontend and direct lexical
 //! resolver. Lower-level stages remain private implementation APIs, not
 //! protocols; semantic checking and code generation come next.
 

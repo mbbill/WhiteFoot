@@ -52,24 +52,16 @@ measurement does.
 
 ## Current state
 
-The active language authority is `spec/kernel-spec-v0.10.md`, SHA-256
-`71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
-Those bytes are immutable. Exact v0.8 and v0.9 remain immutable historical
-evidence.
-
-The review-ready, non-authoritative v0.11 candidate is
-`governance/spec-evolution/kernel-spec-v0.11-candidate.md`, SHA-256
+The active language authority is `spec/kernel-spec-v0.11.md`, SHA-256
 `050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc`.
-It replaces the Result-forwarding spelling `try` with `propagate`, with no
-compatibility alias; `try` becomes an ordinary IDENT. The native
-grammar-isomorphism check and three independent hostile reviews pass. Exact
-owner approval and append-only activation are still required before it can
-define compiler behavior. The earlier `e4b3368a...` freeze is superseded and
-non-authoritative.
+Those bytes are immutable and byte-identical to the owner-approved candidate.
+Exact v0.8 through v0.10 remain immutable historical evidence. v0.11 replaces
+the Result-forwarding spelling `try` with `propagate`, with no compatibility
+alias; `try` is an ordinary IDENT.
 
 The Rust compiler currently has source transport, a lossless lexer, terminal
 classification, a strong-LL(2) parser, one finalized syntax tree, exact FORM-2
-source validation, and one direct general v0.10 name resolver. It ends at
+source validation, and one direct general v0.11 name resolver. It ends at
 `ResolvedSyntaxUnit`. It has no semantic checker, IR, LLVM backend, compiler
 executable, or runnable program.
 
@@ -80,8 +72,9 @@ the exact generated v0.10 candidate SHA-256
 The exact approved candidate is installed and the existing frontend is
 reproduced against its identity in one safe-Rust crate. The resolver
 implementation and its owner-approved duplicate-main expectation correction
-complete Phase 6. The next implementation goal is the first semantically
-checked program through a simple LLVM backend after v0.11 activation.
+complete Phase 6. The approved v0.11 bytes and every active spec-derived
+frontend/evidence identity are installed. The next implementation goal is the
+first semantically checked program through a simple LLVM backend.
 
 ## Authority and specification changes
 
@@ -113,16 +106,12 @@ machine-enforced, and derived material is never silently weakened to make a
 check pass.
 
 **Grammar proposal check.** The native `whitefoot-grammar` tool verifies an
-unchanged frontend contract, or v0.11's exact one-for-one Result-propagation
-terminal and production rename, against the active compiler. For the rename it
-proves that inverse translation is byte-identical to the complete active
-FORM-1-through-GRAM frontend contract and translates the same fixed-terminal,
-IDENT, production, and SELECT_2 tables. The candidate `propagate` spelling goes
-through the real raw lexer; the inverse-translated `try` form then goes through
-the active classifier and parser. It deliberately fails closed on every other
-grammar change. A future structural proposal must extend this same native
-path; it may not revive the archived independent grammar engines. This tool is
-run for specification proposals, not routine compilation.
+unchanged frontend contract against the active compiler, checks the complete
+FORM-1-through-GRAM contract plus the CONST-1 and EFF-1 grammar fragments,
+checks every compiler SELECT_2 decision, and runs the real lexer and parser. It
+fails closed on a grammar change. A future structural proposal must extend this
+same native path; it may not revive the archived independent grammar engines.
+This tool is run for specification proposals, not routine compilation.
 
 ## What “good enough” requires
 
@@ -268,8 +257,8 @@ remains FN-7.
 
 ## Phase 7: first executable semantic slice
 
-Status: exact semantic-closure candidate review-ready; implementation awaits
-owner approval and append-only activation of those exact bytes.
+Status: exact v0.11 semantic closure approved and active; implementation in
+progress.
 
 Hostile preflight found that v0.10 deliberately leaves post-resolution
 semantic diagnostic validity and determinism boundary for later approval. It
@@ -279,10 +268,10 @@ slice, or the conflict between DIAG-2/DIAG-3 product-scale artifact/report
 obligations and the current research-compiler architecture. Do not invent
 these behaviors in compiler code or derive them from LLVM.
 
-The owner authorized a minimal v0.11 proposal that closes only those semantic
-boundaries, preserves all required runtime checks, and replaces product-scale
-artifact/replay obligations with the smallest checked in-memory authority and
-runtime-report contract the research compiler needs. Review rejected both a
+The owner approved and activated a minimal v0.11 revision that closes only
+those semantic boundaries, preserves all required runtime checks, and replaces
+product-scale artifact/replay obligations with the smallest checked in-memory
+authority and runtime-report contract the research compiler needs. Review rejected both a
 whole-language diagnostic-owner census and a normative first-slice support
 profile: neither affects language acceptance, and both would couple the
 specification to implementation order. The candidate instead requires every
@@ -290,9 +279,8 @@ semantic rejection to establish an actual numbered-rule violation, keeps
 rule-specific locations exact, makes simultaneous post-resolution first-error
 choice deterministic per compiler executable, and publishes checked authority
 only after every applicable whole-unit judgment succeeds. The compiler-sharing
-grammar verifier and hostile review are complete. Obtain owner approval of the
-exact bytes and hash before activating them or emitting semantic source
-rejections.
+grammar verifier and hostile review are complete, and the exact approved bytes
+now define compiler behavior.
 
 Choose the smallest coherent language family that can compile and run a real
 program while exercising the actual semantic architecture. The expected first
