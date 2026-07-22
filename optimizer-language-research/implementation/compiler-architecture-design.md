@@ -8,8 +8,10 @@ approved merely by adopting the architecture. Production parser, semantic,
 artifact-replay, and lowering work remains paused wherever this dossier names a
 blocker.
 
-Exact source under review: `spec/kernel-spec-v0.8.md`, SHA-256
+Historical design input: `spec/kernel-spec-v0.8.md`, SHA-256
 `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
+Active implementation authority: `spec/kernel-spec-v0.9.md`, SHA-256
+`bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68`.
 
 Implementation status (2026-07-21): the owner-approved exact v0.9 successor is
 now active and closes the frontend blockers named below. Phase 4 implements
@@ -31,7 +33,7 @@ cross-stage authority chain, blockers, execution order, prohibited routes,
 owner decisions, and exit checklist.
 
 - [Frontend and Source](compiler-architecture-frontend.md): Decisions 2–6 and
-  the proposed successor-specification compilation-unit rule.
+  the installed successor-specification compilation-unit rule.
 - [Semantic Kernel](compiler-architecture-semantics.md): Decisions 7–10.
 - [Artifacts and Backend](compiler-architecture-artifacts-backend.md):
   Decisions 11–14 and the conservative LLVM contract.
@@ -230,7 +232,7 @@ the same exact-evidence discipline before their affected implementation lands:
 
 | ID | Question | Why architecture cannot choose silently |
 |---|---|---|
-| A-01 | TYPE-6 declaration-before-use versus FN-1/FN-6 mutual recursion | Owner-selected 2026-07-21: all top-level function signatures are visible throughout the closed compilation unit; locals, regions, labels, and named constants remain declaration-before-use. Exact successor-specification encoding remains guarded. |
+| A-01 | TYPE-6 declaration-before-use versus FN-1/FN-6 mutual recursion | Resolved by exact v0.9 TYPE-6: all top-level function signatures are visible throughout the closed compilation unit; locals, regions, labels, generic parameters, and named constants remain declaration-before-use. |
 | A-02 | Disposition of an affine value overwritten by `set` | Dropping, leaking, rejecting, or requiring a prior move produce different ownership and storage semantics. |
 | A-03 | Evaluation order of multiple atoms, fields, and call arguments | Bounds checks, traps, borrows, and moves can make order observable. LLVM lowering cannot choose it. |
 | A-04 | Ordinary lexical-scope, match-arm, and loop-iteration cleanup | STOR-3 names region-exit edges but does not completely state all owner-scope exit behavior needed for exact drop plans. |
@@ -239,7 +241,7 @@ the same exact-evidence discipline before their affected implementation lands:
 | A-07 | TYPEID collision between nominal types and globally unique variant constructors | The grammar uses the same lexical class while TYPE-6 states only variant-to-variant uniqueness. |
 | A-08 | Affine liveness at continuing control-flow joins | The ownership state lattice and any conservative rejection rule must be explicit before proofs or cleanup are frozen. |
 | A-09 | Semantic checking of source statements after a diverging terminator | EFF-2 scans the complete declaration and artifact coverage cannot omit source nodes, but v0.8 does not define the ownership entry state or rejection behavior of an unreachable suffix. |
-| A-10 | Normative multi-file compilation-unit formation | v0.8 defines one `program` but not how an ordered source bundle becomes that program; file order changes TYPE-6/FN-1 acceptance, while boundaries/root extent affect identities and diagnostics. This requires a numbered successor-specification rule, not an architecture-only "toolchain contract." |
+| A-10 | Normative multi-file compilation-unit formation | Resolved by exact v0.9 PROG-2: one ordered nonempty record sequence forms one flattened program root; record order fixes declaration order; paths create no namespaces; and root/source extents and empty-envelope behavior are normative. |
 | A-11 | Mutability and alias claim of `slice_of` results | `slice_of` takes a shared borrow and returns `own slice<'r, T>`, while OP-4 calls `index` on slices a read/write place. The rules do not say whether writes are forbidden, require unique provenance, or how the slice keeps its source loan live. |
 | A-12 | Cross-function provenance of returned borrows and slices | FN-1 says signatures contain everything callers need, but a return region does not identify which of several same-region parameters a returned view may reference. Caller alias checking needs an owner-approved signature restriction/annotation or exact finite-origin rule. |
 | A-13 | Recursive enforcement of STOR-5 region-free storage | The prose forbids region-carrying stored values, but generic/nested instantiation can form types such as `box<slice<'r, T>>` or a generic field instantiated with `slice<'r, T>` unless a recursive well-formedness judgment is normative. |
@@ -698,10 +700,9 @@ schema/profile, or implementation beyond an open entrance gate.
   artifact replay and rejects a second production semantic verifier.
 - [x] The owner selected the proposed future trust topology; D22 and
   `THE-PLAN.md` remain current until a separate roadmap redecision.
-- [x] The owner approved evidence preparation for a possible successor
-  specification; exact v0.8 remains active and tool implementation is separate.
-- [ ] Multi-file composition, zero-item files, and zero-source behavior (A-10)
-  are owner-ratified in a successor numbered specification.
+- [x] Exact v0.9 is active and encodes the owner-ratified A-01 and A-10 rules.
+- [x] Multi-file composition, zero-item files, and zero-source behavior (A-10)
+  are owner-ratified in exact v0.9 PROG-2.
 - [ ] Slice authority, return provenance, and recursive storage well-formedness
   (A-11 through A-13) are owner-ratified.
 - [ ] DIAG-3 lifetime and logical-stack projection (A-14/A-15) are
@@ -730,6 +731,5 @@ schema/profile, or implementation beyond an open entrance gate.
 - [x] Owner approves the roadmap revision.
 
 Until every unchecked entrance item is complete, the correct project status is
-**architecture adopted; audited foundation handoff complete; grammar-change
-evidence active; production parser and semantic implementation paused at their
-named entrance gates**.
+**architecture adopted; audited foundation and exact-v0.9 canonical frontend
+complete; semantic implementation paused at its named entrance gates**.

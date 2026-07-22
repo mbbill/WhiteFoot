@@ -5,6 +5,13 @@ single [Production Compiler Architecture](compiler-architecture-design.md)
 design record. `THE-PLAN.md` is execution authority. This file does not amend a
 numbered specification, protected semantic surface, profile, or entrance gate.
 
+Implementation status (2026-07-21): Decision 18's migration table below is the
+historical pre-migration audit input. D25 completed the authorized migration:
+exact v0.9 PROG-2 resolves A-10; `whitefoot-lexer` and
+`whitefoot-source-audit` replaced the old proposed names; and Phase 4 now owns
+the implemented parser, tree, node paths, and canonical syntax boundary. The
+table does not describe current components or reopen completed dispositions.
+
 This file uniquely owns Decisions 15 through 18. Cross-stage authority, entrance gates,
 execution order, owner decisions, and exit status remain in the parent index.
 

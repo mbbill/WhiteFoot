@@ -11,7 +11,7 @@ typed derivation, linear finalizer, and tree-driven FORM-2 audit and publishes
 canonical syntax only after both audits pass. The historical owner rulings
 below retain their original approval scope.
 
-This file uniquely owns Decisions 2 through 6 and the proposed successor-specification compilation-unit rule. Cross-stage authority, entrance gates,
+This file uniquely owns Decisions 2 through 6 and the installed successor-specification compilation-unit rule. Cross-stage authority, entrance gates,
 execution order, owner decisions, and exit status remain in the parent index.
 
 ## Decision records
@@ -220,7 +220,8 @@ add keyword classification to it. Defer parser and tree variants.
 **Owner ruling (2026-07-21):** The grammar-verifier design, discrepancy
 evidence, protected-surface census, and non-authoritative candidate preparation
 are approved. Verifier implementation and the terminal repair remain separate;
-exact v0.8 remains active.
+exact v0.8 remained active at the time of this ruling. Exact v0.9 was installed
+later that day through its separate approval and governance gate.
 
 ### Decision 3: parser construction versus grammar evidence
 
@@ -587,29 +588,28 @@ diagnostics; sorted scope tables; `O((declarations + uses) log declarations)`
 or better; explicit limits on scopes, events, declarations, uses, spelling
 bytes, ancestry depth, and work.
 
-**Dependencies on specification work:** A-01's semantics are owner-selected but
-still require exact successor-specification encoding. TYPEID constructor
-collisions, OP-1 reservations, contract members, and multi-file order remain
-unresolved.
+**Dependencies on specification work:** Exact v0.9 closes A-01 and A-10.
+TYPEID constructor collisions, OP-1 reservations, and semantic diagnostic
+selection remain unresolved before complete resolution can land. Contract,
+conform, member, and law roles stay explicit typed-dependent uses for Decision
+7; their semantic relations block symbolic checking, not lexical resolution.
 
 **Migration or foundation-audit consequences:** No resolver schema or stable
 `DeclId` should be implemented before these questions close.
 
-**Owner ruling (2026-07-21):** All top-level function signatures are visible
-throughout the closed compilation unit. Locals, regions, labels, and named
-constants remain declaration-before-use. This selects A-01's semantics; the
-exact version-bumped successor-specification bytes remain separately guarded
-before resolver implementation.
+**Owner ruling and installation (2026-07-21):** All top-level function
+signatures are visible throughout the closed compilation unit. Locals, regions,
+labels, generic parameters, and named constants remain declaration-before-use.
+Exact v0.9 TYPE-6 and PROG-2 install that A-01/A-10 authority. The remaining
+resolver blockers above stay separately gated.
 
-## Proposed successor-specification compilation-unit rule
+## Installed successor-specification compilation-unit rule
 
-The source foundation already models an explicitly ordered bundle, while v0.8
-defines only `program := item*`. Because bundle order can change normative
-visibility and acceptance, the following is a proposed numbered specification
-rule, not a lower-authority toolchain convention. It requires the
-normal exact owner approval, governance entry, version bump, filename/title
-change, live-reference update, and protected additive evidence before any
-multi-file parser or resolver implementation:
+The source foundation already modeled an explicitly ordered bundle while v0.8
+defined only `program := item*`. The following design proposal was installed as
+exact v0.9 PROG-2 through the normal owner approval, governance, versioning,
+live-reference, and evidence process. PROG-2, not this historical design prose,
+is the normative rule:
 
 - A compilation unit is an ordered **nonempty** sequence of source files. Zero
   source files is an input-envelope failure: no Whitefoot program exists to

@@ -156,10 +156,11 @@ ordered SourceBundle transport + SpecificationIdentity + CompilationTargetProfil
   -> conservative LLVM/runtime/link/publication pipeline
 ```
 
-The current ordered `SourceBundle` is a transport envelope, not authority for
-normative multi-file composition. File order, zero-source behavior, program-root
-extent, and declaration order acquire language meaning only after A-10 is
-encoded in an approved numbered specification.
+Exact v0.9 [PROG-2] gives `SourceBundle` transport normative multi-file
+meaning: one ordered nonempty record sequence forms one flattened program root;
+record order fixes top-level declaration order; logical paths never create
+namespaces; and zero records remain an input-envelope failure. The carrier may
+still represent transport values that the compilation-unit constructor rejects.
 
 The semantic kernel is trusted production code. Same-kernel replay checks that
 canonical artifact bytes completely and consistently encode the accepted
@@ -485,11 +486,16 @@ acceptance claim exists.
 ## Phase 5: build the semantic kernel
 
 Status: conditional on exact normative authority for every affected rule.
+The current owner-review packet is
+`optimizer-language-research/implementation/compiler-phase5-entrance-review.md`;
+it grants no implementation authority. Complete resolver work remains stopped
+until its first-stage language, diagnostic, resource, and architecture gates
+are approved and installed.
 
 Implement one syntax-directed semantic kernel in this order:
 
 1. complete declaration inventory and visibility-governed resolution using the
-   exact successor encoding of A-01;
+   exact v0.9 TYPE-6 encoding of A-01;
 2. modes, types, constants, operations, substitutions, typed labels, and typed
    calls for every function declaration;
 3. the finite template call graph and pre-instantiation FN-6 SCC gate;
@@ -501,6 +507,11 @@ Implement one syntax-directed semantic kernel in this order:
    drop, release, and check edge;
 7. approved provenance qualification; and
 8. region, loan, ownership, join, cleanup, effect, and whole-unit closure.
+
+Item 6's historical cleanup wording conflicts with Decision 8: ownership-free
+CFG construction cannot know live drops. The linked entrance-review packet C-05
+must be owner-resolved before either item 6 or item 8 is implemented; no
+placeholder cleanup plan is authorized in the meantime.
 
 A required rejection may not be deferred behind a potentially expanding
 worklist. Every handler accepts arbitrary legal names, list lengths, nesting,
