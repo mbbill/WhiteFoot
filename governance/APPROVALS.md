@@ -1,5 +1,10 @@
 # Spec & test approvals ledger
 
+Current note (2026-07-22): the hash-baseline protocol described next is
+historical. It operated from 2026-07-18 until the research-compiler governance
+simplification. The scope amendment and later exact-boundary approvals are at
+the end of this file.
+
 Append-only. The kernel specification and the semantics-bearing test surface are
 OWNER-GATED. This file is the authorization record: an agent must obtain the
 owner's explicit approval for a change to a guarded surface, append an entry
@@ -71,3 +76,31 @@ semantic change, a pointer to the recorded investigation it rests on.
 - owner: approved in session
 - reason: restructure: co-located gate on new tests/ + governance/ layout
 - baseline: 4ad22f40e7a0931a541a54b73f46c417da242efa2ca0d0a8cf60a1e40ee46b7d
+
+## 2026-07-22 — ledger scope amendment
+
+The hash-baseline guard described above was retired on 2026-07-22. Its entries
+remain unchanged as the exact audit record for the period in which it operated.
+Later approvals record the approved artifact or change boundary directly and do
+not invent a retired baseline hash.
+
+Owner rulings before this separate ledger began on 2026-07-18 are preserved in
+`governance/directives.md` and in the versioned records indexed by
+`governance/decision-log.md`. They are not duplicated here because many of them
+authorized research or selected a direction without approving a protected
+specification or test change.
+
+## 2026-07-21 — approval
+- owner: approved in session
+- reason: Approve the exact Phase-5 successor proposal SHA-256 `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and generated v0.10 candidate SHA-256 `71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`. The approval selected the reviewed language delta and architecture consequences but did not itself install v0.10 or authorize resolver implementation.
+- evidence: `governance/decisions/v0.9.md` (`PHASE5-SUCCESSOR-OWNER-APPROVAL`)
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Correct the protected `fn7-neg-two-mains` evidence to v0.10 TYPE-6 duplicate-declaration behavior and authorize preparation, hostile review, and owner presentation of the bounded v0.11 semantic-closure candidate. This did not approve candidate activation before exact-byte review.
+- evidence: `governance/decisions/v0.10.md` (`V010-DUPLICATE-MAIN-CORRECTION-AND-V011-SEMANTIC-CLOSURE-AUTHORIZATION`)
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Select `propagate` as the sole ERR-3 Result-forwarding spelling, with no `try` compatibility alias, and approve exact v0.11 candidate SHA-256 `050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc` for append-only activation with synchronized compiler, conformance, and reference-model updates.
+- evidence: `governance/decisions/v0.11.md` (`V011-PROPAGATE-SPELLING-CANDIDATE-FREEZE` and `V011-OWNER-APPROVED-ACTIVATION`)
