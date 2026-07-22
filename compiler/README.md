@@ -38,7 +38,6 @@ semantic checker, IR, LLVM backend, CLI, or executable-program capability yet.
 - `whitefoot-syntax` classifies, parses, finalizes, and validates exact FORM-2
   bytes before publishing canonical syntax.
 - `whitefoot-source-audit` checks exact source/specification binding.
-- `whitefoot-lexical-observer` exposes lexer behavior to an independent
   byte-level development model.
 
 These boundaries are private compiler implementation details and may evolve as

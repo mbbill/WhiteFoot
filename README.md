@@ -67,7 +67,7 @@ live next to what they check.
 
 ```sh
 make install-hooks   # once: enable the spec append-only pre-commit hook
-make check           # the gate: compiler, conformance, reference, lexical, spec append-only
+make check           # the gate: compiler, conformance, reference, spec append-only
 ```
 
 The gate is deliberately small — the compiler builds and passes its tests, the
