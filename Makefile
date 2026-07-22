@@ -5,17 +5,32 @@
 
 PY := python3 -B
 
-check: project-state spec-append-only conformance reference compiler
+check: repository-invariants spec-append-only conformance reference compiler
 	@echo "== WHITEFOOT GATE GREEN (first executable scalar slice + independent evidence) =="
 
-# repository invariants: AGENTS.md == CLAUDE.md, single roadmap
-project-state:
-	$(PY) governance/test_project_state.py
-	$(PY) governance/project_state.py
+# repository invariants: identical agent instructions and the canonical roadmap marker
+repository-invariants:
+	@cmp -s AGENTS.md CLAUDE.md || { echo "AGENTS.md and CLAUDE.md differ" >&2; exit 1; }
+	@grep -q '^Status: CANONICAL ROADMAP' docs/roadmap.md || { echo "docs/roadmap.md is not marked canonical" >&2; exit 1; }
 
 # the one spec protection: released kernel specs are never edited (new version only)
 spec-append-only:
-	$(PY) governance/spec_append_only.py
+	@changes="$$(git diff --name-status --diff-filter=MDRCT HEAD -- 'spec/kernel-spec-v*.md')"; \
+	if test -n "$$changes"; then \
+		echo "spec append-only violation: released specifications changed:" >&2; \
+		echo "$$changes" >&2; \
+		exit 1; \
+	fi
+	@echo "spec append-only: no released kernel specification was modified or removed"
+
+spec-append-only-staged:
+	@changes="$$(git diff --cached --name-status --diff-filter=MDRCT -- 'spec/kernel-spec-v*.md')"; \
+	if test -n "$$changes"; then \
+		echo "spec append-only violation: released specifications changed:" >&2; \
+		echo "$$changes" >&2; \
+		exit 1; \
+	fi
+	@echo "spec append-only: no released kernel specification was modified or removed"
 
 conformance:
 	cd tests/conformance && $(PY) test_runner.py
@@ -36,4 +51,4 @@ install-hooks:
 	git config core.hooksPath governance/hooks
 	@echo "installed governance/hooks (spec append-only pre-commit)"
 
-.PHONY: check project-state spec-append-only conformance reference compiler conformance-run install-hooks
+.PHONY: check repository-invariants spec-append-only spec-append-only-staged conformance reference compiler conformance-run install-hooks

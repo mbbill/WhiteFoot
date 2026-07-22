@@ -1,4 +1,4 @@
 #!/bin/sh
 # Reject any commit that modifies, renames, or deletes a released kernel spec.
 # Amend the language by adding a NEW spec/kernel-spec-v*.md version instead.
-exec python3 governance/spec_append_only.py --staged
+exec make --no-print-directory spec-append-only-staged

@@ -26,9 +26,13 @@ procedure. Do not create a second governance how-to; update this file instead.
 | `APPROVALS.md` | Append-only protected approval record |
 | `directives.md` | Standing and historical owner rulings |
 | `spec-evolution/` | One exact, versioned candidate file per reviewed successor specification |
-| `spec_append_only.py` | Check that released numbered specifications were not edited, renamed, or removed |
-| `hooks/pre-commit` | Run the staged append-only check before a commit |
-| `project_state.py` and `test_project_state.py` | Check the single-roadmap and repository-state invariants |
+| `hooks/pre-commit` | Invoke the Makefile's staged append-only check before a commit |
+
+The root Makefile owns the two small repository checks. The
+`repository-invariants` target compares the two agent-instruction files and
+requires the canonical roadmap marker. The `spec-append-only` targets ask Git
+directly whether a released numbered specification was modified, renamed, or
+removed. Governance has no separate Python tooling.
 
 ## One candidate per successor
 
@@ -126,7 +130,9 @@ Run the repository gate before committing a completed slice:
 make check
 ```
 
-The hook enforces only that released numbered specifications are append-only.
-Keeping the compiler, conformance corpus, reference models, tests, and docs
-consistent with the active specification remains the implementer's
-responsibility.
+The hook invokes `make spec-append-only-staged`; the ordinary repository gate
+invokes `make repository-invariants` and `make spec-append-only`. These checks
+use only Make, Git, `cmp`, and `grep`. The hook enforces only that released
+numbered specifications are append-only. Keeping the compiler, conformance
+corpus, reference models, tests, and docs consistent with the active
+specification remains the implementer's responsibility.
