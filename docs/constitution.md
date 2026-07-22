@@ -1,6 +1,6 @@
 # The Whitefoot Constitution
 
-Adopted 2026-07-05; amended 2026-07-05 (priority structure) and 2026-07-07 (D2a). This document supersedes and grounds all owner directives; the individual rulings (D0–D4, D0a/D1a/D2a) live in `optimizer-language-research/notes/user-directives.md`. Decision log: `optimizer-language-research/implementation/decision-gates.md`.
+Adopted 2026-07-05; amended 2026-07-05 (priority structure) and 2026-07-07 (D2a). This document supersedes and grounds all owner directives; the individual rulings (D0–D4, D0a/D1a/D2a) live in `governance/directives.md`. Decision log: `governance/decision-log.md`.
 
 
 Structured objective, in priority order:

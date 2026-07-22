@@ -2,7 +2,7 @@
 
 Status: NON-AUTHORITATIVE.
 
-`THE-PLAN.md` alone controls current work, order, gates, and authorization.
+`docs/roadmap.md` alone controls current work, order, gates, and authorization.
 This file preserves ideas that may deserve a bounded experiment after an owner
 promotes one. An entry here does not open a project phase or change a language,
 compiler, runtime, or deployment contract.
@@ -187,6 +187,6 @@ Before an owner promotes one of these ideas, its experiment should answer:
 - Which result stops the work instead of expanding its scope?
 
 Most entries depend on the stable proposition, provenance, consumer, and
-invalidator ledger described by phase 4 of `THE-PLAN.md`. Until that ledger and
+invalidator ledger described by phase 4 of `docs/roadmap.md`. Until that ledger and
 its hostile reviews exist, these entries remain design prompts rather than
 compiler work.

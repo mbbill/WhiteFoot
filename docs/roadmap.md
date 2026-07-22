@@ -79,8 +79,8 @@ The sequence is:
 
 ## Authority and specification changes
 
-`CONSTITUTION.md` is project law. The active numbered specification defines the
-language. `PATTERNS.md` defines writer forms. This file alone defines current
+`docs/constitution.md` is project law. The active numbered specification defines the
+language. `docs/patterns.md` defines writer forms. This file alone defines current
 implementation order. Architecture and research documents are explanations and
 inputs, not additional entrance gates.
 
@@ -324,7 +324,7 @@ it is not a claim that the language or compiler is complete.
 
 Every reproducible defect receives the smallest practical regression before
 its fix. Each cohesive completed step gets one commit and one short append-only
-entry in `optimizer-language-research/implementation/decision-gates.md`.
+entry in `governance/decision-log.md`.
 
 Keep files cohesive and reviewable. Split by invariant-bearing responsibility,
 not arbitrary line counts or corpus functions. New and modified repository
