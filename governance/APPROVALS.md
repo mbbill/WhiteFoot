@@ -1,46 +1,9 @@
-# Spec & test approvals ledger
+# Protected approval record
 
-Current note (2026-07-22): the hash-baseline protocol described next is
-historical. It operated from 2026-07-18 until the research-compiler governance
-simplification. The scope amendment and later exact-boundary approvals are at
-the end of this file.
-
-Append-only. The kernel specification and the semantics-bearing test surface are
-OWNER-GATED. This file is the authorization record: an agent must obtain the
-owner's explicit approval for a change to a guarded surface, append an entry
-here, and only then commit. Approval of a plan or phase is **not** approval to
-change the spec.
-
-Guarded surfaces (see `tools/spec_guard.py`):
-
-- numbered kernel specs `spec/kernel-spec-v*.md` — any add/remove/in-place edit;
-- conformance expected verdicts `conformance/manifest.jsonl` + `conformance/cases/**`;
-- frozen oracle digests in `tools/codegen_parity.py`, `tools/test_checked_automation.py`;
-- reference semantics tests `prototype/checker/test_checker.py`, `prototype/democ/test_codegen.py`.
-
-Adding a new test or a new conformance case is always allowed. Modifying,
-deleting, or weakening an existing one — or regenerating a pinned oracle digest —
-requires an approval below. Never make a failing check pass by changing what it
-expects.
-
-An approval that relaxes a rule or changes accepted semantics must rest on a
-recorded investigation — the alternatives considered, pros and cons, a soundness
-argument, and data — and must cite where that investigation is recorded (the
-decision-gates.md line or dossier path). Every approval's stated reason must rest
-on evidence, never on convenience or on the shape of existing code.
-
-Protocol for an approved change:
-
-1. Present the exact delta to the owner and get explicit approval in the session.
-2. Make the change (numbered specs bump version + rename; never edit in place).
-3. Run `make approve-spec REASON="<what the owner approved>"`. This regenerates
-   `governance/guard-baseline.json` and appends an entry with its `baseline`
-   hash. `make check`'s `spec-guard` layer fails on any guarded change whose
-   baseline hash is not logged here.
-
-Each entry records: the date, that the owner approved, the reason, the
-`baseline` SHA-256 the approval authorizes, and, for a rule relaxation or
-semantic change, a pointer to the recorded investigation it rests on.
+This file contains the append-only approval record. It is not a workflow guide;
+the sole live governance procedure is [`README.md`](README.md). Entries through
+the hash-baseline era remain unchanged historical records, followed by the
+newer exact-artifact and protected-change approvals.
 
 ## 2026-07-18 — approval
 - owner: approved in session
