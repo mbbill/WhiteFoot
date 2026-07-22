@@ -3,16 +3,23 @@
 
 //! The Whitefoot research compiler.
 //!
-//! The crate currently contains the v0.11 source frontend and direct lexical
-//! resolver. Lower-level stages remain private implementation APIs, not
-//! protocols; semantic checking and code generation come next.
+//! The crate contains one exact-v0.11 path from ordered sources through the
+//! frontend and direct resolver into the first checked scalar family,
+//! target-independent IR, conservative textual LLVM, and a host compiler
+//! executable. These stages remain evolvable implementation APIs, not stable
+//! protocols.
 
+mod backend;
+mod driver;
 mod lexer;
+mod lowering;
 mod resolution;
+mod semantic;
 mod source;
 mod spec;
 mod syntax;
 
+pub use driver::*;
 pub use lexer::*;
 pub use resolution::*;
 pub use source::*;
@@ -20,3 +27,7 @@ pub use spec::*;
 pub use syntax::grammar::*;
 pub use syntax::terminal::*;
 pub use syntax::*;
+
+pub(crate) use backend::*;
+pub(crate) use lowering::*;
+pub(crate) use semantic::*;

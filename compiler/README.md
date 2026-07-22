@@ -15,6 +15,11 @@ ordered source bundle
   -> finalized source-bound syntax tree
   -> exact FORM-2 validation
   -> direct v0.11 lexical name resolution
+  -> scalar semantic checking
+  -> private checked program
+  -> target-independent scalar IR
+  -> conservative textual LLVM
+  -> host executable
 ```
 
 The frontend targets the exact bytes of
@@ -37,11 +42,26 @@ engine.
 
 The resolver covers every v0.11 declaration, lexical-use, and deferred
 owner/member role through one grammar-driven path, including exact scopes,
-visibility, reservations, collisions, and deterministic diagnostics. The next
-implementation is the first coherent semantic-to-LLVM slice over its
-`ResolvedSyntaxUnit` under the approved v0.11 semantic closure.
+visibility, reservations, collisions, and deterministic diagnostics.
+
+The first executable semantic family supports exact scalar integers, unit,
+`Bool` construction/checking, integer and unit constants, nongeneric own-mode functions,
+locals, direct calls, returns, pure/traps effects, wrapping and trapping
+add/subtract/multiply, and integer comparisons. Semantic success produces the
+only lowering authority. The IR retains required checks and source trap sites;
+the backend uses conservative LLVM without unearned overflow flags or check
+elision. Unimplemented v0.11 families stop as explicit unsupported compiler
+capabilities.
+
+Compile a source file through the normal path with:
+
+```sh
+cargo run --bin whitefootc -- source.wf -o program
+cargo run --bin whitefootc -- --emit-llvm source.wf
+```
+
 There is deliberately no artifact protocol, replay layer, resource-profile
-product, or compatibility boundary in front of it.
+product, or compatibility boundary in front of this path.
 
 Run the compiler gate with:
 

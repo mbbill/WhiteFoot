@@ -59,22 +59,32 @@ Exact v0.8 through v0.10 remain immutable historical evidence. v0.11 replaces
 the Result-forwarding spelling `try` with `propagate`, with no compatibility
 alias; `try` is an ordinary IDENT.
 
-The Rust compiler currently has source transport, a lossless lexer, terminal
-classification, a strong-LL(2) parser, one finalized syntax tree, exact FORM-2
-source validation, and one direct general v0.11 name resolver. It ends at
-`ResolvedSyntaxUnit`. It has no semantic checker, IR, LLVM backend, compiler
-executable, or runnable program.
+The Rust compiler now has one ordinary path from ordered source transport
+through the lossless frontend and direct resolver into semantic checking, a
+private checked program, target-independent scalar IR, conservative textual
+LLVM, and a runnable host executable. The first scalar family supports exact
+integer and unit values, `Bool` construction and checks, integer and unit
+constants, nongeneric own-mode functions, locals, direct named calls, explicit
+returns, pure/traps effects, wrapping and trapping add/subtract/multiply, and
+integer comparisons. Required checks remain explicit through lowering and
+emit the exact DIAG-3 record before abort.
+
+This is not a completeness claim. Aggregates and payload enums, generics and
+contracts, regions and borrows, floats, structured source control flow,
+mutation, Result propagation, allocations, and the remaining operation table
+are explicit unsupported compiler capabilities rather than source-language
+rejections.
 
 The owner approved the exact successor proposal SHA-256
 `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and
 the exact generated v0.10 candidate SHA-256
 `71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
-The exact approved candidate is installed and the existing frontend is
-reproduced against its identity in one safe-Rust crate. The resolver
-implementation and its owner-approved duplicate-main expectation correction
-complete Phase 6. The approved v0.11 bytes and every active spec-derived
-frontend/evidence identity are installed. The next implementation goal is the
-first semantically checked program through a simple LLVM backend.
+The exact approved candidate is installed and the compiler is reproduced
+against its identity in one safe-Rust crate. The resolver implementation and
+its owner-approved duplicate-main expectation correction complete Phase 6.
+The first executable scalar slice completes Phase 7. The next work is the
+highest-value coherent Phase 8 family, selected by the next real program it
+unlocks rather than by issue count.
 
 ## Authority and specification changes
 
@@ -258,8 +268,7 @@ remains FN-7.
 
 ## Phase 7: first executable semantic slice
 
-Status: exact v0.11 semantic closure approved and active; implementation in
-progress.
+Status: complete.
 
 Hostile preflight found that v0.10 deliberately leaves post-resolution
 semantic diagnostic validity and determinism boundary for later approval. It
@@ -305,6 +314,22 @@ backend abstraction, stable IR serialization, caching, and optimization do not.
 
 **Exit:** at least one nontrivial compiler-independent program and the complete
 tests for the supported family compile and run through the normal pipeline.
+
+The completed slice uses grammar and resolved identities rather than function
+or corpus allowlists. Whole-unit semantic success is the only lowering
+authority. Its checked representation records exact scalar types and values,
+direct calls, retained OP-2/OP-5 checks, trap attribution, and returns; lowering
+then produces one target-independent IR and one conservative host LLVM path.
+Wrapping arithmetic carries no LLVM overflow promises, trapping arithmetic
+uses explicit signed/unsigned overflow intrinsics and branches, and explicit
+checks are never elided. `unit` remains a first-class source value across
+locals, parameters, calls, and returns.
+
+Independent positive and negative conformance sources exercise constants,
+FORM-7, named calls, TYPE-5, FN-2, EFF-2, wrapping arithmetic, and normal
+execution through this same path. Focused host tests cover every implemented
+integer width/sign lowering, mandatory OP-2 and OP-5 trap records, check
+retention, and the absence of `nsw`, `nuw`, or `llvm.assume` claims.
 
 ## Phase 8: expand semantic capability
 

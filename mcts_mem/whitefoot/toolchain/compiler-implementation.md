@@ -1,6 +1,6 @@
 - The active implementation is one safe-Rust crate under `compiler/`; crate boundaries and public protocols are not design goals.
 - Exact active-spec behavior is preserved while implementation machinery is simplified around the next end-to-end consumer.
-- The direct resolver and exact v0.11 activation are complete. The next consumer is one small semantic checker and checked in-memory representation feeding a target-independent scalar IR and one LLVM host backend.
+- The direct resolver, exact v0.11 activation, and first executable scalar family are complete. One semantic checker publishes the only checked authority, which feeds a target-independent scalar IR and one conservative LLVM host backend. The next consumer is a coherent Phase 8 language family chosen by the real program it unlocks.
 - Semantic slices describe implementation and test order only; they never become a normative source-admission profile, function/signature allowlist, or alternate compiler path.
 - Post-resolution rejection must establish an actual numbered-rule violation and be deterministic for one compiler executable, but competing first-error choice is not a portable language identity. Whole-unit semantic success remains the only path to checked lowering authority.
 - Retired compiler and derivation scripts are inert under `archive/`; active source and gates never import them.
@@ -17,6 +17,8 @@
 - 2026-07-22 reviewed proposal: the preceding v0.11 freeze is superseded by SHA-256 `050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc`, which replaces exception-suggestive `try` with exact Result-forwarding `propagate` and remains non-authoritative pending exact owner approval. (sourced)
 - 2026-07-22 owner approval: exact v0.11 candidate SHA-256 `050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc` is authorized for append-only activation and synchronized implementation. (sourced)
 - 2026-07-22 code: the approved candidate is installed byte-identically as the active v0.11 specification; compiler syntax identity uses `Propagate`/`PropagateLetRhs`, conformance and the focused reference model use `propagate`, and the permanent grammar verifier again accepts only an unchanged active frontend contract. (code)
+- 2026-07-22 code: one general scalar path checks integer/unit constants, nongeneric own-mode functions, locals, direct named calls, returns, exact integer wrap/trap/compare rows, OP-5 checks, and pure/traps effects; valid families outside that path stop as unsupported compiler capabilities rather than language rejections. (code)
+- 2026-07-22 code: the checked program is the sole lowering authority; target-independent IR retains OP-2/OP-5 trap sites, and safe-Rust textual LLVM executes independent corpus programs with exact DIAG-3 records and no unearned `nsw`, `nuw`, `llvm.assume`, or check elision. (code)
 
 ## Moves
 

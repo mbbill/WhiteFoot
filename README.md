@@ -30,7 +30,7 @@ structure discipline future agents must apply.
 is the immutable active specification. Exact v0.8 through v0.10 remain
 immutable history.
 
-The safe-Rust compiler currently implements:
+The safe-Rust compiler currently implements one ordinary path:
 
 ```text
 ordered source bundle
@@ -42,11 +42,19 @@ ordered source bundle
   -> CanonicalSyntaxUnit
   -> direct v0.11 lexical name resolution
   -> ResolvedSyntaxUnit
+  -> scalar semantic checking
+  -> private checked program
+  -> target-independent scalar IR
+  -> conservative LLVM
+  -> host executable
 ```
 
-There is not yet a semantic checker, IR, LLVM backend, compiler executable, or
-runnable Whitefoot program. The immediate work is the first coherent v0.11
-semantic slice through LLVM.
+The executable slice currently covers scalar integer/unit values, `Bool`
+construction and checks, integer and unit constants, nongeneric own-mode
+functions, locals, direct named calls, returns, pure/traps effects, integer
+wrap/trap arithmetic, and comparisons. Other valid v0.11 families stop as
+explicit unsupported compiler capabilities; they are not reported as invalid
+Whitefoot. The next work expands one coherent semantic family end to end.
 
 ## Repository layout
 
@@ -57,8 +65,8 @@ live next to what they check.
 |---|---|
 | [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
-| [compiler/](compiler/README.md) | The safe-Rust compiler (frontend and resolver today; checker → IR → LLVM to come) |
-| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `codegen/` optimization-proof corpus (dormant, for the future backend) |
+| [compiler/](compiler/README.md) | The safe-Rust compiler: frontend, resolver, first semantic/IR slice, LLVM backend, and `whitefootc` |
+| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `codegen/` optimization-proof corpus (dormant until optimizer work) |
 | [governance/](governance/) | The approval ledger, standing directives, the small repository-invariant and spec-append-only guards, and specification-evolution review records |
 | [research/](research/) | Active language and compiler experiments |
 | [mcts_mem/](mcts_mem/) | The live MCTS-Mem decision tree: current decisions, rejected alternatives, and their evidence |

@@ -1,7 +1,7 @@
 CARGO := cargo
 
 check: format lint test docs spec
-	@echo "== WHITEFOOT V0.11 FRONTEND + RESOLVER GREEN; SEMANTICS NEXT =="
+	@echo "== WHITEFOOT V0.11 FIRST EXECUTABLE SCALAR SLICE GREEN =="
 
 format:
 	$(CARGO) fmt --all -- --check
