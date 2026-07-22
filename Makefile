@@ -5,7 +5,7 @@
 
 PY := python3 -B
 
-check: project-state spec-append-only lexical conformance reference compiler
+check: project-state spec-append-only conformance reference compiler
 	@echo "== WHITEFOOT GATE GREEN (frontend + evidence); semantics and backend absent =="
 
 # repository invariants: AGENTS.md == CLAUDE.md, single roadmap
@@ -16,11 +16,6 @@ project-state:
 # the one spec protection: released kernel specs are never edited (new version only)
 spec-append-only:
 	$(PY) governance/spec_append_only.py
-
-# frontend behavior
-lexical:
-	$(PY) tests/lexical/test_model_v09.py
-	$(PY) tests/lexical/test_observer_v09.py
 
 conformance:
 	cd tests/conformance && $(PY) test_runner.py
@@ -41,4 +36,4 @@ install-hooks:
 	git config core.hooksPath governance/hooks
 	@echo "installed governance/hooks (spec append-only pre-commit)"
 
-.PHONY: check project-state spec-append-only lexical conformance reference compiler conformance-run install-hooks
+.PHONY: check project-state spec-append-only conformance reference compiler conformance-run install-hooks

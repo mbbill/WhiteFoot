@@ -21,14 +21,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "whitefoot-lexical-observer"
-version = "0.1.0"
-dependencies = [
- "whitefoot-contract",
- "whitefoot-lexer",
-]
-
-[[package]]
 name = "whitefoot-source-audit"
 version = "0.1.0"
 dependencies = [

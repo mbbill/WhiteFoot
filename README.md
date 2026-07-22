@@ -58,7 +58,7 @@ live next to what they check.
 | [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
 | [compiler/](compiler/README.md) | The safe-Rust compiler (frontend today; resolver → checker → IR → LLVM to come) |
-| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `lexical/` fixtures + model, `codegen/` optimization-proof corpus (dormant, for the future backend) |
+| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `codegen/` optimization-proof corpus (dormant, for the future backend) |
 | [governance/](governance/) | The append-only [decision log](governance/decision-log.md), standing directives, the small repository-invariant and spec-append-only guards, and the pending `spec-evolution/` v0.10 proposal |
 | [research/](research/) | Design memory: the [decision tree](research/design-tree/), measured `experiments/`, and exploratory notes |
 | [archive/](archive/) | Retired and superseded material, inert — no active source, build, test, or tool depends on it |
