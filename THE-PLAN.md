@@ -5,8 +5,9 @@ the audited foundation, standalone grammar evidence, exact owner-approved v0.9
 installation, and source-bound canonical frontend are durable. Phase 5 remains
 stopped before implementation while the owner-approved successor delta awaits
 evidence-selected numerical hard maxima, guarded installation, and successor-
-bound frontend reproduction; current implementation authority stops at
-`CanonicalSyntaxUnit`.
+bound frontend reproduction. The non-authoritative version-1 profile evidence
+protocol is now fixed through resolution, but it selects no values; current
+implementation authority stops at `CanonicalSyntaxUnit`.
 
 ## Objective
 
@@ -99,6 +100,11 @@ Current execution authority is deliberately narrow:
    This authorizes the recorded language and architecture delta only. It does
    not activate those bytes, select numerical maxima, or authorize resolver
    implementation.
+6. The non-authoritative ResourceProfile version-1 evidence protocol now fixes
+   the exact ingress-through-resolution field schema, codec, tightening,
+   count/work/storage meanings, evidence independence, and host/peak proof
+   obligations. It deliberately contains no numerical hard maxima and grants
+   no compiler or language authority.
 
 ## Specification and protected-surface protocol
 
@@ -504,6 +510,16 @@ approved successor language and architecture delta is installed, the Decision-
 15 invocation-wide resource profile has separately owner-approved evidence-
 selected numerical hard maxima, and the successor-bound canonical frontend is
 reproduced.
+
+The non-authoritative evidence protocol at
+`optimizer-language-research/implementation/phase5-resource-profile/` is
+complete. It defines one versioned profile through resolution, exact meaning
+identities and tightening, the cumulative count/work schedules, stable storage
+charges and peak-ledger obligations, two genuinely independent measurement
+routes, and the exact later owner-review boundary. Its smoke generators and
+dependent v0.9 topology observer are test scaffolding only. Numerical selection
+remains stopped until both complete routes, boundary/failure evidence, layout
+witnesses, service-envelope measurements, and hostile review agree.
 
 Implement one syntax-directed semantic kernel in this order:
 

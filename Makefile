@@ -3,7 +3,7 @@
 
 PY=python3 -B
 
-check: project-state spec-guard spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence compiler
+check: project-state spec-guard spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence phase5-resource-profile-protocol compiler
 	@echo "== V0.9 DEVELOPMENT GATE GREEN; GRAMMAR EVIDENCE REPRODUCED; NO RELEASE CLAIM =="
 
 project-state:
@@ -64,6 +64,14 @@ phase5-proposal-evidence:
 	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/diagnostic_evidence/run.py
 	$(PY) -m unittest discover -s optimizer-language-research/implementation/phase5-successor-proposal/diagnostic_evidence -p 'test_*.py'
 
+phase5-resource-profile-protocol:
+	$(PY) optimizer-language-research/implementation/phase5-resource-profile/schema.py
+	$(PY) -m unittest discover -s optimizer-language-research/implementation/phase5-resource-profile -p 'test_*.py'
+	cargo fmt --manifest-path optimizer-language-research/implementation/phase5-resource-profile/frontend-observer/Cargo.toml -- --check
+	cargo check --locked --offline --all-targets --manifest-path optimizer-language-research/implementation/phase5-resource-profile/frontend-observer/Cargo.toml
+	cargo clippy --locked --offline --all-targets --manifest-path optimizer-language-research/implementation/phase5-resource-profile/frontend-observer/Cargo.toml -- -D warnings
+	cargo test --locked --offline --manifest-path optimizer-language-research/implementation/phase5-resource-profile/frontend-observer/Cargo.toml
+
 compiler:
 	$(MAKE) -C compiler check
 
@@ -74,4 +82,4 @@ release-check:
 	@echo "release gate unavailable: the exact-v0.9 Rust compiler is incomplete"
 	@false
 
-.PHONY: check project-state spec-guard approve-spec spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence compiler conformance-run release-check
+.PHONY: check project-state spec-guard approve-spec spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence phase5-resource-profile-protocol compiler conformance-run release-check
