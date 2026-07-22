@@ -11,6 +11,12 @@ blocker.
 Exact source under review: `spec/kernel-spec-v0.8.md`, SHA-256
 `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.
 
+Implementation status (2026-07-21): the owner-approved exact v0.9 successor is
+now active and closes the frontend blockers named below. Phase 4 implements
+Decisions 2 through 4 through one source-bound `CanonicalSyntaxUnit`. The v0.8
+wording in the recorded rulings remains historical scope, not current target
+status; semantic and later blockers remain live.
+
 This dossier answers the eighteen decisions required by
 `compiler-architecture-preflight.md`. It is deliberately honest about places
 where v0.8 does not define one implementable language. A detailed compiler

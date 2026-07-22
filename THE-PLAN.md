@@ -1,10 +1,10 @@
 # THE PLAN
 
-Status: CANONICAL ROADMAP, updated 2026-07-21. Phases 1 through 3 are complete:
-the audited foundation, standalone grammar evidence, and exact owner-approved
-v0.9 installation are durable. Phase 4 is active: terminal membership and the
-private iterative grammar derivation are complete, while finalization and the
-tree-driven source audit are next.
+Status: CANONICAL ROADMAP, updated 2026-07-21. Phases 1 through 4 are complete:
+the audited foundation, standalone grammar evidence, exact owner-approved v0.9
+installation, and source-bound canonical frontend are durable. Phase 5 remains
+conditional on closing every applicable discrepancy and A-question; current
+implementation authority stops at `CanonicalSyntaxUnit`.
 
 ## Objective
 
@@ -86,9 +86,10 @@ Current execution authority is deliberately narrow:
    migration, derivation amendment, version-bound evidence, locks, and active
    references without changing expected verdicts, runnable statuses, frozen
    oracles, or existing reference-semantics tests.
-4. Phase 4 is the active implementation phase. Its authority ends at one
-   source-bound `CanonicalSyntaxUnit`; semantic schemas, artifacts, backends,
-   releases, and later phases retain their own entrance gates.
+4. Phase 4 is complete. Its authority ends at one source-bound
+   `CanonicalSyntaxUnit`; semantic schemas, artifacts, backends, releases, and
+   later phases retain their own entrance gates. Phase 5 is not activated by
+   frontend completion.
 
 ## Specification and protected-surface protocol
 
@@ -446,11 +447,10 @@ non-passing grammar gate.
 
 ## Phase 4: build the canonical frontend
 
-Status: active. Exact v0.9 and the independent grammar evidence close the
-complete parser entrance gate. The version-bound terminal-membership and
-private iterative grammar-derivation boundaries are implemented. The linear
-topology finalizer and tree-driven canonical-source audit are the next
-incomplete boundaries; `CanonicalSyntaxUnit` remains unavailable.
+Status: complete. Exact v0.9 terminal membership, iterative strong-LL(2)
+derivation, linear whole-tree finalization, and tree-driven FORM-2 comparison
+are implemented. The only published frontend authority is one source-bound
+`CanonicalSyntaxUnit`; no semantic acceptance authority was added.
 
 Keep the existing shape lexer unchanged in authority. Add a
 specification-versioned terminal classifier that evaluates the complete
@@ -731,15 +731,15 @@ Exact-v0.8 locks, assets, models, and receipts remain immutable historical
 evidence. These close no semantic facet and grant no semantic, artifact,
 backend, or release authority.
 
-Phases 1 through 3 are complete. Phase 4 has exact-v0.9 terminal membership and
-a resource-bounded iterative strong-LL(2) derivation over the complete grammar.
-That failure-atomic result is private and grants no canonical syntax authority.
-The next roadmap action is the single linear topology/production-shape/token-
-coverage finalizer, followed by the tree-driven source audit. Only after both
-boundaries and their hostile-review gates pass may one `CanonicalSyntaxUnit`
-factory exist.
+Phases 1 through 4 are complete. The exact-v0.9 frontend classifies the complete
+terminal set, derives the complete strong-LL(2) grammar, finalizes one
+source-bound tree, and compares exact FORM-2 bytes from that same tree before it
+constructs one opaque `CanonicalSyntaxUnit`. This closes no semantic facet.
+The next roadmap action is to close the applicable Phase-5 discrepancies and
+A-questions before any resolver or semantic-kernel implementation begins.
 
-Until Phase 4 exits and every later gate is separately satisfied:
+Until Phase 5 is explicitly activated and every later gate is separately
+satisfied:
 
 - do not change a numbered specification or protected surface without a new
   exact owner approval and guarded installation;

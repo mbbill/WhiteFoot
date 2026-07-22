@@ -3,9 +3,11 @@
 
 //! Resource-bounded canonical syntax construction for Whitefoot v0.9.
 //!
-//! The current implementation performs complete, context-free terminal
-//! membership over a lossless lexer result. It does not yet parse, construct a
-//! tree, audit canonical formatting, or publish `CanonicalSyntaxUnit`.
+//! The implementation classifies every formed token against the complete
+//! context-free terminal set, constructs one private iterative LL(2)
+//! derivation, finalizes its topology and source binding, and audits exact
+//! FORM-2 bytes from that same tree before publishing [`CanonicalSyntaxUnit`].
+//! This crate does not perform semantic checking or create portable artifacts.
 
 mod classifier;
 mod outcome;
@@ -18,9 +20,13 @@ pub use outcome::{
     TerminalResourceFailure, TerminalStorage,
 };
 pub use parser::{
-    ExpectedTerminalsV0_9, ParseCompilerFailure, ParseInvocationFailure, ParseLimit, ParseLimits,
-    ParseOutcome, ParseResourceFailure, ParseStorage, ParsedBundle, SyntaxCoordinate, SyntaxIssue,
-    SyntaxRuleV0_9, parse_v0_9,
+    BundleSourceExtent, CanonicalCompilerFailure, CanonicalIssue, CanonicalLimit, CanonicalLimits,
+    CanonicalLocation, CanonicalOutcome, CanonicalResourceFailure, CanonicalStorage,
+    CanonicalSyntaxUnit, ExpectedTerminalsV0_9, FinalizeCompilerFailure, FinalizeLimit,
+    FinalizeLimits, FinalizeOutcome, FinalizeResourceFailure, FinalizeStorage, FinalizedBundle,
+    NodePath, ParseCompilerFailure, ParseInvocationFailure, ParseLimit, ParseLimits, ParseOutcome,
+    ParseResourceFailure, ParseStorage, ParsedBundle, SyntaxCoordinate, SyntaxIssue,
+    SyntaxRuleV0_9, audit_canonical_v0_9, finalize_v0_9, parse_v0_9,
 };
 
 #[cfg(test)]

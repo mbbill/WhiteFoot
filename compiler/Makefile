@@ -2,7 +2,7 @@ override PYTHON := python3 -B
 override CARGO := $(PYTHON) tools/cargo_policy.py
 
 check: policy format build lint test docs reproducible
-	@echo "== RUST COMPILER FOUNDATION GREEN; IMPLEMENTATION INCOMPLETE =="
+	@echo "== RUST CANONICAL FRONTEND GREEN; SEMANTIC IMPLEMENTATION ABSENT =="
 
 policy:
 	$(PYTHON) ../tools/test_catalog_identity.py
@@ -14,6 +14,8 @@ policy:
 	$(PYTHON) tools/check_terminal_contract.py
 	$(PYTHON) tools/test_syntax_contract.py
 	$(PYTHON) tools/check_syntax_contract.py
+	$(PYTHON) tools/test_canonical_contract.py
+	$(PYTHON) tools/check_canonical_contract.py
 
 format:
 	$(CARGO) fmt --all -- --check

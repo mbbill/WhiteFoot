@@ -5,6 +5,12 @@ single [Production Compiler Architecture](compiler-architecture-design.md)
 design record. `THE-PLAN.md` is execution authority. This file does not amend a
 numbered specification, protected semantic surface, profile, or entrance gate.
 
+Implementation status (2026-07-21): exact v0.9 closed the Decision 2 through 4
+frontend blockers. The production workspace now implements the specified
+typed derivation, linear finalizer, and tree-driven FORM-2 audit and publishes
+canonical syntax only after both audits pass. The historical owner rulings
+below retain their original approval scope.
+
 This file uniquely owns Decisions 2 through 6 and the proposed successor-specification compilation-unit rule. Cross-stage authority, entrance gates,
 execution order, owner decisions, and exit status remain in the parent index.
 

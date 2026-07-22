@@ -144,6 +144,8 @@ impl SyntaxCoordinate {
 pub enum SyntaxRuleV0_9 {
     /// FORM-1 unknown construct or canonical-form grammar spelling.
     Form1,
+    /// FORM-2 exact per-source canonical byte formatting.
+    Form2,
     /// FORM-3 name spelling.
     Form3,
     /// FORM-5 numeric-form membership.

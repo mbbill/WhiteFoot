@@ -8,6 +8,7 @@ use whitefoot_syntax_data::{ProductionV0_9, productions_v0_9};
 
 use crate::{TerminalLimits, TerminalOutcome, classify_terminals_v0_9};
 
+use super::finalize::{FinalizeLimits, FinalizeOutcome, finalize_v0_9};
 use super::{
     DerivationElement, ParseInvocationFailure, ParseLimit, ParseLimits, ParseOutcome,
     ParseResourceFailure, SyntaxRuleV0_9, parse_v0_9,
@@ -496,4 +497,19 @@ fn main() -> own unit pure {}
             }),
         Some(ProductionV0_9::Program)
     );
+    let FinalizeOutcome::Complete(finalized) = finalize_v0_9(
+        parsed,
+        FinalizeLimits {
+            max_work: 8_000_000,
+            max_roots: 131_072,
+            max_shape_tasks: 131_072,
+            max_nodes: 131_072,
+            max_child_edges: 131_072,
+            max_terminals: 131_072,
+            max_sources: 16,
+        },
+    ) else {
+        panic!("the all-production derivation must pass the independent shape finalizer");
+    };
+    assert!(finalized.node_count() >= productions_v0_9().len());
 }

@@ -22,9 +22,10 @@ reported that the reviewed v0.9 bytes remove every v0.8 strong-LL(2) conflict
 without introducing one. The owner approved those exact bytes and the ordered
 protected migration; Phase 3 installed them without changing any expected
 verdict, runnable status, frozen oracle, or existing reference-semantics test.
-Phase 4 is active. Exact terminal membership and the complete private
-strong-LL(2) grammar-derivation boundary are implemented; topology
-finalization and the tree-driven canonical-source audit are next.
+Phase 4 is complete. Exact terminal membership, the complete iterative
+strong-LL(2) derivation, one linear topology and source-binding finalizer, and
+the tree-driven FORM-2 audit now construct one opaque `CanonicalSyntaxUnit`.
+Phase 5 remains gated; no semantic acceptance authority exists.
 
 ## Production design
 
@@ -73,8 +74,10 @@ The safe-Rust workspace contains seven narrowly scoped packages:
   against the numbered specification; the crate is data, not parser authority.
 - `whitefoot-syntax` applies every v0.9 terminal predicate, retains all
   memberships, and iteratively derives the complete grammar into one private
-  postorder representation under explicit limits. It performs no recovery or
-  semantic disambiguation and publishes no finalized or canonical syntax.
+  postorder representation under explicit limits. One linear finalizer checks
+  topology, production shape, source ownership, and exact token coverage; a
+  streaming tree-driven FORM-2 audit must pass before the package publishes
+  canonical syntax. It performs no recovery or semantic disambiguation.
 - `whitefoot-source-audit` checks exact source/specification binding only. It
   is not an artifact verifier or semantic checker.
 - `whitefoot-lexical-observer` is a binary-only development adapter for an
@@ -89,11 +92,10 @@ specification, not the verifier, is language authority.
 
 Under PROG-2, one ordered nonempty `SourceBundle` forms one closed compilation
 unit. Record order fixes top-level declaration order; record paths contribute
-identity but never namespaces or lookup. The private parser result is not
-syntax-tree authority or program acceptance. The workspace still has no
-topology finalizer, canonical-source audit, `CanonicalSyntaxUnit`, resolver,
-semantic kernel, checked artifact, backend, compiler executable, or release
-capability.
+identity but never namespaces or lookup. Only the finalized and byte-audited
+result is canonical syntax authority; it is not program acceptance. The
+workspace still has no resolver, semantic kernel, checked artifact, backend,
+compiler executable, or release capability.
 
 The compiler-independent conformance corpus, proof/code-shape premise corpus,
 focused reference models, and measured experiments remain active evidence.

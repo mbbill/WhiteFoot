@@ -102,18 +102,19 @@ discharges them — speed is earned by proof, never by weakening a check.
 The owner replaced the self-host-first wfc/democ route on 2026-07-20. The old
 implementations are archived and there is no disposable Rust compiler. The
 owner-approved exact v0.9 specification is active; v0.8 remains immutable
-history. Phases 1 through 3 are complete, including the independently checked
-grammar repair, protected migration, and active-target switch. Phase 4's exact
-terminal membership and private iterative strong-LL(2) derivation are
-implemented; the linear finalizer and tree-driven source audit are next under
-the exact gates in `THE-PLAN.md`. Later specification changes, protected
-changes, release claims, and any future self-hosting remain separately gated.
+history. Phases 1 through 4 are complete, including the independently checked
+grammar repair, protected migration, active-target switch, and exact canonical
+frontend. Phase 5 remains conditional on its applicable discrepancies and
+A-questions; no semantic implementation is authorized merely by frontend
+completion. Later specification changes, protected changes, release claims,
+and any future self-hosting remain separately gated.
 
 The active workspace contains `whitefoot-contract`,
 `whitefoot-language-data`, `whitefoot-lexer`, `whitefoot-syntax`,
 `whitefoot-syntax-data`, `whitefoot-source-audit`, and the binary-only
 `whitefoot-lexical-observer`. The observer is evidence only, the source audit
-checks exact source/specification binding only, and the syntax package exposes
-only a failure-atomic private postorder grammar derivation. No topology
-finalizer, canonical syntax authority, semantic kernel, artifact, backend,
-compiler executable, or release capability exists yet.
+checks exact source/specification binding only, and the syntax package grants
+canonical syntax authority only after its private derivation, linear
+topology/source finalizer, and streaming FORM-2 audit all complete. No resolver,
+semantic kernel, artifact, backend, compiler executable, or release capability
+exists yet.

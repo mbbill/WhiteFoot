@@ -24,6 +24,11 @@ owner-approved v0.9 successor is now the active compiler target. Installing its
 identity does not create production parser, semantic, artifact, backend, or
 release authority; later work still follows the gates in `../THE-PLAN.md`.
 
+Phase 3's exact-v0.9 installation and Phase 4's canonical frontend are complete.
+The frontend ends at one source-bound `CanonicalSyntaxUnit`. Phase 5 is not
+active until its separately listed semantic discrepancies and A-questions are
+closed.
+
 ## Current crates
 
 - `whitefoot-contract` owns judgment-free contracts: exact specification and
@@ -47,9 +52,12 @@ release authority; later work still follows the gates in `../THE-PLAN.md`.
   syntax data. It classifies every formed token context-free, retains every
   matching predicate, and uses a resource-bounded iterative LL(2) parser to
   derive every v0.9 production into one private postorder representation over
-  the complete ordered source bundle. It has no backtracking, priority choice,
-  recovery, synthetic tokens, semantic disambiguation, topology finalizer,
-  canonical-syntax factory, or semantic authority.
+  the complete ordered source bundle. One linear finalizer checks the single
+  root, production shape, parent/child topology, source ownership and extents,
+  and exact token coverage. A streaming tree-driven FORM-2 comparison over the
+  same derivation is the sole constructor of canonical syntax. The crate has no
+  backtracking, priority choice, recovery, synthetic tokens, semantic
+  disambiguation, or semantic authority.
 - `whitefoot-source-audit` depends only on `whitefoot-contract`. It checks that
   a decoded candidate binding names the expected specification and reproduces
   the exact source transport. It does not replace the binding codec's separate
@@ -66,11 +74,13 @@ sequence of logical source records. `SourceBundle` preserves source order and
 exact bytes, but this judgment-free contract alone does not prove every PROG-2
 input-envelope requirement or create a parsed program root.
 
-The parser's failure-atomic private derivation is not a finalized tree or an
-acceptance verdict. No syntax tree authority, `CanonicalSyntaxUnit`, resolver,
-semantic kernel, semantic record, artifact schema, backend, compiler
-executable, conformance adapter, or release capability exists here yet. No
-active code imports the retired implementations under `../archive/`.
+The parser's failure-atomic private derivation and the opaque finalized
+intermediate are not acceptance verdicts. Only a completed source audit yields
+`CanonicalSyntaxUnit`, which proves syntax and exact FORM-2 bytes but no name,
+type, ownership, effect, or other semantic rule. No resolver, semantic kernel,
+semantic record, artifact schema, backend, compiler executable, conformance
+adapter, or release capability exists here yet. No active code imports the
+retired implementations under `../archive/`.
 
 ## Later production authority path
 
@@ -134,5 +144,6 @@ the required toolchain must already be installed. The workspace forbids
 `unsafe`, build scripts, procedural macros, unapproved dependencies,
 source-splicing, and archive imports.
 
-A green gate describes only this incomplete frontend. It does not claim that
-Whitefoot source can be canonically accepted, lowered, or released.
+A green gate describes only this complete canonical frontend and the earlier
+foundation. It does not claim semantic acceptance, conformance, lowering, or
+release.
