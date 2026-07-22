@@ -12,7 +12,7 @@ from project_state import verify
 
 INSTRUCTIONS = """# Agents
 
-`THE-PLAN.md` is the sole source for current status, execution order, and gates.
+`docs/roadmap.md` is the sole source for current status, execution order, and gates.
 """
 
 ROADMAP = "\n".join(
@@ -24,7 +24,8 @@ ROADMAP = "\n".join(
 def make_root(path: Path) -> None:
     (path / "AGENTS.md").write_text(INSTRUCTIONS, encoding="utf-8")
     (path / "CLAUDE.md").write_text(INSTRUCTIONS, encoding="utf-8")
-    (path / "THE-PLAN.md").write_text(ROADMAP, encoding="utf-8")
+    (path / "docs").mkdir(exist_ok=True)
+    (path / "docs" / "roadmap.md").write_text(ROADMAP, encoding="utf-8")
 class ProjectStateTests(unittest.TestCase):
     def test_minimal_valid_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

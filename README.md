@@ -61,7 +61,6 @@ live next to what they check.
 | [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `lexical/` fixtures + model, `spec-catalogs/` spec decomposition, `codegen/` optimization-proof corpus (dormant) |
 | [governance/](governance/) | Owner approvals, the guard baseline, the append-only [decision log](governance/decision-log.md), standing directives, the integrity guards, and the `spec-evolution/` machinery (candidate generator + grammar verifier) |
 | [research/](research/) | Design memory: the [decision tree](research/design-tree/), measured `experiments/`, and exploratory notes |
-| [examples/](examples/) | Dogfood and example Whitefoot programs (grows as the compiler can run them) |
 | [archive/](archive/) | Retired and superseded material, inert — no active source, build, test, or tool depends on it |
 
 ## Verification
