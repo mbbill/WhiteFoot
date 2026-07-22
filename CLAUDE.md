@@ -32,17 +32,17 @@ probably not the next work.
 
 ## Authority and reading
 
-- `THE-PLAN.md` is the sole source for current roadmap, status,
+- `docs/roadmap.md` is the sole source for current roadmap, status,
   authorization, and next work.
-- The active numbered specification named by `THE-PLAN.md` defines the
+- The active numbered specification named by `docs/roadmap.md` defines the
   language. Compiler behavior, tests, archived code, and design prose do not.
-- `CONSTITUTION.md` records project law and `PATTERNS.md` records writer
+- `docs/constitution.md` records project law and `docs/patterns.md` records writer
   forms.
-- Consult the relevant live `mcts_mem/` node and its rejected alternatives
+- Consult the relevant live `research/design-tree/` node and its rejected alternatives
   before a nontrivial design change.
-- Architecture dossiers and `decision-gates.md` are historical design and
+- Architecture dossiers and `governance/decision-log.md` are historical design and
   decision records. They can explain why something exists, but they cannot add
-  current work or override `THE-PLAN.md`.
+  current work or override `docs/roadmap.md`.
 
 Read only the material relevant to the current task. Do not turn historical
 research into an implied implementation requirement.
@@ -52,7 +52,7 @@ research into an implied implementation requirement.
 Before starting or expanding work, answer:
 
 1. What concrete compiler capability or experiment will this unlock?
-2. Why is it the next work in `THE-PLAN.md`?
+2. Why is it the next work in `docs/roadmap.md`?
 3. What is the smallest correct implementation?
 4. Is it exercising a real compiler path or inventing machinery for a
    hypothetical one?
@@ -74,7 +74,7 @@ technical soundness.
 ## Repository structure and hygiene
 
 The repository root and every established directory are a curated, closed set.
-The layout exists so the important things are found first — `THE-PLAN.md`, the
+The layout exists so the important things are found first — `docs/roadmap.md`, the
 active `spec/`, and the `compiler/` — and so supporting material stays where a
 reader expects it. Keeping that legible is a standing obligation, not a
 one-time cleanup.

@@ -1,69 +1,72 @@
-# Whitefoot research-compiler gate. It validates the capabilities that exist;
-# it does not claim that the language or compiler is complete.
+# Whitefoot gate. `make check` runs the fast essential correctness checks on the
+# current structure; heavy spec-evolution evidence (grammar + v0.10 candidate)
+# is opt-in via `make spec-evolution`. A green gate states only what it exercises.
+#
+# Every check lives next to what it checks: guards in governance/, catalog and
+# lexical checks in tests/, compiler policy in compiler/tools/.
 
-PY=python3 -B
+PY := python3 -B
 
-check: project-state spec-guard spec facets catalog-identity lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence compiler
-	@echo "== V0.9 RESEARCH COMPILER FRONTEND GREEN; SEMANTICS AND BACKEND ABSENT =="
+# ---- default: fast essential correctness ----
+check: project-state spec-guard spec catalogs lexical-model conformance reference-model compiler
+	@echo "== WHITEFOOT GATE GREEN (frontend + evidence); semantics and backend absent =="
 
 project-state:
-	$(PY) tools/test_verify_project_state.py
-	$(PY) tools/verify_project_state.py
+	$(PY) governance/test_project_state.py
+	$(PY) governance/project_state.py
 
 spec-guard:
-	$(PY) tools/spec_guard.py --check
-	$(PY) tools/test_spec_guard.py
+	$(PY) governance/guard.py --check
+	$(PY) governance/test_guard.py
 
 approve-spec:
-	$(PY) tools/spec_guard.py --approve --reason "$(REASON)"
+	$(PY) governance/guard.py --approve --reason "$(REASON)"
 
 spec:
-	$(PY) tools/test_spec_ci.py
-	$(PY) tools/spec_ci.py
+	$(PY) governance/test_spec_derivation.py
+	$(PY) governance/spec_derivation.py
 
-facets:
-	$(PY) tools/test_facet_catalog.py
-	$(PY) tools/facet_catalog.py check
-	$(PY) tools/test_semantic_catalog.py
-	$(PY) tools/semantic_catalog.py check
-	$(PY) tools/test_facet_discrepancies.py
-	$(PY) tools/facet_discrepancies.py check
-
-catalog-identity:
-	$(PY) tools/test_catalog_identity.py
-	$(PY) tools/catalog_identity.py check
+catalogs:
+	$(PY) tests/spec-catalogs/test_facets.py
+	$(PY) tests/spec-catalogs/facets.py check
+	$(PY) tests/spec-catalogs/test_semantics.py
+	$(PY) tests/spec-catalogs/semantics.py check
+	$(PY) tests/spec-catalogs/test_discrepancies.py
+	$(PY) tests/spec-catalogs/discrepancies.py check
+	$(PY) tests/spec-catalogs/test_identity.py
+	$(PY) tests/spec-catalogs/identity.py check
 
 lexical-model:
-	# The v0.8 model remains executable, but its observer receipt is immutable:
-	# the active compiler accepts only exact-v0.9 requests.
-	$(PY) tools/test_v08_lexical_model.py
-	$(PY) tools/test_v09_lexical_model.py
-	$(PY) tools/test_v09_lexical_observer.py
-
-reference-model:
-	cd prototype/checker && $(PY) test_checker.py -v
-	cd prototype/checker && $(PY) modelcheck.py 10000
+	$(PY) tests/lexical/test_model_v09.py
+	$(PY) tests/lexical/test_observer_v09.py
 
 conformance:
-	cd conformance && $(PY) test_runner.py
-	$(PY) conformance/runner.py coverage
+	cd tests/conformance && $(PY) test_runner.py
+	$(PY) tests/conformance/runner.py coverage
 
-grammar-evidence:
-	cmp -s spec/kernel-spec-v0.9.md grammar-verifier/proposal/kernel-spec-successor-candidate.md
-	$(MAKE) -C grammar-verifier check
-
-phase5-proposal-evidence:
-	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/generate_candidate.py --check
-	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/test_generate_candidate.py
-	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/protected_surface_census.py --check
-	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/test_protected_surface_census.py
-	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/diagnostic_evidence/run.py
-	$(PY) -m unittest discover -s optimizer-language-research/implementation/phase5-successor-proposal/diagnostic_evidence -p 'test_*.py'
+reference-model:
+	cd tests/reference && $(PY) test_checker.py -v
+	cd tests/reference && $(PY) modelcheck.py 2000
 
 compiler:
 	$(MAKE) -C compiler check
 
-conformance-run:
-	$(PY) conformance/runner.py run
+# ---- opt-in: heavy spec-evolution evidence ----
+spec-evolution: grammar candidate
 
-.PHONY: check project-state spec-guard approve-spec spec facets catalog-identity lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence compiler conformance-run
+grammar:
+	cmp -s spec/kernel-spec-v0.9.md governance/spec-evolution/grammar/proposal/kernel-spec-successor-candidate.md
+	$(MAKE) -C governance/spec-evolution/grammar check
+
+candidate:
+	$(PY) governance/spec-evolution/generate_candidate.py --check
+	$(PY) governance/spec-evolution/test_generate_candidate.py
+	$(PY) governance/spec-evolution/protected_surface_census.py --check
+	$(PY) governance/spec-evolution/test_protected_surface_census.py
+	$(PY) governance/spec-evolution/diagnostic_evidence/run.py
+	$(PY) -m unittest discover -s governance/spec-evolution/diagnostic_evidence -p 'test_*.py'
+
+conformance-run:
+	$(PY) tests/conformance/runner.py run
+
+.PHONY: check project-state spec-guard approve-spec spec catalogs lexical-model conformance reference-model compiler spec-evolution grammar candidate conformance-run

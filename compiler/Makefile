@@ -5,8 +5,8 @@ check: policy format build lint test docs
 	@echo "== RUST CANONICAL FRONTEND GREEN; SEMANTIC IMPLEMENTATION ABSENT =="
 
 policy:
-	$(PYTHON) ../tools/test_catalog_identity.py
-	$(PYTHON) ../tools/catalog_identity.py check
+	$(PYTHON) ../tests/spec-catalogs/test_identity.py
+	$(PYTHON) ../tests/spec-catalogs/identity.py check
 	$(PYTHON) tools/test_cargo_policy.py
 	$(PYTHON) tools/test_check_workspace.py
 	$(PYTHON) tools/check_workspace.py
