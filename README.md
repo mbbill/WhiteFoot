@@ -40,11 +40,14 @@ ordered source bundle
   -> one finalized source-bound syntax tree
   -> exact FORM-2 source validation
   -> CanonicalSyntaxUnit
+  -> direct v0.10 lexical name resolution
+  -> ResolvedSyntaxUnit
 ```
 
-There is not yet a resolver, semantic checker, IR, LLVM backend, compiler
-executable, or runnable Whitefoot program. The immediate path is direct general
-name resolution, then the first coherent semantic slice through LLVM.
+There is not yet a semantic checker, IR, LLVM backend, compiler executable, or
+runnable Whitefoot program. The immediate path is to close the one protected
+v0.10 conformance discrepancy recorded in the roadmap, then implement the first
+coherent semantic slice through LLVM.
 
 ## Repository layout
 
@@ -55,7 +58,7 @@ live next to what they check.
 |---|---|
 | [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
-| [compiler/](compiler/README.md) | The safe-Rust compiler (frontend today; resolver → checker → IR → LLVM to come) |
+| [compiler/](compiler/README.md) | The safe-Rust compiler (frontend and resolver today; checker → IR → LLVM to come) |
 | [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `codegen/` optimization-proof corpus (dormant, for the future backend) |
 | [governance/](governance/) | The append-only [decision log](governance/decision-log.md), standing directives, the small repository-invariant and spec-append-only guards, and specification-evolution review records |
 | [research/](research/) | Active language and compiler experiments |

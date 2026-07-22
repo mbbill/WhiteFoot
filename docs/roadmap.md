@@ -58,18 +58,20 @@ Those bytes are immutable. Exact v0.8 and v0.9 remain immutable historical
 evidence.
 
 The Rust compiler currently has source transport, a lossless lexer, terminal
-classification, a strong-LL(2) parser, one finalized syntax tree, and exact
-FORM-2 source validation. It ends at `CanonicalSyntaxUnit`. It has no resolver,
-semantic checker, IR, LLVM backend, compiler executable, or runnable program.
+classification, a strong-LL(2) parser, one finalized syntax tree, exact FORM-2
+source validation, and one direct general v0.10 name resolver. It ends at
+`ResolvedSyntaxUnit`. It has no semantic checker, IR, LLVM backend, compiler
+executable, or runnable program.
 
 The owner approved the exact successor proposal SHA-256
 `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and
 the exact generated v0.10 candidate SHA-256
 `71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
 The exact approved candidate is installed and the existing frontend is
-reproduced against its identity in one safe-Rust crate. The current goal is one
-direct general name resolver, followed by the first semantically checked
-program through a simple LLVM backend.
+reproduced against its identity in one safe-Rust crate. The resolver
+implementation is complete, but its Phase-6 exit awaits one owner-approved
+protected expectation correction described below. The next implementation goal
+is the first semantically checked program through a simple LLVM backend.
 
 ## Authority and specification changes
 
@@ -222,7 +224,7 @@ frontend passes against it.
 
 ## Phase 6: direct name resolver
 
-Status: next.
+Status: implementation complete; exit blocked on one protected expectation.
 
 Implement the exact v0.10 declaration inventory and lexical resolution rules
 over `CanonicalSyntaxUnit`. Use straightforward owned records and deterministic
@@ -242,7 +244,16 @@ data structures the algorithm needs.
 spec-defined resolution error, or an explicit later-stage/not-yet-implemented
 result. Resolver unit, property, mutation, and conformance cases are green.
 
+The resolver now covers D01-D14, X01-X03, U01-U18, and X04-X09 through one
+general path. Its unit, property, mutation, selected existing-conformance, and
+hostile-review cases are green. One existing protected case predates the v0.10
+diagnostic rule: `fn7-neg-two-mains` expects FN-7, while exact v0.10 requires
+the later duplicate `main` declaration to receive TYPE-6. Do not change that
+source or verdict without owner approval and an append-only decision-log entry.
+
 ## Phase 7: first executable semantic slice
+
+Status: next after the Phase-6 protected expectation is reconciled.
 
 Choose the smallest coherent language family that can compile and run a real
 program while exercising the actual semantic architecture. The expected first

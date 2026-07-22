@@ -22,6 +22,7 @@ pub(crate) use diagnostic::{
     DecisionSelection, DiagnosticResult, DiagnosticSite, ProbeContext, diagnose_decision,
     direct_mismatch, select_arm,
 };
+pub(crate) use finalize::topology::{FinalizedExtent, FinalizedTopology, NodeId};
 pub(crate) use outcome::{ExpectedBuilder, Work};
 pub(crate) use tree::{DerivationElement, DerivationTree, Frame};
 

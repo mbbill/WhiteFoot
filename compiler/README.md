@@ -14,6 +14,7 @@ ordered source bundle
   -> strong-LL(2) parser
   -> finalized source-bound syntax tree
   -> exact FORM-2 validation
+  -> direct v0.10 lexical name resolution
 ```
 
 The frontend targets the exact bytes of
@@ -23,8 +24,11 @@ name the same specification identity. The committed grammar tables are
 ordinary compiler data; the planned grammar-change verifier must derive and
 check them through this compiler before a future spec version is proposed.
 
-The next implementation is direct general name resolution over the canonical
-tree. There is deliberately no artifact protocol, catalog interface, replay
+The resolver covers every v0.10 declaration, lexical-use, and deferred
+owner/member role through one grammar-driven path, including exact scopes,
+visibility, reservations, collisions, and deterministic diagnostics. The next
+implementation is the first coherent semantic-to-LLVM slice over its
+`ResolvedSyntaxUnit`. There is deliberately no artifact protocol, replay
 layer, resource-profile product, or compatibility boundary in front of it.
 
 Run the compiler gate with:

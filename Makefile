@@ -6,7 +6,7 @@
 PY := python3 -B
 
 check: project-state spec-append-only conformance reference compiler
-	@echo "== WHITEFOOT GATE GREEN (frontend + evidence); semantics and backend absent =="
+	@echo "== WHITEFOOT GATE GREEN (frontend + resolver + evidence); semantics and backend absent =="
 
 # repository invariants: AGENTS.md == CLAUDE.md, single roadmap
 project-state:

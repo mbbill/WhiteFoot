@@ -30,5 +30,7 @@ pub use parser::{
     SyntaxRuleV0_10, audit_canonical_v0_10, finalize_v0_10, parse_v0_10,
 };
 
+pub(crate) use parser::{FinalizedExtent, FinalizedTopology, NodeId};
+
 #[cfg(test)]
 mod tests;
