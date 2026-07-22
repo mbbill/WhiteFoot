@@ -121,7 +121,7 @@ entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
 
 ## Specification and test integrity
 
-- `governance/README.md` is the sole operational language-change workflow.
+- Root `WORKFLOW.md` is the sole operational language-change workflow.
   `governance/`, `spec/`, `tests/conformance/`, and `tests/reference/` provide
   its records, resources, and tools; none defines an independent update
   lifecycle.
@@ -134,7 +134,7 @@ entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
 - Before proposing a spec change, verify the new grammar with the native
   grammar verifier that reuses the compiler's own lexer and parser. Follow the
   complete proposal, approval, activation, and closure loop in
-  `governance/README.md`.
+  `WORKFLOW.md`.
 - When the spec changes, bring everything derived from it to the newest version
   in the same work: conformance cases and verdicts, the reference model, the
   lexer/parser and generated syntax data, tests, and docs. This consistency is

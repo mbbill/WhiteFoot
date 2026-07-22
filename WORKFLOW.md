@@ -6,8 +6,8 @@ the numbered specification, compiler-independent evidence, the compiler, and
 live documentation. None of those parts has an independent update lifecycle.
 
 The directories named below contain records, resources, and tools used by this
-workflow. Their local READMEs may explain formats and commands, but must not
-define a second language-change process.
+workflow. The shared rules and resource contracts live here at their common
+parent; participating directories do not carry their own workflow README.
 
 ## Authority
 
@@ -26,6 +26,7 @@ define a second language-change process.
 
 | Path | Role in a language change |
 |---|---|
+| `WORKFLOW.md` | Defines this complete cross-directory process and every participating resource contract |
 | `docs/roadmap.md` | Opens the work, names the active specification, and records the result and next work |
 | `governance/spec-evolution/` | Holds the one exact successor candidate reviewed by the owner |
 | `governance/APPROVALS.md` | Records exact-byte and protected-evidence approval |
@@ -37,10 +38,10 @@ define a second language-change process.
 | `mcts_mem/` | Preserves why a durable design won over real alternatives |
 | Root `Makefile` and `governance/hooks/` | Run the repository gate and protect released specification bytes |
 
-`governance/` itself contains only this guide, the approval record, exact
-successor candidates, and the tracked hook. Historical transition logs and
-superseded review material live under `archive/governance/` and cannot
-authorize current work.
+`governance/` itself contains only the approval record, exact successor
+candidates, and the tracked hook. Historical transition logs and superseded
+review material live under `archive/governance/` and cannot authorize current
+work.
 
 ## First classify the problem
 
@@ -210,22 +211,104 @@ status and exact next work in `docs/roadmap.md`. Do not leave the repository in
 a committed state where the active spec, compiler identity, conformance
 identity, or reference material name different language versions.
 
-## Resource boundaries
+## Resource contracts
 
-- `spec/` contains released specification resources and their derivation or
-  reconciliation evidence. It contains no mutable current plan or per-version
-  update script.
-- `tests/conformance/` contains cases, the manifest, the compiler-independent
-  runner, and tests of that tooling. It contains no language-design decision,
-  compiler special case, or independent release process.
-- `tests/reference/` contains narrow independent models and their tests. It is
-  not a second compiler and cannot settle a disagreement with the spec.
-- `governance/` contains the workflow resources listed above. Do not create a
-  directives log, second how-to, free-standing proposal, or generated approval
-  database.
-- New scripts are not the workflow. Prefer the existing native compiler and
-  root gates; a genuinely compiler-independent conformance tool must remain
-  version-neutral and have an explicit caller.
+The participating directories are deliberately passive. They hold inputs,
+evidence, records, and tools consumed by the loop above; none decides when or
+how the language changes.
+
+### Governance resources
+
+`governance/` contains `APPROVALS.md`, one exact candidate per successor under
+`spec-evolution/`, and the tracked pre-commit hook. It contains no directives
+log, README, second how-to, free-standing proposal, generated approval
+database, or independent work queue.
+
+`APPROVALS.md` is an append-only record, not procedure. A candidate is mutable
+until exact-byte approval and immutable afterward. Installed candidates remain
+as review evidence; rejected or abandoned never-installed candidates move to
+the archive.
+
+### Specification resources
+
+`spec/` contains released `kernel-spec-v*.md` resources and supporting
+derivation or reconciliation evidence. Released numbered files are immutable.
+The directory contains no mutable current plan, README, per-version update
+script, or tool that selects a different active version.
+
+### Conformance resources
+
+`tests/conformance/` supplies compiler-independent source-to-verdict evidence:
+
+- `cases/<id>.wf` is one canonical Whitefoot program and FORM-1/2 byte fixture;
+- `manifest.jsonl` maps each case to rule identifiers, its expected result, and
+  its current execution status, and carries explicit coverage annotations for
+  specification properties no source program can exercise;
+- `runner.py` validates active-spec identity, reports coverage, and owns the
+  explicit compiler-adapter slot; and
+- `test_runner.py` tests that corpus plumbing and active-spec binding.
+
+An expectation is `accept`, exact-rule `reject`, `run` with an exit value, or
+`trap`. A compiler failure, timeout, crash, or missing capability is never a
+rejection verdict. Status describes execution availability only:
+
+- `runnable` means the current adapter must produce the expectation;
+- `pending` means the compiler cannot yet execute the case; and
+- `xfail` preserves the correct expectation while exposing a known compiler
+  mismatch; an unexpected match is `XPASS`.
+
+Changing an existing expectation, removing a case, or weakening runnable
+status is protected work handled by this workflow. An additive case for
+behavior already fixed by the active specification may land with ordinary
+compiler work when it cites the existing rule and changes no protected result.
+
+The corpus contains no language-design decision, compiler special case,
+README, or independent release process. Any compiler adapter must drive source
+through the normal compiler command path; it does not become a second semantic
+implementation or stable protocol.
+
+Conformance tools run from the repository root:
+
+```sh
+make conformance
+python3 -B tests/conformance/runner.py coverage
+make conformance-run
+```
+
+`make conformance-run` fails explicitly while the adapter slot is empty.
+
+### Reference-model resources
+
+`tests/reference/` supplies a deliberately narrow independent model of the
+ownership/effect subset described in `checker.py`:
+
+- `checker.py` implements the focused judgments;
+- `oracle.py` exposes the independent comparison surface;
+- `test_checker.py` holds examples, regressions, and mutation checks; and
+- `modelcheck.py` explores bounded generated states.
+
+The model does not define the language, parse Whitefoot source, or claim full
+language coverage. It cannot settle a disagreement with the active
+specification, copy compiler data structures, or grow into a second compiler.
+A replacement may retire the Python implementation only after preserving every
+still-relevant judgment, regression, bounded-state check, mutation check, and
+unique counterexample. Changing or removing an existing judgment is protected
+work handled by this workflow; a new judgment belongs only when independence
+can catch a distinct semantic error.
+
+Run it from the repository root:
+
+```sh
+make reference
+```
+
+### Tool boundary
+
+New scripts are not the workflow. Prefer the existing native compiler and root
+gates. A genuinely compiler-independent conformance tool must remain
+version-neutral and have an explicit caller. The workflow-participating
+resource directories do not carry local workflow or guidance READMEs; update
+this file when their shared contract changes.
 
 ## Checks and hooks
 

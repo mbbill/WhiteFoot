@@ -20,8 +20,9 @@ controls, stable artifact protocols, distribution, and release engineering are
 not current goals.
 
 [docs/roadmap.md](docs/roadmap.md) is the sole source for current execution
-order and authorization. [AGENTS.md](AGENTS.md) records the priority rule and
-structure discipline future agents must apply.
+order and authorization. [WORKFLOW.md](WORKFLOW.md) defines the complete
+cross-directory language-change process. [AGENTS.md](AGENTS.md) records the
+priority rule and structure discipline future agents must apply.
 
 ## Current state
 
@@ -67,7 +68,7 @@ live next to what they check.
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
 | [compiler/](compiler/README.md) | The safe-Rust compiler: frontend, resolver, first semantic/IR slice, LLVM backend, and `whitefootc` |
 | [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `codegen/` optimization-proof corpus (dormant until optimizer work) |
-| [governance/](governance/) | The approval ledger, standing directives, the small repository-invariant and spec-append-only guards, and specification-evolution review records |
+| [governance/](governance/) | The protected approval ledger, exact successor candidates, and the tracked spec-append-only hook |
 | [research/](research/) | Active language and compiler experiments |
 | [mcts_mem/](mcts_mem/) | The live MCTS-Mem decision tree: current decisions, rejected alternatives, and their evidence |
 | [archive/](archive/) | Retired and superseded material, including the historical [decision log](archive/governance/decision-log.md); inert — no active source, build, test, or tool depends on it |
