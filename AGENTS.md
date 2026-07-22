@@ -109,22 +109,29 @@ one-time cleanup.
 
 Follow this by judgment and keep moving; it is a standing rule, not a reason to
 pause on every file. The one thing it reserves for the owner is a new top-level
-entry. Append-only `spec/` is the one part a future hook may enforce
-mechanically; the rest is upheld by discipline.
+entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
+`make install-hooks`); everything else is upheld by discipline.
 
 ## Specification and test integrity
 
-- A specification discrepancy stops the affected implementation for
-  investigation. Implementation convenience never selects language behavior.
-- A numbered-specification change requires an exact proposed delta, relevant
-  independent evidence, advance owner approval, a new immutable version, live
-  reference updates, and the guarded approval command defined by the project.
-- Conformance sources and expected verdicts, frozen oracle digests, approved
-  baselines, and active reference-semantics tests are protected. Additive tests
-  are allowed; modifying, deleting, weakening, or regenerating protected
-  material requires exact advance owner approval.
-- A red specification guard is a stop. Never regenerate authority merely to
-  make a gate green.
+- The numbered kernel specification is append-only, enforced by a pre-commit
+  hook (`make install-hooks`): a released `spec/kernel-spec-v*.md` is never
+  edited, renamed, or deleted. Amending the language is allowed, with care — a
+  change batch goes into a new version file. A spec/compiler discrepancy stops
+  the affected work for investigation; implementation convenience never selects
+  language behavior.
+- Before proposing a spec change, verify the new grammar with the grammar
+  verifier — a small tool (to be built) that reuses the compiler's own lexer and
+  parser to check the grammar constraints. See `docs/roadmap.md`.
+- When the spec changes, bring everything derived from it to the newest version
+  in the same work: conformance cases and verdicts, the reference model, the
+  lexer/parser and generated syntax data, tests, and docs. This consistency is
+  your responsibility and is deliberately not machine-enforced.
+- Do not silently weaken derived material to make a check pass. Editing a
+  conformance verdict, deleting a failing test, or regenerating evidence to go
+  green is a governance breach even though no script blocks it. Add tests
+  freely; change or remove existing conformance or reference material only with
+  owner agreement and a decision-log entry.
 - Compiler capability, an internal error, a timeout, or an unimplemented
   feature is not a source-language rejection and must not rewrite normative
   expectations.

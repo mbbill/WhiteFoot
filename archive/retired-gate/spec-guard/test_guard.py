@@ -28,7 +28,7 @@ def base() -> dict:
             "conformance/cases/unmanifested.wf": "u1",
         },
         "oracles": {"tools/codegen_parity.py": ["deadbeef"]},
-        "tests": {"prototype/checker/test_checker.py": {"Negative.test_x": "t1"}},
+        "tests": {"tests/reference/test_checker.py": {"Negative.test_x": "t1"}},
     }
 
 
@@ -151,11 +151,11 @@ def test_added_oracle_digest_is_free() -> None:
 
 def test_rewritten_or_removed_test_is_caught() -> None:
     rewritten = base()
-    rewritten["tests"] = {"prototype/checker/test_checker.py": {"Negative.test_x": "CHANGED"}}
+    rewritten["tests"] = {"tests/reference/test_checker.py": {"Negative.test_x": "CHANGED"}}
     check("rewritten reference test flagged",
           any("rewritten" in v for v in guard.diff_surface(base(), rewritten)))
     removed = base()
-    removed["tests"] = {"prototype/checker/test_checker.py": {}}
+    removed["tests"] = {"tests/reference/test_checker.py": {}}
     check("removed reference test flagged",
           any("removed" in v for v in guard.diff_surface(base(), removed)))
 
@@ -163,14 +163,14 @@ def test_rewritten_or_removed_test_is_caught() -> None:
 def test_added_test_is_free() -> None:
     live = base()
     live["tests"] = {
-        "prototype/checker/test_checker.py": {"Negative.test_x": "t1", "Negative.test_new": "t2"}
+        "tests/reference/test_checker.py": {"Negative.test_x": "t1", "Negative.test_new": "t2"}
     }
     check("added reference test is allowed", diff_is_empty(base(), live))
 
 
 def test_working_tree_passes_check() -> None:
     result = subprocess.run(
-        [sys.executable, str(ROOT / "tools" / "guard.py"), "--check"],
+        [sys.executable, str(Path(__file__).resolve().parent / "guard.py"), "--check"],
         capture_output=True,
         text=True,
     )

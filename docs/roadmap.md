@@ -88,23 +88,31 @@ A compiler/specification discrepancy stops the affected behavior for
 investigation. Compiler behavior, tests, archived implementations, and design
 prose cannot silently define the language.
 
-Every numbered-specification change follows this compact procedure:
+The numbered specification is append-only: a released `spec/kernel-spec-v*.md`
+is never edited, renamed, or deleted, and a pre-commit hook enforces it (install
+once with `make install-hooks`). Amending the language is allowed, with care — a
+change batch goes into a new numbered version. State the exact change, keep it
+minimal, and record material changes in the decision log.
 
-```text
-exact proposed bytes and rationale
-  -> relevant independent evidence and protected-test impact
-  -> exact owner-visible delta and full hash
-  -> advance owner approval
-  -> new immutable numbered specification with identical bytes
-  -> live references and locks updated
-  -> make approve-spec REASON="..."
-  -> ordinary checks
-```
+Before proposing a spec change, verify the new grammar with the grammar
+verifier: a proposed specification must pass the main compiler's own lexer and
+parser and satisfy the grammar constraints (parses, strong-LL(2), clean
+terminal partition, no conflicts).
 
-Changing protected conformance source or verdicts, frozen oracle digests, or
-active reference-semantics tests requires exact advance approval. Additive
-tests are free. A red specification guard is never permission to regenerate a
-baseline merely to make a check pass.
+When the specification changes, everything derived from it is brought to the
+newest version in the same work: conformance cases and verdicts, the reference
+model, the lexer/parser and generated syntax data, tests, and docs. This
+consistency is the responsibility of whoever changes the spec; it is not
+machine-enforced, and derived material is never silently weakened to make a
+check pass.
+
+**Build task — a correct grammar verifier.** The archived
+`archive/retired-gate/grammar-verifier` reimplemented grammar analysis in two
+independent engines instead of reusing the compiler. Replace it with a small
+tool that runs a proposed specification through the main compiler's own lexer
+and parser and checks the grammar constraints above. Build it, and use it,
+before the next numbered-specification change; it is not needed for routine
+compiler work.
 
 ## What “good enough” requires
 

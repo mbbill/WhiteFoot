@@ -58,22 +58,24 @@ live next to what they check.
 | [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
 | [compiler/](compiler/README.md) | The safe-Rust compiler (frontend today; resolver → checker → IR → LLVM to come) |
-| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `lexical/` fixtures + model, `spec-catalogs/` spec decomposition, `codegen/` optimization-proof corpus (dormant) |
-| [governance/](governance/) | Owner approvals, the guard baseline, the append-only [decision log](governance/decision-log.md), standing directives, the integrity guards, and the `spec-evolution/` machinery (candidate generator + grammar verifier) |
+| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `lexical/` fixtures + model, `codegen/` optimization-proof corpus (dormant, for the future backend) |
+| [governance/](governance/) | The append-only [decision log](governance/decision-log.md), standing directives, the small repository-invariant and spec-append-only guards, and the pending `spec-evolution/` v0.10 proposal |
 | [research/](research/) | Design memory: the [decision tree](research/design-tree/), measured `experiments/`, and exploratory notes |
 | [archive/](archive/) | Retired and superseded material, inert — no active source, build, test, or tool depends on it |
 
 ## Verification
 
 ```sh
-make check                 # fast essential correctness on the current structure
-make spec-evolution        # opt-in: heavier grammar + v0.10-candidate evidence
+make install-hooks   # once: enable the spec append-only pre-commit hook
+make check           # the gate: compiler, conformance, reference, lexical, spec append-only
 ```
 
-Every check lives next to what it checks (guards in `governance/`, catalog and
-lexical checks in `tests/`, compiler policy in `compiler/tools/`). A green result
-states only the capabilities those checks exercise; it does not claim the
-language or compiler is complete.
+The gate is deliberately small — the compiler builds and passes its tests, the
+behavior corpus and reference model agree, and the numbered spec stays
+append-only. Everything else (keeping conformance, tests, and other spec-derived
+material consistent with the newest spec) is guarded by the guidance in
+`AGENTS.md`, not by machinery. A green result states only what it exercises; it
+does not claim the language or compiler is complete.
 
 ## License
 
