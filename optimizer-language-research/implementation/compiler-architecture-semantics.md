@@ -1,9 +1,9 @@
 # Production Compiler Architecture — Semantic Kernel
 
-Status: OWNER-APPROVED ARCHITECTURE WITH BLOCKERS. This file is part of the
-single [Production Compiler Architecture](compiler-architecture-design.md)
-design record. `THE-PLAN.md` is execution authority. This file does not amend a
-numbered specification, protected semantic surface, profile, or entrance gate.
+Status: HISTORICAL PRODUCT-GRADE DESIGN RECORD. This file is part of the
+[Production Compiler Architecture](compiler-architecture-design.md) research
+record. `THE-PLAN.md` is current authority. Reuse semantic insights only when
+they are the simplest design for a current compiler capability.
 
 This file uniquely owns Decisions 7 through 10. Cross-stage authority, entrance gates,
 execution order, owner decisions, and exit status remain in the parent index.

@@ -1,808 +1,352 @@
 # THE PLAN
 
-Status: CANONICAL ROADMAP, updated 2026-07-21. Phases 1 through 4 are complete:
-the audited foundation, standalone grammar evidence, exact owner-approved v0.9
-installation, and source-bound canonical frontend are durable. Phase 5 remains
-stopped before implementation while the owner-approved successor delta awaits
-evidence-selected numerical hard maxima, guarded installation, and successor-
-bound frontend reproduction. The non-authoritative version-1 profile evidence
-protocol is now fixed through resolution, but it selects no values; current
-implementation authority stops at `CanonicalSyntaxUnit`.
+Status: CANONICAL ROADMAP, corrected 2026-07-22.
 
-## Objective
+## Goal
 
-Build one production-quality Whitefoot compiler in safe Rust. It must accept
-and reject every program according to one exact, owner-approved numbered
-specification, preserve every required safety check unless a machine-verified
-proof authorizes its removal, and lower all accepted programs through one
-general pipeline.
+The target is a serious research compiler: general enough to implement the
+real language, clean enough to evolve, and capable of compiling nontrivial
+programs so we can test semantics and performance ideas quickly. It is not an
+untrusted-input service or a stable LLVM-scale product.
+
+The compiler must be more than democ: it uses general language rules rather
+than source-shaped exceptions, has independent correctness tests, produces
+useful diagnostics, emits executable programs, and remains maintainable as the
+specification changes. But it does not need release engineering for millions
+of users, stable external protocols, adversarial resource guarantees,
+transactional publication, or exhaustive operational failure handling.
+
+The practical destination is:
+
+```text
+source programs
+  -> complete frontend
+  -> name resolution and semantic checking
+  -> simple checked IR
+  -> LLVM and runtime
+  -> executable programs
+  -> language and performance experiments
+```
+
+Specifications, tests, design notes, evidence, and tools serve this path. They
+are not parallel products.
+
+## Priority rule
+
+When work competes, choose in this order:
+
+1. the next meaningful end-to-end language or performance experiment;
+2. semantic correctness and Whitefoot's required safety checks;
+3. code that is understandable and easy to change;
+4. enough independent evidence to trust the current result; and
+5. robustness or polish only when a real experiment needs it.
+
+Before doing supporting work, name the concrete compiler capability or
+experiment it unlocks. If the supporting system becomes larger or more complex
+than that capability, stop and choose a smaller route.
+
+Function counts, issue counts, facet counts, protocol completeness, document
+counts, and receipt counts do not measure progress. A useful compiled program,
+a general semantic capability, a caught correctness bug, or a meaningful
+measurement does.
+
+## Current state
 
 The active language authority is `spec/kernel-spec-v0.9.md`, SHA-256
 `bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68`.
-Those exact reviewed bytes are immutable. Exact v0.8 and every v0.8-bound
-catalog, discrepancy record, fixture, lock, and report remain immutable
-historical evidence; they do not define v0.9 behavior.
+Those bytes are immutable. Exact v0.8 remains immutable historical evidence.
 
-The durable products are:
+The Rust compiler currently has source transport, a lossless lexer, terminal
+classification, a strong-LL(2) parser, one finalized syntax tree, and exact
+FORM-2 source validation. It ends at `CanonicalSyntaxUnit`. It has no resolver,
+semantic checker, IR, LLVM backend, compiler executable, or runnable program.
 
-1. immutable numbered specifications, derivation evidence, and governance;
-2. compiler-independent conformance, grammar, semantic, backend, and
-   real-project evidence;
-3. one permanent safe-Rust production compiler with one trusted semantic
-   kernel;
-4. canonical artifacts with mandatory same-kernel replay before lowering;
-5. one generic facts-off lowerer and runtime path;
-6. independently verified optional optimizer facts; and
-7. complete production-project compatibility evidence.
+The owner approved the exact successor proposal SHA-256
+`7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and
+the exact generated v0.10 candidate SHA-256
+`71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
+The candidate becomes active only after guarded installation and frontend
+reproduction against its identity.
 
-Progress is an end-to-end semantic capability with its authority boundary and
-evidence. Function counts, corpus counts, facet counts, source shapes, and
-passing examples are not work selectors or completeness measures.
+The current sequence is:
 
-## Authority and current authorization
+1. finish the repository correction and remove abandoned product-hardening
+   work;
+2. install the unchanged approved v0.10 candidate;
+3. reproduce the existing frontend for v0.10;
+4. implement one direct general resolver; and
+5. drive the first semantically checked program through a simple LLVM backend.
 
-`CONSTITUTION.md` is project law. The active numbered specification defines
-the language. `PATTERNS.md` defines writer forms. This file alone defines
-implementation order, phase gates, and execution authorization. The compiler
-architecture dossier records the selected design in detail; it cannot bypass
-this roadmap or a specification gate.
+## Authority and specification changes
 
-The owner replaced the self-host-first route on 2026-07-20:
+`CONSTITUTION.md` is project law. The active numbered specification defines the
+language. `PATTERNS.md` defines writer forms. This file alone defines current
+implementation order. Architecture and research documents are explanations and
+inputs, not additional entrance gates.
 
-- wfc and democ are inert historical artifacts under `archive/`;
-- the production compiler is one permanent safe-Rust implementation;
-- there is no disposable or parallel compiler ladder;
-- compiler-independent tests and real-project evidence are durable products;
-- self-hosting is a later product decision, not a prerequisite; and
-- archived behavior never defines language or lowering semantics.
+A compiler/specification discrepancy stops the affected behavior for
+investigation. Compiler behavior, tests, archived implementations, and design
+prose cannot silently define the language.
 
-The 2026-07-21 architecture handoff selects:
-
-- one typed postorder grammar-derivation tree, one linear topology finalizer,
-  no copied second syntax tree, and a tree-driven exact-source audit;
-- one trusted semantic kernel plus mandatory complete artifact-only replay
-  through that same kernel before the originating invocation may construct
-  lowering authority;
-- no second production semantic certificate verifier;
-- a separately runnable grammar-change verifier as the first implementation
-  tranche;
-- independent evidence at every assigned grammar, source/tree, semantic,
-  target, backend, guard, publication, and optional-fact boundary; and
-- the A-01 rule that all top-level function signatures are visible
-  throughout the closed compilation unit, while locals, regions, labels, and
-  named constants remain declaration-before-use, now encoded by exact v0.9.
-
-This roadmap supersedes D22 only where D22 selected an independent production
-semantic verifier and authorized implementation against an internally
-contradictory exact-v0.8 completion path. It preserves D22's safe-Rust,
-single-implementation, archive, conformance, and specification-governance
-decisions. It preserves D21's bans on source-shaped dispatch and census
-clearing, its one-general-pipeline requirement, and its separation of checked
-acceptance from optimizer proof.
-
-Current execution authority is deliberately narrow:
-
-1. Phase 1's exact audit-selected foundation migration is complete.
-2. Phase 2's standalone grammar-change verifier has exited with reproducible
-   exact-v0.8 and non-authoritative successor evidence.
-3. Phase 3 installed the exact owner-approved v0.9 bytes, ordered protected
-   migration, derivation amendment, version-bound evidence, locks, and active
-   references without changing expected verdicts, runnable statuses, frozen
-   oracles, or existing reference-semantics tests.
-4. Phase 4 is complete. Its authority ends at one source-bound
-   `CanonicalSyntaxUnit`; semantic schemas, artifacts, backends, releases, and
-   later phases retain their own entrance gates. Phase 5 is not activated by
-   frontend completion.
-5. The owner approved the exact Phase-5 successor proposal SHA-256
-   `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d`
-   and generated v0.10 candidate SHA-256
-   `71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
-   This authorizes the recorded language and architecture delta only. It does
-   not activate those bytes, select numerical maxima, or authorize resolver
-   implementation.
-6. The non-authoritative ResourceProfile version-1 evidence protocol now fixes
-   the exact ingress-through-resolution field schema, codec, tightening,
-   count/work/storage meanings, evidence independence, and host/peak proof
-   obligations. It deliberately contains no numerical hard maxima and grants
-   no compiler or language authority.
-
-## Specification and protected-surface protocol
-
-A compiler/specification discrepancy stops implementation at that boundary.
-Compiler behavior, an archived implementation, a corpus majority, or a design
-document cannot define the language.
-
-Every numbered-specification change follows this order:
+Every numbered-specification change follows this compact procedure:
 
 ```text
-exact non-authoritative proposal bytes
-  -> independent evidence and protected-surface impact census
-  -> exact owner-visible delta and full-byte hash
-  -> explicit advance owner approval
-  -> new immutable numbered specification with identical reviewed bytes
-  -> every live reference and lock updated
-  -> exact numbered-byte hash check and required verifier rerun
+exact proposed bytes and rationale
+  -> relevant independent evidence and protected-test impact
+  -> exact owner-visible delta and full hash
+  -> advance owner approval
+  -> new immutable numbered specification with identical bytes
+  -> live references and locks updated
   -> make approve-spec REASON="..."
-     (regenerates the guard baseline and appends the governance entry)
-  -> ordinary gates
+  -> ordinary checks
 ```
 
-Any change to protected conformance source or verdicts, frozen oracle digests,
-approved baselines, or active reference-semantics tests requires its own exact
-advance approval. Additive tests are free. Modifying, deleting, weakening, or
-regenerating protected material is not. A red specification guard is a stop;
-it is never permission to regenerate a baseline.
+Changing protected conformance source or verdicts, frozen oracle digests, or
+active reference-semantics tests requires exact advance approval. Additive
+tests are free. A red specification guard is never permission to regenerate a
+baseline merely to make a check pass.
 
-A grammar report is evidence, not approval. Proposal bytes remain outside the
-numbered `spec/` surface until the protocol completes. Exact-v0.8 catalogs,
-discrepancy records, fixtures, and locks remain versioned historical authority;
-a successor receives new version-bound assets rather than rewritten v0.8
-assets.
+## What “good enough” requires
 
-## Permanent production architecture
+The research compiler must:
 
-The production path is:
+- implement each supported language capability by grammar and semantic rule,
+  never by function name, source shape, project, or corpus membership;
+- keep unsupported implementation capability distinct from language rejection;
+- exercise all supported capability through one normal compiler pipeline;
+- preserve every required runtime safety check unless a verified fact removes
+  it;
+- produce deterministic results where tests and measurements depend on them;
+- use safe Rust without `unsafe` escape;
+- keep modules cohesive and internal boundaries easy to revise;
+- test semantic rules independently of the compiler where that materially
+  increases confidence; and
+- compile nontrivial dogfood programs that expose missing language and compiler
+  capabilities.
+
+It does not currently require:
+
+- hard service-level limits for hostile input;
+- a versioned whole-compiler `ResourceProfile`;
+- evidence-selected numerical maxima before implementation;
+- exact allocation-failure coverage for every Rust dependency;
+- process sandboxes, transactional publication, crash recovery, or stable
+  artifact interchange;
+- a second semantic verifier or mandatory artifact replay;
+- portable identities for private compiler records;
+- stable internal APIs or compatibility with unknown external consumers;
+- exhaustive failure taxonomies for paths that only compiler developers use;
+  or
+- release qualification for multiple hosts and targets.
+
+Use normal Rust collections and allocation. Keep obvious size arithmetic
+checked, avoid accidental unbounded recursion, and fix observed resource or
+performance failures. Existing local limits may remain when they are simple
+and tested, but do not expand them into a separate resource product. Resource
+exhaustion is a compiler/development failure, not a source-language verdict.
+
+## Implementation approach
+
+Work in vertical language-capability slices once the shared resolver exists.
+Each slice must implement a coherent family across semantic checking, checked
+IR, lowering, runtime behavior, diagnostics, and tests. A slice may temporarily
+leave other valid Whitefoot programs reported as not yet implemented; it may
+not misclassify them as invalid.
+
+This is not the old function-by-function route. A capability such as integer
+operations, direct calls, structs, or loans must work for arbitrary legal
+names, function counts, source order, nesting, and program shape. Dogfood
+projects reveal which capability should come next, but production code never
+special-cases a dogfood project.
+
+For the next slice only, write down:
+
+1. the exact active rules it implements;
+2. its input and output;
+3. what source is accepted, rejected, or explicitly not yet implemented;
+4. the data required by its immediate downstream consumer; and
+5. the smallest independent tests likely to expose a wrong implementation.
+
+Then code it. Private structures may change freely while learning. Do not
+design stable schemas, generalized frameworks, artifact protocols, or future
+backend abstractions before a real consumer exists.
+
+Resolve specification questions just in time. If the next capability is
+blocked, present the exact behavior alternatives and evidence. Do not fill the
+pause with unrelated infrastructure.
+
+## Phase 1: repository and Rust foundation
+
+Status: complete.
+
+Obsolete wfc and democ implementations were archived. The continuing safe-Rust
+workspace, specification governance, compiler-independent conformance data,
+and focused reference models were established.
+
+## Phase 2: independent grammar evidence
+
+Status: complete.
+
+The separate grammar verifier established the terminal partition, grammar
+conflicts, and lookahead evidence needed for the frontend. It remains a spec
+development tool and is not part of normal compilation.
+
+## Phase 3: exact v0.9 installation
+
+Status: complete.
+
+Exact v0.9 was installed through the protected versioning procedure. Its bytes
+and version-bound evidence remain immutable.
+
+## Phase 4: canonical frontend
+
+Status: complete, except ordinary bug fixes.
+
+The lexer, classifier, parser, topology/source finalizer, and FORM-2 check
+produce one `CanonicalSyntaxUnit`. A reproducible bug receives a focused
+regression and direct fix; it does not justify a new support framework.
+
+## Phase 5: activate v0.10
+
+Status: next, after repository correction.
+
+Install the exact approved v0.10 candidate without editing it. Update its live
+identity references and reproduce the current grammar and frontend evidence.
+Do not add semantic implementation, resource measurement machinery, or new
+frontend architecture during the version switch.
+
+**Exit:** v0.10 is the active immutable target and the existing canonical
+frontend passes against it.
+
+## Phase 6: direct name resolver
+
+Implement the exact v0.10 declaration inventory and lexical resolution rules
+over `CanonicalSyntaxUnit`. Use straightforward owned records and deterministic
+lookup structures.
+
+The resolver must cover every grammar-defined declaration and use role, all
+specified scopes and visibility, reservations, duplicates, shadowing,
+declaration-before-use, top-level function visibility, operation families, and
+deterministic diagnostics. Owner/member relations that require types remain
+explicit deferred records for the type checker.
+
+Do not implement the abandoned measurement routes, replay protocols, receipt
+identities, or a versioned 33-field resource schema. Use the ordinary compiler
+data structures the algorithm needs.
+
+**Exit:** arbitrary v0.10 programs receive either a complete resolved unit, a
+spec-defined resolution error, or an explicit later-stage/not-yet-implemented
+result. Resolver unit, property, mutation, and conformance cases are green.
+
+## Phase 7: first executable semantic slice
+
+Choose the smallest coherent language family that can compile and run a real
+program while exercising the actual semantic architecture. The expected first
+slice includes primitive values, constants, function signatures and direct
+calls, local bindings, basic control flow, required arithmetic modes and
+checks, and the minimum ownership/effect behavior those forms require.
+
+Implement the family end to end:
 
 ```text
-ordered SourceBundle transport + SpecificationIdentity + CompilationTargetProfile
-  -> lossless shape lexer
-  -> specification-versioned terminal classifier
-  -> typed iterative predictive parser
-  -> typed postorder DerivationTree
-  -> linear topology finalizer
-  -> tree-driven exact-source audit
-  -> CanonicalSyntaxUnit
-  -> declaration inventory and resolution
-  -> SymbolicallyTypedUnit for every source function
-  -> finite template call graph and pre-instantiation FN-6 gate
-  -> all-source template semantic coverage
-  -> finite concrete-instance closure and mandatory concrete rechecking
-  -> explicit concrete CFG and call graph
-  -> provenance, region, ownership, cleanup, and effect checking
-  -> private SemanticallyCheckedDraft
-  -> target qualification
-  -> canonical base artifact projection
-  -> mandatory artifact-only replay through the same semantic kernel
-  -> AcceptedCompilation built only from replay-decoded state
-  -> exact backend invocation + empty or verified optimization overlay
-  -> canonical final-envelope projection and validation
-  -> FinalizedCompilation
-  -> derived target-bound CodegenPlan
-  -> conservative LLVM/runtime/link/publication pipeline
+resolved syntax
+  -> typed checked representation
+  -> simple target-independent IR
+  -> LLVM for one host target
+  -> runtime checks
+  -> executable
 ```
 
-Exact v0.9 [PROG-2] gives `SourceBundle` transport normative multi-file
-meaning: one ordered nonempty record sequence forms one flattened program root;
-record order fixes top-level declaration order; logical paths never create
-namespaces; and zero records remain an input-envelope failure. The carrier may
-still represent transport values that the compilation-unit constructor rejects.
+The backend may be simple and inefficient. Correct facts-off behavior matters;
+backend abstraction, stable IR serialization, caching, and optimization do not.
 
-The semantic kernel is trusted production code. Same-kernel replay checks that
-canonical artifact bytes completely and consistently encode the accepted
-invocation; it detects projection, omission, reference, codec, and corruption
-defects. Replay is not independent semantic evidence and does not reduce the
-trusted computing base.
+**Exit:** at least one nontrivial compiler-independent program and the complete
+tests for the supported family compile and run through the normal pipeline.
 
-Only the originating invocation's mandatory replay may construct
-`AcceptedCompilation`. Later, cached, third-party, hand-authored, or
-independently loaded artifact bytes may be audited, but they can never
-reconstruct a lowering capability. Lowering accepts only
-`FinalizedCompilation`; raw syntax, a producer draft, decoded bytes, an audit
-result, or an authority-sounding Rust type name is insufficient.
+## Phase 8: expand semantic capability
 
-Optional optimizer facts are a separate path:
+Add coherent language families in dependency and experimental-value order,
+each end to end through execution. The likely families are:
 
-```text
-candidate proposition overlay bound to accepted artifact, target, and backend
-  -> proposition-family independent verifier
-  -> exact-byte-backed verified overlay
-  -> the same final envelope and generic lowerer
-```
+1. aggregates, enums, construction, projection, and pattern matching;
+2. generic types, constants, functions, instance closure, and contracts;
+3. regions, borrows, loans, moves, joins, and cleanup;
+4. slices, arenas, storage roots, and provenance-sensitive operations;
+5. effects, recursive call graphs, remaining control flow, and whole-program
+   checks; and
+6. target/ABI behavior required by dogfood programs.
 
-The canonical empty overlay is always valid and preserves every required
-semantic fact and runtime check. An optional fact may improve an already
-accepted program; it cannot change acceptance, semantic identity, explicit
-checks, or select a second lowerer.
+This order may change when real dependency or dogfood evidence says it should.
+Changing order must name the experiment unlocked; it may not be justified by
+which issue list is easiest to clear.
 
-## Verification and trust contract
+**Exit:** every construct in the active specification has one general semantic
+and lowering path, and the full compiler-independent conformance suite is
+implemented by the compiler adapter.
 
-Conformance source and expected verdicts are compiler-independent authority.
-Compiler capability, resource failure, internal failure, timeout, replay
-failure, backend failure, and toolchain failure remain adapter observations;
-they never rewrite normative expectations or become `Unsupported`.
+## Phase 9: dogfood and language iteration
 
-The static source index, semantic decomposition, generated facet catalog,
-capability overlay, discrepancy sidecar, corpus identities, and project names
-are audit inputs only. Production code does not read them to choose a handler,
-acceptance result, semantic path, or lowering path. A digest match proves
-identity, not truth, completeness, or capability.
+Continuously use production-shaped but manageable projects to reveal missing
+features and bad design. Cover at least binary data/compression, text and
+command-line processing, collections or graph-shaped work, and one sustained
+workload. zlib remains a useful example, not a privileged target.
 
-Mandatory independent evidence includes, where assigned:
+When dogfood reveals a language problem, change the specification through the
+numbered process and update the compiler. When it reveals a compiler problem,
+add a minimized independent regression. When it reveals performance behavior,
+measure before redesigning.
 
-- a static grammar auditor and a separately extracting bounded generalized
-  parser oracle;
-- source/tree reconstruction models and hostile tree mutations;
-- exact conformance and deterministic diagnostic cases;
-- focused models for types, ownership, loans, effects, cleanup, numerics,
-  recursion, and instance closure;
-- property, metamorphic, fuzz, and mutation testing over arbitrary names,
-  lengths, nesting, source order, and graph shape;
-- target, ABI, runtime, guard, linker, and publication differentials;
-- reproducibility, resource, failure-injection, and policy checks; and
-- complete compatibility protocols for real projects.
+The compiler is successful when it can support these experiments reliably and
+can be changed without repeatedly rebuilding unrelated infrastructure.
 
-Sharing input bytes does not make two engines dependent. Sharing an extracted
-grammar, predictive table, semantic judgment, proof algorithm, or expected
-result does. Every authority-increasing optimizer proposition receives hostile
-adversarial review before shipment.
+## Phase 10: optimizer experiments
 
-All production stages have closed source-rejection, resource-failure, and
-compiler-invariant outcome families; explicit caller-selected resource
-profiles; deterministic ordering; checked arithmetic; fallible growth; and
-failure-atomic publication. A resource limit never proves a source invalid or
-an ambiguity absent.
+Keep facts-off compilation correct. Add proof-based check removal and other
+optimizations one proposition family at a time, with focused independent
+verification and facts-on/facts-off comparisons. Optimize measured problems,
+not hypothetical workloads.
 
-## Active blockers
+An optimizer fact may improve an accepted program but may not change source
+acceptance or remove a required check without proof.
 
-The exact-v0.9 discrepancy registry is the machine-readable source of truth.
-Seven open records remain: affine-dereference backing-storage cleanup,
-retained-check `proof_ref`, EFF-1 row canonicality, body-local region effects,
-contract-member semantics, `main` return spelling, and dotless-operation
-reservation. They block only their affected later stages; none is a license to
-invent semantics.
+## Phase 11: optional hardening
 
-The following architecture questions remain open:
+Only if later use justifies it, consider stable artifacts, caching, broader
+targets, stronger resource controls, transactional publication, distribution,
+self-hosting, or a product release. None blocks the research compiler or the
+current experiments.
 
-- A-02 through A-09: affine overwrite disposition, evaluation order, ordinary
-  scope cleanup, recursive nominal layout, frame-limit target binding, TYPEID
-  collisions, continuing-join affine liveness, and unreachable suffix checking;
-- A-11 through A-13: `slice_of` authority, returned-view provenance, and
-  recursive region-free storage well-formedness;
-- A-14 and A-15: lifetime-report drop sites and logical-stack attribution;
-- A-16: holder and loan identity across copy, move, call, return, `give`, and
-  match projection;
-- A-17: region-bearing generic arguments and portable semantic-instance
-  identity; and
-- A-18: FN-6's type/const-generic cycle domain and argument-vector test.
+## Verification and durability
 
-Exact v0.9 resolves A-01 and A-10 and closes the canonical-frontend entrance
-questions for terminal partitioning, node-kind identity, pre-tree locations,
-FORM-2 interaction, source ordering, and program-root extent. The
-recursive-effect rule, exact target/frame behavior, concrete resource,
-backend, and host profiles, artifact records, and portable identity schemas
-also remain gated. A roadmap description is not a resolution. Each affected
-implementation waits for exact normative or owner-approved profile authority.
+Run `make -C compiler check` before and after compiler changes and `make check`
+for each completed repository slice. A green gate states only what it tests;
+it is not a claim that the language or compiler is complete.
 
-## Phase 1: complete the audited foundation handoff
+Every reproducible defect receives the smallest practical regression before
+its fix. Each cohesive completed step gets one commit and one short append-only
+entry in `optimizer-language-research/implementation/decision-gates.md`.
 
-Status: complete. The read-only audit receipt and D25-authorized migration are
-durable in the repository.
-
-The receipt is
-`optimizer-language-research/implementation/compiler-foundation-audit-2026-07-21.md`.
-It binds HEAD `c1975d5d30f29a95647ff21d5e1895cad40adf0d`, compiler tree
-`bead7377dc6b7c880d630d873143da79fadf5852`, and status digest
-`2aa3438ea56678b36f81a863b8e6e69aa0edcf81d274660655c855894b36e2d4`.
-
-The retained foundation is:
-
-- inert archived wfc and democ snapshots with no active dependency;
-- the pinned safe-Rust workspace, dependency/source policies, formatting,
-  linting, testing, rustdoc, and cross-copy reproducibility gates;
-- nominal specification and catalog identities;
-- ordered source transport, source spans, source-binding bytes, and exact
-  source-equality audit;
-- the v0.8 source index, static semantic catalog, discrepancy registry, and
-  empty non-authorizing capability overlay;
-- the permanent lossless shape lexer;
-- the binary-only lexical observer and independent byte model; and
-- compiler-independent conformance, reference models, and evidence corpora.
-
-This foundation proves only its named contracts. It contains no production
-parser, canonical syntax authority, semantic acceptance path, checked
-artifact, lowerer, executable compiler, or release capability.
-
-The completed migration applied the fixed audit disposition:
-
-- kept the source contract, lossless lexer, lexical observer, and
-  source-equality audit;
-- renamed `whitefoot-frontend` to `whitefoot-lexer` and
-  `whitefoot-verifier` to `whitefoot-source-audit`, with their responsibilities
-  narrowed to match those names;
-- made owned-source and source-binding construction audibly fallible under
-  exact limits before whole-compiler boundedness is claimed;
-- preserved the current source-binding wire contract;
-- retained the catalog, discrepancies, and capability metadata outside
-  production dispatch;
-- deleted nothing; and
-- created no parser, semantic, identity, artifact, or crate placeholder.
-
-The migration may perform only the receipt's exact renames, API/allocation
-repairs, dependency-policy updates, documentation alignment, and tests.
-Anything beyond that inventory requires a new owner decision.
-
-**Exit:** names and APIs claim exactly what they check; owned-source and
-binding growth is fallible and bounded; dependency direction remains acyclic;
-the source-binding wire contract is unchanged; all focused, compiler, and root
-gates are green; and the handoff is durable in one cohesive commit and
-append-only decision entry.
-
-## Phase 2: grammar-change verifier and evidence package
-
-Status: complete. The separately runnable tool, both independent engines,
-canonical evidence package, exact proposal bytes, and protected-surface census
-have passed their written exit gate.
-
-The completion receipt binds exact v0.8 SHA-256
-`d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`,
-candidate SHA-256
-`cfd76a2bf9293519623c2448280f4d6f76f32be26cc1b2dadc487415e063f166`,
-and a byte-identical 134,019-byte common extraction ledger with SHA-256
-`2014897a6d2a4599957bad140f0de73c0d42c559ec629a3fdc20fe0b4d238b27`.
-Both registered dereference cases change from two derivations to one with one
-removed, one retained, and zero introduced trace; the exact `deref(x)` static
-transition changes from one matching predictive conflict to zero. The complete
-48-stream generated domain agrees byte for byte. The final hostile runner
-review returned GO after source mutants, malformed-ledger probes, and 2,000
-deterministic field mutations. These are evidence results, not language
-authority.
-
-Build one separately runnable verification entry point outside the production
-compiler dependency graph. Normal compilation never links or invokes it. It
-accepts the exact full bytes of the current numbered specification and exact
-full bytes of a non-authoritative proposal, binds both hashes, and has two
-deliberately independent engines:
-
-1. A static auditor independently extracts every normative grammar production,
-   lexical class, and fixed terminal; rejects unclassified grammar-shaped
-   content; computes nullable, `FIRST_2`, `FOLLOW_2`, terminal-category
-   intersections, and the exact strong-LL(2) predictive relation; and emits
-   concrete witnesses for every collision.
-2. A bounded generalized-parser oracle independently extracts the grammar and
-   token-membership rules into its own representation and returns `zero`,
-   `one`, or `many` complete source-level derivations for registered and
-   generated streams.
-
-The engines share only exact input bytes and the declared resource profile.
-They do not share extraction code, grammar tables, terminal classification,
-predictive relations, parser tables, or derivation expectations. Extraction or
-source-coverage disagreement fails. Resource exhaustion is an explicit
-inconclusive result.
-
-The exact transition evidence must:
-
-- require the current input hash to equal the pinned v0.8 hash;
-- reproduce the registry's exact `deref(p)` ambiguity;
-- register exact `deref(x)` as the transition witness and report two complete
-  v0.8 derivations;
-- show a candidate terminal/`IDENT` repair removing only the
-  call-through-`IDENT` path for that witness while retaining the fixed
-  `deref` place derivation;
-- audit the complete mechanically extracted set of 47 fixed lowercase
-  terminals, not a parser-local subset;
-- report every removed, retained, and introduced intersection or predictive
-  conflict;
-- bind all authored cases, generated domains, engine revisions, limits, and
-  canonical report bytes; and
-- include mutants that independently break source binding, extraction,
-  terminal membership, lookahead relations, and derivation counting.
-
-Prepare, but do not install, exact non-authoritative successor bytes for the
-terminal partition and owner-selected A-01 rule. Prepare the complete
-protected-surface impact census. A-02 through A-18 remain later blockers,
-outside this tranche; do not turn design questions into machine facts by
-assertion.
-
-**Exit:** both grammar engines and their hostile tests are green; exact v0.8
-baseline and proposal reports are reproducible and full-byte bound; the
-`deref(x)` transition is explicit; the protected-surface census and exact
-proposal bytes are ready for owner review. No numbered specification,
-protected expectation, active target, production parser, compiler schema, or
-capability claim has changed.
-
-**Stop:** any hash mismatch, incomplete extraction, engine disagreement,
-unexpected conflict, inconclusive required case, protected-surface uncertainty,
-or red repository gate.
-
-## Phase 3: approve and install a successor specification
-
-Status: complete. The owner approved the exact nine-item packet at `7fbb018`,
-and the guarded v0.9 installation followed that reviewed sequence.
-
-The packet binds the 98,044-byte v0.9 candidate at SHA-256
-`bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68`,
-the exact ordered protected-patch sequence, its 99,869-byte final manifest
-postimage at SHA-256
-`0eff27bfb87ca14086f31f4b171d72c9eb1a49072aa4563a3f7c937d0b8bb90c`,
-the derivation-ledger amendment, protected-surface census, independent evidence,
-and hostile reviews. The packet requests zero expected-verdict, runnable-status,
-frozen-oracle, or existing reference-test changes.
-
-The installed v0.9 source index is 81,996 bytes at SHA-256
-`cc9aa86de0d59b9288d1f8fd7a6bde6f94fff26da139d73f91bcbcf71219d663`;
-the authored decomposition identity is
-`81cc67795feb9dfb9458df7987da44663b8d5ea034921a1c56322e2771e4310c`;
-and the 596,390-byte static catalog identity is
-`3ff82e48fc860c4a414e8e1a16a652426b7505d7b74beedf057e418533151aae`.
-The seven-record discrepancy sidecar is 13,614 bytes at SHA-256
-`39a1d6f869df08ef08f4a2a58ad07bf4c503f61a235601847ebdd716caf8bc3d`.
-The capability overlay remains empty, and the protected expectation/status
-projection remains
-`5fb0e54ec006c3fea82d5fc0d8c454e5e9f022ba472cdcc6a90c44a31ade2132`.
-
-The completed installation sequence was:
-
-1. create the new numbered file byte-for-byte from the reviewed proposal;
-2. apply only the separately approved protected changes;
-3. update every live specification reference and lock, including the roadmap,
-   design memory, instructions, compiler locks, and public documentation;
-4. create new version-bound indexes, catalogs, discrepancies, fixtures, and
-   capability metadata without rewriting v0.8 history;
-5. rerun both grammar engines over the exact numbered bytes and require the
-   numbered hash to equal the reviewed proposal hash; and
-6. run `make approve-spec REASON="..."`; it regenerates the guard baseline
-   and appends the approval entry with the resulting baseline hash; and
-7. run all ordinary gates.
-
-Parser work additionally requires the active successor to resolve the complete
-terminal partition, GRAM-1/GRAM-7 node-kind conflict, pre-tree diagnostic
-location, FORM-2 interaction, and A-10 program-root/compilation-unit contract,
-with a conflict-free complete static grammar audit and every required bounded
-oracle result.
-
-Semantic work still requires each later A-question or discrepancy to be
-resolved before its affected stage.
-
-**Exit:** one exact successor is active everywhere; all guards and ordinary
-gates are green; v0.8 remains immutable; and the next phase's exact entrance
-blockers are closed.
-
-**Stop:** any byte difference from the reviewed proposal, stale live reference,
-unapproved protected delta, red guard, unresolved required blocker, or
-non-passing grammar gate.
-
-## Phase 4: build the canonical frontend
-
-Status: complete. Exact v0.9 terminal membership, iterative strong-LL(2)
-derivation, linear whole-tree finalization, and tree-driven FORM-2 comparison
-are implemented. The only published frontend authority is one source-bound
-`CanonicalSyntaxUnit`; no semantic acceptance authority was added.
-
-Keep the existing shape lexer unchanged in authority. Add a
-specification-versioned terminal classifier that evaluates the complete
-approved predicate set for every formed token. Fixed lowercase terminals and
-`IDENT` remain disjoint, while approved noncompeting overlaps such as fixed
-`unit` plus `literal` remain visible to the parser; classification never picks
-one by priority. Build an iterative typed LL(2) parser with no backtracking,
-ordered-choice priority, recovery, synthetic tokens, or semantic
-disambiguation.
-
-Construct one typed postorder `DerivationTree`. A single linear finalizer
-checks root extent, source ownership, parent/child topology, production shape,
-complete token coverage, and resource invariants. A tree-driven audit
-reconstructs expected source bytes from that same tree and compares them with
-the input. It does not normalize source and there is no copied
-`ValidatedAst`.
-
-Only after the approved node-kind, location, A-10, and canonical-source rules
-exist may the stage publish `CanonicalSyntaxUnit` and portable syntax
-identities. Runtime traversal handles are not artifact identities.
-
-Independent evidence includes the complete static grammar audit, generalized
-oracle, tree/source model, hostile topology and token mutations, generated
-shared-prefix cases, fuzzing, deterministic diagnostics, and exact resource
-edges.
-
-**Exit:** every accepted source has exactly one complete derivation and one
-finalized source-bound tree; every malformed source receives the approved
-deterministic syntax outcome; no partial tree escapes; and no semantic
-acceptance claim exists.
-
-## Phase 5: build the semantic kernel
-
-Status: conditional on exact normative authority for every affected rule.
-The first entrance review exposed blockers but its proposed combined
-nominal/constructor namespace and standalone resolver limits were invalid.
-It is superseded by the exact owner-approved but not-yet-installed packet at
-`optimizer-language-research/implementation/phase5-successor-proposal/PROPOSAL.md`.
-Exact v0.9 remains active. Complete resolver work remains stopped until the
-approved successor language and architecture delta is installed, the Decision-
-15 invocation-wide resource profile has separately owner-approved evidence-
-selected numerical hard maxima, and the successor-bound canonical frontend is
-reproduced.
-
-The non-authoritative evidence protocol at
-`optimizer-language-research/implementation/phase5-resource-profile/` is
-complete. It defines one versioned profile through resolution, exact meaning
-identities and tightening, the cumulative count/work schedules, stable storage
-charges and peak-ledger obligations, two genuinely independent measurement
-routes, and the exact later owner-review boundary. Its smoke generators and
-dependent v0.9 topology observer are test scaffolding only. Numerical selection
-remains stopped until both complete routes, boundary/failure evidence, layout
-witnesses, service-envelope measurements, and hostile review agree.
-
-The first evidence-construction boundary is complete but deliberately
-trace-incomplete. A source-derived route and a separately represented analytic
-route run as isolated processes and agree for both smoke families at scale 1,
-2, and 17 on all 33 field states, the 27 available values, 23 independently
-reported derived quantities, the `Complete` semantic outcome, and exact
-manifest/source/meaning/code identities. Both withhold lexical scan work,
-parser stack occupancy, selected list members, expected terminals, cumulative
-syntax work, and resolution work rather than substituting aggregate formulas.
-The safe-Rust layout witness closes the candidate charge arithmetic and ledger
-codec only; private frontend layouts, future resolver records, populated peak
-rows, allocator slack, supervisor identity, and external RSS remain open.
-These foundations select no value and do not satisfy the Phase-5 entrance gate.
-
-Implement one syntax-directed semantic kernel in this order:
-
-1. run the preserved FN-8 structural-admission pass, then complete declaration
-   inventory and visibility-governed resolution using the exact owner-approved
-   successor encoding of A-01 and A-07;
-2. modes, types, constants, operations, substitutions, typed labels, and typed
-   calls for every function declaration;
-3. the finite template call graph and pre-instantiation FN-6 SCC gate;
-4. target-independent template CFG/semantic coverage for every source
-   function, including unused and zero-type/const-parameter functions;
-5. explicitly seeded finite concrete-instance closure and mandatory concrete
-   rechecking;
-6. the concrete call graph and structural CFG with every normal, trap, check,
-   and scope-exit edge but no cleanup authority;
-7. approved provenance qualification; and
-8. region, loan, ownership, join, cleanup attachment, effect, and whole-unit
-   closure.
-
-The predecessor wording for item 6 conflicted with Decision 8 because
-ownership-free CFG construction cannot know live drops. The linked successor
-proposal C-05 is the exact correction and must be owner-approved before either
-item 6 or item 8 is implemented; no placeholder cleanup plan is authorized in
-the meantime.
-
-A required rejection may not be deferred behind a potentially expanding
-worklist. Every handler accepts arbitrary legal names, list lengths, nesting,
-source order, and graph shape. Function families and corpus slices may group
-delivery and tests but never survive as admission or dispatch architecture.
-
-The kernel publishes only a private `SemanticallyCheckedDraft`. It is not an
-accepted artifact and cannot reach lowering. All semantic records retain exact
-source origin and complete coverage. Deterministic error selection follows the
-approved canonical order.
-
-Before each substage, close its applicable discrepancy and A-question,
-including A-02 through A-09, A-11 through A-18, recursive effects, and
-diagnostic authority. No implementation convenience chooses the rule.
-
-**Exit:** every normative construct for the active target has one general
-semantic path; every declared body and required semantic instance is checked;
-all required checks and cleanup are explicit; and independent models, mutants,
-fuzzing, and conformance evidence are green.
-
-## Phase 6: seal acceptance through artifact replay
-
-Status: conditional on complete semantic records and approved target, resource,
-diagnostic, artifact, backend, and host profiles.
-
-Target-qualify the private semantic draft. Project one canonical base artifact
-containing every fact needed for source acceptance, diagnostics, target
-acceptance, and lowering. Decode and replay those bytes through the same
-semantic kernel with no producer draft or hidden side channel. Compare exact
-source, specification, target, schema, and invocation bindings.
-
-Discard the producer draft. Only successful originating-invocation replay may
-privately construct `AcceptedCompilation`, and its lowering payload is the
-replay-decoded state. A later replay returns an audit result only.
-
-Validate exact backend-invocation bytes, compose the canonical empty overlay or
-an exact-byte-backed independently verified optional overlay, project the
-complete final envelope, decode and revalidate it, and construct
-`FinalizedCompilation` only from those exact bytes.
-
-Require hostile omission, duplication, reordering, reference, coverage,
-canonicality, resource, and codec mutations. Prove that no public constructor,
-decode result, cache, third-party artifact, or audit result can reach the
-lowerer.
-
-**Exit:** acceptance is artifact-decidable; producer state and replay state
-agree exactly; only replay-decoded state carries lowering authority; the empty
-overlay path is complete; and final-envelope bytes are deterministic.
-
-## Phase 7: complete conservative facts-off lowering and publication
-
-Status: conditional on `FinalizedCompilation` and exact named profiles.
-
-Derive one ephemeral target-bound `CodegenPlan` from
-`FinalizedCompilation`. The plan may schedule and choose target instructions;
-it may not resolve names, infer types, discover instances, choose ownership or
-cleanup, add semantic facts, change acceptance, or omit a required check.
-
-Lower every accepted construct through one generic path. Retain every unproved
-overflow, bounds, lifetime, allocation, and trap check. Use the exact guard ABI
-and prove guard structure and dataflow in emitted LLVM; audit required guard
-sites in objects. Bind pinned LLVM, runtime, linker, target, ABI, layout, and
-tool outputs through exact-byte-backed capabilities. The downstream
-publication component alone owns final validation and atomic directory commit.
-
-Require facts-off conformance, differential execution, codegen-corpus checks,
-ABI fixtures, target tests, malformed-artifact rejection, trap and cleanup
-injection, deterministic rebuilds, resource ceilings, runner/linker failure
-tests, guard mutants, and publication atomicity.
-
-**Exit:** the facts-off compiler produces correct runnable outputs for every
-normative construct in the named target profile, retains every unproved check,
-and passes complete semantic, runtime, resource, reproducibility, and
-publication evidence.
-
-## Phase 8: dogfood and harden the production baseline
-
-Status: conditional on the complete facts-off path.
-
-Exercise complete, nontrivial projects rather than isolated kernels:
-
-- utilities with real byte/text and I/O behavior;
-- an embeddable library with exact ABI and lifecycle requirements;
-- allocation, cleanup, error, and resource-pressure workloads; and
-- a compiler-shaped project using parsing, indexed/keyed state, graphs or
-  worklists, structured diagnostics, and deterministic serialization.
-
-Each claimed rewrite must pass its complete incumbent tests, differential
-fuzzing, unchanged downstream workflows, reproducibility, cleanup and failure
-behavior, resource ceilings, packaging, and preregistered target-specific
-performance gates. Development projects are open evidence. Held-out release
-targets use a preregistered non-discretionary pool and draw.
-
-Classify every finding as a compiler defect, missing library or blessed
-pattern, generic optimizer miss, genuine language gap, or target-specific
-algorithm. A genuine language gap returns to the full proposal and
-specification protocol. It never creates a project-specific builtin, compiler
-branch, or silent language change.
-
-Run sustained source/artifact fuzzing, semantic and codec mutation, bounded
-models, adversarial diagnostics, dependency and trusted-base review, resource
-testing, and full named-target CI.
-
-**Exit:** the real-project compatibility ledger is complete, every discovered
-authority defect is closed through the proper earlier phase, and no project
-identity has entered the compiler.
-
-## Phase 9: qualify and release
-
-Status: conditional; a release claim requires the separate release gate and
-exact owner-approved release profile.
-
-The release profile and manifest name the exact specification, source index,
-facet catalog, discrepancy state, artifact schemas, Rust toolchain, dependency
-graph, LLVM and linker versions, runtime, targets, DataLayout, ABI, resource
-ceilings, host/filesystem assumptions, test identities, and real-project
-qualification results.
-
-A release requires:
-
-- zero unresolved specification or protected-surface blocker affecting the
-  target;
-- zero production-relevant pending, skip, xfail, unsupported, broad fallback,
-  or unexplained outcome;
-- complete exact conformance and deterministic diagnostics;
-- complete same-kernel artifact replay and empty-overlay lowering;
-- every required independent evidence lane and hostile review;
-- all named target, runtime, guard, linker, publication, resource, and
-  reproducibility gates; and
-- a green release ledger distinct from the development gate.
-
-Native object identity is required only within the exact declared host/tool
-profile; no cross-toolchain identity claim is implied.
-
-**Exit:** safe Rust is the sole production Whitefoot compiler for the exact
-named specification and profile, with no hidden incompleteness or alternative
-semantic authority.
-
-## Work after the facts-off release
-
-Optional optimizer propositions may be added one closed family at a time only
-after the complete facts-off path exists. Freeze each proposition, producer,
-schema, independent verifier, consumer, scope, invalidators, facts-off control,
-mutants, differential, and measured benefit. Facts never change source
-acceptance or create an alternative lowerer.
-
-Any product expansion beyond the released profile and self-hosting require
-fresh owner authorization.
-Self-hosting is dogfood and reproducibility evidence, not proof of compiler
-correctness. If a Whitefoot implementation ever replaces Rust, Rust freezes at
-one atomic authority switch; two production compilers do not grow together.
+Keep files cohesive and reviewable. Split by invariant-bearing responsibility,
+not arbitrary line counts or corpus functions. New and modified repository
+content uses English. `AGENTS.md` and `CLAUDE.md` remain byte-identical.
 
 ## Prohibited routes
 
-- No parser compatibility fallback that reintroduces v0.8 keyword priority,
-  ordered choice, semantic disambiguation, or archived behavior under v0.9.
-- No generalized parser in production; it is a bounded evidence oracle only.
-- No grammar-change tool linked into or invoked by normal compilation.
-- No grammar report, corpus, compiler behavior, or historical intent acting as
-  specification authority.
-- No parser, node, path, identity, semantic wrapper, proof record, artifact
-  envelope, or crate placeholder before its real normative contract and
-  consumer exist.
-- No copied second syntax tree, vague `ValidatedAst`, poison declaration,
-  synthetic recovery token, placeholder type, or partial checked unit.
-- No second production semantic checker or semantic certificate verifier.
-- No function name, signature, ordinal, body shape, AST digest, project,
-  corpus, facet, capability, or target profile selecting semantic admission or
-  lowering.
-- No function count, corpus count, target count, facet count, deadline, or line
-  count selecting implementation work or proving progress.
-- No raw syntax, producer draft, decoded artifact, audit result, cached
-  artifact, or third-party bytes reaching lowering.
-- No backend name resolution, type inference, instance discovery, ownership
-  join, effect closure, cleanup decision, source acceptance, or proof search.
-- No source-specific proof as a prerequisite for facts-off compilation; every
-  unproved required check remains.
-- No optional fact affecting acceptance, semantic identity, explicit checks,
-  or selecting a second lowerer.
-- No LLVM poison, undefined behavior, check removal, or body sharing from an
-  unverified assertion or nominal identity.
-- No capability overlay, catalog, discrepancy metadata, project identity, or
-  evidence receipt consumed as production semantic input.
-- No active import, build, semantic, lowering, or release dependency from
-  `archive/`.
-- No compiler-generated normative expectation, protected-test weakening,
-  silent specification reinterpretation, or unapproved baseline regeneration.
-- No infallible or unbounded growth, output, process, or publication path
-  inside a claimed resource-bounded authority boundary.
-- No later phase used as filler while an earlier authority boundary is blocked.
-- No arbitrary file-size rule, forwarding-only module, broad utility drawer,
-  duplicate walker, or file split by corpus function. Split by one cohesive
-  invariant-bearing responsibility.
-
-## Process and execution cursor
-
-Run `make -C compiler check` before and after compiler work and `make check`
-before and after every completed repository slice. A green development gate is
-an exact current-capability statement, never a release claim.
-
-Every reproducible defect receives the smallest practical regression before
-its fix. Every completed step receives one cohesive commit and one append-only
-`decision-gates.md` entry. A red gate, specification conflict, protected
-guard, unexplained verdict, unverified authority path, or resource-bound breach
-stops the affected work. Never regenerate authority to make a gate green.
-
-Production Rust forbids `unsafe`. Dependencies and tools are pinned.
-Semantic outputs contain no timestamps, absolute host paths, random
-identifiers, hash-iteration dependence, or scheduling dependence. Files remain
-cohesive and reviewable. Every new or modified repository artifact, identifier,
-comment, diagnostic, fixture, and test name uses English. `AGENTS.md` and
-`CLAUDE.md` remain byte-identical.
-
-The completed current frontend foundation contains six permanent library
-crates and one binary-only lexical observer, 13 reproducible Cargo artifacts,
-the exact-v0.9 production and strong-LL(2) data contract, the private
-resource-bounded grammar derivation, the
-static catalog SHA-256
-`3ff82e48fc860c4a414e8e1a16a652426b7505d7b74beedf057e418533151aae`,
-the seven-record discrepancy sidecar at SHA-256
-`39a1d6f869df08ef08f4a2a58ad07bf4c503f61a235601847ebdd716caf8bc3d`,
-the empty capability overlay at SHA-256
-`18cc29ecd5aad7ff69d3c548bab2b5fd8250fd2df38791b4032b922ee569d22c`,
-the lossless lexer, and the exact-v0.9 942-case lexical differential with
-request-input manifest SHA-256
-`3fdd322422999616b3d4bb09b01b23088c71c78d526d46305450220b571fa804`.
-Exact-v0.8 locks, assets, models, and receipts remain immutable historical
-evidence. These close no semantic facet and grant no semantic, artifact,
-backend, or release authority.
-
-Phases 1 through 4 are complete. The exact-v0.9 frontend classifies the complete
-terminal set, derives the complete strong-LL(2) grammar, finalizes one
-source-bound tree, and compares exact FORM-2 bytes from that same tree before it
-constructs one opaque `CanonicalSyntaxUnit`. This closes no semantic facet.
-The next roadmap action is to close the applicable Phase-5 discrepancies and
-A-questions before any resolver or semantic-kernel implementation begins.
-
-Until Phase 5 is explicitly activated and every later gate is separately
-satisfied:
-
-- do not change a numbered specification or protected surface without a new
-  exact owner approval and guarded installation;
-- do not cross the `CanonicalSyntaxUnit` boundary into name resolution,
-  semantic records, artifacts, replay, target profiles, lowering, or
-  publication;
-- do not treat an incomplete frontend as language acceptance or a release
-  capability; and
-- do not link or invoke the grammar-change verifier from normal compilation or
-  treat its reports as specification or compiler authority.
+- No function-by-function, signature-by-signature, corpus-by-corpus, or
+  issue-count-clearing implementation strategy.
+- No source-shaped dispatch, function allowlist, project special case, or test
+  identity in compiler semantics or lowering.
+- No disposable compiler, parallel semantic implementation, or premature
+  self-hosting detour.
+- No product-scale resource profile, replay system, receipt/identity scheme,
+  publication protocol, sandbox, or failure taxonomy without a current
+  experimental need.
+- No placeholder artifact, schema, proof record, backend abstraction, or
+  generalized framework before its real producer and consumer.
+- No later-phase infrastructure used as filler while the next real compiler
+  capability is blocked.
+- No silent specification reinterpretation, protected-test weakening, or
+  baseline regeneration merely to make a gate green.
+- No optional optimizer fact changing acceptance or removing an unproved
+  required check.
+- No active source, build, test, or tool dependency on `archive/`.

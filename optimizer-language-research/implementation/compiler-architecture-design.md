@@ -1,12 +1,12 @@
 # Production Compiler Architecture
 
-Status: OWNER-APPROVED ARCHITECTURE WITH BLOCKERS. This is the design record;
-`THE-PLAN.md` remains the sole roadmap and implementation authority. The owner
-directed repository handoff to this architecture on 2026-07-21. No numbered
-specification, protected semantic surface, profile, schema, or entrance gate is
-approved merely by adopting the architecture. Production parser, semantic,
-artifact-replay, and lowering work remains paused wherever this dossier names a
-blocker.
+Status: HISTORICAL PRODUCT-GRADE DESIGN RECORD. The owner approved this design
+under the former production-product goal on 2026-07-21. The 2026-07-22 research-
+compiler goal correction in `THE-PLAN.md` supersedes its implementation order,
+entrance gates, mandatory artifact replay, resource-profile system, publication
+protocol, and release-hardening requirements. Implemented frontend decisions
+remain factual history; other sections are design input only and must not be
+implemented unless the current roadmap or a concrete experiment needs them.
 
 Historical design input: `spec/kernel-spec-v0.8.md`, SHA-256
 `d04336f7fa8d1a6a0f03fe58a17f972b658217a73a3dff91a906b4ba295328a8`.

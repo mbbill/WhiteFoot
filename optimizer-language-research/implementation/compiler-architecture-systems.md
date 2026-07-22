@@ -1,9 +1,10 @@
 # Production Compiler Architecture — Systems and Evidence
 
-Status: OWNER-APPROVED ARCHITECTURE WITH BLOCKERS. This file is part of the
-single [Production Compiler Architecture](compiler-architecture-design.md)
-design record. `THE-PLAN.md` is execution authority. This file does not amend a
-numbered specification, protected semantic surface, profile, or entrance gate.
+Status: HISTORICAL PRODUCT-GRADE DESIGN RECORD. This file is part of the
+[Production Compiler Architecture](compiler-architecture-design.md) research
+record. `THE-PLAN.md` is current authority. Its whole-compiler resource profile,
+service limits, publication controls, and evidence system are not requirements
+for the research compiler.
 
 Implementation status (2026-07-21): Decision 18's migration table below is the
 historical pre-migration audit input. D25 completed the authorized migration:

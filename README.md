@@ -6,142 +6,99 @@ overflow are unrepresentable in accepted source. There is no writer-accessible
 unsafe escape. Runtime safety checks remain enabled unless a machine-verified
 proof authorizes their removal.
 
-[THE-PLAN.md](THE-PLAN.md) is the sole source for current execution order,
-authorization, gates, and stop conditions.
+## Project goal
 
-## Authority and handoff state
+The target is a serious research compiler: general enough to implement the
+real language, clean enough to evolve, and capable of compiling nontrivial
+programs so we can test semantics and performance ideas quickly. It is not an
+untrusted-input service or a stable LLVM-scale product.
+
+This is more than a demo compiler: language behavior must come from general
+rules, correctness tests stay compiler-independent where useful, and the
+compiler must eventually emit and run real programs. Product-scale resource
+controls, stable artifact protocols, distribution, and release engineering are
+not current goals.
+
+[THE-PLAN.md](THE-PLAN.md) is the sole source for current execution order and
+authorization. [AGENTS.md](AGENTS.md) records the priority rule future agents
+must apply.
+
+## Current state
 
 [Kernel specification v0.9](spec/kernel-spec-v0.9.md), SHA-256
 `bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68`,
-is the immutable active specification and evidence baseline. Exact v0.8 and
-its version-bound evidence remain immutable history.
+is the immutable active specification. Exact v0.8 remains immutable history.
+The exact v0.10 candidate has been approved but is not active until guarded
+installation and frontend reproduction complete.
 
-The audited Rust-foundation handoff and standalone grammar-change verifier are
-complete. The verifier is outside the production compiler dependency graph. It
-reported that the reviewed v0.9 bytes remove every v0.8 strong-LL(2) conflict
-without introducing one. The owner approved those exact bytes and the ordered
-protected migration; Phase 3 installed them without changing any expected
-verdict, runnable status, frozen oracle, or existing reference-semantics test.
-Phase 4 is complete. Exact terminal membership, the complete iterative
-strong-LL(2) derivation, one linear topology and source-binding finalizer, and
-the tree-driven FORM-2 audit now construct one opaque `CanonicalSyntaxUnit`.
-Phase 5 remains gated; no semantic acceptance authority exists.
-
-## Production design
-
-Whitefoot exposes ownership, effects, numeric modes, cleanup, checks, and
-verified laws as explicit semantic facts. A source-level option may never
-weaken a safety check for speed.
-
-The future production path uses one semantic kernel:
+The safe-Rust compiler currently implements:
 
 ```text
-exact source transport
-  -> lossless lexer and canonical syntax
-  -> one semantic kernel
-  -> private checked draft
-  -> canonical artifact bytes
-  -> artifact-only decode and complete replay through the same kernel
-  -> accepted compilation
-  -> conservative generic lowering
+ordered source bundle
+  -> lossless lexer
+  -> context-free terminal classification
+  -> iterative strong-LL(2) parsing
+  -> one finalized source-bound syntax tree
+  -> exact FORM-2 source validation
+  -> CanonicalSyntaxUnit
 ```
 
-The originating invocation must complete that same-kernel replay before it can
-construct lowering authority. There is no second production semantic verifier.
-Replay checks that the canonical artifact fully and consistently records the
-accepted invocation; it is not independent semantic evidence and does not make
-the kernel less trusted. Independent models, hostile tests, and differentials
-remain mandatory evidence around the production path.
+There is not yet a resolver, semantic checker, IR, LLVM backend, compiler
+executable, or runnable Whitefoot program. The immediate path is to activate
+v0.10, reproduce the frontend, implement direct general name resolution, and
+then drive the first coherent semantic slice through LLVM.
 
-Optional optimizer facts form a later, independently verified overlay. The
-empty overlay always works, and an optional fact can improve an already
-accepted program but cannot change acceptance, semantic identity, or required
-checks.
+## What exists
 
-## What exists now
+The active compiler workspace contains:
 
-The safe-Rust workspace contains seven narrowly scoped packages:
+- `whitefoot-contract` for specification identity, ordered source transport,
+  spans, and shared frontend contracts;
+- `whitefoot-language-data` for specification-derived terminal predicates;
+- `whitefoot-lexer` for lossless shape-only lexical formation;
+- `whitefoot-syntax-data` for generated grammar and predictive data;
+- `whitefoot-syntax` for classification, parsing, finalization, and canonical
+  source validation;
+- `whitefoot-source-audit` for exact source/specification binding; and
+- `whitefoot-lexical-observer` as a development adapter for the independent
+  lexical model.
 
-- `whitefoot-contract` owns exact identities, bounded source transport, spans,
-  ceilings, and the version-1 source-binding wire contract.
-- `whitefoot-language-data` owns the exact v0.9 terminal predicates and their
-  spelling languages. It is immutable language data, not parser evidence or
-  acceptance authority.
-- `whitefoot-lexer` losslessly partitions exact source bytes into shape-only
-  tokens and retained trivia. It does not parse or accept programs.
-- `whitefoot-syntax-data` contains the specification-bound v0.9 production,
-  source-EBNF, and strong-LL(2) tables. Generated bytes are checked directly
-  against the numbered specification; the crate is data, not parser authority.
-- `whitefoot-syntax` applies every v0.9 terminal predicate, retains all
-  memberships, and iteratively derives the complete grammar into one private
-  postorder representation under explicit limits. One linear finalizer checks
-  topology, production shape, source ownership, and exact token coverage; a
-  streaming tree-driven FORM-2 audit must pass before the package publishes
-  canonical syntax. It performs no recovery or semantic disambiguation.
-- `whitefoot-source-audit` checks exact source/specification binding only. It
-  is not an artifact verifier or semantic checker.
-- `whitefoot-lexical-observer` is a binary-only development adapter for an
-  independent byte-level lexical differential. Its output is evidence only.
+The standalone `grammar-verifier/` is a specification-development tool, not a
+normal compiler dependency. The conformance corpus, code-shape corpus, focused
+reference models, and experiments are evidence. None defines compiler behavior
+or licenses source-specific handling.
 
-The compiler-independent `grammar-verifier/` contains two deliberately
-independent engines: a safe-Rust strong-LL(2) auditor and a bounded Python
-generalized-parser Oracle. Their final common extraction ledger agrees byte for
-byte. Both registered dereference cases change from two v0.8 derivations to one
-v0.9 derivation, with no introduced derivation or static conflict. The numbered
-specification, not the verifier, is language authority.
+The retired wfc and democ implementations remain inert under `archive/`. No
+active source, build, test, or tool imports from them.
 
-Under PROG-2, one ordered nonempty `SourceBundle` forms one closed compilation
-unit. Record order fixes top-level declaration order; record paths contribute
-identity but never namespaces or lookup. Only the finalized and byte-audited
-result is canonical syntax authority; it is not program acceptance. The
-workspace still has no resolver, semantic kernel, checked artifact, backend,
-compiler executable, or release capability.
+## Verification
 
-The compiler-independent conformance corpus, proof/code-shape premise corpus,
-focused reference models, and measured experiments remain active evidence.
-None is compiler authority, and a corpus count or passing example is not a
-completeness claim.
-
-Run the development gates with:
+Run:
 
 ```sh
 make -C compiler check
 make check
 ```
 
-A green result states only the capabilities that currently exist. It is not a
-compiler-conformance or release claim. Compiler failures and resource outcomes
-belong to adapter results, never to normative expected behavior.
-
-## Durable verification
-
-The compiler implementation is replaceable; the evidence is intended to
-survive it. The durable system includes specification-versioned conformance,
-independent grammar and semantic models, valid and hostile artifact vectors,
-property and mutation testing, facts-on/facts-off controls, and full-project
-compatibility protocols. Measured experiments under
-[experiments/](experiments/README.md) remain mechanism findings with explicit
-scope, not general performance or product claims.
+A green result states only the capabilities those checks exercise. It does not
+claim that the language or compiler is complete.
 
 ## Repository guide
 
 | Purpose | Location |
 |---|---|
-| Current execution order and authorization | [THE-PLAN.md](THE-PLAN.md) |
+| Current execution order | [THE-PLAN.md](THE-PLAN.md) |
+| Agent priority guidance | [AGENTS.md](AGENTS.md) |
 | Language specification | [spec/kernel-spec-v0.9.md](spec/kernel-spec-v0.9.md) |
-| Specification source index and semantic catalog | [facets/v0.9/](facets/v0.9/README.md) |
-| Active Rust compiler workspace | [compiler/](compiler/README.md) |
-| Standalone grammar-change evidence | [grammar-verifier/](grammar-verifier/README.md) |
-| Project law and writer patterns | [CONSTITUTION.md](CONSTITUTION.md), [PATTERNS.md](PATTERNS.md) |
+| Active Rust compiler | [compiler/](compiler/README.md) |
 | Compiler-independent behavior corpus | [conformance/](conformance/README.md) |
-| Compiler-independent lexical probes | [frontend-corpus/v0.9/](frontend-corpus/v0.9/README.md) |
-| Proof/code-shape premise corpus | [codegen-corpus/](codegen-corpus/README.md) |
+| Standalone grammar evidence | [grammar-verifier/](grammar-verifier/README.md) |
 | Focused reference semantics | [prototype/checker/](prototype/checker/) |
-| Measured evidence | [experiments/](experiments/README.md) |
-| Design decisions and rejected routes | [mcts_mem/](mcts_mem/) |
+| Proof and code-shape premises | [codegen-corpus/](codegen-corpus/README.md) |
+| Measured experiments | [experiments/](experiments/README.md) |
+| Historical design decisions | [mcts_mem/](mcts_mem/) |
 | Append-only implementation record | [decision-gates.md](optimizer-language-research/implementation/decision-gates.md) |
-| Retired compiler implementations | [archive/toolchains/self-hosting-2026-07-20/](archive/toolchains/self-hosting-2026-07-20/README.md) |
-| Repository instructions | [AGENTS.md](AGENTS.md) |
+| Retired implementations | [archive/](archive/) |
 
 ## License
 

@@ -1,149 +1,78 @@
-# Whitefoot production compiler
+# Whitefoot research compiler
 
-This directory contains the one permanent safe-Rust implementation of the
-Whitefoot compiler. There is no disposable compiler and no parallel
-self-hosting track.
+This directory contains the continuing safe-Rust compiler implementation. It
+is intended to become a real, general compiler for language and performance
+experiments, not a throwaway demo and not an LLVM-scale product.
 
-The immutable active specification and evidence baseline is
-`../spec/kernel-spec-v0.9.md`, SHA-256
+The immutable active target is `../spec/kernel-spec-v0.9.md`, SHA-256
 `bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68`.
-The immutable v0.8 specification and its compiler-local identity locks remain
-historical evidence. Compiler code may not reinterpret either version.
-`../THE-PLAN.md` is the sole source for implementation order and authorization.
+The exact approved v0.10 candidate is not active until the guarded switch and
+frontend reproduction complete. `../THE-PLAN.md` is the sole source for work
+order.
 
-## Handoff state
+## Current capability
 
-Phase 1's audited foundation handoff is complete. The workspace now
-establishes source, lexical, grammar-derivation, identity, resource, and build
-boundaries. It is not yet a source-to-code compiler and makes no conformance
-or release claim.
-
-Phase 2's standalone grammar-change verifier and evidence package are complete.
-That tool stays outside the production compiler dependency graph. The exact
-owner-approved v0.9 successor is now the active compiler target. Installing its
-identity does not create production parser, semantic, artifact, backend, or
-release authority; later work still follows the gates in `../THE-PLAN.md`.
-
-Phase 3's exact-v0.9 installation and Phase 4's canonical frontend are complete.
-The frontend ends at one source-bound `CanonicalSyntaxUnit`. Phase 5 is not
-active until its separately listed semantic discrepancies and A-questions are
-closed.
-
-## Current crates
-
-- `whitefoot-contract` owns judgment-free contracts: exact specification and
-  nominal catalog identities, bounded ordered source transport, source
-  identities and spans, resource ceilings, and the version-1 source-binding
-  wire format. Owned construction reports limit and allocation failures.
-- `whitefoot-language-data` depends only on `whitefoot-contract`. It owns the
-  complete exact-v0.9 terminal predicate inventory and pure spelling
-  membership functions. It does not inspect source bundles, select grammar
-  alternatives, or grant acceptance.
-- `whitefoot-lexer` depends only on `whitefoot-contract`. It losslessly
-  partitions exact source bytes into shape-only tokens and retained trivia
-  under explicit ceilings. It does not classify grammar terminals, parse,
-  resolve, or accept a program.
-- `whitefoot-syntax-data` depends only on the contract and language data. It
-  owns immutable, generated exact-v0.9 production, source-EBNF, diagnostic
-  provenance, and strong-LL(2) data. A separate repository tool regenerates
-  and byte-checks that data from the numbered specification. The crate contains
-  no parser and grants no syntax authority.
-- `whitefoot-syntax` depends only on the contract, language data, lexer, and
-  syntax data. It classifies every formed token context-free, retains every
-  matching predicate, and uses a resource-bounded iterative LL(2) parser to
-  derive every v0.9 production into one private postorder representation over
-  the complete ordered source bundle. One linear finalizer checks the single
-  root, production shape, parent/child topology, source ownership and extents,
-  and exact token coverage. A streaming tree-driven FORM-2 comparison over the
-  same derivation is the sole constructor of canonical syntax. The crate has no
-  backtracking, priority choice, recovery, synthetic tokens, semantic
-  disambiguation, or semantic authority.
-- `whitefoot-source-audit` depends only on `whitefoot-contract`. It checks that
-  a decoded candidate binding names the expected specification and reproduces
-  the exact source transport. It does not replace the binding codec's separate
-  canonical-byte validation and is not an artifact verifier, semantic checker,
-  or independent production authority.
-- `whitefoot-lexical-observer` is a binary-only development adapter over the
-  contract and lexer. It exposes the lexer's closed outcome families to an
-  independent byte-level model. Requests and responses are observation data,
-  not tokens with portable identity, parser output, verdicts, receipts, or
-  checked artifacts.
-
-The active specification forms one compilation unit from an ordered, nonempty
-sequence of logical source records. `SourceBundle` preserves source order and
-exact bytes, but this judgment-free contract alone does not prove every PROG-2
-input-envelope requirement or create a parsed program root.
-
-The parser's failure-atomic private derivation and the opaque finalized
-intermediate are not acceptance verdicts. Only a completed source audit yields
-`CanonicalSyntaxUnit`, which proves syntax and exact FORM-2 bytes but no name,
-type, ownership, effect, or other semantic rule. No resolver, semantic kernel,
-semantic record, artifact schema, backend, compiler executable, conformance
-adapter, or release capability exists here yet. No active code imports the
-retired implementations under `../archive/`.
-
-## Later production authority path
-
-After the specification and phase gates permit it, production acceptance uses
-one semantic kernel:
+The compiler currently ends at `CanonicalSyntaxUnit`:
 
 ```text
-canonical syntax
-  -> one semantic kernel
-  -> private checked draft
-  -> target qualification
-  -> canonical artifact projection
-  -> artifact-only decode and complete replay through the same kernel
-  -> accepted compilation from replay-decoded state
-  -> conservative generic lowering
+SourceBundle
+  -> lossless shape lexer
+  -> terminal classifier
+  -> iterative strong-LL(2) parser
+  -> one private derivation
+  -> topology and source finalizer
+  -> streaming FORM-2 validation
+  -> CanonicalSyntaxUnit
 ```
 
-Only mandatory replay in the originating invocation may construct lowering
-authority. There is no second production semantic certificate verifier.
-Same-kernel replay detects incomplete projection, codec, reference, and
-corruption defects; it is not independent semantic evidence and does not
-reduce the trusted semantic kernel. The current source-audit crate is not a
-placeholder for that future replay boundary.
+That value proves syntax and exact source binding only. There is no resolver,
+semantic checker, IR, LLVM backend, CLI, or executable-program capability yet.
 
-Optional optimizer propositions are a separate later overlay with their own
-independent family verifiers. The canonical empty overlay must always lower
-correctly, preserving every unproved runtime check.
+## Active crates
 
-## Non-authority data
+- `whitefoot-contract` owns shared source, identity, span, and frontend
+  contracts.
+- `whitefoot-language-data` owns specification-derived terminal predicates.
+- `whitefoot-lexer` partitions exact bytes into shape-only tokens and trivia.
+- `whitefoot-syntax-data` owns generated grammar and strong-LL(2) data.
+- `whitefoot-syntax` classifies, parses, finalizes, and validates exact FORM-2
+  bytes before publishing canonical syntax.
+- `whitefoot-source-audit` checks exact source/specification binding.
+- `whitefoot-lexical-observer` exposes lexer behavior to an independent
+  byte-level development model.
 
-The capability overlay at `../capabilities/whitefoot-rust/v0.9/`, the static
-semantic catalog, discrepancy registry, source index, corpora, and experiment
-receipts are audit evidence only. Production code must not read them to select
-acceptance, semantic handling, or lowering. A digest proves byte identity, not
-truth, completeness, or implementation capability.
+These boundaries are private compiler implementation details and may evolve as
+real downstream consumers appear. Do not add stable schemas, artifact replay,
+resource-profile systems, or placeholder crates for imagined future stages.
 
-The version-1 `WFSOURCE` codec remains exactly source transport plus
-specification identity. Catalog, tree, proof, semantic, target, and backend
-identities do not belong in it. No future artifact envelope should be created
-until its canonical schema and real consumer are authorized.
+## Next capability
 
-## Gates
+After the exact v0.10 switch, implement one direct general resolver over
+`CanonicalSyntaxUnit`. It must classify and resolve every grammar-defined name
+role without function, project, source-shape, or corpus special cases. Use
+ordinary safe-Rust data structures and expose only the records needed by the
+type checker.
 
-Run the compiler gate from the repository root:
+After resolution, build the smallest coherent semantic family end to end
+through a simple target-independent IR and LLVM. Other valid language features
+may remain explicitly not implemented while the compiler grows; they must not
+be mislabeled as invalid source.
+
+## Engineering standard
+
+- Follow the active numbered specification.
+- Keep one general compiler path.
+- Preserve all required safety checks on the facts-off path.
+- Prefer simple normal Rust over preemptive infrastructure.
+- Keep internal APIs easy to change.
+- Add independent evidence where it catches plausible semantic mistakes.
+- Use dogfood programs to choose capability order, never to select semantics.
+- Keep files cohesive by responsibility.
+
+Run the workspace gate with:
 
 ```sh
 make -C compiler check
 ```
 
-Run the complete development gate before and after a completed repository
-slice:
-
-```sh
-make check
-```
-
-The compiler gate pins the exact Rust toolchain, v0.9 bytes, static catalog
-identity, package graph, dependencies, source policy, formatting, linting,
-tests, rustdoc, and cross-path reproducibility. Builds are locked and offline;
-the required toolchain must already be installed. The workspace forbids
-`unsafe`, build scripts, procedural macros, unapproved dependencies,
-source-splicing, and archive imports.
-
-A green gate describes only this complete canonical frontend and the earlier
-foundation. It does not claim semantic acceptance, conformance, lowering, or
-release.
+The root `make check` includes this gate.

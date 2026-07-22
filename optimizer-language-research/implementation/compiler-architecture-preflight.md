@@ -2,6 +2,11 @@
 
 Status: debate input, not an architecture decision or execution authority.
 
+Historical note (2026-07-22): the resulting dossier assumed a product-grade
+compiler goal that the owner has now rejected. `THE-PLAN.md` instead targets a
+serious, evolving research compiler. Use this preflight only as a record of
+questions that may become relevant; it creates no present requirement.
+
 This document exists because implementation must not silently choose the
 compiler architecture. `THE-PLAN.md` remains the sole roadmap and
 authorization source. The purpose here is to make the questions that the next

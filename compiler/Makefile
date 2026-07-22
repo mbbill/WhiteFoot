@@ -1,7 +1,7 @@
 override PYTHON := python3 -B
 override CARGO := $(PYTHON) tools/cargo_policy.py
 
-check: policy format build lint test docs reproducible
+check: policy format build lint test docs
 	@echo "== RUST CANONICAL FRONTEND GREEN; SEMANTIC IMPLEMENTATION ABSENT =="
 
 policy:
@@ -32,7 +32,4 @@ test:
 docs:
 	$(CARGO) doc --workspace --all-features --no-deps --locked --offline
 
-reproducible:
-	$(PYTHON) tools/check_reproducible.py
-
-.PHONY: check policy format build lint test docs reproducible
+.PHONY: check policy format build lint test docs

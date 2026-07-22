@@ -1,9 +1,9 @@
 # Production Compiler Architecture — Frontend and Source
 
-Status: OWNER-APPROVED ARCHITECTURE WITH BLOCKERS. This file is part of the
-single [Production Compiler Architecture](compiler-architecture-design.md)
-design record. `THE-PLAN.md` is execution authority. This file does not amend a
-numbered specification, protected semantic surface, profile, or entrance gate.
+Status: HISTORICAL PRODUCT-GRADE DESIGN RECORD. This file is part of the
+[Production Compiler Architecture](compiler-architecture-design.md) research
+record. `THE-PLAN.md` is current authority. Implemented frontend facts remain
+useful; unimplemented product-hardening requirements are not active work.
 
 Implementation status (2026-07-21): exact v0.9 closed the Decision 2 through 4
 frontend blockers. The production workspace now implements the specified

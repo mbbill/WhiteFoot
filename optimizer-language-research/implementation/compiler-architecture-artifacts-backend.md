@@ -1,9 +1,10 @@
 # Production Compiler Architecture — Artifacts and Backend
 
-Status: OWNER-APPROVED ARCHITECTURE WITH BLOCKERS. This file is part of the
-single [Production Compiler Architecture](compiler-architecture-design.md)
-design record. `THE-PLAN.md` is execution authority. This file does not amend a
-numbered specification, protected semantic surface, profile, or entrance gate.
+Status: HISTORICAL PRODUCT-GRADE DESIGN RECORD. This file is part of the
+[Production Compiler Architecture](compiler-architecture-design.md) research
+record. `THE-PLAN.md` is current authority. Mandatory artifact replay, stable
+envelopes, publication protocols, and product backend controls are deferred
+unless a concrete experiment establishes a need.
 
 This file uniquely owns Decisions 11 through 14 and the conservative backend contract. Cross-stage authority, entrance gates,
 execution order, owner decisions, and exit status remain in the parent index.
