@@ -67,3 +67,8 @@ specification or test change.
 - owner: approved in session
 - reason: Select `propagate` as the sole ERR-3 Result-forwarding spelling, with no `try` compatibility alias, and approve exact v0.11 candidate SHA-256 `050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc` for append-only activation with synchronized compiler, conformance, and reference-model updates.
 - evidence: `archive/governance/decisions/v0.11.md` (`V011-PROPAGATE-SPELLING-CANDIDATE-FREEZE` and `V011-OWNER-APPROVED-ACTIVATION`)
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Remove the stale `KNOWN GAP` wording from the protected `xfail-own1-bare-affine-use` conformance source now that the compiler implements its existing OWN-1 rejection. The program, manifest verdict, rule assignment, and reference expectation are unchanged.
+- evidence: owner approval immediately following the nominal-data compiler slice at commit `58e9c43`

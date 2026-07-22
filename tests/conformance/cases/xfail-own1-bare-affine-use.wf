@@ -5,7 +5,7 @@ enum Sign {
 }
 
 fn main() -> own unit pure {
-  doc "A bare use of an affine value must be rejected [OWN-1] (write move). KNOWN GAP.";
+  doc "A bare use of an affine value must be rejected [OWN-1] (write move).";
   let a: own Sign = Neg(mag: 1_i32);
   let b: own Sign = a;
   return unit;

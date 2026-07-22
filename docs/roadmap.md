@@ -380,10 +380,7 @@ variants, missing arms, and invalid field order.
 This is not the complete ERR-2 toolchain contract: a whole-unit
 variant-addition query that enumerates every affected match site is still
 pending. The compiler adapter also does not yet implement the full independent
-conformance manifest. The protected `xfail-own1-bare-affine-use` source still
-contains stale `KNOWN GAP` prose even though its manifest verdict is now the
-implemented OWN-1 rejection; correcting that existing fixture awaits explicit
-owner agreement. None of these are claimed by the current green gate.
+conformance manifest. Neither is claimed by the current green gate.
 
 Direct recursive nominal layout and branch-dependent affine state joins remain
 explicit implementation limits, as do repeated exhaustive match arms; no
