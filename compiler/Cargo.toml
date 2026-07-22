@@ -6,6 +6,7 @@ members = [
   "crates/whitefoot-lexical-observer",
   "crates/whitefoot-source-audit",
   "crates/whitefoot-syntax",
+  "crates/whitefoot-syntax-data",
 ]
 resolver = "3"
 

@@ -42,4 +42,13 @@ dependencies = [
  "whitefoot-contract",
  "whitefoot-language-data",
  "whitefoot-lexer",
+ "whitefoot-syntax-data",
+]
+
+[[package]]
+name = "whitefoot-syntax-data"
+version = "0.1.0"
+dependencies = [
+ "whitefoot-contract",
+ "whitefoot-language-data",
 ]

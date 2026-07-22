@@ -26,6 +26,7 @@ EXPECTED_MEMBERS = (
     "whitefoot-lexical-observer",
     "whitefoot-source-audit",
     "whitefoot-syntax",
+    "whitefoot-syntax-data",
 )
 EXPECTED_MANIFESTS = {
     "whitefoot-contract": Path("crates/whitefoot-contract/Cargo.toml"),
@@ -36,6 +37,7 @@ EXPECTED_MANIFESTS = {
     ),
     "whitefoot-source-audit": Path("crates/whitefoot-source-audit/Cargo.toml"),
     "whitefoot-syntax": Path("crates/whitefoot-syntax/Cargo.toml"),
+    "whitefoot-syntax-data": Path("crates/whitefoot-syntax-data/Cargo.toml"),
 }
 EXPECTED_TARGETS = {
     "whitefoot-contract": {
@@ -86,6 +88,14 @@ EXPECTED_TARGETS = {
         "doc": True,
         "doctest": False,
     },
+    "whitefoot-syntax-data": {
+        "name": "whitefoot_syntax_data",
+        "kind": ["lib"],
+        "crate_types": ["lib"],
+        "source": Path("crates/whitefoot-syntax-data/src/lib.rs"),
+        "doc": True,
+        "doctest": False,
+    },
 }
 EXPECTED_EDGES = {
     "whitefoot-contract": (),
@@ -100,6 +110,11 @@ EXPECTED_EDGES = {
         "whitefoot-contract",
         "whitefoot-language-data",
         "whitefoot-lexer",
+        "whitefoot-syntax-data",
+    ),
+    "whitefoot-syntax-data": (
+        "whitefoot-contract",
+        "whitefoot-language-data",
     ),
 }
 DEPENDENCY_FIELDS = {
@@ -743,6 +758,47 @@ def check_workspace_topology(metadata: dict) -> dict[str, dict]:
                 None,
                 None,
                 Path("crates/whitefoot-lexer"),
+            ),
+            (
+                "whitefoot-syntax-data",
+                "*",
+                None,
+                None,
+                False,
+                True,
+                (),
+                None,
+                None,
+                None,
+                Path("crates/whitefoot-syntax-data"),
+            ),
+        ),
+        "whitefoot-syntax-data": (
+            (
+                "whitefoot-contract",
+                "*",
+                None,
+                None,
+                False,
+                True,
+                (),
+                None,
+                None,
+                None,
+                Path("crates/whitefoot-contract"),
+            ),
+            (
+                "whitefoot-language-data",
+                "*",
+                None,
+                None,
+                False,
+                True,
+                (),
+                None,
+                None,
+                None,
+                Path("crates/whitefoot-language-data"),
             ),
         ),
     }

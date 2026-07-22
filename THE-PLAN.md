@@ -2,7 +2,9 @@
 
 Status: CANONICAL ROADMAP, updated 2026-07-21. Phases 1 through 3 are complete:
 the audited foundation, standalone grammar evidence, and exact owner-approved
-v0.9 installation are durable. Phase 4's canonical frontend is next.
+v0.9 installation are durable. Phase 4 is active: terminal membership and the
+private iterative grammar derivation are complete, while finalization and the
+tree-driven source audit are next.
 
 ## Objective
 
@@ -445,8 +447,10 @@ non-passing grammar gate.
 ## Phase 4: build the canonical frontend
 
 Status: active. Exact v0.9 and the independent grammar evidence close the
-complete parser entrance gate. The version-bound terminal-membership boundary
-is implemented; typed predictive parsing is the next incomplete boundary.
+complete parser entrance gate. The version-bound terminal-membership and
+private iterative grammar-derivation boundaries are implemented. The linear
+topology finalizer and tree-driven canonical-source audit are the next
+incomplete boundaries; `CanonicalSyntaxUnit` remains unavailable.
 
 Keep the existing shape lexer unchanged in authority. Add a
 specification-versioned terminal classifier that evaluates the complete
@@ -710,8 +714,10 @@ cohesive and reviewable. Every new or modified repository artifact, identifier,
 comment, diagnostic, fixture, and test name uses English. `AGENTS.md` and
 `CLAUDE.md` remain byte-identical.
 
-The completed current foundation contains three permanent library crates and
-one binary-only lexical observer, seven reproducible Cargo artifacts, the
+The completed current frontend foundation contains six permanent library
+crates and one binary-only lexical observer, 13 reproducible Cargo artifacts,
+the exact-v0.9 production and strong-LL(2) data contract, the private
+resource-bounded grammar derivation, the
 static catalog SHA-256
 `3ff82e48fc860c4a414e8e1a16a652426b7505d7b74beedf057e418533151aae`,
 the seven-record discrepancy sidecar at SHA-256
@@ -725,11 +731,13 @@ Exact-v0.8 locks, assets, models, and receipts remain immutable historical
 evidence. These close no semantic facet and grant no semantic, artifact,
 backend, or release authority.
 
-Phases 1 through 3 are complete. The next roadmap action is Phase 4's
-canonical frontend against exact v0.9. Its first slice may define the terminal
-classifier and source-bound parser structures only through one
-`CanonicalSyntaxUnit`, subject to Phase 4's written witness and hostile-review
-gates.
+Phases 1 through 3 are complete. Phase 4 has exact-v0.9 terminal membership and
+a resource-bounded iterative strong-LL(2) derivation over the complete grammar.
+That failure-atomic result is private and grants no canonical syntax authority.
+The next roadmap action is the single linear topology/production-shape/token-
+coverage finalizer, followed by the tree-driven source audit. Only after both
+boundaries and their hostile-review gates pass may one `CanonicalSyntaxUnit`
+factory exist.
 
 Until Phase 4 exits and every later gate is separately satisfied:
 

@@ -2,7 +2,7 @@
   "schema": 1,
   "cargo_lock": {
     "version": 4,
-    "sha256": "3c8c45e4b50ebb86d7adf4a20bf5bb07b81b5c197430fda18311d6bb006b7501"
+    "sha256": "f0a5fe12310b7d87b9347b28daead1a4e4af5e9c903e0d602cfe062478687c14"
   },
   "dependencies": []
 }

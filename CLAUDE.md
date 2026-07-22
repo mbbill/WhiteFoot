@@ -103,16 +103,17 @@ The owner replaced the self-host-first wfc/democ route on 2026-07-20. The old
 implementations are archived and there is no disposable Rust compiler. The
 owner-approved exact v0.9 specification is active; v0.8 remains immutable
 history. Phases 1 through 3 are complete, including the independently checked
-grammar repair, protected migration, and active-target switch. Phase 4's
-canonical frontend is next under the exact gates in `THE-PLAN.md`. Later
-specification changes, protected changes, release claims, and any future
-self-hosting remain separately gated.
+grammar repair, protected migration, and active-target switch. Phase 4's exact
+terminal membership and private iterative strong-LL(2) derivation are
+implemented; the linear finalizer and tree-driven source audit are next under
+the exact gates in `THE-PLAN.md`. Later specification changes, protected
+changes, release claims, and any future self-hosting remain separately gated.
 
 The active workspace contains `whitefoot-contract`,
 `whitefoot-language-data`, `whitefoot-lexer`, `whitefoot-syntax`,
-`whitefoot-source-audit`, and the binary-only
+`whitefoot-syntax-data`, `whitefoot-source-audit`, and the binary-only
 `whitefoot-lexical-observer`. The observer is evidence only, the source audit
-checks exact source/specification binding only, and the syntax package
-currently stops after context-free v0.9 terminal membership. No production
-parser, canonical syntax tree, semantic kernel, artifact, backend, compiler
-executable, or release capability exists yet.
+checks exact source/specification binding only, and the syntax package exposes
+only a failure-atomic private postorder grammar derivation. No topology
+finalizer, canonical syntax authority, semantic kernel, artifact, backend,
+compiler executable, or release capability exists yet.

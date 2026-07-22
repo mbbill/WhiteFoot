@@ -13,9 +13,10 @@ historical evidence. Compiler code may not reinterpret either version.
 
 ## Handoff state
 
-Phase 1's audited foundation handoff is complete. The workspace establishes
-source, lexical, identity, resource, and build boundaries only. It is not yet a
-source-to-code compiler and makes no conformance or release claim.
+Phase 1's audited foundation handoff is complete. The workspace now
+establishes source, lexical, grammar-derivation, identity, resource, and build
+boundaries. It is not yet a source-to-code compiler and makes no conformance
+or release claim.
 
 Phase 2's standalone grammar-change verifier and evidence package are complete.
 That tool stays outside the production compiler dependency graph. The exact
@@ -37,11 +38,18 @@ release authority; later work still follows the gates in `../THE-PLAN.md`.
   partitions exact source bytes into shape-only tokens and retained trivia
   under explicit ceilings. It does not classify grammar terminals, parse,
   resolve, or accept a program.
-- `whitefoot-syntax` depends only on the contract, language data, and lexer. Its
-  current entry point classifies every formed token context-free, retains every
-  matching predicate, binds the result to exact v0.9, and keeps the lossless
-  lexical tape borrowed for later source audit. It has no parser, derivation
-  tree, canonical-syntax factory, recovery path, or semantic authority yet.
+- `whitefoot-syntax-data` depends only on the contract and language data. It
+  owns immutable, generated exact-v0.9 production, source-EBNF, diagnostic
+  provenance, and strong-LL(2) data. A separate repository tool regenerates
+  and byte-checks that data from the numbered specification. The crate contains
+  no parser and grants no syntax authority.
+- `whitefoot-syntax` depends only on the contract, language data, lexer, and
+  syntax data. It classifies every formed token context-free, retains every
+  matching predicate, and uses a resource-bounded iterative LL(2) parser to
+  derive every v0.9 production into one private postorder representation over
+  the complete ordered source bundle. It has no backtracking, priority choice,
+  recovery, synthetic tokens, semantic disambiguation, topology finalizer,
+  canonical-syntax factory, or semantic authority.
 - `whitefoot-source-audit` depends only on `whitefoot-contract`. It checks that
   a decoded candidate binding names the expected specification and reproduces
   the exact source transport. It does not replace the binding codec's separate
@@ -58,11 +66,11 @@ sequence of logical source records. `SourceBundle` preserves source order and
 exact bytes, but this judgment-free contract alone does not prove every PROG-2
 input-envelope requirement or create a parsed program root.
 
-No production parser, syntax tree authority, resolver, semantic kernel,
-semantic record, artifact schema, backend, compiler executable, conformance
-adapter, or release capability exists here yet. Terminal membership is not a
-parse or acceptance verdict. No active code imports the retired
-implementations under `../archive/`.
+The parser's failure-atomic private derivation is not a finalized tree or an
+acceptance verdict. No syntax tree authority, `CanonicalSyntaxUnit`, resolver,
+semantic kernel, semantic record, artifact schema, backend, compiler
+executable, conformance adapter, or release capability exists here yet. No
+active code imports the retired implementations under `../archive/`.
 
 ## Later production authority path
 
@@ -126,5 +134,5 @@ the required toolchain must already be installed. The workspace forbids
 `unsafe`, build scripts, procedural macros, unapproved dependencies,
 source-splicing, and archive imports.
 
-A green gate describes only this incomplete foundation. It does not claim that
-Whitefoot source can be parsed, accepted, lowered, or released.
+A green gate describes only this incomplete frontend. It does not claim that
+Whitefoot source can be canonically accepted, lowered, or released.

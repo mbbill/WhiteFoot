@@ -52,6 +52,12 @@ EXPECTED_TARGETS = {
         ("lib",),
         ("lib",),
     ),
+    (
+        "crates/whitefoot-syntax-data/Cargo.toml",
+        "whitefoot_syntax_data",
+        ("lib",),
+        ("lib",),
+    ),
 }
 
 
