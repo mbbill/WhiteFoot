@@ -63,6 +63,13 @@ impl<'bytes> Scanner<'bytes> {
             b'=' if self.bytes.get(start + 1) == Some(&b'>') => {
                 self.fixed(start, 2, RawKind::Token(TokenKind::FatArrow))
             }
+            b'/' if matches!(self.bytes.get(start + 1), Some(b'/' | b'*')) => {
+                return Err(RawIssue {
+                    start,
+                    end: start + 2,
+                    kind: SourceIssueKind::CommentPrefix,
+                });
+            }
             b'"' => self.string(start)?,
             b'(' => self.fixed(start, 1, RawKind::Token(TokenKind::LeftParen)),
             b')' => self.fixed(start, 1, RawKind::Token(TokenKind::RightParen)),
@@ -84,6 +91,13 @@ impl<'bytes> Scanner<'bytes> {
                     None => (start + 1, SourceIssueKind::InvalidUtf8),
                 };
                 return Err(RawIssue { start, end, kind });
+            }
+            0x00..=0x1f | 0x7f => {
+                return Err(RawIssue {
+                    start,
+                    end: start + 1,
+                    kind: SourceIssueKind::InvalidSourceByte,
+                });
             }
             _ => {
                 return Err(RawIssue {
@@ -215,6 +229,20 @@ impl<'bytes> Scanner<'bytes> {
                             kind: SourceIssueKind::InvalidStringEscape,
                         });
                     };
+                    if !escaped.is_ascii() {
+                        let Some(length) = utf8_scalar_len(&self.bytes[cursor + 1..]) else {
+                            return Err(RawIssue {
+                                start: cursor + 1,
+                                end: cursor + 2,
+                                kind: SourceIssueKind::InvalidUtf8,
+                            });
+                        };
+                        return Err(RawIssue {
+                            start: cursor,
+                            end: cursor + 1 + length,
+                            kind: SourceIssueKind::InvalidStringEscape,
+                        });
+                    }
                     if !matches!(escaped, b'\\' | b'"' | b'n') {
                         return Err(RawIssue {
                             start: cursor,

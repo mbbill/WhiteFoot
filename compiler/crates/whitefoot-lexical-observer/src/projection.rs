@@ -133,6 +133,8 @@ const fn source_issue_tag(kind: SourceIssueKind) -> u8 {
         SourceIssueKind::UnterminatedString => 4,
         SourceIssueKind::InvalidStringByte => 5,
         SourceIssueKind::InvalidStringEscape => 6,
+        SourceIssueKind::InvalidSourceByte => 7,
+        SourceIssueKind::CommentPrefix => 8,
     }
 }
 

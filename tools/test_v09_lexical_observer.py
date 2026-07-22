@@ -532,7 +532,11 @@ class CodecTests(unittest.TestCase):
         malformed = (
             u8(1) + u32(1) + u64(0) + u64(1) + u8(0),
             u8(1) + u32(0) + u64(1) + u64(1) + u8(0),
-            u8(1) + u32(0) + u64(0) + u64(1) + u8(7),
+            u8(1)
+            + u32(0)
+            + u64(0)
+            + u64(1)
+            + u8(len(observer.SOURCE_ISSUE_KINDS)),
             u8(2) + u8(0) + u8(4) + u64(2) + u64(3),
             u8(2) + u8(0) + u8(4) + u64(1) + u64(1),
             u8(2) + u8(1) + u8(2) + u64(1),

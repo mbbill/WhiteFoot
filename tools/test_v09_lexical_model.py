@@ -205,6 +205,30 @@ class ModelContractTests(unittest.TestCase):
                 f"byte=0x{byte:02x}",
             )
 
+    def test_pre_tree_issue_categories_and_spans_follow_v0_9(self) -> None:
+        cases = (
+            (b"//", "comment_prefix", 0, 2),
+            (b"/*", "comment_prefix", 0, 2),
+            (b"/", "unexpected_byte", 0, 1),
+            (b"\x00", "invalid_source_byte", 0, 1),
+            (b"\x7f", "invalid_source_byte", 0, 1),
+            (b'"\\\xc2\xa2"', "invalid_string_escape", 1, 4),
+            (b'"\\\xe2\x98\x83"', "invalid_string_escape", 1, 5),
+            (b'"\\\xf0\x9f\x98\x80"', "invalid_string_escape", 1, 6),
+            (b'"\\\xff"', "invalid_utf8", 2, 3),
+            (b'"\\\xc2"', "invalid_utf8", 2, 3),
+            (b"\xe2\x98\x83", "unexpected_byte", 0, 3),
+            (b'"\xe2\x98\x83"', "invalid_string_byte", 1, 4),
+        )
+        for source, kind, start, end in cases:
+            with self.subTest(source=source):
+                outcome = model.lex_v0_9((source,), self.limits)
+                self.assertIsInstance(outcome, model.SourceIssue)
+                self.assertEqual(
+                    (outcome.kind, outcome.start, outcome.end),
+                    (kind, start, end),
+                )
+
     def test_number_candidates_remain_opaque_and_operation_suffixes_stay_closed(self) -> None:
         numbers = (
             b"-2147483648_i32",

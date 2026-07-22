@@ -145,6 +145,10 @@ pub enum SourceIssueKind {
     InvalidStringByte,
     /// A string uses an escape outside the closed escape set.
     InvalidStringEscape,
+    /// A control or DEL byte violates the source UTF-8/byte contract.
+    InvalidSourceByte,
+    /// An exact `//` or `/*` prefix violates the no-comments rule.
+    CommentPrefix,
 }
 
 /// One source-local issue found before a canonical tree exists.

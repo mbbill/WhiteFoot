@@ -15,17 +15,83 @@ fn issue(source: &[u8]) -> (SourceIssueKind, u64, u64) {
     }
 }
 
+fn issue_v0_9(source: &[u8]) -> (SourceIssueKind, u64, u64) {
+    let source = bundle(&[("bad.wf", source)]);
+    match crate::lex_v0_9(&source, generous_limits()) {
+        LexOutcome::SourceIssue(issue) => (
+            issue.kind(),
+            issue.span().start().value(),
+            issue.span().end().value(),
+        ),
+        outcome => panic!("expected source issue, got {outcome:?}"),
+    }
+}
+
 #[test]
 fn invalid_bytes_and_comment_markers_fail_without_a_partial_tape() {
     for (source, expected) in [
         (b"ok $ bad".as_slice(), SourceIssueKind::UnexpectedByte),
-        (b"ok // no".as_slice(), SourceIssueKind::UnexpectedByte),
-        (b"ok\tbad".as_slice(), SourceIssueKind::UnexpectedByte),
-        (b"ok\rbad".as_slice(), SourceIssueKind::UnexpectedByte),
+        (b"ok // no".as_slice(), SourceIssueKind::CommentPrefix),
+        (b"ok\tbad".as_slice(), SourceIssueKind::InvalidSourceByte),
+        (b"ok\rbad".as_slice(), SourceIssueKind::InvalidSourceByte),
         (b"ok \xff bad".as_slice(), SourceIssueKind::InvalidUtf8),
     ] {
         assert_eq!(issue(source).0, expected, "source={source:?}");
     }
+}
+
+#[test]
+fn v0_9_pre_tree_defects_use_the_exact_specified_spans() {
+    assert_eq!(
+        issue_v0_9(b"// comment"),
+        (SourceIssueKind::CommentPrefix, 0, 2)
+    );
+    assert_eq!(
+        issue_v0_9(b"/* comment"),
+        (SourceIssueKind::CommentPrefix, 0, 2)
+    );
+    assert_eq!(issue_v0_9(b"/"), (SourceIssueKind::UnexpectedByte, 0, 1));
+    assert_eq!(
+        issue_v0_9(b"\0"),
+        (SourceIssueKind::InvalidSourceByte, 0, 1)
+    );
+    assert_eq!(
+        issue_v0_9(b"\x7f"),
+        (SourceIssueKind::InvalidSourceByte, 0, 1)
+    );
+
+    for (source, expected) in [
+        (
+            b"\"\\\xc2\xa2\"".as_slice(),
+            (SourceIssueKind::InvalidStringEscape, 1, 4),
+        ),
+        (
+            b"\"\\\xe2\x98\x83\"".as_slice(),
+            (SourceIssueKind::InvalidStringEscape, 1, 5),
+        ),
+        (
+            b"\"\\\xf0\x9f\x98\x80\"".as_slice(),
+            (SourceIssueKind::InvalidStringEscape, 1, 6),
+        ),
+        (
+            b"\"\\\xff\"".as_slice(),
+            (SourceIssueKind::InvalidUtf8, 2, 3),
+        ),
+        (
+            b"\"\\\xc2\"".as_slice(),
+            (SourceIssueKind::InvalidUtf8, 2, 3),
+        ),
+    ] {
+        assert_eq!(issue_v0_9(source), expected, "source={source:?}");
+    }
+    assert_eq!(
+        issue_v0_9(b"\xe2\x98\x83"),
+        (SourceIssueKind::UnexpectedByte, 0, 3)
+    );
+    assert_eq!(
+        issue_v0_9(b"\"\xe2\x98\x83\""),
+        (SourceIssueKind::InvalidStringByte, 1, 4)
+    );
 }
 
 #[test]

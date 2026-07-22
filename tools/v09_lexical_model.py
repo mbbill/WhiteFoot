@@ -62,6 +62,8 @@ SOURCE_ISSUE_KINDS = frozenset(
         "unterminated_string",
         "invalid_string_byte",
         "invalid_string_escape",
+        "invalid_source_byte",
+        "comment_prefix",
     )
 )
 
@@ -332,6 +334,8 @@ def _scan_one(source: bytes, start: int) -> _RawPiece | _RawIssue:
             return _RawPiece(start, _number_end(source, start), "number_form")
     if source[start : start + 2] == b"=>":
         return _RawPiece(start, start + 2, "fat_arrow")
+    if source[start : start + 2] in (b"//", b"/*"):
+        return _RawIssue(start, start + 2, "comment_prefix")
     if byte == ord('"'):
         return _string(source, start)
 
@@ -344,6 +348,8 @@ def _scan_one(source: bytes, start: int) -> _RawPiece | _RawIssue:
         if scalar_length is not None:
             return _RawIssue(start, start + scalar_length, "unexpected_byte")
         return _RawIssue(start, start + 1, "invalid_utf8")
+    if byte <= 0x1F or byte == 0x7F:
+        return _RawIssue(start, start + 1, "invalid_source_byte")
     return _RawIssue(start, start + 1, "unexpected_byte")
 
 
@@ -406,7 +412,17 @@ def _string(source: bytes, start: int) -> _RawPiece | _RawIssue:
         if byte == ord("\\"):
             if cursor + 1 >= len(source):
                 return _RawIssue(cursor, cursor + 1, "invalid_string_escape")
-            if source[cursor + 1] not in (ord("\\"), ord('"'), ord("n")):
+            follower = source[cursor + 1]
+            if follower >= 0x80:
+                scalar_length = _utf8_scalar_length(source, cursor + 1)
+                if scalar_length is None:
+                    return _RawIssue(cursor + 1, cursor + 2, "invalid_utf8")
+                return _RawIssue(
+                    cursor,
+                    cursor + 1 + scalar_length,
+                    "invalid_string_escape",
+                )
+            if follower not in (ord("\\"), ord('"'), ord("n")):
                 return _RawIssue(cursor, cursor + 2, "invalid_string_escape")
             cursor += 2
             continue

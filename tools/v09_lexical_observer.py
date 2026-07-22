@@ -59,6 +59,8 @@ SOURCE_ISSUE_KINDS = (
     "unterminated_string",
     "invalid_string_byte",
     "invalid_string_escape",
+    "invalid_source_byte",
+    "comment_prefix",
 )
 RESOURCE_LIMIT_KINDS = (
     "sources",
