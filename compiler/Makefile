@@ -10,6 +10,8 @@ policy:
 	$(PYTHON) tools/test_cargo_policy.py
 	$(PYTHON) tools/test_check_workspace.py
 	$(PYTHON) tools/check_workspace.py
+	$(PYTHON) tools/test_terminal_contract.py
+	$(PYTHON) tools/check_terminal_contract.py
 
 format:
 	$(CARGO) fmt --all -- --check

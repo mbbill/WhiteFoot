@@ -445,13 +445,17 @@ non-passing grammar gate.
 ## Phase 4: build the canonical frontend
 
 Status: active. Exact v0.9 and the independent grammar evidence close the
-complete parser entrance gate.
+complete parser entrance gate. The version-bound terminal-membership boundary
+is implemented; typed predictive parsing is the next incomplete boundary.
 
 Keep the existing shape lexer unchanged in authority. Add a
-specification-versioned terminal classifier whose accepted spelling sets form
-the exact approved disjoint partition. Build an iterative typed LL(2) parser
-with no backtracking, ordered-choice priority, recovery, synthetic tokens, or
-semantic disambiguation.
+specification-versioned terminal classifier that evaluates the complete
+approved predicate set for every formed token. Fixed lowercase terminals and
+`IDENT` remain disjoint, while approved noncompeting overlaps such as fixed
+`unit` plus `literal` remain visible to the parser; classification never picks
+one by priority. Build an iterative typed LL(2) parser with no backtracking,
+ordered-choice priority, recovery, synthetic tokens, or semantic
+disambiguation.
 
 Construct one typed postorder `DerivationTree`. A single linear finalizer
 checks root extent, source ownership, parent/child topology, production shape,

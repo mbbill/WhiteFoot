@@ -23,6 +23,12 @@ EXPECTED_TARGETS = {
         ("lib",),
     ),
     (
+        "crates/whitefoot-language-data/Cargo.toml",
+        "whitefoot_language_data",
+        ("lib",),
+        ("lib",),
+    ),
+    (
         "crates/whitefoot-lexer/Cargo.toml",
         "whitefoot_lexer",
         ("lib",),
@@ -37,6 +43,12 @@ EXPECTED_TARGETS = {
     (
         "crates/whitefoot-source-audit/Cargo.toml",
         "whitefoot_source_audit",
+        ("lib",),
+        ("lib",),
+    ),
+    (
+        "crates/whitefoot-syntax/Cargo.toml",
+        "whitefoot_syntax",
         ("lib",),
         ("lib",),
     ),

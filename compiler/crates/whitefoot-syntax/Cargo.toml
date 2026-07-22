@@ -1,0 +1,19 @@
+[package]
+name = "whitefoot-syntax"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Canonical Whitefoot syntax construction"
+publish = false
+
+[dependencies]
+whitefoot-contract = { path = "../whitefoot-contract" }
+whitefoot-language-data = { path = "../whitefoot-language-data" }
+whitefoot-lexer = { path = "../whitefoot-lexer" }
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true

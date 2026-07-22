@@ -7,6 +7,13 @@ name = "whitefoot-contract"
 version = "0.1.0"
 
 [[package]]
+name = "whitefoot-language-data"
+version = "0.1.0"
+dependencies = [
+ "whitefoot-contract",
+]
+
+[[package]]
 name = "whitefoot-lexer"
 version = "0.1.0"
 dependencies = [
@@ -26,4 +33,13 @@ name = "whitefoot-source-audit"
 version = "0.1.0"
 dependencies = [
  "whitefoot-contract",
+]
+
+[[package]]
+name = "whitefoot-syntax"
+version = "0.1.0"
+dependencies = [
+ "whitefoot-contract",
+ "whitefoot-language-data",
+ "whitefoot-lexer",
 ]

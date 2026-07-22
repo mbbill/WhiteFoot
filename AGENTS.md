@@ -108,9 +108,11 @@ canonical frontend is next under the exact gates in `THE-PLAN.md`. Later
 specification changes, protected changes, release claims, and any future
 self-hosting remain separately gated.
 
-The active foundation contains `whitefoot-contract`, `whitefoot-lexer`,
+The active workspace contains `whitefoot-contract`,
+`whitefoot-language-data`, `whitefoot-lexer`, `whitefoot-syntax`,
 `whitefoot-source-audit`, and the binary-only
-`whitefoot-lexical-observer`. The observer is evidence only, and the source
-audit checks exact source/specification binding only. No production parser,
-semantic kernel, artifact, backend, compiler executable, or release capability
-exists yet.
+`whitefoot-lexical-observer`. The observer is evidence only, the source audit
+checks exact source/specification binding only, and the syntax package
+currently stops after context-free v0.9 terminal membership. No production
+parser, canonical syntax tree, semantic kernel, artifact, backend, compiler
+executable, or release capability exists yet.

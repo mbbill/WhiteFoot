@@ -1,0 +1,17 @@
+[package]
+name = "whitefoot-language-data"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Version-bound Whitefoot language tables"
+publish = false
+
+[dependencies]
+whitefoot-contract = { path = "../whitefoot-contract" }
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true

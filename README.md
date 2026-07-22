@@ -57,12 +57,18 @@ checks.
 
 ## What exists now
 
-The safe-Rust foundation contains four narrowly scoped crates:
+The safe-Rust workspace contains six narrowly scoped packages:
 
 - `whitefoot-contract` owns exact identities, bounded source transport, spans,
   ceilings, and the version-1 source-binding wire contract.
+- `whitefoot-language-data` owns the exact v0.9 terminal predicates and their
+  spelling languages. It is immutable language data, not parser evidence or
+  acceptance authority.
 - `whitefoot-lexer` losslessly partitions exact source bytes into shape-only
   tokens and retained trivia. It does not parse or accept programs.
+- `whitefoot-syntax` currently applies every v0.9 terminal predicate to every
+  formed token under explicit limits. It retains overlaps and does not yet
+  parse, construct a tree, or publish canonical syntax.
 - `whitefoot-source-audit` checks exact source/specification binding only. It
   is not an artifact verifier or semantic checker.
 - `whitefoot-lexical-observer` is a binary-only development adapter for an
@@ -78,8 +84,9 @@ specification, not the verifier, is language authority.
 Under PROG-2, one ordered nonempty `SourceBundle` forms one closed compilation
 unit. Record order fixes top-level declaration order; record paths contribute
 identity but never namespaces or lookup. The workspace still has no production
-terminal classifier, parser, syntax authority, resolver, semantic kernel,
-checked artifact, backend, compiler executable, or release capability.
+parser, syntax-tree authority, resolver, semantic kernel, checked artifact,
+backend, compiler executable, or release capability. Terminal classification
+alone is not program acceptance.
 
 The compiler-independent conformance corpus, proof/code-shape premise corpus,
 focused reference models, and measured experiments remain active evidence.

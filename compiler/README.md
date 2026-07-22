@@ -29,10 +29,19 @@ release authority; later work still follows the gates in `../THE-PLAN.md`.
   nominal catalog identities, bounded ordered source transport, source
   identities and spans, resource ceilings, and the version-1 source-binding
   wire format. Owned construction reports limit and allocation failures.
+- `whitefoot-language-data` depends only on `whitefoot-contract`. It owns the
+  complete exact-v0.9 terminal predicate inventory and pure spelling
+  membership functions. It does not inspect source bundles, select grammar
+  alternatives, or grant acceptance.
 - `whitefoot-lexer` depends only on `whitefoot-contract`. It losslessly
   partitions exact source bytes into shape-only tokens and retained trivia
   under explicit ceilings. It does not classify grammar terminals, parse,
   resolve, or accept a program.
+- `whitefoot-syntax` depends only on the contract, language data, and lexer. Its
+  current entry point classifies every formed token context-free, retains every
+  matching predicate, binds the result to exact v0.9, and keeps the lossless
+  lexical tape borrowed for later source audit. It has no parser, derivation
+  tree, canonical-syntax factory, recovery path, or semantic authority yet.
 - `whitefoot-source-audit` depends only on `whitefoot-contract`. It checks that
   a decoded candidate binding names the expected specification and reproduces
   the exact source transport. It does not replace the binding codec's separate
@@ -49,10 +58,11 @@ sequence of logical source records. `SourceBundle` preserves source order and
 exact bytes, but this judgment-free contract alone does not prove every PROG-2
 input-envelope requirement or create a parsed program root.
 
-No production terminal classifier, parser, syntax tree authority, resolver,
-semantic kernel, semantic record, artifact schema, backend, compiler
-executable, conformance adapter, or release capability exists here yet. No
-active code imports the retired implementations under `../archive/`.
+No production parser, syntax tree authority, resolver, semantic kernel,
+semantic record, artifact schema, backend, compiler executable, conformance
+adapter, or release capability exists here yet. Terminal membership is not a
+parse or acceptance verdict. No active code imports the retired
+implementations under `../archive/`.
 
 ## Later production authority path
 
