@@ -1,24 +1,35 @@
-# Ownership reference model
+# Ownership reference-model resources
 
-This directory is an independent executable model of the ownership/effect
-subset described at the top of `checker.py`. It is intentionally small and
-uses a toy AST so that compiler and model bugs are unlikely to share an
-implementation. It does not define the language, parse Whitefoot source, or
-claim coverage of all v0.11 semantics.
+This directory supplies independent semantic evidence used by the complete
+language-change workflow in `governance/README.md`. It models only the
+ownership/effect subset described in `checker.py`, using a toy AST so compiler
+and model bugs are less likely to share an implementation.
 
-During development, add a focused model judgment when an ownership rule would
-benefit from a genuinely independent differential or bounded state search.
-Do not grow this into a second compiler and do not copy compiler data
-structures into it. The numbered specification remains authoritative when the
-model, compiler, and spec disagree.
+The model does not define the language, parse Whitefoot source, or claim full
+v0.11 coverage. When the model, compiler, and active numbered specification
+disagree, the specification is authoritative and the discrepancy is classified
+through the central workflow.
 
-The oracle capability is permanent; this Python implementation is not. It may
-move to `archive/` only after a replacement independent oracle:
+## Resources
 
-- covers every still-relevant judgment and maps its regressions;
-- retains bounded generated-state or property testing;
-- includes mutation tests showing that wrong ownership behavior is detected;
-  and
-- leaves no unique rationale or counterexample only in this implementation.
+- `checker.py` implements the focused ownership/effect judgments.
+- `oracle.py` provides the independent comparison surface.
+- `test_checker.py` holds examples, regressions, and mutation checks.
+- `modelcheck.py` explores bounded generated states.
 
-Run it with `make reference` from the repository root.
+The resource should remain narrow. Do not copy compiler data structures into
+it or grow it into a second compiler. A replacement may retire this Python
+implementation only if it preserves every still-relevant judgment, regression,
+bounded-state check, mutation check, and unique counterexample.
+
+Changing or removing an existing reference judgment is protected work governed
+by `governance/README.md`. Add a new model judgment only when its independence
+can catch a distinct class of semantic error.
+
+## Tools
+
+From the repository root:
+
+```sh
+make reference
+```

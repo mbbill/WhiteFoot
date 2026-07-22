@@ -1,53 +1,67 @@
-# Whitefoot conformance suite
+# Compiler-independent conformance resources
 
-A **spec-anchored, rule-keyed, toolchain-agnostic** test system. It tests the
-*language* — `source → verdict` — rather than compiler internals, so the same
-suite can validate the future production Rust compiler and any later
-replacement.
+This directory supplies the source-to-verdict evidence used by the complete
+language-change workflow in `governance/README.md`. It tests the language rather
+than compiler internals, but it is not an independent authority or release
+process. The active numbered specification alone determines every expected
+result.
 
-It is compiler-independent language evidence. Compiler implementations are
-replaceable; the expected source behavior is not.
+## Resources
 
-## Layout
-- `cases/<id>.wf` — one canonical Whitefoot program per case (also a FORM-1/2 byte-exact fixture).
-- `manifest.jsonl` — one JSON object per case: the rule id(s) it exercises + the expected verdict + status.
-- `runner.py` — the coverage tracker plus an intentionally unpopulated
-  toolchain **adapter** slot.
+- `cases/<id>.wf` is one canonical Whitefoot source program and FORM-1/2 byte
+  fixture.
+- `manifest.jsonl` maps each case to the rule or rules it exercises, its
+  expected result, and its current execution status. It also contains explicit
+  coverage annotations for specification properties that no source program can
+  exercise.
+- `runner.py` validates active-spec identity, reports rule coverage, and owns
+  the intentionally explicit compiler-adapter slot.
+- `test_runner.py` tests the corpus plumbing and active-spec binding.
 
-## A case
+A case entry has this shape:
+
 ```json
 {"id": "reject-own10-dangle", "rules": ["OWN-10"],
- "expect": {"kind": "reject", "rule": "OWN-10"}, "status": "runnable",
+ "expect": {"kind": "reject", "rule": "OWN-10"},
+ "status": "runnable",
  "doc": "Returning a borrow of an own param into a caller region dangles; rejected."}
 ```
-`expect` is one of: `{"kind":"accept"}`, `{"kind":"reject","rule":R}`, `{"kind":"run","exit":N}`,
-`{"kind":"trap"}`. For a rejection the runner asserts the **exact cited rule id** (DIAG-1).
 
-`status`:
-- **runnable** — the toolchain must produce `expect`; a mismatch is a `FAIL`.
-- **pending** — the toolchain can't process the case yet (a construct it doesn't support, or
-  it rejects without citing a rule id); skipped, but the case still counts for coverage and
-  becomes runnable for free once the toolchain grows.
-- **xfail** — `expect` is the *correct spec behavior*, but the current toolchain does **not**
-  produce it (a tracked gap). Reported, non-failing. If it starts matching, it flags `XPASS`
-  ("fix landed — drop the xfail"). This is how known gaps stay visible instead of forgotten.
+`expect` is one of:
 
-## Run
+- `{"kind":"accept"}`;
+- `{"kind":"reject","rule":R}`;
+- `{"kind":"run","exit":N}`; or
+- `{"kind":"trap"}`.
+
+A rejection expectation includes the exact rule identifier required by
+DIAG-1. Compiler failure, timeout, crash, or missing capability is never a
+rejection verdict.
+
+`status` describes execution availability, not language meaning:
+
+- `runnable` means the current adapter must produce `expect`;
+- `pending` means the compiler cannot yet execute the case;
+- `xfail` preserves the correct expectation while exposing a known compiler
+  mismatch, and an unexpected match is reported as `XPASS`.
+
+Changing an existing expectation, removing a case, or weakening runnable
+status is protected work governed by `governance/README.md`. An additive case
+for behavior already fixed by the active specification may land with ordinary
+compiler work when it cites the existing rule and changes no protected result.
+
+## Tools
+
+From the repository root:
+
+```sh
+make conformance
+python3 -B tests/conformance/runner.py coverage
+make conformance-run
 ```
-python3 conformance/runner.py run        # requires an installed compiler adapter
-python3 conformance/runner.py coverage   # which of the spec's rules have a case
-python3 conformance/runner.py all -v     # run plus coverage; unavailable before adapter
-make conformance                         # current corpus/coverage integrity gate
-```
 
-## Adding a case
-Write `cases/<id>.wf` in canonical form, add a manifest line tagging the rule(s) and the
-expected verdict. Prefer one rule per negative case (so the coverage map is precise). To
-close a coverage gap, target a rule from the `untested` list the coverage report prints.
-
-## Plugging in a future compiler
-
-When the compiler implements semantic verdicts, add one small adapter that
-runs cases through its normal command-line path. Keep semantic expectations in
-this corpus and report unsupported compiler capability separately from source
-rejection. No stable adapter protocol is needed.
+`make conformance` checks the corpus tooling and coverage. `make
+conformance-run` requires an installed compiler adapter and fails explicitly
+while the adapter slot is empty. Any future adapter must drive source through
+the normal compiler command path; no stable adapter protocol or second
+semantic implementation is required here.
