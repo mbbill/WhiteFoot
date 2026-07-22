@@ -1,8 +1,13 @@
 # Phase 5 entrance review
 
-Status: OWNER REVIEW REQUIRED, 2026-07-21. This document proposes no language
-change and grants no implementation authority. Exact v0.9 remains the active
-numbered specification.
+Status: SUPERSEDED FOR OWNER REVIEW, 2026-07-21. This document remains a
+historical entrance audit and grants no implementation authority. Its R-01
+combined nominal/constructor namespace would reject every struct and PRE-1's
+same-spelled `Overflow` and `NarrowError` enum/variant pairs. Its R-04
+standalone resolver limits also violate Decision 15's one invocation-wide
+validated resource profile. Do not approve or implement those withdrawn
+proposals. The corrected exact non-authoritative packet is
+`phase5-successor-proposal/PROPOSAL.md`. Exact v0.9 remains active.
 
 ## Result
 

@@ -3,7 +3,7 @@
 
 PY=python3 -B
 
-check: project-state spec-guard spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence compiler
+check: project-state spec-guard spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence compiler
 	@echo "== V0.9 DEVELOPMENT GATE GREEN; GRAMMAR EVIDENCE REPRODUCED; NO RELEASE CLAIM =="
 
 project-state:
@@ -56,6 +56,14 @@ grammar-evidence:
 	cmp -s spec/kernel-spec-v0.9.md grammar-verifier/proposal/kernel-spec-successor-candidate.md
 	$(MAKE) -C grammar-verifier check
 
+phase5-proposal-evidence:
+	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/generate_candidate.py --check
+	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/test_generate_candidate.py
+	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/protected_surface_census.py --check
+	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/test_protected_surface_census.py
+	$(PY) optimizer-language-research/implementation/phase5-successor-proposal/diagnostic_evidence/run.py
+	$(PY) -m unittest discover -s optimizer-language-research/implementation/phase5-successor-proposal/diagnostic_evidence -p 'test_*.py'
+
 compiler:
 	$(MAKE) -C compiler check
 
@@ -66,4 +74,4 @@ release-check:
 	@echo "release gate unavailable: the exact-v0.9 Rust compiler is incomplete"
 	@false
 
-.PHONY: check project-state spec-guard approve-spec spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence compiler conformance-run release-check
+.PHONY: check project-state spec-guard approve-spec spec facets catalog-identity capabilities lexical-model reference-model conformance grammar-evidence phase5-proposal-evidence compiler conformance-run release-check

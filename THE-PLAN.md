@@ -486,16 +486,20 @@ acceptance claim exists.
 ## Phase 5: build the semantic kernel
 
 Status: conditional on exact normative authority for every affected rule.
-The current owner-review packet is
-`optimizer-language-research/implementation/compiler-phase5-entrance-review.md`;
-it grants no implementation authority. Complete resolver work remains stopped
-until its first-stage language, diagnostic, resource, and architecture gates
-are approved and installed.
+The first entrance review exposed blockers but its proposed combined
+nominal/constructor namespace and standalone resolver limits were invalid.
+It is superseded for approval by the exact non-authoritative packet at
+`optimizer-language-research/implementation/phase5-successor-proposal/PROPOSAL.md`.
+Exact v0.9 remains active. Complete resolver work remains stopped until the
+successor language and architecture delta are approved and installed, the
+Decision-15 invocation-wide resource profile has evidence-selected numerical
+hard maxima, and the successor-bound canonical frontend is reproduced.
 
 Implement one syntax-directed semantic kernel in this order:
 
-1. complete declaration inventory and visibility-governed resolution using the
-   exact v0.9 TYPE-6 encoding of A-01;
+1. run the preserved FN-8 structural-admission pass, then complete declaration
+   inventory and visibility-governed resolution using the exact owner-approved
+   successor encoding of A-01 and A-07;
 2. modes, types, constants, operations, substitutions, typed labels, and typed
    calls for every function declaration;
 3. the finite template call graph and pre-instantiation FN-6 SCC gate;
@@ -503,15 +507,17 @@ Implement one syntax-directed semantic kernel in this order:
    function, including unused and zero-type/const-parameter functions;
 5. explicitly seeded finite concrete-instance closure and mandatory concrete
    rechecking;
-6. the concrete call graph and explicit CFG with every normal, trap, cleanup,
-   drop, release, and check edge;
+6. the concrete call graph and structural CFG with every normal, trap, check,
+   and scope-exit edge but no cleanup authority;
 7. approved provenance qualification; and
-8. region, loan, ownership, join, cleanup, effect, and whole-unit closure.
+8. region, loan, ownership, join, cleanup attachment, effect, and whole-unit
+   closure.
 
-Item 6's historical cleanup wording conflicts with Decision 8: ownership-free
-CFG construction cannot know live drops. The linked entrance-review packet C-05
-must be owner-resolved before either item 6 or item 8 is implemented; no
-placeholder cleanup plan is authorized in the meantime.
+The predecessor wording for item 6 conflicted with Decision 8 because
+ownership-free CFG construction cannot know live drops. The linked successor
+proposal C-05 is the exact correction and must be owner-approved before either
+item 6 or item 8 is implemented; no placeholder cleanup plan is authorized in
+the meantime.
 
 A required rejection may not be deferred behind a potentially expanding
 worklist. Every handler accepts arbitrary legal names, list lengths, nesting,

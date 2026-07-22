@@ -1,0 +1,325 @@
+{
+  "conformance": {
+    "case_records": 292,
+    "coverage_records": 15,
+    "frontend_only_reject_case_ids": [
+      "form1-neg-unknown-construct",
+      "form2-neg-noncanonical-ws",
+      "form3-neg-opname-bad-suffix",
+      "form3-neg-typeid-fn-name",
+      "form4-neg-comment",
+      "form5-neg-missing-suffix",
+      "form7-neg-out-of-range",
+      "form7-neg-leading-zero",
+      "gram9-neg-nested-call",
+      "x-gram-nested-op-in-construct-field",
+      "x-gram-nested-ucall-in-call-arg",
+      "x-form-form2-tab-indent",
+      "x-form-form3-enum-name-ident",
+      "x-form-form4-block-comment",
+      "x-form-form5-op-arg-missing-suffix",
+      "x-form-form7-i32-max-plus-one",
+      "form3-neg-requires-binding",
+      "form3-neg-reserved-mode-field",
+      "gram9-neg-constructor-in-call-argument",
+      "gram9-neg-constructor-in-constructor-field",
+      "form3-neg-region-param-missing-apostrophe"
+    ],
+    "frontend_only_rejects": 21,
+    "manifest_records": 307,
+    "protected_source_files": 293,
+    "rejects": 152,
+    "semantic_rejects_requiring_unchanged_replay": 131
+  },
+  "format": "whitefoot-phase5-successor-protected-surface-census-v1",
+  "inputs": {
+    "candidate": {
+      "bytes": 118314,
+      "path": "optimizer-language-research/implementation/phase5-successor-proposal/kernel-spec-v0.10-candidate.md",
+      "sha256": "71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9"
+    },
+    "codegen_source_inventory": {
+      "r01_r02_scan_path_sha256": "ea65b5d5cd1d89d5221b2e3f3abea322aa23021a89ee26934f17f450829bfa94",
+      "r01_r02_scanned_files": 95,
+      "sha256": "53f2d81b06a12df1198fd9d9354dfa2d0eea77ba03d763b63dead5fd4bf80095",
+      "source_files": 95
+    },
+    "conformance_source_inventory": {
+      "sha256": "d6fc88b4f65beb638cebb128a32f2834d1b12e0fcbb273960bbc0923ce753efb",
+      "source_files": 293
+    },
+    "guard_baseline": {
+      "path": "governance/guard-baseline.json",
+      "sha256": "bb7ce5ea5b3b2a169b259bcffc7add3234e89b50aa689d5f9df5a93a91325622"
+    },
+    "manifest": {
+      "path": "conformance/manifest.jsonl",
+      "sha256": "0eff27bfb87ca14086f31f4b171d72c9eb1a49072aa4563a3f7c937d0b8bb90c"
+    },
+    "proposal": {
+      "path": "optimizer-language-research/implementation/phase5-successor-proposal/PROPOSAL.md",
+      "sha256": "7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d"
+    },
+    "source_index": {
+      "path": "facets/v0.9/source.json",
+      "sha256": "cc9aa86de0d59b9288d1f8fd7a6bde6f94fff26da139d73f91bcbcf71219d663"
+    },
+    "specification": {
+      "path": "spec/kernel-spec-v0.9.md",
+      "sha256": "bdfb461d1901f610633c5cbcd2477d24df3c77ca90599b9580c8289e50b82b68",
+      "version": "0.9"
+    }
+  },
+  "protected_intersections": {
+    "oracle_digest_entries": 3,
+    "oracle_disposition": "unchanged; no regeneration",
+    "oracle_files": [
+      {
+        "digests": [
+          "a38929bb5742518b398ad3a16ab352ef94f9c406d8cd34347fd575fd26e0077e",
+          "e3abbce3c8d1b24eba3471c5c0ea6800418d38c3d3d97ce64b7f15d2abfb9764"
+        ],
+        "path": "tools/codegen_parity.py"
+      },
+      {
+        "digests": [
+          "e3abbce3c8d1b24eba3471c5c0ea6800418d38c3d3d97ce64b7f15d2abfb9764"
+        ],
+        "path": "tools/test_checked_automation.py"
+      }
+    ],
+    "reference_disposition": "existing protected bodies and expectations remain unchanged",
+    "reference_methods": [
+      {
+        "qualified_name": "ProgramLayer.test_form3_every_op1_reserved_identifier_rejected",
+        "sha256": "962af2ac6e1bb2552859e40b0170261b3913f2bff791788df2aac18cabad7978"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_form3_reservation_covers_every_binding_shape",
+        "sha256": "1a0904baabf218f0b44866e731284c93120549d016e69809b3d11550604e1abb"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_gram10_binder_not_fresh",
+        "sha256": "29624fec7b9239e2b7d1bde3ac37c67e0c70ff9706d0ada3a0054f1e47f6c171"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_type5_context_free_option_constructor",
+        "sha256": "071f632bdb0610d06ec370909dc9bf40b020c0d6baea6ef81137c9d73ce83d79"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_type5_context_free_result_constructor",
+        "sha256": "130335a49ae66dca1ed5961e9a46e312b000c07210c2f7407e5e38a544879d8e"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_type6_duplicate_variant",
+        "sha256": "11411da4fca5e7d9f562c7de309ef4cf5faa7c7b0c85fcddde79d2d619153271"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_type6_type_namespace_rejects_user_and_prelude_collisions",
+        "sha256": "ae5241b2deb31348a7448bdae81b720c69eec0c11f3e2efcb0f3ad87e740d484"
+      },
+      {
+        "qualified_name": "ProgramLayer.test_type6_unknown_constructor",
+        "sha256": "410173a0592a1919d5ebf11cc1181066a8e876419c2ab5f4298cf091cc5bc5da"
+      }
+    ]
+  },
+  "r01": {
+    "codegen_generic_declarations": [],
+    "codegen_generic_shadow_collisions": [],
+    "codegen_namespace_collisions": [],
+    "codegen_prelude_collisions": [],
+    "contract_declaration_files": 9,
+    "corrected_namespaces": {
+      "constructor": "struct constructors, enum variants, and prelude constructors",
+      "contract": "source contracts and built-in contracts",
+      "nominal": "struct names, enum names, prelude nominal types, and lexical type parameters"
+    },
+    "direct_type6_case_ids": [
+      "type6-pos-distinct-names",
+      "type6-neg-dup-variant",
+      "type6-neg-shadow",
+      "x-typ-match-foreign-variant",
+      "x-typ-let-shadows-param",
+      "x-enum-multiwidth-dispatch",
+      "fn8-pos-requires-name-reuse",
+      "type5-neg-match-non-enum"
+    ],
+    "generic_declarations": [
+      {
+        "names": [
+          "T"
+        ],
+        "path": "conformance/cases/fn6-neg-polymorphic-recursion.wf"
+      }
+    ],
+    "generic_shadow_collisions": [],
+    "nominal_declaration_files": 87,
+    "prelude_by_namespace": {
+      "constructor": [
+        "DivOverflow",
+        "DivideByZero",
+        "Err",
+        "False",
+        "NarrowError",
+        "None",
+        "Ok",
+        "Overflow",
+        "Some",
+        "True"
+      ],
+      "contract": [
+        "Float",
+        "Int"
+      ],
+      "nominal": [
+        "Bool",
+        "DivError",
+        "NarrowError",
+        "Option",
+        "Overflow",
+        "Result"
+      ]
+    },
+    "prelude_cross_namespace_equalities_required": [
+      "NarrowError",
+      "Overflow"
+    ],
+    "protected_cases_mentioning_same_spelling_prelude_types": [
+      "eff2-neg-try-hidden-trap",
+      "eff2-pos-try-declared-trap",
+      "err3-neg-try-different-error-type",
+      "err3-pos-try-propagation",
+      "err4-pos-contract-trap",
+      "err4-pos-recoverable-value",
+      "op6-pos-cvt-checked",
+      "x-arith-iadd-checked-overflow-err-arm-runs"
+    ],
+    "protected_source_prelude_collisions": [],
+    "source_namespace_collisions": [
+      {
+        "declarations": [
+          {
+            "kind": "enum-variant",
+            "line": 2
+          },
+          {
+            "kind": "enum-variant",
+            "line": 6
+          }
+        ],
+        "namespace": "constructor",
+        "path": "conformance/cases/type6-neg-dup-variant.wf",
+        "spelling": "Dup"
+      }
+    ],
+    "type_generic_declaration_files": 1
+  },
+  "r02": {
+    "codegen_declaration_bindings": [],
+    "conformance_declaration_bindings": [],
+    "listed_dotless_count": 20,
+    "protected_reference_semantic_surface": {
+      "ProgramLayer.test_form3_every_op1_reserved_identifier_rejected": {
+        "binding_shapes": [
+          "function"
+        ],
+        "covered_dotless_identifiers": 51,
+        "existing_expected_rule": "FORM-3"
+      },
+      "ProgramLayer.test_form3_reservation_covers_every_binding_shape": {
+        "binding_shapes": [
+          "named constant",
+          "let binder",
+          "try binder",
+          "match binder",
+          "struct field",
+          "variant field",
+          "parameter",
+          "region parameter",
+          "local region"
+        ],
+        "existing_expected_rule": "FORM-3",
+        "representative_spelling": "trap"
+      },
+      "disposition": "semantic intersection recorded; existing protected bodies and expectations remain unchanged"
+    },
+    "table_dotless_count": 51,
+    "table_only_count": 31,
+    "table_only_identifiers": [
+      "array_new",
+      "buffer_new",
+      "fabs",
+      "fceil",
+      "fcopysign",
+      "ffloor",
+      "fge",
+      "fgt",
+      "finf",
+      "fmax",
+      "fmin",
+      "fnan",
+      "fne",
+      "fneg",
+      "frem",
+      "froundeven",
+      "ftrunc",
+      "iand",
+      "ibswap",
+      "iclz",
+      "ictz",
+      "imax",
+      "imin",
+      "imulhi",
+      "inot",
+      "ior",
+      "ipopcount",
+      "irotl",
+      "irotr",
+      "ixor",
+      "reinterpret"
+    ],
+    "table_only_use_case_ids": [
+      "const1-neg-noninteger",
+      "const1-pos-array-size",
+      "op3-neg-exact-dotted",
+      "op4-trap-index-oob",
+      "op8-neg-rotate-trap",
+      "op8-pos-iand",
+      "op9-pos-buffer-new",
+      "own1-neg-bare-affine-call",
+      "own1-neg-index-atom-after-move",
+      "own1-neg-index-move-copy-offset",
+      "own1-pos-explicit-affine-call",
+      "own1-pos-match-projected-copy",
+      "pending-op9-buffer-new",
+      "type2-pos-buffer-tagonly",
+      "type5-neg-index-offset-type",
+      "type7-neg-index-reference-holder"
+    ]
+  },
+  "r03": {
+    "frontend_only_rule_ids": [
+      "FORM-1",
+      "FORM-2",
+      "FORM-3",
+      "FORM-4",
+      "FORM-5",
+      "FORM-7",
+      "GRAM-9"
+    ],
+    "protected_reject_expectations": 152,
+    "semantic_reject_expectations_requiring_unchanged_replay": 131
+  },
+  "result": {
+    "claim_scope": "static R-01 namespace/generic and R-02 declaration-reservation intersections over the pinned conformance and codegen source inventories",
+    "direct_protected_source_edits_for_scanned_intersections": 0,
+    "not_proved": [
+      "complete successor semantic replay of protected expectations",
+      "zero expected-rule or diagnostic-location changes",
+      "zero protected verdict changes"
+    ],
+    "proposal_constraint": "nominal, constructor, and contract TYPEID namespaces remain separate",
+    "status": "reproduced"
+  }
+}
