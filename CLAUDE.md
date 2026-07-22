@@ -71,6 +71,47 @@ and private interfaces that can evolve.
 Review must challenge relevance, proportionality, and sequencing as well as
 technical soundness.
 
+## Repository structure and hygiene
+
+The repository root and every established directory are a curated, closed set.
+The layout exists so the important things are found first — `THE-PLAN.md`, the
+active `spec/`, and the `compiler/` — and so supporting material stays where a
+reader expects it. Keeping that legible is a standing obligation, not a
+one-time cleanup.
+
+- Do not add a new top-level entry — a directory or file at the repository
+  root — without owner approval. A new root entry is a structural decision,
+  not an implementation detail. Put new material in the existing directory
+  that already owns its kind; if none fits, ask rather than invent a folder.
+- Every new file, directory, script, or document earns its place before it is
+  created. Be able to state what compiler capability or experiment it serves,
+  which existing home it belongs in, and the condition under which it is
+  removed. If you cannot name all three, do not create it.
+- No bulk dumps. Do not add many scripts or documents in one change and leave
+  them unmaintained. A script ships wired to a caller — a gate target or an
+  explicit one-shot deleted after use; a document ships into an existing home
+  and is kept current or deleted. Material with no owner and no reader is rot
+  the moment it lands.
+- Supersede in place. When new material replaces old, update, merge, or delete
+  the old in the same change. Do not accumulate parallel versions, stale
+  dossiers, or abandoned experiments beside their replacements. The single
+  deliberate exception is `spec/`, which is append-only by design.
+- Keep important folders as clean as the root. The same discipline applies
+  inside `spec/`, `compiler/`, `tools/`, `conformance/`, and the research
+  directories. An important folder turning into a junk drawer is the same
+  defect as a messy root.
+- Reorganizing is not the goal; advancing the compiler is. Do not undertake
+  large structural churn that no current work needs, and never relocate a
+  load-bearing path merely for tidiness. Many paths here are pinned by the
+  spec and test guard, reached by oracle scripts, or wired into a gate;
+  moving them creates more breakage and rot than it removes. Prefer
+  legibility — a clear map, a good name, a stated purpose — over relocation.
+
+Follow this by judgment and keep moving; it is a standing rule, not a reason to
+pause on every file. The one thing it reserves for the owner is a new top-level
+entry. Append-only `spec/` is the one part a future hook may enforce
+mechanically; the rest is upheld by discipline.
+
 ## Specification and test integrity
 
 - A specification discrepancy stops the affected implementation for

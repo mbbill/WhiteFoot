@@ -85,20 +85,53 @@ claim that the language or compiler is complete.
 
 ## Repository guide
 
+The top level is small and ordered so the most important things come first: the
+plan, the language specification, and the compiler. Everything below that is
+supporting evidence, gate tooling, design history, and retired code. Many of
+these paths are pinned by the project's spec-and-test guard or wired into the
+build, so the layout is deliberately stable.
+
+**Start here**
+
 | Purpose | Location |
 |---|---|
-| Current execution order | [THE-PLAN.md](THE-PLAN.md) |
-| Agent priority guidance | [AGENTS.md](AGENTS.md) |
-| Language specification | [spec/kernel-spec-v0.9.md](spec/kernel-spec-v0.9.md) |
-| Active Rust compiler | [compiler/](compiler/README.md) |
-| Compiler-independent behavior corpus | [conformance/](conformance/README.md) |
-| Standalone grammar evidence | [grammar-verifier/](grammar-verifier/README.md) |
+| Current execution order and authorization (sole source) | [THE-PLAN.md](THE-PLAN.md) |
+| Project law | [CONSTITUTION.md](CONSTITUTION.md) |
+| Writer forms (pattern doctrine) | [PATTERNS.md](PATTERNS.md) |
+| Agent instructions (byte-identical) | [AGENTS.md](AGENTS.md) / [CLAUDE.md](CLAUDE.md) |
+
+**The language and the compiler**
+
+| Purpose | Location |
+|---|---|
+| Numbered kernel specifications; the active one defines the language (append-only) | [spec/](spec/) |
+| Active safe-Rust compiler | [compiler/](compiler/README.md) |
+
+**Behavior evidence and gate tooling**
+
+| Purpose | Location |
+|---|---|
+| Compiler-independent behavior corpus (owner-gated) | [conformance/](conformance/README.md) |
+| Repository gate scripts (spec guard, catalogs, models) | [tools/](tools/) |
+| Owner approvals and the guard baseline | [governance/](governance/) |
+| Standalone grammar and spec-development evidence (holds the v0.10 candidate) | [grammar-verifier/](grammar-verifier/README.md) |
 | Focused reference semantics | [prototype/checker/](prototype/checker/) |
-| Proof and code-shape premises | [codegen-corpus/](codegen-corpus/README.md) |
-| Measured experiments | [experiments/](experiments/README.md) |
-| Historical design decisions | [mcts_mem/](mcts_mem/) |
-| Append-only implementation record | [decision-gates.md](optimizer-language-research/implementation/decision-gates.md) |
-| Retired implementations | [archive/](archive/) |
+| Proof, catalog, and fixture evidence | [codegen-corpus/](codegen-corpus/README.md), [facets/](facets/), [capabilities/](capabilities/README.md), [frontend-corpus/](frontend-corpus/) |
+
+**Design memory and research**
+
+| Purpose | Location |
+|---|---|
+| Design decision tree (why the language is the way it is) | [mcts_mem/](mcts_mem/) |
+| Design dossiers, notes, the append-only decision log, and the v0.10 successor generator | [optimizer-language-research/](optimizer-language-research/) |
+| Vision and rationale prose | [docs/why-whitefoot.md](docs/why-whitefoot.md) |
+| Measured performance experiments | [experiments/](experiments/README.md) |
+
+**History**
+
+| Purpose | Location |
+|---|---|
+| Retired implementations, inert (no active dependency) | [archive/](archive/) |
 
 ## License
 

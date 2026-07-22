@@ -68,14 +68,14 @@ the exact generated v0.10 candidate SHA-256
 The candidate becomes active only after guarded installation and frontend
 reproduction against its identity.
 
-The current sequence is:
+The repository correction is complete. The current goal is to activate v0.10,
+reproduce the existing frontend, and then begin direct general name resolution.
+The sequence is:
 
-1. finish the repository correction and remove abandoned product-hardening
-   work;
-2. install the unchanged approved v0.10 candidate;
-3. reproduce the existing frontend for v0.10;
-4. implement one direct general resolver; and
-5. drive the first semantically checked program through a simple LLVM backend.
+1. install the unchanged approved v0.10 candidate;
+2. reproduce the existing frontend for v0.10;
+3. implement one direct general resolver; and
+4. drive the first semantically checked program through a simple LLVM backend.
 
 ## Authority and specification changes
 
@@ -208,7 +208,7 @@ regression and direct fix; it does not justify a new support framework.
 
 ## Phase 5: activate v0.10
 
-Status: next, after repository correction.
+Status: next.
 
 Install the exact approved v0.10 candidate without editing it. Update its live
 identity references and reproduce the current grammar and frontend evidence.

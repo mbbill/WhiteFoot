@@ -552,8 +552,8 @@ Every number above, with its committed record. Protocols, machines, and caveats 
 | Checked laws: 3.3x over obvious fold; ties expert; signed-law refuted at compile time | `experiments/checked-law-channel/RESULTS.md`, `kernel.wf`, `kernel.s`, `rust_reduce.rs`; conformance case `fn4-neg-law-refuted-signedness` |
 | Boolean dataflow: width 16 vs 2×4; 1.6-1.8x closed to parity | `experiments/port-study/wc-chunk-summary/RESULTS.md`, `chunk_wc.wf`, `chunk_wc.s` |
 | Shipped-library floor: 1.653x [1.631, 1.667] vs `percent-encoding` 2.3.2; 1.098x [1.085, 1.145] vs `utf8parse` 0.2.2; bounds retained | `experiments/default-floor/RESULTS.md` |
-| Kernel-shape dry runs (C mockups vs `Vec`/hashbrown; bands) | `optimizer-language-research/implementation/systems-performance-coverage/m3a-kernel-dryrun/RESULTS.md` |
-| Queue: exhaustive model check, all 4 weakened-ordering mutants caught; zero-RMW hot path; latency vs throughput vs `rtrb` | `.../systems-performance-coverage/m6a-spsc-dryrun/RESULTS.md` |
+| Kernel-shape dry runs (C mockups vs `Vec`/hashbrown; bands) | `archive/research/systems-performance-coverage/m3a-kernel-dryrun/RESULTS.md` |
+| Queue: exhaustive model check, all 4 weakened-ordering mutants caught; zero-RMW hot path; latency vs throughput vs `rtrb` | `archive/research/systems-performance-coverage/m6a-spsc-dryrun/RESULTS.md` |
 | Reproducibility: whole-compiler object SHA-256-pinned | `THE-PLAN.md` (build-track record) |
 | Language rules cited (one spelling; reject-not-reformat; two-way effect checking; `requires` semantics; overflow op names; trap = abort) | `spec/kernel-spec-v0.9.md`: FORM-1/2/3, EFF-1/2/4, FN-8, OP-1 |
 | Pattern doctrine (command buffer, SoA pool, boolean classifier, traps-to-boundary) | `PATTERNS.md` |
