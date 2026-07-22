@@ -15,9 +15,9 @@ ordered source bundle
   -> finalized source-bound syntax tree
   -> exact FORM-2 validation
   -> direct v0.11 lexical name resolution
-  -> scalar semantic checking
+  -> semantic and ownership checking
   -> private checked program
-  -> target-independent scalar IR
+  -> target-independent typed control-flow IR
   -> conservative textual LLVM
   -> host executable
 ```
@@ -44,14 +44,22 @@ The resolver covers every v0.11 declaration, lexical-use, and deferred
 owner/member role through one grammar-driven path, including exact scopes,
 visibility, reservations, collisions, and deterministic diagnostics.
 
-The first executable semantic family supports exact scalar integers, unit,
-`Bool` construction/checking, integer and unit constants, nongeneric own-mode functions,
-locals, direct calls, returns, pure/traps effects, wrapping and trapping
-add/subtract/multiply, and integer comparisons. Semantic success produces the
-only lowering authority. The IR retains required checks and source trap sites;
+The implemented semantic families support exact scalar integers, unit,
+`Bool`, integer and unit constants, nongeneric own-mode functions, locals,
+direct calls, returns, pure/traps effects, wrapping and trapping
+add/subtract/multiply, integer comparisons, Boolean operations, and nominal
+tag equality. Nongeneric acyclic structs and enums flow through the same path,
+including construction, nested projection, statement/value matching, `give`,
+per-site exhaustiveness checking, whole-binding affine moves, and explicit
+reverse-order cleanup edges. Consuming field projections also retain the
+untouched affine sibling subtrees that must be dropped. Semantic success
+produces the only lowering authority. The IR retains required checks, source
+trap sites, and cleanup;
 the backend uses conservative LLVM without unearned overflow flags or check
 elision. Unimplemented v0.11 families stop as explicit unsupported compiler
-capabilities.
+capabilities rather than source-language rejections. Whole-unit ERR-2
+variant-addition edit-list enumeration and the full conformance adapter remain
+future work and are not implied by the current gate.
 
 Compile a source file through the normal path with:
 

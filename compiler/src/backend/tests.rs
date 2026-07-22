@@ -133,6 +133,29 @@ fn compile_and_run(llvm: &str) -> Output {
     output
 }
 
+fn emitted_function<'module>(module: &'module str, name: &str) -> &'module str {
+    let symbol = format!(" @wf_{name}(");
+    let symbol_start = module
+        .find(&symbol)
+        .unwrap_or_else(|| panic!("missing emitted function {name}"));
+    let function_start = module[..symbol_start]
+        .rfind("define internal")
+        .expect("source function must have an internal definition");
+    let function_end = module[function_start..]
+        .find("\n}\n\n")
+        .map(|offset| function_start + offset + 3)
+        .expect("source function definition must close");
+    &module[function_start..function_end]
+}
+
+fn emitted_drop_ids(function: &str) -> Vec<u32> {
+    function
+        .lines()
+        .filter_map(|line| line.strip_prefix("  ; drop %v"))
+        .map(|ordinal| ordinal.parse().expect("drop value must have an ordinal"))
+        .collect()
+}
+
 #[test]
 fn emitted_module_retains_checks_and_avoids_undefined_overflow_flags() {
     let source = br#"fn add(x: own i32, y: own i32) -> own i32 traps {
@@ -155,6 +178,130 @@ fn main() -> own unit traps {
 }
 
 #[test]
+fn nominal_lowering_keeps_selected_tag_widths_and_initialized_payloads() {
+    let source = br#"enum Flag {
+  Off();
+  On();
+}
+
+enum Payload {
+  Empty();
+  Value(number: i32);
+}
+
+fn main() -> own unit pure {
+  let flag: own Flag = On();
+  match flag {
+    Off() => {
+    }
+    On() => {
+    }
+  }
+  let payload: own Payload = Value(number: 42_i32);
+  match payload {
+    Empty() => {
+    }
+    Value(number: value) => {
+    }
+  }
+  return unit;
+}
+"#;
+    let llvm = emit(source);
+    assert!(llvm.contains("switch i1"));
+    assert!(llvm.contains("switch i32"));
+    assert!(llvm.contains("insertvalue %wf.t1 zeroinitializer, i32 1, 0"));
+    assert!(llvm.contains("call void @abort()"));
+    assert!(!llvm.contains("%wf.t0 = type"));
+}
+
+#[test]
+fn checked_affine_cleanup_survives_lowering_and_emission() {
+    let source = br#"struct Cell {
+  value: i32;
+}
+
+struct Inner {
+  selected: Cell;
+  sibling: Cell;
+}
+
+struct Outer {
+  inner: Inner;
+  sibling: Cell;
+}
+
+enum Holder {
+  Held(cell: Cell);
+  Empty();
+}
+
+fn make() -> own Cell pure {
+  let cell: own Cell = Cell(value: 1_i32);
+  return move cell;
+}
+
+fn cleanup() -> own unit pure {
+  make();
+  let first: own Cell = Cell(value: 2_i32);
+  let second: own Cell = Cell(value: 3_i32);
+  let selected: own Cell = Cell(value: 4_i32);
+  let inner_sibling: own Cell = Cell(value: 5_i32);
+  let inner: own Inner = Inner(selected: move selected, sibling: move inner_sibling);
+  let outer_sibling: own Cell = Cell(value: 6_i32);
+  let outer: own Outer = Outer(inner: move inner, sibling: move outer_sibling);
+  let taken: own Cell = move outer.inner.selected;
+  return unit;
+}
+
+fn cleanup_match(value: own Holder, flag: own Bool) -> own i32 pure {
+  match move value {
+    Held(cell: item) => {
+    }
+    Empty() => {
+    }
+  }
+  let selected: own i32 = match flag {
+    True() => {
+      let temporary: own Cell = Cell(value: 7_i32);
+      give 1_i32;
+    }
+    False() => {
+      give 0_i32;
+    }
+  }
+  return selected;
+}
+
+fn main() -> own unit pure {
+  cleanup();
+  let cell: own Cell = Cell(value: 8_i32);
+  let holder: own Holder = Held(cell: move cell);
+  let flag: own Bool = True();
+  cleanup_match(value: move holder, flag: flag);
+  return unit;
+}
+"#;
+    let llvm = emit(source);
+    assert!(emitted_drop_ids(emitted_function(&llvm, "make")).is_empty());
+
+    let cleanup = emitted_function(&llvm, "cleanup");
+    let cleanup_drops = emitted_drop_ids(cleanup);
+    assert_eq!(cleanup_drops.len(), 6);
+    assert!(cleanup_drops[3] > cleanup_drops[4]);
+    assert!(cleanup_drops[4] > cleanup_drops[5]);
+    assert!(cleanup.contains("; ownership-consuming projection"));
+
+    let cleanup_match = emitted_function(&llvm, "cleanup_match");
+    assert_eq!(emitted_drop_ids(cleanup_match).len(), 2);
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn compiler_independent_scalar_cases_execute_through_host_llvm() {
     for source in [
         include_bytes!("../../../tests/conformance/cases/scope3-pos-defined-run.wf").as_slice(),
@@ -168,6 +315,40 @@ fn compiler_independent_scalar_cases_execute_through_host_llvm() {
         )
         .as_slice(),
         include_bytes!("../../../tests/conformance/cases/x-arith-isub-wrap-min-roundtrip-runs.wf")
+            .as_slice(),
+    ] {
+        let output = compile_and_run(&compile(source));
+        assert!(output.status.success());
+        assert!(output.stdout.is_empty());
+        assert!(output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn compiler_independent_nominal_data_cases_execute_through_host_llvm() {
+    for source in [
+        include_bytes!("../../../tests/conformance/cases/x-struct-construct-read-field.wf")
+            .as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-struct-cross-fn.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-struct-mixed-width.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-struct-nested-field.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-enum-payload-give.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-enum-multiwidth-dispatch.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-enum-stmt-payload-check.wf").as_slice(),
+        include_bytes!(
+            "../../../tests/conformance/cases/x-ownmove-copy-reused-affine-consumed-once.wf"
+        )
+        .as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-ownmove-owned-temporary-scrutinee.wf")
+            .as_slice(),
+        include_bytes!("../../../tests/conformance/cases/op1-pos-bool-enum-equality.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/op1-pos-tag-enum-equality.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/type2-pos-enum.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/gram8-pos-construct.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/err2-pos-exhaustive-match.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/fn5-pos-match-dispatch.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-nominal-bool-ops-run.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-nominal-multifield-payload-run.wf")
             .as_slice(),
     ] {
         let output = compile_and_run(&compile(source));

@@ -17,8 +17,10 @@ use crate::{BundleSourceExtent, NodePath, ResolvedSyntaxUnit, SyntaxCoordinate};
 pub use check::check_semantics_v0_11;
 
 pub(crate) use model::{
-    BindingId, CheckedExpression, CheckedFunction, CheckedIntegerOperation, CheckedProgramData,
-    CheckedStatement, CheckedType, CheckedValue, TrapSite,
+    BindingId, CheckedBooleanOperation, CheckedDrop, CheckedEnumType, CheckedExpression,
+    CheckedFunction, CheckedIntegerOperation, CheckedMatchArm, CheckedNominalKind,
+    CheckedProgramData, CheckedProjectedDrop, CheckedStatement, CheckedType, CheckedValue,
+    TrapSite,
 };
 
 /// Numbered rule owning one post-resolution semantic rejection.
@@ -44,10 +46,46 @@ pub enum SemanticRuleV0_11 {
     Fn7,
     /// Exact declared-order named user-call arguments.
     Gram11,
+    /// Exact declared-order construction fields.
+    Gram8,
+    /// Exact declared-order match binders.
+    Gram10,
+    /// Constructor/variant owner agreement.
+    Type6,
+    /// Exhaustive enum matching.
+    Err2,
+    /// Value-match delivery.
+    Give1,
     /// Effect-row canonicality.
     Eff1,
     /// Exact exhibited-versus-declared effect row.
     Eff2,
+}
+
+impl SemanticRuleV0_11 {
+    /// Returns the exact numbered rule spelling from kernel specification v0.11.
+    #[must_use]
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::Form7 => "FORM-7",
+            Self::Const2 => "CONST-2",
+            Self::Type5 => "TYPE-5",
+            Self::Own1 => "OWN-1",
+            Self::Op1 => "OP-1",
+            Self::Op5 => "OP-5",
+            Self::Fn1 => "FN-1",
+            Self::Fn2 => "FN-2",
+            Self::Fn7 => "FN-7",
+            Self::Gram11 => "GRAM-11",
+            Self::Gram8 => "GRAM-8",
+            Self::Gram10 => "GRAM-10",
+            Self::Type6 => "TYPE-6",
+            Self::Err2 => "ERR-2",
+            Self::Give1 => "GIVE-1",
+            Self::Eff1 => "EFF-1",
+            Self::Eff2 => "EFF-2",
+        }
+    }
 }
 
 /// Exact checked location selected for a semantic rejection.
@@ -69,7 +107,20 @@ pub enum SemanticIssueKind {
     /// Two exact written modes or types disagree.
     TypeMismatch,
     /// `move` was written for a copy value.
-    MoveOfCopy,
+    MoveOfCopy {
+        /// Exact mechanical repair required by OWN-1.
+        mechanical_fix: &'static str,
+    },
+    /// An affine value was used without its required consuming spelling.
+    BareAffineUse {
+        /// Exact mechanical repair required by OWN-1.
+        mechanical_fix: &'static str,
+    },
+    /// A binding was used after ownership had already been consumed.
+    UseAfterMove {
+        /// Exact restructuring required by OWN-1.
+        mechanical_fix: &'static str,
+    },
     /// The selected operation family has no row for the written arguments.
     InvalidOperation,
     /// An explicit check condition is not exactly `own Bool`.
@@ -85,7 +136,40 @@ pub enum SemanticIssueKind {
     /// No source `main` declaration exists.
     MissingMain,
     /// Named user-call arguments differ from the parameter list.
-    InvalidNamedArguments,
+    InvalidNamedArguments {
+        /// Callee spelling at the call site.
+        callee: String,
+        /// Exact declared parameter names in their required order.
+        declared_parameters: Vec<String>,
+    },
+    /// Two fields in one owner-local table have the same label.
+    DuplicateFieldLabel {
+        /// Repeated field label.
+        label: String,
+    },
+    /// Construction fields differ from the constructor's declared table.
+    InvalidConstructionFields {
+        /// Constructor named at the failing site.
+        constructor: String,
+        /// Exact declared field labels in their required order.
+        declared_fields: Vec<String>,
+    },
+    /// Match binders differ from the variant's declared field table.
+    InvalidMatchFields {
+        /// Variant named by the arm.
+        variant: String,
+        /// Exact declared field labels in their required order.
+        declared_fields: Vec<String>,
+    },
+    /// A match arm names a variant belonging to a different enum.
+    ForeignMatchVariant,
+    /// A match omits one or more declared variants.
+    NonExhaustiveMatch {
+        /// Declared variants with no arm, in declaration order.
+        missing_variants: Vec<String>,
+    },
+    /// `give` is absent, misplaced, duplicated, or followed by a statement.
+    InvalidGive,
     /// The effect row is not a valid exact EFF-1 row.
     InvalidEffectRow,
     /// The written effect row differs from syntactically exhibited effects.
@@ -101,6 +185,12 @@ pub struct SemanticIssue {
 }
 
 impl SemanticIssue {
+    /// Returns the exact numbered rule established by this rejection.
+    #[must_use]
+    pub const fn rule_id(&self) -> &'static str {
+        self.rule.id()
+    }
+
     /// Returns the exact numbered rule established by this issue.
     #[must_use]
     #[cfg(test)]
@@ -126,25 +216,33 @@ impl SemanticIssue {
 /// A language family that the current compiler has not implemented yet.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnsupportedSemanticFeatureV0_11 {
-    /// Source aggregates, payload enums, contracts, or conformances.
-    UserNominalDeclarations,
+    /// Contracts or conformances.
+    ContractsAndConformances,
     /// Type, const, or region polymorphism.
     Generics,
+    /// Nongeneric PRE-1 enum types and constructors outside Bool.
+    PreludeNominalValues,
     /// Borrow modes, region parameters, or local regions.
     RegionsAndBorrows,
-    /// Composite types or values outside the scalar executable family.
+    /// Composite types or values outside the implemented nominal-data family.
     CompositeValues,
     /// Float types, literals, or operations.
     FloatingPoint,
     /// Requires blocks.
     RequiresBlocks,
-    /// Match, loop, break, value-match, or `give` control flow.
+    /// Structured control flow outside exhaustive enum matches and `give`.
     StructuredControlFlow,
+    /// A recursive nominal layout whose finite representation is not selected.
+    RecursiveNominalLayout,
+    /// An ownership-state join not yet covered by the selected finite rule.
+    OwnershipJoin,
+    /// Repeated match arms, whose dispatch meaning v0.11 does not select.
+    DuplicateMatchArm,
     /// Mutation through `set`.
     Mutation,
     /// Result propagation.
     ResultPropagation,
-    /// An OP-1 family outside the currently lowered integer/Bool family.
+    /// An OP-1 family outside the implemented scalar and nominal-tag families.
     OperationFamily,
     /// An effect other than `pure` or `traps`.
     EffectFamily,

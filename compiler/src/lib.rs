@@ -4,10 +4,10 @@
 //! The Whitefoot research compiler.
 //!
 //! The crate contains one exact-v0.11 path from ordered sources through the
-//! frontend and direct resolver into the first checked scalar family,
-//! target-independent IR, conservative textual LLVM, and a host compiler
-//! executable. These stages remain evolvable implementation APIs, not stable
-//! protocols.
+//! frontend and direct resolver into semantic and ownership checking, a
+//! target-independent typed control-flow IR, conservative textual LLVM, and a
+//! host compiler executable. These stages remain evolvable implementation
+//! APIs, not stable protocols.
 
 mod backend;
 mod driver;

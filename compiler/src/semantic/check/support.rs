@@ -1,8 +1,9 @@
 use crate::syntax::NodeId;
 use crate::syntax::terminal::{FixedTerminalV0_11, TerminalPredicateV0_11};
 use crate::{
-    DeclarationRole, LexicalUseRole, SemanticCompilerFailure, SemanticIssue, SemanticIssueKind,
-    SemanticLocation, SemanticRuleV0_11, SemanticUnsupported, UnsupportedSemanticFeatureV0_11,
+    DeclarationRole, DeferredUseRole, DependentDeclarationRole, LexicalUseRole,
+    SemanticCompilerFailure, SemanticIssue, SemanticIssueKind, SemanticLocation, SemanticRuleV0_11,
+    SemanticUnsupported, UnsupportedSemanticFeatureV0_11,
 };
 
 use super::{CheckStop, Checker};
@@ -50,6 +51,32 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let path = self.tree.path(node)?;
         self.resolved
             .lexical_uses()
+            .iter()
+            .find(|usage| usage.role() == role && usage.origin().node() == path)
+            .ok_or(SemanticCompilerFailure::InvalidResolution.into())
+    }
+
+    pub(super) fn dependent_declaration_at(
+        &self,
+        node: NodeId,
+        role: DependentDeclarationRole,
+    ) -> Result<&crate::DependentDeclarationRecord, CheckStop> {
+        let path = self.tree.path(node)?;
+        self.resolved
+            .dependent_declarations()
+            .iter()
+            .find(|declaration| declaration.role() == role && declaration.origin().node() == path)
+            .ok_or(SemanticCompilerFailure::InvalidResolution.into())
+    }
+
+    pub(super) fn deferred_use_at(
+        &self,
+        node: NodeId,
+        role: DeferredUseRole,
+    ) -> Result<&crate::DeferredUseRecord, CheckStop> {
+        let path = self.tree.path(node)?;
+        self.resolved
+            .deferred_uses()
             .iter()
             .find(|usage| usage.role() == role && usage.origin().node() == path)
             .ok_or(SemanticCompilerFailure::InvalidResolution.into())

@@ -9,6 +9,8 @@ use crate::{
     classify_terminals_v0_11, finalize_v0_11, parse_v0_11, resolve_v0_11,
 };
 
+use super::model::{CheckedExpression, CheckedStatement};
+
 const SOURCE_LIMITS: SourceLimits = SourceLimits {
     max_sources: 4,
     max_logical_path_bytes: 128,
@@ -99,6 +101,15 @@ fn assert_rule(source: &[u8], rule: SemanticRuleV0_11, kind: SemanticIssueKind) 
     });
 }
 
+fn assert_unsupported(source: &[u8], feature: UnsupportedSemanticFeatureV0_11) {
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Unsupported { unsupported, .. } = outcome else {
+            panic!("expected unsupported {feature:?}, got {outcome:?}");
+        };
+        assert_eq!(unsupported.feature(), feature);
+    });
+}
+
 #[test]
 fn scalar_constants_calls_operations_and_checks_publish_one_checked_program() {
     let source = br#"const base: i32 = 40_i32;
@@ -184,12 +195,17 @@ fn main() -> own unit pure {
     assert_rule(
         wrong_name,
         SemanticRuleV0_11::Gram11,
-        SemanticIssueKind::InvalidNamedArguments,
+        SemanticIssueKind::InvalidNamedArguments {
+            callee: "take".to_owned(),
+            declared_parameters: vec!["value".to_owned()],
+        },
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  let a: own i32 = 1_i32;\n  let b: own i32 = move a;\n  return unit;\n}\n",
         SemanticRuleV0_11::Own1,
-        SemanticIssueKind::MoveOfCopy,
+        SemanticIssueKind::MoveOfCopy {
+            mechanical_fix: "use the copy place without `move`",
+        },
     );
 }
 
@@ -203,7 +219,10 @@ fn operation_call_shapes_keep_their_exact_rule_owners() {
     assert_rule(
         b"fn main() -> own unit pure {\n  let value: own i32 = iadd.wrap<i32>(left: 1_i32, right: 2_i32);\n  return unit;\n}\n",
         SemanticRuleV0_11::Gram11,
-        SemanticIssueKind::InvalidNamedArguments,
+        SemanticIssueKind::InvalidNamedArguments {
+            callee: "iadd.wrap".to_owned(),
+            declared_parameters: Vec::new(),
+        },
     );
 }
 
@@ -235,16 +254,280 @@ fn invalid_generic_main_is_fn7_not_an_unsupported_generic() {
 }
 
 #[test]
-fn unimplemented_language_families_are_not_source_rejections() {
-    let source =
-        b"struct Pair {\n  value: i32;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n";
+fn unimplemented_contract_family_is_not_a_source_rejection() {
+    let source = b"contract Empty {\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n";
     with_semantics(source, |outcome| {
         let SemanticOutcome::Unsupported { unsupported, .. } = outcome else {
-            panic!("aggregate semantics must be explicitly unsupported: {outcome:?}");
+            panic!("contract semantics must be explicitly unsupported: {outcome:?}");
         };
         assert_eq!(
             unsupported.feature(),
-            UnsupportedSemanticFeatureV0_11::UserNominalDeclarations
+            UnsupportedSemanticFeatureV0_11::ContractsAndConformances
         );
+    });
+}
+
+#[test]
+fn nominal_diagnostics_retain_required_lists_and_repairs() {
+    assert_rule(
+        include_bytes!("../../../tests/conformance/cases/x-struct-neg-field-order.wf"),
+        SemanticRuleV0_11::Gram8,
+        SemanticIssueKind::InvalidConstructionFields {
+            constructor: "Pair".to_owned(),
+            declared_fields: vec!["a".to_owned(), "b".to_owned()],
+        },
+    );
+    assert_rule(
+        include_bytes!("../../../tests/conformance/cases/x-match-gram10-out-of-order-fields.wf"),
+        SemanticRuleV0_11::Gram10,
+        SemanticIssueKind::InvalidMatchFields {
+            variant: "Both".to_owned(),
+            declared_fields: vec!["a".to_owned(), "b".to_owned()],
+        },
+    );
+    assert_rule(
+        include_bytes!("../../../tests/conformance/cases/err2-neg-missing-variant.wf"),
+        SemanticRuleV0_11::Err2,
+        SemanticIssueKind::NonExhaustiveMatch {
+            missing_variants: vec!["Blue".to_owned()],
+        },
+    );
+    assert_rule(
+        b"struct Pair {\n  x: i32;\n  x: i32;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
+        SemanticRuleV0_11::Type6,
+        SemanticIssueKind::DuplicateFieldLabel {
+            label: "x".to_owned(),
+        },
+    );
+    assert_rule(
+        b"enum Pairing {\n  Both(a: i32, b: i32);\n}\n\nfn main() -> own unit pure {\n  let pair: own Pairing = Both(a: 1_i32, b: 2_i32);\n  match move pair {\n    Both(a: first) => {\n    }\n  }\n  return unit;\n}\n",
+        SemanticRuleV0_11::Gram10,
+        SemanticIssueKind::InvalidMatchFields {
+            variant: "Both".to_owned(),
+            declared_fields: vec!["a".to_owned(), "b".to_owned()],
+        },
+    );
+}
+
+#[test]
+fn give_completeness_rejects_each_structural_failure() {
+    assert_rule(
+        b"fn main() -> own unit pure {\n  let flag: own Bool = True();\n  let result: own i32 = match flag {\n    True() => {\n    }\n    False() => {\n      give 0_i32;\n    }\n  }\n  return unit;\n}\n",
+        SemanticRuleV0_11::Give1,
+        SemanticIssueKind::InvalidGive,
+    );
+    assert_rule(
+        b"fn main() -> own unit pure {\n  let flag: own Bool = True();\n  let result: own i32 = match flag {\n    True() => {\n      give 1_i32;\n      give 2_i32;\n    }\n    False() => {\n      give 0_i32;\n    }\n  }\n  return unit;\n}\n",
+        SemanticRuleV0_11::Give1,
+        SemanticIssueKind::InvalidGive,
+    );
+}
+
+#[test]
+fn enum_equality_exclusions_reach_the_intended_rule() {
+    assert_rule(
+        b"enum PayloadEq {\n  PayloadEmpty();\n  PayloadValue(value: u32);\n}\n\nfn main() -> own unit pure {\n  let left: own PayloadEq = PayloadEmpty();\n  let right: own PayloadEq = PayloadEmpty();\n  let equal: own Bool = eeq<PayloadEq>(move left, move right);\n  return unit;\n}\n",
+        SemanticRuleV0_11::Op1,
+        SemanticIssueKind::InvalidOperation,
+    );
+    assert_rule(
+        b"enum LeftEq {\n  LeftFirst();\n}\n\nenum RightEq {\n  RightFirst();\n}\n\nfn main() -> own unit pure {\n  let left: own LeftEq = LeftFirst();\n  let right: own RightEq = RightFirst();\n  let equal: own Bool = eeq<LeftEq>(left, right);\n  return unit;\n}\n",
+        SemanticRuleV0_11::Type5,
+        SemanticIssueKind::TypeMismatch,
+    );
+}
+
+#[test]
+fn nominal_adjacent_unimplemented_behavior_stays_non_language_failure() {
+    assert_unsupported(
+        include_bytes!("../../../tests/conformance/cases/x-struct-set-field.wf"),
+        UnsupportedSemanticFeatureV0_11::Mutation,
+    );
+    assert_unsupported(
+        include_bytes!("../../../tests/conformance/cases/x-enum-borrow-payload-live.wf"),
+        UnsupportedSemanticFeatureV0_11::RegionsAndBorrows,
+    );
+    assert_unsupported(
+        b"struct Node {\n  next: Node;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
+        UnsupportedSemanticFeatureV0_11::RecursiveNominalLayout,
+    );
+    assert_unsupported(
+        b"enum Flag {\n  A();\n  B();\n}\n\nfn main() -> own unit pure {\n  let flag: own Flag = A();\n  match flag {\n    A() => {\n    }\n    A() => {\n    }\n    B() => {\n    }\n  }\n  return unit;\n}\n",
+        UnsupportedSemanticFeatureV0_11::DuplicateMatchArm,
+    );
+    assert_unsupported(
+        b"struct Cell {\n  value: i32;\n}\n\nfn main() -> own unit pure {\n  let cell: own Cell = Cell(value: 1_i32);\n  let flag: own Bool = True();\n  match flag {\n    True() => {\n      let consumed: own Cell = move cell;\n    }\n    False() => {\n    }\n  }\n  return unit;\n}\n",
+        UnsupportedSemanticFeatureV0_11::OwnershipJoin,
+    );
+}
+
+#[test]
+fn checked_cleanup_edges_cover_every_current_affine_exit() {
+    let source = br#"struct Cell {
+  value: i32;
+}
+
+struct Inner {
+  selected: Cell;
+  sibling: Cell;
+}
+
+struct Outer {
+  inner: Inner;
+  sibling: Cell;
+}
+
+enum Holder {
+  Held(cell: Cell);
+  Empty();
+}
+
+fn make() -> own Cell pure {
+  let cell: own Cell = Cell(value: 1_i32);
+  return move cell;
+}
+
+fn discard_call() -> own unit pure {
+  make();
+  return unit;
+}
+
+fn drop_binder(value: own Holder) -> own unit pure {
+  match move value {
+    Held(cell: item) => {
+    }
+    Empty() => {
+    }
+  }
+  return unit;
+}
+
+fn drop_before_give(flag: own Bool) -> own i32 pure {
+  let selected: own i32 = match flag {
+    True() => {
+      let temporary: own Cell = Cell(value: 2_i32);
+      give 1_i32;
+    }
+    False() => {
+      give 0_i32;
+    }
+  }
+  return selected;
+}
+
+fn move_through_give(flag: own Bool) -> own Cell pure {
+  let selected: own Cell = match flag {
+    True() => {
+      let temporary: own Cell = Cell(value: 3_i32);
+      give move temporary;
+    }
+    False() => {
+      let temporary: own Cell = Cell(value: 4_i32);
+      give move temporary;
+    }
+  }
+  return move selected;
+}
+
+fn reverse_order() -> own unit pure {
+  let first: own Cell = Cell(value: 5_i32);
+  let second: own Cell = Cell(value: 6_i32);
+  return unit;
+}
+
+fn consume_projection() -> own unit pure {
+  let selected: own Cell = Cell(value: 7_i32);
+  let inner_sibling: own Cell = Cell(value: 8_i32);
+  let inner: own Inner = Inner(selected: move selected, sibling: move inner_sibling);
+  let outer_sibling: own Cell = Cell(value: 9_i32);
+  let outer: own Outer = Outer(inner: move inner, sibling: move outer_sibling);
+  let taken: own Cell = move outer.inner.selected;
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("cleanup fixture must check: {outcome:?}");
+        };
+        let function = |name: &str| {
+            checked
+                .data
+                .functions
+                .iter()
+                .find(|function| function.name == name)
+                .unwrap_or_else(|| panic!("missing checked function {name}"))
+        };
+
+        let make = function("make");
+        let CheckedStatement::Return { drops, .. } = &make.body[1] else {
+            panic!("make must end in return");
+        };
+        assert!(drops.is_empty(), "returned affine value must not also drop");
+
+        let discard = function("discard_call");
+        assert!(matches!(
+            discard.body[0],
+            CheckedStatement::DropExpression(_)
+        ));
+
+        let drop_binder = function("drop_binder");
+        let CheckedStatement::Match { arms, .. } = &drop_binder.body[0] else {
+            panic!("drop_binder must start with match");
+        };
+        assert_eq!(arms[0].fallthrough_drops.len(), 1);
+        assert!(arms[1].fallthrough_drops.is_empty());
+
+        let drop_before_give = function("drop_before_give");
+        let CheckedStatement::ValueMatchLet { arms, .. } = &drop_before_give.body[0] else {
+            panic!("drop_before_give must start with value match");
+        };
+        let CheckedStatement::Give { drops, .. } = &arms[0].body[1] else {
+            panic!("first arm must end in give");
+        };
+        assert_eq!(drops.len(), 1);
+
+        let move_through_give = function("move_through_give");
+        let CheckedStatement::ValueMatchLet { arms, .. } = &move_through_give.body[0] else {
+            panic!("move_through_give must start with value match");
+        };
+        for arm in arms {
+            let CheckedStatement::Give { drops, .. } = &arm.body[1] else {
+                panic!("each arm must end in give");
+            };
+            assert!(drops.is_empty(), "given affine value must not also drop");
+        }
+
+        let reverse = function("reverse_order");
+        let CheckedStatement::Return { drops, .. } = &reverse.body[2] else {
+            panic!("reverse_order must end in return");
+        };
+        assert_eq!(drops.len(), 2);
+        assert!(drops[0].binding.0 > drops[1].binding.0);
+
+        let projection = function("consume_projection");
+        let CheckedStatement::Let {
+            binding: taken,
+            value:
+                CheckedExpression::Project {
+                    consume_root: true,
+                    residual_drops,
+                    ..
+                },
+        } = &projection.body[5]
+        else {
+            panic!("affine field move must consume its root");
+        };
+        assert_eq!(residual_drops.len(), 2);
+        assert_eq!(residual_drops[0].fields, vec![1]);
+        assert_eq!(residual_drops[1].fields, vec![0, 1]);
+        let CheckedStatement::Return { drops, .. } = &projection.body[6] else {
+            panic!("consume_projection must end in return");
+        };
+        assert_eq!(drops.len(), 1);
+        assert_eq!(drops[0].binding, *taken);
     });
 }

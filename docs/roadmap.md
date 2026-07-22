@@ -61,19 +61,31 @@ alias; `try` is an ordinary IDENT.
 
 The Rust compiler now has one ordinary path from ordered source transport
 through the lossless frontend and direct resolver into semantic checking, a
-private checked program, target-independent scalar IR, conservative textual
-LLVM, and a runnable host executable. The first scalar family supports exact
-integer and unit values, `Bool` construction and checks, integer and unit
-constants, nongeneric own-mode functions, locals, direct named calls, explicit
-returns, pure/traps effects, wrapping and trapping add/subtract/multiply, and
-integer comparisons. Required checks remain explicit through lowering and
-emit the exact DIAG-3 record before abort.
+private checked program, target-independent typed control-flow IR,
+conservative textual LLVM, and a runnable host executable. The scalar family
+supports exact integer and unit values, `Bool`, integer and unit constants,
+nongeneric own-mode functions, locals, direct named calls, explicit returns,
+pure/traps effects, wrapping and trapping add/subtract/multiply, integer
+comparisons, Boolean operations, and nominal tag equality.
 
-This is not a completeness claim. Aggregates and payload enums, generics and
-contracts, regions and borrows, floats, structured source control flow,
-mutation, Result propagation, allocations, and the remaining operation table
-are explicit unsupported compiler capabilities rather than source-language
-rejections.
+The first Phase 8 slice adds nongeneric own-mode acyclic structs and enums,
+construction, nested struct projection, statement and value matches, exact
+field/order and exhaustiveness checks, `give` delivery, and whole-binding
+affine moves. The same typed CFG and LLVM path handles cross-function
+aggregates, tag-only enums, and payload enums. Reverse-order affine cleanup is
+explicit on checked return, give, and match-fallthrough edges before lowering;
+an affine field move records the untouched sibling subtrees to drop at the
+consuming projection, including nested paths. Current resource-free nominal
+drops need no runtime action. Required checks
+remain explicit through lowering and emit the exact DIAG-3 record before abort.
+
+This is not a completeness claim. Generics and contracts, regions and borrows,
+floats, loops and breaks, mutation, Result propagation, allocations and
+containers, recursive nominal layouts, branch-dependent ownership joins, and
+the remaining operation/effect table are explicit unsupported compiler
+capabilities rather than source-language rejections. Repeated exhaustive match
+arms also stop as unsupported because v0.11 defines neither duplicate-arm
+meaning nor a duplicate-arm rejection rule.
 
 The owner approved the exact successor proposal SHA-256
 `7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and
@@ -333,6 +345,8 @@ retention, and the absence of `nsw`, `nuw`, or `llvm.assume` claims.
 
 ## Phase 8: expand semantic capability
 
+Status: in progress.
+
 Add coherent language families in dependency and experimental-value order,
 each end to end through execution. The likely families are:
 
@@ -351,6 +365,30 @@ which issue list is easiest to clear.
 **Exit:** every construct in the active specification has one general semantic
 and lowering path, and the full compiler-independent conformance suite is
 implemented by the compiler adapter.
+
+The implemented nominal-data subset covers nongeneric own-mode acyclic structs
+and enums. It implements construction, nested projection, statement and value
+matching, `give`, exact GRAM-8/GRAM-10 declared-field diagnostics,
+TYPE-5/TYPE-6 typing, per-site ERR-2 exhaustiveness rejection with the missing
+variant list, OWN-1/OWN-13 copy-versus-affine consumption, explicit checked
+cleanup edges, and tag-only enum equality through the normal checked-program,
+typed-CFG, LLVM, and host-execution path. Independent positive and negative
+cases cover cross-function aggregate values, mixed-width and multi-field enum
+payloads, every Boolean operation, nested fields, ownership failures, wrong
+variants, missing arms, and invalid field order.
+
+This is not the complete ERR-2 toolchain contract: a whole-unit
+variant-addition query that enumerates every affected match site is still
+pending. The compiler adapter also does not yet implement the full independent
+conformance manifest. The protected `xfail-own1-bare-affine-use` source still
+contains stale `KNOWN GAP` prose even though its manifest verdict is now the
+implemented OWN-1 rejection; correcting that existing fixture awaits explicit
+owner agreement. None of these are claimed by the current green gate.
+
+Direct recursive nominal layout and branch-dependent affine state joins remain
+explicit implementation limits, as do repeated exhaustive match arms; no
+source-language rule has been invented for them. Select the next family by the
+real program or language experiment it unlocks.
 
 ## Phase 9: dogfood and language iteration
 

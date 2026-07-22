@@ -310,3 +310,5 @@
 {"id":"fn8-pos-requires-eeq","rules":["FN-8","OP-1","OP-8"],"expect":{"kind":"run","exit":0},"status":"runnable","doc":"Exact-domain enum equality is pure and total and may appear in a checked requires clause."}
 {"id":"fn8-neg-requires-eeq-integer","rules":["FN-8","OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"A requires clause cannot widen eeq to the integer domain."}
 {"id":"fn8-neg-requires-eeq-payload-enum","rules":["FN-8","OP-1"],"expect":{"kind":"reject","rule":"OP-1"},"status":"runnable","doc":"A requires clause cannot widen eeq to payload-carrying enums."}
+{"id":"x-nominal-bool-ops-run","rules":["OP-1","OP-8","PRE-1"],"expect":{"kind":"run","exit":0},"status":"runnable","doc":"Every Boolean table operation executes through the ordinary compiler path, including true and false results."}
+{"id":"x-nominal-multifield-payload-run","rules":["TYPE-2","GRAM-8","GRAM-10","OWN-13","OP-1"],"expect":{"kind":"run","exit":0},"status":"runnable","doc":"A mixed-width three-field enum payload is constructed, passed across a function boundary, destructured, and validated field by field."}

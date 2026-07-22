@@ -6,7 +6,7 @@
 PY := python3 -B
 
 check: repository-invariants spec-append-only conformance reference compiler
-	@echo "== WHITEFOOT GATE GREEN (first executable scalar slice + independent evidence) =="
+	@echo "== WHITEFOOT GATE GREEN (active compiler + independent evidence) =="
 
 # repository invariants: identical agent instructions and the canonical roadmap marker
 repository-invariants:

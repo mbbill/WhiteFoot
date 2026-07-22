@@ -1,0 +1,338 @@
+use std::collections::{HashMap, HashSet};
+
+use crate::syntax::NodeId;
+use crate::{
+    DeclarationId, DeclarationRole, DeferredUseRole, LexicalUseRole, ProductionV0_11,
+    ResolvedTarget, SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_11,
+    UnsupportedSemanticFeatureV0_11,
+};
+
+use super::super::super::model::{
+    CheckedEnumType, CheckedExpression, CheckedField, CheckedMatchArm, CheckedMatchBinder,
+    CheckedNominalKind, CheckedType,
+};
+use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding};
+use super::GiveContext;
+
+#[derive(Clone)]
+struct VariantDescriptor {
+    name: String,
+    tag: u32,
+    fields: Vec<CheckedField>,
+    source_constructor: Option<DeclarationId>,
+    prelude_ordinal: Option<u8>,
+}
+
+struct MatchDescriptor {
+    enum_type: CheckedEnumType,
+    variants: Vec<VariantDescriptor>,
+}
+
+pub(super) struct MatchResult {
+    pub(super) scrutinee: CheckedExpression,
+    pub(super) enum_type: CheckedEnumType,
+    pub(super) arms: Vec<CheckedMatchArm>,
+    pub(super) can_continue: bool,
+    pub(super) all_paths_deliver: bool,
+    pub(super) exhibits_traps: bool,
+    pub(super) give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
+}
+
+impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
+    pub(super) fn check_match(
+        &self,
+        function: &FunctionSignature,
+        node: NodeId,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        next_binding: &mut u32,
+        value_expected: Option<CheckedType>,
+        outer_give_context: Option<&GiveContext>,
+    ) -> Result<MatchResult, CheckStop> {
+        let expression_node = self
+            .tree
+            .first_child_with(node, ProductionV0_11::Expr)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        let scrutinee = self.check_match_expression(function, expression_node, bindings)?;
+        let descriptor = self.match_descriptor(scrutinee.expression.ty(), expression_node)?;
+        let base_bindings = bindings.clone();
+        let base_keys = base_bindings.keys().copied().collect::<Vec<_>>();
+        let base_key_set = base_keys.iter().copied().collect::<HashSet<_>>();
+        let value_match = self.tree.production(node)? == ProductionV0_11::ValueMatch;
+        if value_match != value_expected.is_some() {
+            return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
+        }
+        let local_give_context = value_expected.map(|expected| GiveContext {
+            expected,
+            preserved: base_key_set.clone(),
+        });
+        let give_context = local_give_context.as_ref().or(outer_give_context);
+        let arm_nodes = self.tree.children_with(node, ProductionV0_11::Arm)?;
+        let mut seen = HashSet::new();
+        let mut duplicate_arm = None;
+        let mut resolved_variants = Vec::with_capacity(arm_nodes.len());
+        for arm_node in &arm_nodes {
+            let variant = self.match_variant(&descriptor, *arm_node)?.clone();
+            if !seen.insert(variant.tag) {
+                duplicate_arm.get_or_insert(*arm_node);
+            }
+            resolved_variants.push(variant);
+        }
+        let missing_variants = descriptor
+            .variants
+            .iter()
+            .filter(|variant| !seen.contains(&variant.tag))
+            .map(|variant| variant.name.clone())
+            .collect::<Vec<_>>();
+        if !missing_variants.is_empty() {
+            return self.issue_node(
+                SemanticRuleV0_11::Err2,
+                node,
+                SemanticIssueKind::NonExhaustiveMatch { missing_variants },
+            );
+        }
+        if let Some(arm) = duplicate_arm {
+            return self.unsupported(UnsupportedSemanticFeatureV0_11::DuplicateMatchArm, arm);
+        }
+
+        let mut arms = Vec::with_capacity(arm_nodes.len());
+        let mut normal_states = Vec::new();
+        let mut give_states = Vec::new();
+        let mut exhibits_traps = scrutinee.exhibits_traps;
+        let mut all_paths_deliver = true;
+        for (arm_node, variant) in arm_nodes.into_iter().zip(&resolved_variants) {
+            let mut arm_bindings = base_bindings.clone();
+            let binders =
+                self.check_match_binders(variant, arm_node, &mut arm_bindings, next_binding)?;
+            let statements = self.tree.children_with(arm_node, ProductionV0_11::Stmt)?;
+            let checked = self.check_block(
+                function,
+                &statements,
+                &mut arm_bindings,
+                next_binding,
+                give_context,
+            )?;
+            let fallthrough_drops = if checked.can_continue {
+                self.live_affine_drops(&arm_bindings, &base_key_set)?
+            } else {
+                Vec::new()
+            };
+            if checked.can_continue {
+                normal_states.push(arm_bindings);
+            }
+            all_paths_deliver &= !checked.can_continue && checked.all_paths_deliver;
+            exhibits_traps |= checked.exhibits_traps;
+            give_states.extend(checked.give_states);
+            arms.push(CheckedMatchArm {
+                tag: variant.tag,
+                binders,
+                body: checked.statements,
+                fallthrough_drops,
+            });
+        }
+        if value_match {
+            if !all_paths_deliver {
+                return self.issue_node(
+                    SemanticRuleV0_11::Give1,
+                    node,
+                    SemanticIssueKind::InvalidGive,
+                );
+            }
+            self.join_states(&base_keys, &give_states, node, bindings)?;
+        } else {
+            self.join_states(&base_keys, &normal_states, node, bindings)?;
+        }
+        Ok(MatchResult {
+            scrutinee: scrutinee.expression,
+            enum_type: descriptor.enum_type,
+            arms,
+            can_continue: if value_match {
+                !give_states.is_empty()
+            } else {
+                !normal_states.is_empty()
+            },
+            all_paths_deliver,
+            exhibits_traps,
+            give_states: if value_match { Vec::new() } else { give_states },
+        })
+    }
+
+    fn match_descriptor(
+        &self,
+        ty: CheckedType,
+        node: NodeId,
+    ) -> Result<MatchDescriptor, CheckStop> {
+        match ty {
+            CheckedType::Bool => Ok(MatchDescriptor {
+                enum_type: CheckedEnumType::Bool,
+                variants: vec![
+                    VariantDescriptor {
+                        name: "True".to_owned(),
+                        tag: 1,
+                        fields: Vec::new(),
+                        source_constructor: None,
+                        prelude_ordinal: Some(1),
+                    },
+                    VariantDescriptor {
+                        name: "False".to_owned(),
+                        tag: 0,
+                        fields: Vec::new(),
+                        source_constructor: None,
+                        prelude_ordinal: Some(2),
+                    },
+                ],
+            }),
+            CheckedType::Nominal(id) => {
+                let CheckedNominalKind::Enum { variants } = &self.nominal(id)?.kind else {
+                    return self.issue_node(
+                        SemanticRuleV0_11::Type5,
+                        node,
+                        SemanticIssueKind::TypeMismatch,
+                    );
+                };
+                let variants = variants
+                    .iter()
+                    .map(|variant| VariantDescriptor {
+                        name: variant.name.clone(),
+                        tag: variant.tag,
+                        fields: variant.fields.clone(),
+                        source_constructor: Some(variant.constructor),
+                        prelude_ordinal: None,
+                    })
+                    .collect();
+                Ok(MatchDescriptor {
+                    enum_type: CheckedEnumType::Nominal(id),
+                    variants,
+                })
+            }
+            _ => self.issue_node(
+                SemanticRuleV0_11::Type5,
+                node,
+                SemanticIssueKind::TypeMismatch,
+            ),
+        }
+    }
+
+    fn match_variant<'descriptor>(
+        &self,
+        descriptor: &'descriptor MatchDescriptor,
+        arm: NodeId,
+    ) -> Result<&'descriptor VariantDescriptor, CheckStop> {
+        let usage = self.use_at(arm, LexicalUseRole::ArmVariant)?;
+        descriptor
+            .variants
+            .iter()
+            .find(|variant| match usage.target() {
+                ResolvedTarget::Source { declaration, .. } => {
+                    variant.source_constructor == Some(declaration)
+                }
+                ResolvedTarget::Prelude(id) => variant.prelude_ordinal == Some(id.ordinal()),
+                _ => false,
+            })
+            .ok_or_else(|| {
+                self.issue_value(
+                    SemanticRuleV0_11::Type6,
+                    arm,
+                    SemanticIssueKind::ForeignMatchVariant,
+                )
+            })
+    }
+
+    fn check_match_binders(
+        &self,
+        variant: &VariantDescriptor,
+        arm: NodeId,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        next_binding: &mut u32,
+    ) -> Result<Vec<CheckedMatchBinder>, CheckStop> {
+        let written = if let Some(list) = self
+            .tree
+            .first_child_with(arm, ProductionV0_11::FieldbindList)?
+        {
+            self.tree.children_with(list, ProductionV0_11::Fieldbind)?
+        } else {
+            Vec::new()
+        };
+        if written.len() != variant.fields.len() {
+            return self.invalid_match_fields(variant, arm);
+        }
+        let mut binders = Vec::with_capacity(written.len());
+        for (index, (written, field)) in written.into_iter().zip(&variant.fields).enumerate() {
+            if self
+                .deferred_use_at(written, DeferredUseRole::MatchField)?
+                .spelling()
+                != field.name
+            {
+                return self.invalid_match_fields(variant, written);
+            }
+            let declaration = self.declaration_at(written, DeclarationRole::MatchBinder)?;
+            let binding = Self::allocate_binding(next_binding)?;
+            if bindings
+                .insert(
+                    declaration.id(),
+                    LocalBinding {
+                        binding,
+                        ty: field.ty,
+                        live: true,
+                    },
+                )
+                .is_some()
+            {
+                return Err(SemanticCompilerFailure::InvalidResolution.into());
+            }
+            binders.push(CheckedMatchBinder {
+                binding,
+                field: u32::try_from(index)
+                    .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
+                ty: field.ty,
+            });
+        }
+        Ok(binders)
+    }
+
+    fn invalid_match_fields<ResultValue>(
+        &self,
+        variant: &VariantDescriptor,
+        node: NodeId,
+    ) -> Result<ResultValue, CheckStop> {
+        self.issue_node(
+            SemanticRuleV0_11::Gram10,
+            node,
+            SemanticIssueKind::InvalidMatchFields {
+                variant: variant.name.clone(),
+                declared_fields: variant
+                    .fields
+                    .iter()
+                    .map(|field| field.name.clone())
+                    .collect(),
+            },
+        )
+    }
+
+    fn join_states(
+        &self,
+        base_keys: &[DeclarationId],
+        states: &[HashMap<DeclarationId, LocalBinding>],
+        node: NodeId,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+    ) -> Result<(), CheckStop> {
+        let Some(first) = states.first() else {
+            return Ok(());
+        };
+        for key in base_keys {
+            let expected = first
+                .get(key)
+                .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+            if states
+                .iter()
+                .skip(1)
+                .any(|state| state.get(key) != Some(expected))
+            {
+                return self.unsupported(UnsupportedSemanticFeatureV0_11::OwnershipJoin, node);
+            }
+            *bindings
+                .get_mut(key)
+                .ok_or(SemanticCompilerFailure::InvalidResolution)? = *expected;
+        }
+        Ok(())
+    }
+}

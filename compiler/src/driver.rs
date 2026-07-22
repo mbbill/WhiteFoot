@@ -127,6 +127,7 @@ pub enum CompilationFailureKind {
 pub struct CompilationFailure {
     stage: CompilationStage,
     kind: CompilationFailureKind,
+    rule_id: Option<&'static str>,
     detail: String,
 }
 
@@ -135,7 +136,17 @@ impl CompilationFailure {
         Self {
             stage,
             kind,
+            rule_id: None,
             detail: format!("{detail:?}"),
+        }
+    }
+
+    fn semantic_source(issue: crate::SemanticIssue) -> Self {
+        Self {
+            stage: CompilationStage::Semantics,
+            kind: CompilationFailureKind::Source,
+            rule_id: Some(issue.rule_id()),
+            detail: format!("{issue:?}"),
         }
     }
 
@@ -156,15 +167,29 @@ impl CompilationFailure {
     pub fn detail(&self) -> &str {
         &self.detail
     }
+
+    /// Returns the exact numbered source rule when this stop is semantic.
+    #[must_use]
+    pub const fn rule_id(&self) -> Option<&'static str> {
+        self.rule_id
+    }
 }
 
 impl fmt::Display for CompilationFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "{:?}/{:?}: {}",
-            self.stage, self.kind, self.detail
-        )
+        if let Some(rule_id) = self.rule_id {
+            write!(
+                formatter,
+                "{:?}/{:?} [{rule_id}]: {}",
+                self.stage, self.kind, self.detail
+            )
+        } else {
+            write!(
+                formatter,
+                "{:?}/{:?}: {}",
+                self.stage, self.kind, self.detail
+            )
+        }
     }
 }
 
@@ -330,11 +355,7 @@ pub fn compile_v0_11(
     let checked = match check_semantics_v0_11(resolved) {
         SemanticOutcome::Complete(complete) => *complete,
         SemanticOutcome::SourceIssue { issue, .. } => {
-            return Err(CompilationFailure::new(
-                CompilationStage::Semantics,
-                CompilationFailureKind::Source,
-                issue,
-            ));
+            return Err(CompilationFailure::semantic_source(issue));
         }
         SemanticOutcome::Unsupported { unsupported, .. } => {
             return Err(CompilationFailure::new(
@@ -376,12 +397,12 @@ mod tests {
 
     #[test]
     fn driver_preserves_semantic_unsupported_as_a_semantic_stop() {
-        let source = b"struct Value {\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n";
+        let source = b"contract Empty {\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n";
         let failure = compile_v0_11(
             &[SourceInput::new("value.wf", source)],
             CompilerLimits::default(),
         )
-        .expect_err("aggregate family is not implemented yet");
+        .expect_err("contract family is not implemented yet");
         assert_eq!(failure.stage(), CompilationStage::Semantics);
         assert_eq!(failure.kind(), CompilationFailureKind::Unsupported);
         assert!(failure.detail().contains("Unsupported"));
@@ -393,39 +414,119 @@ mod tests {
             (
                 "gram11-neg-misspelled.wf",
                 include_bytes!("../../tests/conformance/cases/gram11-neg-misspelled.wf").as_slice(),
-                "Gram11",
+                "GRAM-11",
             ),
             (
                 "eff2-neg-declared-unexhibited.wf",
                 include_bytes!("../../tests/conformance/cases/eff2-neg-declared-unexhibited.wf")
                     .as_slice(),
-                "Eff2",
+                "EFF-2",
             ),
             (
                 "fn2-neg-implicit-instantiation.wf",
                 include_bytes!("../../tests/conformance/cases/fn2-neg-implicit-instantiation.wf")
                     .as_slice(),
-                "Fn2",
+                "FN-2",
             ),
             (
                 "form7-neg-out-of-range.wf",
                 include_bytes!("../../tests/conformance/cases/form7-neg-out-of-range.wf")
                     .as_slice(),
-                "Form7",
+                "FORM-7",
             ),
             (
                 "type5-neg-arg-mismatch.wf",
                 include_bytes!("../../tests/conformance/cases/type5-neg-arg-mismatch.wf")
                     .as_slice(),
-                "Type5",
+                "TYPE-5",
+            ),
+            (
+                "x-struct-neg-field-order.wf",
+                include_bytes!("../../tests/conformance/cases/x-struct-neg-field-order.wf")
+                    .as_slice(),
+                "GRAM-8",
+            ),
+            (
+                "x-match-gram10-out-of-order-fields.wf",
+                include_bytes!(
+                    "../../tests/conformance/cases/x-match-gram10-out-of-order-fields.wf"
+                )
+                .as_slice(),
+                "GRAM-10",
+            ),
+            (
+                "err2-neg-missing-variant.wf",
+                include_bytes!("../../tests/conformance/cases/err2-neg-missing-variant.wf")
+                    .as_slice(),
+                "ERR-2",
+            ),
+            (
+                "x-ownmove-partial-move-kills-binding.wf",
+                include_bytes!(
+                    "../../tests/conformance/cases/x-ownmove-partial-move-kills-binding.wf"
+                )
+                .as_slice(),
+                "OWN-1",
+            ),
+            (
+                "x-ownmove-payload-binder-consumed-twice.wf",
+                include_bytes!(
+                    "../../tests/conformance/cases/x-ownmove-payload-binder-consumed-twice.wf"
+                )
+                .as_slice(),
+                "OWN-1",
+            ),
+            (
+                "x-gram-construct-repeated-field.wf",
+                include_bytes!("../../tests/conformance/cases/x-gram-construct-repeated-field.wf")
+                    .as_slice(),
+                "GRAM-8",
+            ),
+            (
+                "x-gram-construct-missing-field.wf",
+                include_bytes!("../../tests/conformance/cases/x-gram-construct-missing-field.wf")
+                    .as_slice(),
+                "GRAM-8",
+            ),
+            (
+                "x-typ-match-foreign-variant.wf",
+                include_bytes!("../../tests/conformance/cases/x-typ-match-foreign-variant.wf")
+                    .as_slice(),
+                "TYPE-6",
+            ),
+            (
+                "x-match-give1-wrong-type.wf",
+                include_bytes!("../../tests/conformance/cases/x-match-give1-wrong-type.wf")
+                    .as_slice(),
+                "TYPE-5",
+            ),
+            (
+                "x-integ-give-in-statement-match-rejected.wf",
+                include_bytes!(
+                    "../../tests/conformance/cases/x-integ-give-in-statement-match-rejected.wf"
+                )
+                .as_slice(),
+                "GIVE-1",
             ),
         ] {
             let failure =
                 compile_v0_11(&[SourceInput::new(name, source)], CompilerLimits::default())
                     .expect_err("negative conformance case must reject");
-            assert_eq!(failure.stage(), CompilationStage::Semantics);
-            assert_eq!(failure.kind(), CompilationFailureKind::Source);
-            assert!(failure.detail().contains(rule));
+            assert_eq!(
+                failure.stage(),
+                CompilationStage::Semantics,
+                "{name}: {failure}"
+            );
+            assert_eq!(
+                failure.kind(),
+                CompilationFailureKind::Source,
+                "{name}: {failure}"
+            );
+            assert_eq!(failure.rule_id(), Some(rule), "{name}: {failure}");
+            assert!(
+                failure.to_string().contains(rule),
+                "{name}: published diagnostic omitted {rule}: {failure}"
+            );
         }
     }
 }

@@ -1,24 +1,19 @@
 //! Target-independent lowering from semantically checked Whitefoot v0.11.
 //!
-//! The IR is intentionally small and private in spirit: it records explicit
-//! scalar values, direct calls, retained checks, and returns. It contains no
-//! source admission logic and grants no authority to reconstruct semantic
-//! decisions.
+//! The private IR records exact value types, nominal construction/projection,
+//! direct calls, retained checks, and explicit control-flow edges. It performs
+//! no source admission, label lookup, exhaustiveness decision, or ownership
+//! judgment.
 
-use std::collections::HashMap;
-
-use crate::CheckedProgram;
 use crate::semantic::{
-    BindingId, CheckedExpression, CheckedIntegerOperation, CheckedProgramData, CheckedStatement,
-    CheckedType, CheckedValue, TrapSite,
+    CheckedBooleanOperation, CheckedEnumType, CheckedIntegerOperation, CheckedProgram, CheckedType,
+    TrapSite,
 };
 
-/// Dense identity of one target-independent scalar value.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct IrValueId(u32);
 
 impl IrValueId {
-    /// Returns the dense function-local value ordinal.
     #[must_use]
     pub const fn ordinal(self) -> u32 {
         self.0
@@ -29,102 +24,145 @@ impl IrValueId {
     }
 }
 
-/// One already-checked scalar type in the first executable IR family.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum IrScalarType {
-    /// The sole unit value.
-    Unit,
-    /// Prelude `Bool`.
-    Bool,
-    /// One exact integer primitive.
-    Integer {
-        /// Bit width: 8, 16, 32, or 64.
-        width: u8,
-        /// Whether comparisons and overflow use signed semantics.
-        signed: bool,
-    },
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct IrBlockId(u32);
+
+impl IrBlockId {
+    pub(crate) fn from_index(index: usize) -> Result<Self, LoweringFailure> {
+        Ok(Self(
+            u32::try_from(index).map_err(|_| LoweringFailure::CounterOverflow)?,
+        ))
+    }
+
+    #[must_use]
+    pub const fn ordinal(self) -> u32 {
+        self.0
+    }
+
+    pub(crate) const fn index(self) -> usize {
+        self.0 as usize
+    }
 }
 
-impl From<CheckedType> for IrScalarType {
-    fn from(value: CheckedType) -> Self {
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct IrNominalId(u32);
+
+impl IrNominalId {
+    #[must_use]
+    pub const fn ordinal(self) -> u32 {
+        self.0
+    }
+
+    const fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum IrType {
+    Unit,
+    Bool,
+    Integer { width: u8, signed: bool },
+    Nominal(IrNominalId),
+}
+
+fn lower_type(value: CheckedType) -> IrType {
+    match value {
+        CheckedType::Unit => IrType::Unit,
+        CheckedType::Bool => IrType::Bool,
+        CheckedType::Integer(integer) => IrType::Integer {
+            width: integer.width(),
+            signed: integer.signed(),
+        },
+        CheckedType::Nominal(id) => IrType::Nominal(IrNominalId(id.0)),
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IrField {
+    ty: IrType,
+}
+
+impl IrField {
+    pub const fn ty(&self) -> IrType {
+        self.ty
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IrVariant {
+    tag: u32,
+    fields: Vec<IrField>,
+}
+
+impl IrVariant {
+    pub const fn tag(&self) -> u32 {
+        self.tag
+    }
+
+    pub fn fields(&self) -> &[IrField] {
+        &self.fields
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IrNominalKind {
+    Struct { fields: Vec<IrField> },
+    Enum { variants: Vec<IrVariant> },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IrNominal {
+    id: IrNominalId,
+    kind: IrNominalKind,
+}
+
+impl IrNominal {
+    pub const fn id(&self) -> IrNominalId {
+        self.id
+    }
+
+    pub const fn kind(&self) -> &IrNominalKind {
+        &self.kind
+    }
+
+    pub fn is_tag_only_enum(&self) -> bool {
+        matches!(
+            &self.kind,
+            IrNominalKind::Enum { variants }
+                if variants.iter().all(|variant| variant.fields.is_empty())
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IrEnumType {
+    Bool,
+    Nominal(IrNominalId),
+}
+
+impl From<CheckedEnumType> for IrEnumType {
+    fn from(value: CheckedEnumType) -> Self {
         match value {
-            CheckedType::Unit => Self::Unit,
-            CheckedType::Bool => Self::Bool,
-            CheckedType::Integer(integer) => Self::Integer {
-                width: integer.width(),
-                signed: integer.signed(),
-            },
+            CheckedEnumType::Bool => Self::Bool,
+            CheckedEnumType::Nominal(id) => Self::Nominal(IrNominalId(id.0)),
         }
     }
 }
 
-/// One explicit target-independent operation.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum IrOperation {
-    /// A fully checked scalar constant.
-    Constant(IrConstant),
-    /// A direct source-function call.
-    Call {
-        /// Dense checked function target.
-        function: u32,
-        /// Arguments in declared parameter order.
-        arguments: Vec<IrValueId>,
-    },
-    /// One exact OP-2 integer row.
-    Integer {
-        /// Selected operation.
-        operation: IrIntegerOperation,
-        /// Exact operand integer type.
-        operand_type: IrScalarType,
-        /// Two checked operands.
-        arguments: [IrValueId; 2],
-        /// Retained overflow trap for `.trap`, absent for total rows.
-        trap: Option<IrTrapSite>,
-    },
-}
-
-/// One exact scalar constant value.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum IrConstant {
-    /// Unit.
-    Unit,
-    /// Prelude `Bool` discriminant.
-    Bool(bool),
-    /// Exact two's-complement or unsigned bits.
-    Integer {
-        /// Exact integer type.
-        ty: IrScalarType,
-        /// Low `width` bits of the value.
-        bits: u64,
-    },
-}
-
-/// Integer rows currently represented by the IR.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IrIntegerOperation {
-    /// Modular addition.
     AddWrap,
-    /// Modular subtraction.
     SubtractWrap,
-    /// Modular multiplication.
     MultiplyWrap,
-    /// Checked addition that traps on overflow.
     AddTrap,
-    /// Checked subtraction that traps on overflow.
     SubtractTrap,
-    /// Checked multiplication that traps on overflow.
     MultiplyTrap,
-    /// Equality.
     Equal,
-    /// Inequality.
     NotEqual,
-    /// Signed- or unsigned-less-than selected by the operand type.
     Less,
-    /// Signed- or unsigned-less-than-or-equal.
     LessEqual,
-    /// Signed- or unsigned-greater-than.
     Greater,
-    /// Signed- or unsigned-greater-than-or-equal.
     GreaterEqual,
 }
 
@@ -147,7 +185,32 @@ impl From<CheckedIntegerOperation> for IrIntegerOperation {
     }
 }
 
-/// Runtime trap data fixed by DIAG-3 before target lowering.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IrBooleanOperation {
+    And,
+    Or,
+    ExclusiveOr,
+    Not,
+}
+
+impl From<CheckedBooleanOperation> for IrBooleanOperation {
+    fn from(value: CheckedBooleanOperation) -> Self {
+        match value {
+            CheckedBooleanOperation::And => Self::And,
+            CheckedBooleanOperation::Or => Self::Or,
+            CheckedBooleanOperation::ExclusiveOr => Self::ExclusiveOr,
+            CheckedBooleanOperation::Not => Self::Not,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IrConstant {
+    Unit,
+    Bool(bool),
+    Integer { ty: IrType, bits: u64 },
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IrTrapSite {
     pub(crate) rule_id: &'static str,
@@ -167,246 +230,199 @@ impl From<TrapSite> for IrTrapSite {
     }
 }
 
-/// One instruction in source evaluation order.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IrOperation {
+    Constant(IrConstant),
+    Call {
+        function: u32,
+        arguments: Vec<IrValueId>,
+    },
+    Integer {
+        operation: IrIntegerOperation,
+        operand_type: IrType,
+        arguments: [IrValueId; 2],
+        trap: Option<IrTrapSite>,
+    },
+    Boolean {
+        operation: IrBooleanOperation,
+        arguments: Vec<IrValueId>,
+    },
+    EnumEquality {
+        equal: bool,
+        operand_type: IrType,
+        arguments: [IrValueId; 2],
+    },
+    ConstructStruct {
+        nominal: IrNominalId,
+        fields: Vec<IrValueId>,
+    },
+    ConstructEnum {
+        nominal: IrNominalId,
+        variant: u32,
+        fields: Vec<IrValueId>,
+    },
+    ProjectStruct {
+        aggregate: IrValueId,
+        nominal: IrNominalId,
+        field: u32,
+        consume_root: bool,
+    },
+    ProjectVariant {
+        aggregate: IrValueId,
+        nominal: IrNominalId,
+        variant: u32,
+        field: u32,
+    },
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IrInstruction {
-    /// Define one value with an exact checked type.
     Define {
-        /// New dense value identity.
         result: IrValueId,
-        /// Exact result type.
-        ty: IrScalarType,
-        /// Operation producing the value.
+        ty: IrType,
         operation: IrOperation,
     },
-    /// Retained explicit OP-5 check.
     Check {
-        /// Checked `Bool` condition.
         condition: IrValueId,
-        /// Exact required trap record data.
         trap: IrTrapSite,
     },
-    /// Explicit source return, including unit.
-    Return(IrValueId),
+    Drop(IrDrop),
 }
 
-/// One completely lowered source function.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct IrDrop {
+    value: IrValueId,
+    ty: IrType,
+}
+
+impl IrDrop {
+    pub const fn value(self) -> IrValueId {
+        self.value
+    }
+
+    pub const fn ty(self) -> IrType {
+        self.ty
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct IrMatchTarget {
+    tag: u32,
+    block: IrBlockId,
+}
+
+impl IrMatchTarget {
+    pub const fn tag(self) -> u32 {
+        self.tag
+    }
+
+    pub const fn block(self) -> IrBlockId {
+        self.block
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IrFunction {
-    name: String,
-    parameters: Vec<(IrValueId, IrScalarType)>,
-    result: IrScalarType,
-    values: Vec<IrScalarType>,
-    instructions: Vec<IrInstruction>,
+pub enum IrTerminator {
+    Jump {
+        target: IrBlockId,
+        arguments: Vec<IrValueId>,
+        drops: Vec<IrDrop>,
+    },
+    Match {
+        scrutinee: IrValueId,
+        enum_type: IrEnumType,
+        targets: Vec<IrMatchTarget>,
+    },
+    Return {
+        value: IrValueId,
+        drops: Vec<IrDrop>,
+    },
 }
 
-impl IrFunction {
-    /// Returns the source function name.
-    #[must_use]
-    pub fn name(&self) -> &str {
-        &self.name
-    }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IrBlock {
+    parameters: Vec<(IrValueId, IrType)>,
+    instructions: Vec<IrInstruction>,
+    terminator: IrTerminator,
+}
 
-    /// Returns the exact checked result type.
-    #[must_use]
-    pub const fn result(&self) -> IrScalarType {
-        self.result
-    }
-
-    /// Returns parameters in declared order.
-    #[must_use]
-    pub fn parameters(&self) -> &[(IrValueId, IrScalarType)] {
+impl IrBlock {
+    pub fn parameters(&self) -> &[(IrValueId, IrType)] {
         &self.parameters
     }
 
-    /// Returns instructions in source evaluation order.
-    #[must_use]
     pub fn instructions(&self) -> &[IrInstruction] {
         &self.instructions
     }
 
-    pub(crate) fn value_type(&self, value: IrValueId) -> Option<IrScalarType> {
+    pub const fn terminator(&self) -> &IrTerminator {
+        &self.terminator
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct IrFunction {
+    name: String,
+    parameters: Vec<(IrValueId, IrType)>,
+    result: IrType,
+    values: Vec<IrType>,
+    blocks: Vec<IrBlock>,
+}
+
+impl IrFunction {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub const fn result(&self) -> IrType {
+        self.result
+    }
+
+    pub fn parameters(&self) -> &[(IrValueId, IrType)] {
+        &self.parameters
+    }
+
+    pub fn blocks(&self) -> &[IrBlock] {
+        &self.blocks
+    }
+
+    pub(crate) fn value_type(&self, value: IrValueId) -> Option<IrType> {
         self.values.get(value.index()).copied()
     }
 }
 
-/// Target-independent IR retaining its exact checked-program authority.
 #[derive(Debug)]
 pub struct IrProgram<'classified, 'lexed, 'source> {
     _checked: CheckedProgram<'classified, 'lexed, 'source>,
+    nominals: Vec<IrNominal>,
     functions: Vec<IrFunction>,
     main: u32,
 }
 
 impl IrProgram<'_, '_, '_> {
-    /// Returns every source function in checked dense order.
-    #[must_use]
+    pub fn nominals(&self) -> &[IrNominal] {
+        &self.nominals
+    }
+
+    pub fn nominal(&self, id: IrNominalId) -> Option<&IrNominal> {
+        self.nominals.get(id.index())
+    }
+
     pub fn functions(&self) -> &[IrFunction] {
         &self.functions
     }
 
-    /// Returns the checked entry-function ordinal.
-    #[must_use]
     pub const fn main_ordinal(&self) -> u32 {
         self.main
     }
 }
 
-/// Trusted lowering invariant failure, never a source verdict.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LoweringFailure {
-    /// A checked dense identity was missing or duplicated.
     InvalidCheckedProgram,
-    /// A dense IR identity overflowed.
     CounterOverflow,
 }
 
-/// Lowers one complete checked program into explicit target-independent IR.
-pub fn lower_checked_v0_11<'classified, 'lexed, 'source>(
-    checked: CheckedProgram<'classified, 'lexed, 'source>,
-) -> Result<IrProgram<'classified, 'lexed, 'source>, LoweringFailure> {
-    let functions = lower_program_data(&checked.data)?;
-    Ok(IrProgram {
-        main: checked.data.main.0,
-        _checked: checked,
-        functions,
-    })
-}
+mod builder;
 
-fn lower_program_data(data: &CheckedProgramData) -> Result<Vec<IrFunction>, LoweringFailure> {
-    data.functions.iter().map(lower_function).collect()
-}
-
-fn lower_function(
-    function: &crate::semantic::CheckedFunction,
-) -> Result<IrFunction, LoweringFailure> {
-    let mut builder = IrBuilder::default();
-    for parameter in &function.parameters {
-        let value = builder.new_value(parameter.ty.into())?;
-        builder.bindings.insert(parameter.binding, value);
-        builder.parameters.push((value, parameter.ty.into()));
-    }
-    for statement in &function.body {
-        match statement {
-            CheckedStatement::Let { binding, value } => {
-                let value = builder.expression(value)?;
-                if builder.bindings.insert(*binding, value).is_some() {
-                    return Err(LoweringFailure::InvalidCheckedProgram);
-                }
-            }
-            CheckedStatement::Evaluate(expression) => {
-                builder.expression(expression)?;
-            }
-            CheckedStatement::Check { condition, trap } => {
-                let condition = builder.expression(condition)?;
-                builder.instructions.push(IrInstruction::Check {
-                    condition,
-                    trap: trap.clone().into(),
-                });
-            }
-            CheckedStatement::Return(expression) => {
-                let value = builder.expression(expression)?;
-                builder.instructions.push(IrInstruction::Return(value));
-            }
-        }
-    }
-    Ok(IrFunction {
-        name: function.name.clone(),
-        parameters: builder.parameters,
-        result: function.result.into(),
-        values: builder.values,
-        instructions: builder.instructions,
-    })
-}
-
-#[derive(Default)]
-struct IrBuilder {
-    bindings: HashMap<BindingId, IrValueId>,
-    parameters: Vec<(IrValueId, IrScalarType)>,
-    values: Vec<IrScalarType>,
-    instructions: Vec<IrInstruction>,
-}
-
-impl IrBuilder {
-    fn new_value(&mut self, ty: IrScalarType) -> Result<IrValueId, LoweringFailure> {
-        let id = IrValueId(
-            u32::try_from(self.values.len()).map_err(|_| LoweringFailure::CounterOverflow)?,
-        );
-        self.values.push(ty);
-        Ok(id)
-    }
-
-    fn expression(&mut self, expression: &CheckedExpression) -> Result<IrValueId, LoweringFailure> {
-        match expression {
-            CheckedExpression::Binding { binding, .. } => self
-                .bindings
-                .get(binding)
-                .copied()
-                .ok_or(LoweringFailure::InvalidCheckedProgram),
-            CheckedExpression::Constant(value) => {
-                let ty: IrScalarType = value.ty().into();
-                let constant = match value {
-                    CheckedValue::Unit => IrConstant::Unit,
-                    CheckedValue::Bool(value) => IrConstant::Bool(*value),
-                    CheckedValue::Integer { ty, bits } => IrConstant::Integer {
-                        ty: CheckedType::Integer(*ty).into(),
-                        bits: *bits,
-                    },
-                };
-                self.define(ty, IrOperation::Constant(constant))
-            }
-            CheckedExpression::UserCall {
-                function,
-                arguments,
-                result,
-            } => {
-                let arguments = arguments
-                    .iter()
-                    .map(|argument| self.expression(argument))
-                    .collect::<Result<Vec<_>, _>>()?;
-                self.define(
-                    (*result).into(),
-                    IrOperation::Call {
-                        function: function.0,
-                        arguments,
-                    },
-                )
-            }
-            CheckedExpression::IntegerOperation {
-                operation,
-                operand_type,
-                arguments,
-                trap,
-            } => {
-                let [left, right] = arguments.as_slice() else {
-                    return Err(LoweringFailure::InvalidCheckedProgram);
-                };
-                let left = self.expression(left)?;
-                let right = self.expression(right)?;
-                self.define(
-                    expression.ty().into(),
-                    IrOperation::Integer {
-                        operation: (*operation).into(),
-                        operand_type: CheckedType::Integer(*operand_type).into(),
-                        arguments: [left, right],
-                        trap: trap.clone().map(Into::into),
-                    },
-                )
-            }
-        }
-    }
-
-    fn define(
-        &mut self,
-        ty: IrScalarType,
-        operation: IrOperation,
-    ) -> Result<IrValueId, LoweringFailure> {
-        let result = self.new_value(ty)?;
-        self.instructions.push(IrInstruction::Define {
-            result,
-            ty,
-            operation,
-        });
-        Ok(result)
-    }
-}
+pub use builder::lower_checked_v0_11;

@@ -6,6 +6,9 @@ pub(crate) struct FunctionId(pub(crate) u32);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct BindingId(pub(crate) u32);
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct NominalId(pub(crate) u32);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum IntegerType {
     I8,
@@ -38,6 +41,7 @@ pub(crate) enum CheckedType {
     Unit,
     Bool,
     Integer(IntegerType),
+    Nominal(NominalId),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,6 +61,42 @@ impl CheckedValue {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedField {
+    pub(crate) name: String,
+    pub(crate) ty: CheckedType,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedVariant {
+    pub(crate) name: String,
+    pub(crate) constructor: DeclarationId,
+    pub(crate) tag: u32,
+    pub(crate) fields: Vec<CheckedField>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum CheckedNominalKind {
+    Struct { fields: Vec<CheckedField> },
+    Enum { variants: Vec<CheckedVariant> },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedNominal {
+    pub(crate) id: NominalId,
+    pub(crate) kind: CheckedNominalKind,
+}
+
+impl CheckedNominal {
+    pub(crate) fn is_copy(&self) -> bool {
+        matches!(
+            &self.kind,
+            CheckedNominalKind::Enum { variants }
+                if variants.iter().all(|variant| variant.fields.is_empty())
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum CheckedIntegerOperation {
     AddWrap,
@@ -71,6 +111,14 @@ pub(crate) enum CheckedIntegerOperation {
     LessEqual,
     Greater,
     GreaterEqual,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CheckedBooleanOperation {
+    And,
+    Or,
+    ExclusiveOr,
+    Not,
 }
 
 impl CheckedIntegerOperation {
@@ -120,6 +168,31 @@ pub(crate) enum CheckedExpression {
         arguments: Vec<CheckedExpression>,
         trap: Option<TrapSite>,
     },
+    BooleanOperation {
+        operation: CheckedBooleanOperation,
+        arguments: Vec<CheckedExpression>,
+    },
+    EnumEquality {
+        equal: bool,
+        operand_type: CheckedType,
+        arguments: Vec<CheckedExpression>,
+    },
+    ConstructStruct {
+        nominal: NominalId,
+        fields: Vec<CheckedExpression>,
+    },
+    ConstructEnum {
+        nominal: NominalId,
+        variant: u32,
+        fields: Vec<CheckedExpression>,
+    },
+    Project {
+        binding: BindingId,
+        fields: Vec<u32>,
+        ty: CheckedType,
+        consume_root: bool,
+        residual_drops: Vec<CheckedProjectedDrop>,
+    },
 }
 
 impl CheckedExpression {
@@ -132,8 +205,46 @@ impl CheckedExpression {
                 operand_type,
                 ..
             } => operation.result_type(*operand_type),
+            Self::BooleanOperation { .. } | Self::EnumEquality { .. } => CheckedType::Bool,
+            Self::ConstructStruct { nominal, .. } | Self::ConstructEnum { nominal, .. } => {
+                CheckedType::Nominal(*nominal)
+            }
+            Self::Project { ty, .. } => *ty,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CheckedEnumType {
+    Bool,
+    Nominal(NominalId),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedMatchBinder {
+    pub(crate) binding: BindingId,
+    pub(crate) field: u32,
+    pub(crate) ty: CheckedType,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedMatchArm {
+    pub(crate) tag: u32,
+    pub(crate) binders: Vec<CheckedMatchBinder>,
+    pub(crate) body: Vec<CheckedStatement>,
+    pub(crate) fallthrough_drops: Vec<CheckedDrop>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedDrop {
+    pub(crate) binding: BindingId,
+    pub(crate) ty: CheckedType,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedProjectedDrop {
+    pub(crate) fields: Vec<u32>,
+    pub(crate) ty: CheckedType,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -143,11 +254,33 @@ pub(crate) enum CheckedStatement {
         value: CheckedExpression,
     },
     Evaluate(CheckedExpression),
+    DropExpression(CheckedExpression),
     Check {
         condition: CheckedExpression,
         trap: TrapSite,
     },
-    Return(CheckedExpression),
+    Return {
+        value: CheckedExpression,
+        drops: Vec<CheckedDrop>,
+    },
+    Match {
+        scrutinee: CheckedExpression,
+        enum_type: CheckedEnumType,
+        arms: Vec<CheckedMatchArm>,
+        continues: bool,
+    },
+    ValueMatchLet {
+        binding: BindingId,
+        result_type: CheckedType,
+        scrutinee: CheckedExpression,
+        enum_type: CheckedEnumType,
+        arms: Vec<CheckedMatchArm>,
+        continues: bool,
+    },
+    Give {
+        value: CheckedExpression,
+        drops: Vec<CheckedDrop>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -170,6 +303,7 @@ pub(crate) struct CheckedFunction {
 
 #[derive(Debug)]
 pub(crate) struct CheckedProgramData {
+    pub(crate) nominals: Vec<CheckedNominal>,
     pub(crate) functions: Vec<CheckedFunction>,
     pub(crate) main: FunctionId,
 }

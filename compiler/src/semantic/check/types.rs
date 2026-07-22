@@ -63,6 +63,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     }
 
     pub(super) fn parse_type(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
+        if let Some(targs) = self.tree.first_child_with(node, ProductionV0_11::Targs)? {
+            return self.unsupported(UnsupportedSemanticFeatureV0_11::Generics, targs);
+        }
         if let Some(ty) = self.integer_type(node)? {
             return Ok(CheckedType::Integer(ty));
         }
@@ -80,8 +83,26 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .is_some()
         {
             let usage = self.use_at(node, LexicalUseRole::Type)?;
-            if usage.target() == ResolvedTarget::Prelude(PreludeDeclarationId::new(0)) {
-                return Ok(CheckedType::Bool);
+            match usage.target() {
+                ResolvedTarget::Prelude(id) if id == PreludeDeclarationId::new(0) => {
+                    return Ok(CheckedType::Bool);
+                }
+                ResolvedTarget::Prelude(_) => {
+                    return self
+                        .unsupported(UnsupportedSemanticFeatureV0_11::PreludeNominalValues, node);
+                }
+                ResolvedTarget::Source {
+                    declaration,
+                    class: DeclarationClass::NominalType,
+                } => {
+                    return self
+                        .nominals_by_declaration
+                        .get(&declaration)
+                        .copied()
+                        .map(CheckedType::Nominal)
+                        .ok_or(SemanticCompilerFailure::InvalidResolution.into());
+                }
+                _ => {}
             }
         }
         self.unsupported(UnsupportedSemanticFeatureV0_11::CompositeValues, node)
