@@ -9,6 +9,12 @@ The history explains why earlier work existed. It does not authorize current
 work or override `docs/roadmap.md`, the active numbered specification,
 `docs/constitution.md`, or `governance/directives.md`.
 
+The live design-memory map is [`mcts_mem/whitefoot.md`](../mcts_mem/whitefoot.md).
+A durable choice with a real competing alternative belongs there as a current
+node plus its rejected `.alt` branch. These versioned files retain the fuller
+chronology, approvals, implementation results, and superseded evidence; do not
+copy that activity stream into the design tree.
+
 ## Current and recent versions
 
 | Era | Dates | Record |

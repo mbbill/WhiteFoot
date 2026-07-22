@@ -1,8 +1,8 @@
 - Every function signature declares an effect row — reads/writes/allocates over named regions, plus traps — with effect categories ordered reads, writes, allocates, traps; `pure` is the unique spelling of the empty row (EFF-1).
 - Rows are checked in both directions against a syntactic exhibits relation: undeclared-but-exhibited and declared-but-unexhibited are both errors; the relation counts proof-elided checks as still exhibited, and rows are stable under optimization.
 - There is no global mutable state and no static region; parameter-reachable memory is the only memory a function can observe, and the row's named regions cover all of it.
-- Declared rows lower to guaranteed attributes on both the definition and the declaration; callers optimize across opaque boundaries without body visibility.
-- `pure` licenses deduplication and reordering; eliminating an unused pure call additionally requires a termination proof, which v0 does not have; unused pure calls are retained.
+- The active safe-Rust compiler has not implemented effect checking or LLVM attribute lowering; the archived democ's definition-and-declaration attributes are historical optimization evidence.
+- Effect-derived optimization must remain downstream of successful semantic checking and cannot change the active specification's source acceptance or facts-off behavior.
 
 ## Facts
 

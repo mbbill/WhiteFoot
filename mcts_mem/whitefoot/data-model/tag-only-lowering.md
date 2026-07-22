@@ -1,6 +1,6 @@
-- Bool and two-variant tag-only user enums lower to i1 end-to-end: let-slots, field storage, construction, and match all stay in the machine-boolean domain, and the boolean table ops (band/bor/bxor/bnot) operate in i1.
-- Loop-carried predicate state stays an i1 recurrence through the whole pipeline; a domain-named two-variant state enum costs nothing over Bool.
-- Tag-only enums of three or more variants lower at word width.
+- The active safe-Rust compiler has no IR or backend and therefore has no selected tag-width lowering.
+- Exact v0.11 requires nominal tag equality to compare validated discriminants without exposing their representation; it does not require the archived democ's physical widths.
+- The archived democ's i1 lowering for Bool and two-variant tag-only enums is retained as measured evidence for the future backend, including the width-16 vectorization result; its word-width lowering for larger enums is unmeasured historical policy, not current authority.
 
 ## Facts
 

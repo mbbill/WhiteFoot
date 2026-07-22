@@ -1,7 +1,7 @@
-- Three optimizer-fact channels are built and always on when facts are enabled: region-scoped intra-function alias metadata derived from borrow provenance; effect rows lowered to guaranteed function attributes; and checked algebraic laws licensing reassociation of user-operation reductions.
-- Facts attach to declarations, not just definitions; their optimizations survive opaque boundaries without body visibility.
-- A stated law the bound operation does not satisfy is refuted at compile time; a law is never trusted from the writer.
-- The facts bundle is a single toggle; channel attribution is measured by differencing facts-on against facts-off on identical source.
+- The active safe-Rust compiler has no optimizer fact channels, facts toggle, IR, or backend.
+- The archived democ demonstrated scoped-alias, effect-attribute, and checked-law channels; their measurements are candidate evidence for later proposition-family experiments, not current compiler capability.
+- A future fact may improve an accepted program but may not affect source acceptance, select another lowerer, or remove a required check without a verified discharge.
+- Each future fact family must be independently attributable against correct facts-off compilation and must receive focused hostile negative-canary testing before it can authorize optimization.
 
 ## Facts
 

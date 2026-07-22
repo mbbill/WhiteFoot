@@ -1,7 +1,6 @@
-- `buffer<T>` is a runtime-length heap value that crosses function boundaries as a by-value pointer-plus-length pair; element writes through an exclusive buffer parameter are caller-visible through the shared data pointer.
-- v0 buffers and arrays admit copy primitives and tag-only enums as element types; aggregate data lays out as parallel per-field buffers (struct-of-arrays), and there is no AoS form yet.
-- Result and Option lower to a two-word tag-plus-payload aggregate.
-- Const items are immutable program-lifetime rodata lowered to private constant globals; a const-array index is a bounds-checked access into the global and its length is static.
+- The active specification defines buffers, arrays, constants, Result, Option, and their source semantics; it does not make the archived democ's exact LLVM layouts authoritative for the new compiler.
+- The active safe-Rust compiler currently has no semantic checker, checked layout, IR, or backend, so no production representation for buffers, Result, Option, or constants has been selected by implementation.
+- The archived democ's pointer-plus-length buffers, structure-of-arrays aggregates, two-word Result/Option values, and private-global const lowering remain measured implementation evidence for later backend slices.
 - STOR-1 currently describes growable and keyed collections as future libraries over buffers and structs, not kernel containers. The D12 research now records that derivation as unproved: the current fully initialized Copy buffer cannot alone express arbitrary affine spare capacity, move-out, relocation, live-subset drop, sparse occupancy, or failure-atomic growth. No replacement mechanism is selected. Append-only P2 remains protected, while recyclable identity is a separate contract rather than a universal collection basis.
 
 ## Facts

@@ -1,6 +1,6 @@
 - Whitefoot is a systems language whose sole intended writer is an AI; a human approves but does not author.
 - Every covered bug class (memory corruption, data races, silent overflow, uninitialized reads) is unrepresentable in accepted source; no writer-accessible unsafe exists anywhere — the sole trusted-assertion class is toolchain-gated, human-approved records the writer cannot author.
-- The safety checker's proofs are exported to the optimizer as facts; safety analysis and optimization share one fact base.
+- Machine-verified facts may later feed optimization, but optional facts never affect source acceptance and facts-off compilation retains every required check that lacks a verified discharge.
 - A runtime check exists at every unproved hazardous operation; removing a check requires a machine-verified proof, never writer assertion (one entry-check class is deliberately never removed).
 - The language has exactly one canonical spelling per program down to bytes.
 - Performance ranks above every remaining goal once AI-writability floors are met; every major decision names its delta over Rust.

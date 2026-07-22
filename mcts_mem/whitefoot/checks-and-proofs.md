@@ -1,9 +1,8 @@
 - Every unproved D1-critical checkable fact carries a runtime check in every build mode; there is no debug/release semantic divergence.
 - A check is removed only by a deterministic machine-verified proof; a solver may promote performance facts but never licenses elision; nothing writer-stated is trusted unchecked.
 - No writer-accessible syntax removes, weakens, or silences a check; explicit `check` statements are never elided, even when tautological.
-- Check accounting can fail a build subgate for unaccounted provable debt, but it never changes source acceptance and never removes a runtime check — its findings speak only about performance.
-- Proof reporting is observational: compilation with and without the per-site report is byte-identical.
-- The structural bounds prover (PROOF-1) discharges dominating length guards, fixed-stride remainder induction with tails, and masked constant-table indexes through unsigned widening; everything else is retained, fail-closed.
+- The active safe-Rust compiler currently ends at name resolution; it has no semantic check insertion, checked IR, backend, or proof-elision implementation.
+- The archived democ PROOF-1 implementation and accounting reports are historical evidence for a later optimizer experiment, not live compiler capability or acceptance authority.
 
 ## Facts
 

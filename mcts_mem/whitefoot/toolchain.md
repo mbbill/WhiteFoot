@@ -12,6 +12,7 @@
 - 2026-07-22 repository finding: compiler-independent conformance expectations and the focused ownership model remain useful, while the dormant codegen runner targets retired compiler interfaces. (code)
 - 2026-07-22 roadmap: direct general name resolution is the next capability, followed by the first coherent semantic slice through LLVM. (sourced)
 - 2026-07-22 implementation: exact owner-approved v0.11 is active; the frontend, direct resolver, conformance identities and source, and focused reference model use `propagate` for Result forwarding, while `try` is an ordinary IDENT. (code)
+- 2026-07-22 (dc7fea6b) implementation: the inactive exact-v0.8/v0.9 static specification catalogs moved under `archive/`; no active compiler, build, test, or tool imports them. (code)
 
 ## Moves
 

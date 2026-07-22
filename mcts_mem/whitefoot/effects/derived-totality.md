@@ -1,6 +1,6 @@
-- The willreturn tier is derived, never declared: a function earns it with a loop-free body, a trap-free effect row, and all-total callees.
-- Proof-elided checks remain in the syntactic exhibit set; effect rows and totality attributes never change after optimization, and a function does not re-enter the total tier via elision.
-- A totality lint (`--totality`) prints a per-function verdict naming each blocker.
+- The active safe-Rust compiler has no totality analysis or `willreturn` lowering.
+- The archived democ derived totality from loop freedom, trap freedom, and total callees; that rule and its measurements remain historical evidence for a later optimizer experiment rather than live compiler authority.
+- Any future totality fact must be derived after semantic checking and must not let proof elision alter source effects or source acceptance.
 
 ## Facts
 
