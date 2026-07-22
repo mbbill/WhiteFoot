@@ -86,7 +86,7 @@ not invent a retired baseline hash.
 
 Owner rulings before this separate ledger began on 2026-07-18 are preserved in
 `governance/directives.md` and in the versioned records indexed by
-`governance/decision-log.md`. They are not duplicated here because many of them
+`archive/governance/decision-log.md`. They are not duplicated here because many of them
 authorized research or selected a direction without approving a protected
 specification or test change.
 

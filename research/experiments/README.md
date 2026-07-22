@@ -2,8 +2,9 @@
 
 Every directory is self-contained (sources + Makefile/run script + RESULTS.md
 with measured numbers and honest caveats). Binaries/corpora are regenerable
-and gitignored. Chronology and decisions live in
-`../../governance/decision-log.md`.
+and gitignored. Historical chronology and decisions are indexed by
+`../../archive/governance/decision-log.md`; current design authority lives in
+`../../mcts_mem/` and current implementation status in `../../docs/roadmap.md`.
 
 ## Historical fact-channel benchmarks
 

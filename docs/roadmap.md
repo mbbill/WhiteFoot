@@ -91,7 +91,8 @@ The numbered specification is append-only: a released `spec/kernel-spec-v*.md`
 is never edited, renamed, or deleted, and a pre-commit hook enforces it (install
 once with `make install-hooks`). Amending the language is allowed, with care — a
 change batch goes into a new numbered version. State the exact change, keep it
-minimal, and record material changes in the decision log.
+minimal, record its durable rationale in `mcts_mem/`, and record protected owner
+approval in `governance/APPROVALS.md`.
 
 Before proposing a spec change, verify the new grammar with the grammar
 verifier: a proposed specification must pass the main compiler's own lexer and
@@ -365,8 +366,9 @@ for each completed repository slice. A green gate states only what it tests;
 it is not a claim that the language or compiler is complete.
 
 Every reproducible defect receives the smallest practical regression before
-its fix. Each cohesive completed step gets one commit and one short entry in
-the versioned history selected by `governance/decision-log.md`.
+its fix. Each cohesive completed step gets one commit. Update current phase
+status in this file, durable design choices in `mcts_mem/`, and protected owner
+approvals in `governance/APPROVALS.md` when those records materially change.
 
 Keep files cohesive and reviewable. Split by invariant-bearing responsibility,
 not arbitrary line counts or corpus functions. New and modified repository

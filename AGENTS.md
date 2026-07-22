@@ -40,7 +40,7 @@ probably not the next work.
   forms.
 - Consult the relevant live `mcts_mem/` node and its rejected alternatives
   before a nontrivial design change.
-- Architecture dossiers and `governance/decision-log.md` are historical design and
+- Architecture dossiers and `archive/governance/decision-log.md` are historical design and
   decision records. They can explain why something exists, but they cannot add
   current work or override `docs/roadmap.md`.
 
@@ -138,7 +138,7 @@ entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
   conformance verdict, deleting a failing test, or regenerating evidence to go
   green is a governance breach even though no script blocks it. Add tests
   freely; change or remove existing conformance or reference material only with
-  owner agreement and a decision-log entry.
+  owner agreement and an approval-ledger entry.
 - Compiler capability, an internal error, a timeout, or an unimplemented
   feature is not a source-language rejection and must not rewrite normative
   expectations.
@@ -171,8 +171,9 @@ entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
 - Run `make check` before committing a completed repository slice.
 - A green gate states only the capabilities it exercises; it is not a
   completeness claim.
-- Keep commits cohesive. Record material owner decisions and completed roadmap
-  transitions briefly in the append-only decision log; do not use agent
-  instruction files as a status log.
+- Keep commits cohesive. Record current status in `docs/roadmap.md`, durable
+  design choices and rejected alternatives in `mcts_mem/`, and protected owner
+  approvals in `governance/APPROVALS.md`; do not use agent instruction files as
+  a status log.
 - Delegate only concrete, independent work. Integrate and review delegated
   results against the same goal and relevance rules.
