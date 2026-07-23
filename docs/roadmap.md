@@ -810,6 +810,16 @@ region-bearing generic arguments, generic `requires`, and generic `cvt` remain
 explicit unsupported capabilities rather than source rejections unless that
 slice needs and implements them generally.
 
+The owner has approved the static-conformance direction, but exact-byte
+activation still awaits approval of
+`governance/spec-evolution/kernel-spec-v0.16-candidate.md`, SHA-256
+`f93264fb4df6994a408e1327c6e8643c34b4aea55fba4b1a0b3dab3501ceb942`.
+The candidate closes complete source-ordered conformance and the existing
+checked-law family without member calls, dispatch objects, source-contract
+generic bounds, or optimizer authority. Normal compilation remains bound to
+v0.15 and no v0.16 implementation is authorized until that exact candidate is
+approved under `WORKFLOW.md`.
+
 ## Phase 9: dogfood and language iteration
 
 Continuously use production-shaped but manageable projects to reveal missing
