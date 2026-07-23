@@ -257,6 +257,34 @@ fn compiler_independent_borrowed_pool_tree_executes() {
 }
 
 #[test]
+fn compiler_independent_wc_chunk_summary_executes() {
+    let llvm = compile(include_bytes!(
+        "../../../../tests/conformance/cases/x-wc-chunk-summary-run.wf"
+    ));
+    let summarize = emitted_function(&llvm, "summarize");
+    let combine = emitted_function(&llvm, "combine");
+    assert!(summarize.starts_with("define internal i8 @wf_summarize(ptr "));
+    assert!(summarize.contains(", { ptr, i64 } "));
+    assert!(combine.starts_with("define internal i8 @wf_combine(ptr "));
+    assert_eq!(
+        combine
+            .lines()
+            .next()
+            .expect("combine signature")
+            .matches("ptr %v")
+            .count(),
+        3
+    );
+    assert_eq!(summarize.matches("call void @free").count(), 1);
+    assert!(!combine.contains("call void @free"));
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn projected_buffer_target_is_formed_once_before_rhs() {
     let source = br#"struct Columns {
   left: buffer<u16>;

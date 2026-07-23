@@ -650,13 +650,20 @@ signature. No alias promise or required check is removed.
 The compiler-independent `x-borrowed-pool-tree-run` program now builds a
 63-node complete binary tree bottom-up in two buffer fields, recursively checks
 it through a shared whole-struct borrow, observes unique-borrowed count updates
-from the caller, and releases both buffers only from the original owner. The
-next work is to reconcile and execute the preserved `wc-chunk-summary` text
-workload through the current compiler. That experiment should exercise one
-unique output struct, multiple shared input structs, early returns, and an
-owned byte buffer through the ordinary path; implement only the first general
-compiler capability it actually exposes. It does not authorize strings, CLI
-infrastructure, parallel execution, or proof-based check removal.
+from the caller, and releases both buffers only from the original owner.
+`x-wc-chunk-summary-run` now supplies the text-processing leg: two owned byte
+chunks are summarized through unique output structs, then combined through one
+unique output and two shared inputs. Its general and empty-identity paths
+preserve lines, words, bytes, boundary state, caller-visible writes, retained
+bounds checks, and exactly-once input cleanup. It exposed no additional
+compiler capability gap.
+
+The next work is to reconcile and execute the preserved base64 encoder against
+small RFC 4648 vectors through the current const-array, owned-input-buffer,
+unique-output-borrow, checked-capacity, and integer-conversion paths. Implement
+only the first general compiler capability that experiment actually exposes.
+This does not authorize CLI infrastructure, SIMD, benchmark reconstruction, or
+proof-based check removal.
 
 ## Phase 9: dogfood and language iteration
 
