@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+mod loops;
+
 use crate::CheckedProgram;
 use crate::semantic::{
     BindingId, CheckedDrop, CheckedExpression, CheckedMatchArm, CheckedNominalKind,
@@ -7,6 +9,7 @@ use crate::semantic::{
 };
 
 use super::*;
+use loops::LoopTarget;
 
 pub fn lower_checked_v0_12<'classified, 'lexed, 'source>(
     checked: CheckedProgram<'classified, 'lexed, 'source>,
@@ -125,6 +128,7 @@ struct IrBuilder<'nominals> {
     values: Vec<IrType>,
     blocks: Vec<BuildingBlock>,
     current: Option<IrBlockId>,
+    loops: Vec<LoopTarget>,
 }
 
 #[derive(Clone)]
@@ -143,6 +147,7 @@ impl<'nominals> IrBuilder<'nominals> {
             values: Vec::new(),
             blocks: Vec::new(),
             current: None,
+            loops: Vec::new(),
         };
         let (entry, parameters) = builder.new_block(&[])?;
         if !parameters.is_empty() {
@@ -286,6 +291,27 @@ impl<'nominals> IrBuilder<'nominals> {
                     let mut arguments = Vec::with_capacity(1 + target.carried_bindings.len());
                     arguments.push(value);
                     arguments.extend(self.binding_values(&target.carried_bindings)?);
+                    let drops = self.lower_drops(drops)?;
+                    self.terminate(IrTerminator::Jump {
+                        target: target.block,
+                        arguments,
+                        drops,
+                    })?;
+                }
+                CheckedStatement::Loop {
+                    id,
+                    body,
+                    backedge_drops,
+                } => self.lower_loop(*id, body, backedge_drops, give_target.clone())?,
+                CheckedStatement::Break { target, drops } => {
+                    let target = self
+                        .loops
+                        .iter()
+                        .rev()
+                        .find(|candidate| candidate.id == *target)
+                        .cloned()
+                        .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                    let arguments = self.binding_values(&target.carried_bindings)?;
                     let drops = self.lower_drops(drops)?;
                     self.terminate(IrTerminator::Jump {
                         target: target.block,

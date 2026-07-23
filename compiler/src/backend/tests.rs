@@ -382,6 +382,59 @@ fn compiler_independent_scalar_cases_execute_through_host_llvm() {
 }
 
 #[test]
+fn compiler_independent_loop_accumulator_executes_through_host_llvm() {
+    for source in [
+        include_bytes!("../../../tests/conformance/cases/gram6-pos-no-operators.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/own1-pos-tagonly-copy.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/type2-pos-twostate-enum-i1.wf").as_slice(),
+    ] {
+        let llvm = compile(source);
+        let main = emitted_function(&llvm, "main");
+        assert!(main.contains(" = phi "));
+
+        let output = compile_and_run(&llvm);
+        assert!(output.status.success());
+        assert!(output.stdout.is_empty());
+        assert!(output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn nested_loop_labels_route_breaks_to_the_resolved_exit() {
+    let source = br#"fn main() -> own unit traps {
+  let outer: own i32 = 0_i32;
+  loop @outer_loop {
+    set outer = iadd.wrap<i32>(outer, 1_i32);
+    let inner: own i32 = 0_i32;
+    loop @inner_loop {
+      match ige<i32>(outer, 3_i32) {
+        True() => {
+          break @outer_loop;
+        }
+        False() => {
+        }
+      }
+      match ige<i32>(inner, 2_i32) {
+        True() => {
+          break @inner_loop;
+        }
+        False() => {
+        }
+      }
+      set inner = iadd.wrap<i32>(inner, 1_i32);
+    }
+  }
+  check ieq<i32>(outer, 3_i32) else trap "wrong outer exit";
+  return unit;
+}
+"#;
+    let output = compile_and_run(&compile(source));
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn compiler_independent_nominal_data_cases_execute_through_host_llvm() {
     for source in [
         include_bytes!("../../../tests/conformance/cases/x-struct-construct-read-field.wf")

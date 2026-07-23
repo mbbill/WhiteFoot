@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+mod loops;
 mod matches;
 
 use crate::syntax::NodeId;
@@ -8,8 +9,11 @@ use crate::{
     SemanticIssueKind, SemanticLocation, SemanticRuleV0_12, UnsupportedSemanticFeatureV0_12,
 };
 
-use super::super::model::{BindingId, CheckedDrop, CheckedStatement, CheckedType, TrapSite};
+use super::super::model::{
+    BindingId, CheckedDrop, CheckedLoopId, CheckedStatement, CheckedType, TrapSite,
+};
 use super::{CheckStop, Checker, FunctionSignature, LocalBinding};
+use loops::{BreakState, LoopContext};
 
 pub(super) struct BlockResult {
     pub(super) statements: Vec<CheckedStatement>,
@@ -17,6 +21,7 @@ pub(super) struct BlockResult {
     pub(super) exhibits_traps: bool,
     all_paths_deliver: bool,
     give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
+    break_states: Vec<BreakState>,
 }
 
 struct StatementResult {
@@ -26,11 +31,24 @@ struct StatementResult {
     all_paths_deliver: bool,
     direct_give: bool,
     give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
+    break_states: Vec<BreakState>,
 }
 
 pub(super) struct GiveContext {
     expected: CheckedType,
     preserved: HashSet<DeclarationId>,
+    enclosing_loops: HashSet<CheckedLoopId>,
+}
+
+pub(super) struct ControlCounters<'state> {
+    pub(super) next_binding: &'state mut u32,
+    pub(super) next_loop: &'state mut u32,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct ControlScope<'state> {
+    pub(super) loops: &'state [LoopContext],
+    pub(super) give_context: Option<&'state GiveContext>,
 }
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
@@ -39,8 +57,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         statement_wrappers: &[NodeId],
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
-        next_binding: &mut u32,
-        give_context: Option<&GiveContext>,
+        counters: &mut ControlCounters<'_>,
+        scope: ControlScope<'_>,
     ) -> Result<BlockResult, CheckStop> {
         let mut statements = Vec::with_capacity(statement_wrappers.len());
         let mut can_continue = true;
@@ -48,6 +66,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut all_paths_deliver = false;
         let mut direct_give = false;
         let mut give_states = Vec::new();
+        let mut break_states = Vec::new();
         for wrapper in statement_wrappers {
             let statement = self.tree.only_child(*wrapper)?;
             if !can_continue {
@@ -65,13 +84,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     },
                 );
             }
-            let checked =
-                self.check_statement(function, statement, bindings, next_binding, give_context)?;
+            let checked = self.check_statement(function, statement, bindings, counters, scope)?;
             can_continue = checked.can_continue;
             exhibits_traps |= checked.exhibits_traps;
             all_paths_deliver = checked.all_paths_deliver;
             direct_give = checked.direct_give;
             give_states.extend(checked.give_states);
+            break_states.extend(checked.break_states);
             statements.push(checked.statement);
         }
         if can_continue {
@@ -83,6 +102,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             exhibits_traps,
             all_paths_deliver,
             give_states,
+            break_states,
         })
     }
 
@@ -91,19 +111,17 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
-        next_binding: &mut u32,
-        give_context: Option<&GiveContext>,
+        counters: &mut ControlCounters<'_>,
+        scope: ControlScope<'_>,
     ) -> Result<StatementResult, CheckStop> {
         match self.tree.production(node)? {
-            ProductionV0_12::LetStmt => {
-                self.check_let(function, node, bindings, next_binding, give_context)
-            }
+            ProductionV0_12::LetStmt => self.check_let(function, node, bindings, counters, scope),
             ProductionV0_12::ExprStmt => {
                 let call = self
                     .tree
                     .first_child_with(node, ProductionV0_12::Call)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-                let value = self.check_call(function, call, bindings)?;
+                let value = self.check_call(function, call, bindings, scope.loops.len())?;
                 let statement = if self.is_copy_type(value.expression.ty())? {
                     CheckedStatement::Evaluate(value.expression)
                 } else {
@@ -116,7 +134,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .tree
                     .first_child_with(node, ProductionV0_12::Expr)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-                let value = self.check_expression(function, expression_node, bindings)?;
+                let value =
+                    self.check_expression(function, expression_node, bindings, scope.loops.len())?;
                 if value.expression.ty() != function.result {
                     return Err(CheckStop::Issue(SemanticIssue {
                         rule: SemanticRuleV0_12::Fn1,
@@ -137,6 +156,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     all_paths_deliver: true,
                     direct_give: false,
                     give_states: Vec::new(),
+                    break_states: Vec::new(),
                 })
             }
             ProductionV0_12::CheckStmt => {
@@ -144,7 +164,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .tree
                     .first_child_with(node, ProductionV0_12::Expr)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-                let condition = self.check_expression(function, expression_node, bindings)?;
+                let condition =
+                    self.check_expression(function, expression_node, bindings, scope.loops.len())?;
                 if condition.expression.ty() != CheckedType::Bool {
                     return Err(CheckStop::Issue(SemanticIssue {
                         rule: SemanticRuleV0_12::Op5,
@@ -169,8 +190,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 ))
             }
             ProductionV0_12::MatchStmt => {
-                let matched =
-                    self.check_match(function, node, bindings, next_binding, None, give_context)?;
+                let matched = self.check_match(function, node, bindings, counters, scope, None)?;
                 Ok(StatementResult {
                     statement: CheckedStatement::Match {
                         scrutinee: matched.scrutinee,
@@ -183,10 +203,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     all_paths_deliver: matched.all_paths_deliver,
                     direct_give: false,
                     give_states: matched.give_states,
+                    break_states: matched.break_states,
                 })
             }
             ProductionV0_12::GiveStmt => {
-                let Some(context) = give_context else {
+                let Some(context) = scope.give_context else {
                     return self.issue_node(
                         SemanticRuleV0_12::Give1,
                         node,
@@ -197,7 +218,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .tree
                     .first_child_with(node, ProductionV0_12::Expr)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-                let value = self.check_expression(function, expression_node, bindings)?;
+                let value =
+                    self.check_expression(function, expression_node, bindings, scope.loops.len())?;
                 if value.expression.ty() != context.expected {
                     return self.issue_node(
                         SemanticRuleV0_12::Type5,
@@ -215,6 +237,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     all_paths_deliver: true,
                     direct_give: true,
                     give_states: vec![bindings.clone()],
+                    break_states: Vec::new(),
                 })
             }
             ProductionV0_12::SetStmt => {
@@ -230,7 +253,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 // SET-1 fixes this order: form and check the target first, then
                 // evaluate the RHS, then re-establish target writability.
                 let (declaration, target) = self.check_set_target(target_node, bindings)?;
-                let value = self.check_expression(function, expression_node, bindings)?;
+                let value =
+                    self.check_expression(function, expression_node, bindings, scope.loops.len())?;
                 if value.expression.ty() != target.ty {
                     return self.issue_node(
                         SemanticRuleV0_12::Type5,
@@ -259,9 +283,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     value.exhibits_traps,
                 ))
             }
-            ProductionV0_12::LoopStmt | ProductionV0_12::BreakStmt => {
-                self.unsupported(UnsupportedSemanticFeatureV0_12::StructuredControlFlow, node)
-            }
+            ProductionV0_12::LoopStmt => self.check_loop(function, node, bindings, counters, scope),
+            ProductionV0_12::BreakStmt => self.check_break(node, bindings, scope),
             ProductionV0_12::RegionStmt => {
                 self.unsupported(UnsupportedSemanticFeatureV0_12::RegionsAndBorrows, node)
             }
@@ -274,8 +297,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
-        next_binding: &mut u32,
-        give_context: Option<&GiveContext>,
+        counters: &mut ControlCounters<'_>,
+        scope: ControlScope<'_>,
     ) -> Result<StatementResult, CheckStop> {
         let mode = self
             .tree
@@ -289,7 +312,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let expected = self.parse_type(ty_node)?;
         let declaration = self.declaration_at(node, DeclarationRole::Let)?;
         let declaration_id = declaration.id();
-        let binding = Self::allocate_binding(next_binding)?;
+        let binding = Self::allocate_binding(counters.next_binding)?;
 
         if let Some(value_match) = self
             .tree
@@ -299,9 +322,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 function,
                 value_match,
                 bindings,
-                next_binding,
+                counters,
+                scope,
                 Some(expected),
-                give_context,
             )?;
             if !matched.all_paths_deliver {
                 return self.issue_node(
@@ -318,6 +341,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             binding,
                             ty: expected,
                             live: true,
+                            loop_depth: scope.loops.len(),
                         },
                     )
                     .is_some()
@@ -338,6 +362,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 all_paths_deliver: !matched.can_continue,
                 direct_give: false,
                 give_states: Vec::new(),
+                break_states: matched.break_states,
             });
         }
         if let Some(propagate) = self
@@ -357,7 +382,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(rhs, ProductionV0_12::Expr)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let value = self.check_expression(function, expression_node, bindings)?;
+        let value =
+            self.check_expression(function, expression_node, bindings, scope.loops.len())?;
         if value.expression.ty() != expected {
             return self.issue_node(
                 SemanticRuleV0_12::Type5,
@@ -372,6 +398,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     binding,
                     ty: expected,
                     live: true,
+                    loop_depth: scope.loops.len(),
                 },
             )
             .is_some()
@@ -421,6 +448,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             all_paths_deliver: false,
             direct_give: false,
             give_states: Vec::new(),
+            break_states: Vec::new(),
         }
     }
 }

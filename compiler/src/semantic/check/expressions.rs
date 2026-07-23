@@ -156,12 +156,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         let child = self.tree.only_child(node)?;
         match self.tree.production(child)? {
-            ProductionV0_12::Atom => self.check_atom(function, child, bindings),
-            ProductionV0_12::Call => self.check_call(function, child, bindings),
-            ProductionV0_12::Construct => self.check_construct(function, child, bindings),
+            ProductionV0_12::Atom => self.check_atom(function, child, bindings, loop_depth),
+            ProductionV0_12::Call => self.check_call(function, child, bindings, loop_depth),
+            ProductionV0_12::Construct => {
+                self.check_construct(function, child, bindings, loop_depth)
+            }
             _ => Err(SemanticCompilerFailure::InvalidCanonicalTree.into()),
         }
     }
@@ -171,6 +174,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         if let Some(literal) = self
             .tree
@@ -190,6 +194,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 bindings,
                 self.has_fixed(node, FixedTerminalV0_12::Move)?,
                 false,
+                loop_depth,
             )?;
             return Ok(TypedExpression {
                 expression: value,
@@ -213,6 +218,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         explicit_move: bool,
         match_scrutinee: bool,
+        loop_depth: usize,
     ) -> Result<CheckedExpression, CheckStop> {
         let pbase = self
             .tree
@@ -312,6 +318,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
+                if !copy && local.loop_depth < loop_depth {
+                    return self.issue_node(
+                        SemanticRuleV0_12::Own11,
+                        use_node,
+                        SemanticIssueKind::MoveOuterBindingInLoop {
+                            mechanical_fix: "move the binding before the loop or declare and consume it inside the loop body",
+                        },
+                    );
+                }
                 if !copy {
                     bindings
                         .get_mut(&declaration)
@@ -366,6 +381,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         let child = self.tree.only_child(node)?;
         if self.tree.production(child)? == ProductionV0_12::Atom
@@ -378,11 +394,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     bindings,
                     self.has_fixed(child, FixedTerminalV0_12::Move)?,
                     true,
+                    loop_depth,
                 )?,
                 exhibits_traps: false,
             });
         }
-        self.check_expression(function, node, bindings)
+        self.check_expression(function, node, bindings, loop_depth)
     }
 
     pub(super) fn check_construct(
@@ -390,6 +407,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         if let Some(targs) = self.tree.first_child_with(node, ProductionV0_12::Targs)? {
             return self.unsupported(UnsupportedSemanticFeatureV0_12::Generics, targs);
@@ -488,7 +506,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(written, ProductionV0_12::Atom)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let value = self.check_atom(function, atom, bindings)?;
+            let value = self.check_atom(function, atom, bindings, loop_depth)?;
             if value.expression.ty() != declared.ty {
                 return self.issue_node(
                     SemanticRuleV0_12::Type5,

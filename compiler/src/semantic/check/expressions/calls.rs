@@ -18,6 +18,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         let callee = self
             .tree
@@ -40,9 +41,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             ResolvedTarget::Source {
                 declaration,
                 class: DeclarationClass::Function,
-            } => self.check_user_call(node, declaration, function, bindings),
+            } => self.check_user_call(node, declaration, function, bindings, loop_depth),
             ResolvedTarget::Operation(operation) => {
-                self.check_operation(node, operation, function, bindings)
+                self.check_operation(node, operation, function, bindings, loop_depth)
             }
             _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
         }
@@ -54,6 +55,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         declaration: DeclarationId,
         function: &FunctionSignature,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         if let Some(targs) = self.tree.first_child_with(node, ProductionV0_12::Targs)? {
             return self.unsupported(UnsupportedSemanticFeatureV0_12::Generics, targs);
@@ -100,7 +102,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(field, ProductionV0_12::Atom)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let argument = self.check_atom(function, atom, bindings)?;
+            let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if argument.expression.ty() != parameter.ty {
                 return self.issue_node(
                     SemanticRuleV0_12::Type5,
@@ -127,14 +129,21 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         operation_id: crate::OperationFamilyId,
         function: &FunctionSignature,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         let spelling = crate::operation_family_spelling_v0_12(operation_id)
             .ok_or(SemanticCompilerFailure::InvalidResolution)?;
         if matches!(spelling, "band" | "bor" | "bxor" | "bnot") {
-            return self.check_boolean_operation(node, spelling, function, bindings);
+            return self.check_boolean_operation(node, spelling, function, bindings, loop_depth);
         }
         if matches!(spelling, "eeq" | "ene") {
-            return self.check_enum_equality(node, spelling == "eeq", function, bindings);
+            return self.check_enum_equality(
+                node,
+                spelling == "eeq",
+                function,
+                bindings,
+                loop_depth,
+            );
         }
         let operation = match spelling {
             "iadd.wrap" => CheckedIntegerOperation::AddWrap,
@@ -206,7 +215,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut arguments = Vec::with_capacity(2);
         let mut exhibits_traps = operation.traps();
         for atom in atoms {
-            let argument = self.check_atom(function, atom, bindings)?;
+            let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if argument.expression.ty() != CheckedType::Integer(operand_type) {
                 return self.issue_node(
                     SemanticRuleV0_12::Type5,
@@ -244,6 +253,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         spelling: &str,
         function: &FunctionSignature,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         let operation = match spelling {
             "band" => CheckedBooleanOperation::And,
@@ -264,7 +274,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut arguments = Vec::with_capacity(atoms.len());
         let mut exhibits_traps = false;
         for atom in atoms {
-            let argument = self.check_atom(function, atom, bindings)?;
+            let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if argument.expression.ty() != CheckedType::Bool {
                 return self.issue_node(
                     SemanticRuleV0_12::Type5,
@@ -290,6 +300,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         equal: bool,
         function: &FunctionSignature,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
         let operand_type = self.operation_type_argument(node, if equal { "eeq" } else { "ene" })?;
         let tag_only = match operand_type {
@@ -312,7 +323,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut arguments = Vec::with_capacity(2);
         let mut exhibits_traps = false;
         for atom in atoms {
-            let argument = self.check_atom(function, atom, bindings)?;
+            let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if argument.expression.ty() != operand_type {
                 return self.issue_node(
                     SemanticRuleV0_12::Type5,

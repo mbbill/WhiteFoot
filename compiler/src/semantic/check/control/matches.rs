@@ -12,7 +12,7 @@ use super::super::super::model::{
     CheckedNominalKind, CheckedType,
 };
 use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding};
-use super::GiveContext;
+use super::{BreakState, ControlCounters, ControlScope, GiveContext};
 
 #[derive(Clone)]
 struct VariantDescriptor {
@@ -36,6 +36,7 @@ pub(super) struct MatchResult {
     pub(super) all_paths_deliver: bool,
     pub(super) exhibits_traps: bool,
     pub(super) give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
+    pub(super) break_states: Vec<BreakState>,
 }
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
@@ -44,15 +45,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         function: &FunctionSignature,
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
-        next_binding: &mut u32,
+        counters: &mut ControlCounters<'_>,
+        scope: ControlScope<'_>,
         value_expected: Option<CheckedType>,
-        outer_give_context: Option<&GiveContext>,
     ) -> Result<MatchResult, CheckStop> {
         let expression_node = self
             .tree
             .first_child_with(node, ProductionV0_12::Expr)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let scrutinee = self.check_match_expression(function, expression_node, bindings)?;
+        let scrutinee =
+            self.check_match_expression(function, expression_node, bindings, scope.loops.len())?;
         let descriptor = self.match_descriptor(scrutinee.expression.ty(), expression_node)?;
         let base_bindings = bindings.clone();
         let base_keys = base_bindings.keys().copied().collect::<Vec<_>>();
@@ -64,8 +66,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let local_give_context = value_expected.map(|expected| GiveContext {
             expected,
             preserved: base_key_set.clone(),
+            enclosing_loops: scope.loops.iter().map(|context| context.id).collect(),
         });
-        let give_context = local_give_context.as_ref().or(outer_give_context);
+        let arm_scope = ControlScope {
+            loops: scope.loops,
+            give_context: local_give_context.as_ref().or(scope.give_context),
+        };
         let arm_nodes = self.tree.children_with(node, ProductionV0_12::Arm)?;
         let mut seen = HashSet::new();
         let mut duplicate_arm = None;
@@ -97,19 +103,25 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut arms = Vec::with_capacity(arm_nodes.len());
         let mut normal_states = Vec::new();
         let mut give_states = Vec::new();
+        let mut break_states = Vec::new();
         let mut exhibits_traps = scrutinee.exhibits_traps;
         let mut all_paths_deliver = true;
         for (arm_node, variant) in arm_nodes.into_iter().zip(&resolved_variants) {
             let mut arm_bindings = base_bindings.clone();
-            let binders =
-                self.check_match_binders(variant, arm_node, &mut arm_bindings, next_binding)?;
+            let binders = self.check_match_binders(
+                variant,
+                arm_node,
+                &mut arm_bindings,
+                counters.next_binding,
+                scope.loops.len(),
+            )?;
             let statements = self.tree.children_with(arm_node, ProductionV0_12::Stmt)?;
             let checked = self.check_block(
                 function,
                 &statements,
                 &mut arm_bindings,
-                next_binding,
-                give_context,
+                counters,
+                arm_scope,
             )?;
             let fallthrough_drops = if checked.can_continue {
                 self.live_affine_drops(&arm_bindings, &base_key_set)?
@@ -122,6 +134,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             all_paths_deliver &= !checked.can_continue && checked.all_paths_deliver;
             exhibits_traps |= checked.exhibits_traps;
             give_states.extend(checked.give_states);
+            break_states.extend(checked.break_states);
             arms.push(CheckedMatchArm {
                 tag: variant.tag,
                 binders,
@@ -153,6 +166,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             all_paths_deliver,
             exhibits_traps,
             give_states: if value_match { Vec::new() } else { give_states },
+            break_states,
         })
     }
 
@@ -243,6 +257,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         arm: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         next_binding: &mut u32,
+        loop_depth: usize,
     ) -> Result<Vec<CheckedMatchBinder>, CheckStop> {
         let written = if let Some(list) = self
             .tree
@@ -273,6 +288,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         binding,
                         ty: field.ty,
                         live: true,
+                        loop_depth,
                     },
                 )
                 .is_some()
@@ -308,7 +324,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         )
     }
 
-    fn join_states(
+    pub(super) fn join_states(
         &self,
         base_keys: &[DeclarationId],
         states: &[HashMap<DeclarationId, LocalBinding>],

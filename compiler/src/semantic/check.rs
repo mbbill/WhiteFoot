@@ -19,6 +19,7 @@ use super::model::{
 };
 use super::tree::TreeView;
 use super::{CheckStop, CheckedProgram};
+use control::{ControlCounters, ControlScope};
 
 #[derive(Clone)]
 struct ParameterSignature {
@@ -44,6 +45,7 @@ struct LocalBinding {
     binding: BindingId,
     ty: CheckedType,
     live: bool,
+    loop_depth: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -339,6 +341,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut bindings = HashMap::new();
         let mut parameters = Vec::with_capacity(signature.parameters.len());
         let mut next_binding = 0_u32;
+        let mut next_loop = 0_u32;
         for parameter in &signature.parameters {
             let binding = BindingId(next_binding);
             next_binding = next_binding
@@ -350,6 +353,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     binding,
                     ty: parameter.ty,
                     live: true,
+                    loop_depth: 0,
                 },
             );
             parameters.push(CheckedParameter {
@@ -362,12 +366,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let statements = self
             .tree
             .children_with(signature.node, ProductionV0_12::Stmt)?;
+        let mut counters = ControlCounters {
+            next_binding: &mut next_binding,
+            next_loop: &mut next_loop,
+        };
         let checked = self.check_block(
             signature,
             &statements,
             &mut bindings,
-            &mut next_binding,
-            None,
+            &mut counters,
+            ControlScope {
+                loops: &[],
+                give_context: None,
+            },
         )?;
         if checked.can_continue {
             return Err(CheckStop::Issue(SemanticIssue {

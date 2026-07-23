@@ -18,7 +18,7 @@ pub use check::check_semantics_v0_12;
 
 pub(crate) use model::{
     BindingId, CheckedBooleanOperation, CheckedDrop, CheckedEnumType, CheckedExpression,
-    CheckedFunction, CheckedIntegerOperation, CheckedMatchArm, CheckedNominalKind,
+    CheckedFunction, CheckedIntegerOperation, CheckedLoopId, CheckedMatchArm, CheckedNominalKind,
     CheckedProgramData, CheckedProjectedDrop, CheckedStatement, CheckedType, CheckedValue,
     TrapSite,
 };
@@ -36,6 +36,8 @@ pub enum SemanticRuleV0_12 {
     Set1,
     /// Copy-versus-affine use spelling.
     Own1,
+    /// Loop-local region and move restrictions.
+    Own11,
     /// Storage-class and affine replacement restrictions.
     Stor1,
     /// Operation-table row selection.
@@ -76,6 +78,7 @@ impl SemanticRuleV0_12 {
             Self::Type5 => "TYPE-5",
             Self::Set1 => "SET-1",
             Self::Own1 => "OWN-1",
+            Self::Own11 => "OWN-11",
             Self::Stor1 => "STOR-1",
             Self::Op1 => "OP-1",
             Self::Op5 => "OP-5",
@@ -141,6 +144,11 @@ pub enum SemanticIssueKind {
     /// A binding was used after ownership had already been consumed.
     UseAfterMove {
         /// Exact restructuring required by OWN-1.
+        mechanical_fix: &'static str,
+    },
+    /// A loop attempted to consume an affine binding declared outside it.
+    MoveOuterBindingInLoop {
+        /// Exact restructuring required by OWN-11.
         mechanical_fix: &'static str,
     },
     /// The selected operation family has no row for the written arguments.
@@ -252,7 +260,7 @@ pub enum UnsupportedSemanticFeatureV0_12 {
     FloatingPoint,
     /// Requires blocks.
     RequiresBlocks,
-    /// Structured control flow outside exhaustive enum matches and `give`.
+    /// A loop with no structurally reachable break exit for current SSA lowering.
     StructuredControlFlow,
     /// A recursive nominal layout whose finite representation is not selected.
     RecursiveNominalLayout,

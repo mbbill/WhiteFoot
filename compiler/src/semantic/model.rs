@@ -7,6 +7,9 @@ pub(crate) struct FunctionId(pub(crate) u32);
 pub(crate) struct BindingId(pub(crate) u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct CheckedLoopId(pub(crate) u32);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct NominalId(pub(crate) u32);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -293,6 +296,15 @@ pub(crate) enum CheckedStatement {
     },
     Give {
         value: CheckedExpression,
+        drops: Vec<CheckedDrop>,
+    },
+    Loop {
+        id: CheckedLoopId,
+        body: Vec<CheckedStatement>,
+        backedge_drops: Vec<CheckedDrop>,
+    },
+    Break {
+        target: CheckedLoopId,
         drops: Vec<CheckedDrop>,
     },
 }

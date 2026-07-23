@@ -88,8 +88,17 @@ checked program retains the root and field path; lowering performs an SSA
 rebinding or rebuilds the required aggregate layers with LLVM `insertvalue`.
 Focused host tests execute root and nested-field updates and preserve siblings.
 
+Structured `loop` and resolved labelled `break` now use that same checked and
+lowered control-flow path. Loop-entry and break-exit blocks carry the current
+binding values as typed parameters, so arbitrary copy-local and tag-only-enum
+updates become ordinary LLVM phi nodes. Nested labels route to their resolved
+loop identities; FN-1 rejects unreachable suffixes; OWN-11 rejects consuming
+an affine binding declared outside the loop; and checked break/backedge edges
+retain their derived cleanup. Existing compiler-independent accumulator and
+loop-carried-enum programs execute through the host backend.
+
 This is not a completeness claim. Generics and contracts, regions and borrows,
-floats, loops and breaks, Result propagation, allocations and containers,
+floats, Result values and propagation, allocations and containers,
 recursive nominal layouts, branch-dependent ownership joins, index and
 borrow-backed SET-1 targets, and the remaining operation/effect table are
 explicit unsupported compiler capabilities rather than source-language
@@ -100,9 +109,11 @@ rule.
 The exact approved v0.12 candidate is installed and every live identity names
 it. The resolver implementation completes Phase 6, the first executable scalar
 slice completes Phase 7, and nominal data plus the current SET-1 place family
-advance Phase 8. The next work is loops and breaks over these copy locals: that
-is the smallest remaining family needed to run an actual iterative accumulator
-and expose the next control-flow, ownership-join, and performance questions.
+advance Phase 8. The next work is the closed PRE-1 `Result` path used by checked
+integer arithmetic and `propagate`: contextual Result instantiation,
+construction/matching across calls and returns, checked-operation lowering,
+and exact Err forwarding. That is the smallest family that unlocks the next
+existing nontrivial executable program and a real recoverable-error path.
 
 ## Authority and specification changes
 
@@ -405,10 +416,19 @@ conformance manifest. Neither is claimed by the current green gate.
 
 Direct recursive nominal layout and branch-dependent affine state joins remain
 explicit implementation limits, as do repeated exhaustive match arms; no
-source-language rule has been invented for them. Next implement `loop` and
-`break` through the same checked CFG and LLVM path so a real iterative scalar
-program can run; do not expand SET-1 into container or loan machinery before
-those underlying families exist.
+source-language rule has been invented for them. Loops with a structurally
+reachable break now run through the same checked CFG and LLVM path. Header and
+exit block parameters carry current bindings, nested break targets use resolved
+loop identities, OWN-11 blocks outer affine consumption, and normal backedges
+and breaks retain explicit cleanup. A loop with no structurally reachable break
+remains an explicit lowering limitation rather than a source rejection.
+
+Next implement the closed PRE-1 `Result` family required by checked integer
+operations and `propagate`. It must work for arbitrary supported payload types,
+functions, names, nesting, and source order through the one nominal/control-flow
+path; it may not special-case the existing `run-ex2` source. Buffers, index
+places, and loan-aware SET-1 targets follow when their storage and borrow
+families become the experiment being unlocked.
 
 ## Phase 9: dogfood and language iteration
 

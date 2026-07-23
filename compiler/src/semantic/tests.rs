@@ -179,6 +179,73 @@ fn function_control_and_main_contract_are_checked_before_lowering() {
         SemanticRuleV0_12::Fn7,
         SemanticIssueKind::InvalidMain,
     );
+    assert_rule(
+        b"fn main() -> own unit pure {\n  loop @done {\n    break @done;\n    return unit;\n  }\n  return unit;\n}\n",
+        SemanticRuleV0_12::Fn1,
+        SemanticIssueKind::UnreachableStatement,
+    );
+}
+
+#[test]
+fn loops_enforce_own11_for_outer_affine_moves() {
+    assert_rule(
+        include_bytes!("../../../tests/conformance/cases/own11-neg-move-outer-in-loop.wf"),
+        SemanticRuleV0_12::Own11,
+        SemanticIssueKind::MoveOuterBindingInLoop {
+            mechanical_fix: "move the binding before the loop or declare and consume it inside the loop body",
+        },
+    );
+    assert_unsupported(
+        b"fn main() -> own unit pure {\n  loop @forever {\n  }\n  return unit;\n}\n",
+        UnsupportedSemanticFeatureV0_12::StructuredControlFlow,
+    );
+}
+
+#[test]
+fn loop_break_and_backedge_cleanup_is_explicit() {
+    let source = br#"struct Cell {
+  value: i32;
+}
+
+fn main() -> own unit pure {
+  loop @again {
+    let first: own Cell = Cell(value: 1_i32);
+    match True() {
+      True() => {
+        break @again;
+      }
+      False() => {
+      }
+    }
+    let second: own Cell = Cell(value: 2_i32);
+  }
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("loop cleanup source must check: {outcome:?}");
+        };
+        let main = &checked.data.functions[0];
+        let CheckedStatement::Loop {
+            body,
+            backedge_drops,
+            ..
+        } = &main.body[0]
+        else {
+            panic!("first statement must be the checked loop");
+        };
+        assert_eq!(backedge_drops.len(), 2);
+        assert!(backedge_drops[0].binding.0 > backedge_drops[1].binding.0);
+        let CheckedStatement::Match { arms, .. } = &body[1] else {
+            panic!("second loop statement must be the match");
+        };
+        let CheckedStatement::Break { drops, .. } = &arms[0].body[0] else {
+            panic!("True arm must contain the checked break");
+        };
+        assert_eq!(drops.len(), 1);
+        assert_eq!(drops[0].binding, backedge_drops[1].binding);
+    });
 }
 
 #[test]
