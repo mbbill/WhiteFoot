@@ -108,11 +108,16 @@ fn emit(source: &[u8]) -> String {
 }
 
 fn compile(source: &[u8]) -> String {
-    compile_v0_14(
-        &[SourceInput::new("test.wf", source)],
-        crate::CompilerLimits::default(),
-    )
-    .expect("normal compiler pipeline must emit")
+    compile_sources(&[("test.wf", source)])
+}
+
+fn compile_sources(sources: &[(&str, &[u8])]) -> String {
+    let inputs = sources
+        .iter()
+        .map(|(path, source)| SourceInput::new(path, source))
+        .collect::<Vec<_>>();
+    compile_v0_14(&inputs, crate::CompilerLimits::default())
+        .expect("normal compiler pipeline must emit")
 }
 
 fn compile_and_run(llvm: &str) -> Output {

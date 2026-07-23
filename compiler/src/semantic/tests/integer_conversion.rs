@@ -84,6 +84,26 @@ fn classifies_every_distinct_integer_pair_through_one_conversion_judgment() {
 }
 
 #[test]
+fn partial_conversion_result_is_available_without_an_explicit_type_annotation() {
+    let source = br#"fn main() -> own unit pure {
+  match cvt<u64, u8>(65_u64) {
+    Ok(value: byte) => {
+    }
+    Err(error: narrow_error) => {
+    }
+  }
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        assert!(
+            matches!(outcome, SemanticOutcome::Complete(_)),
+            "a directly matched partial conversion must check: {outcome:?}"
+        );
+    });
+}
+
+#[test]
 fn conversion_shape_and_operand_failures_keep_their_rule_owners() {
     assert_rule(
         b"fn main() -> own unit pure {\n  let value: own i32 = cvt<i32, i32>(1_i32);\n  return unit;\n}\n",

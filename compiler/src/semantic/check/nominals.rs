@@ -373,6 +373,42 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
             };
             let spelling = self.tree.direct_spelling(callee)?;
+            if spelling == b"cvt" {
+                let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? else {
+                    continue;
+                };
+                let arguments = self.tree.children_with(targs, ProductionV0_14::Targ)?;
+                let [source_argument, destination_argument] = arguments.as_slice() else {
+                    continue;
+                };
+                let Some(source_node) = self
+                    .tree
+                    .first_child_with(*source_argument, ProductionV0_14::Type)?
+                else {
+                    continue;
+                };
+                let Some(destination_node) = self
+                    .tree
+                    .first_child_with(*destination_argument, ProductionV0_14::Type)?
+                else {
+                    continue;
+                };
+                let (Some(source), Some(destination)) = (
+                    self.integer_type(source_node)?,
+                    self.integer_type(destination_node)?,
+                ) else {
+                    continue;
+                };
+                if source != destination && !source.converts_totally_to(destination) {
+                    let error =
+                        CheckedType::Nominal(self.prelude_nominal(PreludeType::NarrowError)?);
+                    self.intern_prelude_nominal(PreludeType::Result(
+                        CheckedType::Integer(destination),
+                        error,
+                    ))?;
+                }
+                continue;
+            }
             if !matches!(
                 spelling.as_slice(),
                 b"iadd.checked"

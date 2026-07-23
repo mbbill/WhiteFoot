@@ -689,12 +689,32 @@ OWN-11 requires. Checked IR distinguishes a struct reborrow from borrowing a
 new owner, so lowering reuses the holder's existing address; buffer children
 reuse the descriptor path. No alias metadata or check elision follows.
 
-The next decoder milestone is fixed-Huffman decoding through one borrowed
-state object, a retained bit accumulator, canonical literal/length and distance
-tables, ordinary malformed/truncated/output-shortage results, and overlapping
-history copies. Implement only the first general compiler capability that this
-complete-decoder path actually exposes. The selection does not authorize CLI
-or streaming-wrapper infrastructure, benchmark reconstruction, the archived
+The fixed-Huffman milestone now runs through one retained `InflateState`, one
+bit reader, the complete canonical fixed literal/length code, the RFC
+length/distance tables, and the same checked byte-emission path used by stored
+blocks. Compiler-independent vectors cover literals, an overlapping
+distance-one copy, a nonzero distance-extra field, truncation, reserved
+literal/length symbols, distance-before-history, and output shortage. Every
+const-table, input, history, and output index keeps its normal OP-4 guard.
+The decoder and its vectors are separate source records in one closed
+compilation unit so the sustained implementation remains readable.
+
+That work exposed one general semantic-prepass gap: a partial `cvt` used
+directly as a `match` scrutinee has no written `Result<Dst, NarrowError>` type
+node to intern. The existing nominal prepass now derives and interns that
+result for every syntactically valid non-total integer conversion before
+expression checking; malformed and identity conversions still reach their
+normal source judgments. A focused regression covers the unannotated shape,
+and the decoder executes it through checked IR, lowering, and LLVM.
+
+The next decoder milestone is dynamic Huffman: read and validate the
+code-length alphabet, expand repeat codes into bounded literal/length and
+distance lengths, build runtime canonical decode tables, and feed symbols into
+the existing checked payload path. It must distinguish malformed trees,
+truncation, reserved block types, invalid distances, and output shortage as
+ordinary data failures. Implement only a general compiler capability that this
+complete-decoder path actually exposes. This selection does not authorize CLI
+or streaming-wrapper infrastructure, benchmark reconstruction, archived
 target-specific optimizer prototypes, or proof-based check removal.
 
 ## Phase 9: dogfood and language iteration
