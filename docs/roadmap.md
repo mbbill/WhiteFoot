@@ -221,25 +221,39 @@ shared-borrows and folds them, while the sole owner frees both columns. Forms
 that need returned-reference provenance, child reborrows, or branch-dependent
 loan joins remain explicit unsupported capability stops.
 
-The next implementation slice is concrete FN-8 `requires` prologues. This is
-next because the existing output-capacity lockstep experiment already combines
-borrowed output buffers, owned input buffers, loops, checked SET-1, and a
-capacity precondition. Implement the exact restricted prologue through the
-normal semantic, checked-statement, lowering, and LLVM paths, then run one
-independent harness derived from that experiment. Do not add proof-based check
-elision in the same slice: first establish that the required check executes at
-callee entry and that ordinary callers rely only on the signature. Boxes,
-arenas, general slices, and resource-bearing enum payloads remain later unless
-this experiment exposes a direct dependency.
+Concrete FN-8 `requires` prologues are complete. Resolution performs the
+specified unit-wide structural admission before name classification. Semantic
+checking then admits only own copy lets initialized by pure, total table
+operations followed by the one final Bool check. The checked function retains
+that prologue separately from its body, combines both effect sets, and lowering
+executes the explicit OP-5 check once after parameter binding and before the
+body. It creates no caller proof obligation or optimizer assumption, and no
+downstream check is elided. An independent output-capacity program reads a
+uniquely borrowed output length in the prologue, copies an owned input buffer
+through the normal checked loop, and executes successfully.
 
-Four inherited runnable conformance sources need protected-evidence correction
-before the compiler adapter can promote the buffer family. `pending-op9-buffer-new`
+The next implementation slice is the complete integer-to-integer OP-6 `cvt`
+family, selected by a CRC32 dogfood kernel rather than by one source spelling.
+Implement all distinct signed/unsigned width pairs through one exact conversion
+judgment: the spec-defined widening pairs return the destination directly and
+every other integer pair returns `Result<Dst, NarrowError>` without truncation.
+Lower every checked pair without LLVM poison, execute exact success and failure
+edges across all widths/sign combinations, then run a standard CRC32
+`123456789` vector whose byte-to-word widening uses that same general path.
+Float conversions remain later with the float family.
+
+Five inherited runnable conformance entries need protected-evidence correction
+before the compiler adapter can promote their current families. `pending-op9-buffer-new`
 and `op4-trap-index-oob` allocate but omit `allocates(heap)` from their function
 rows. `type2-pos-buffer-tagonly` and `own1-pos-match-projected-copy` construct
 `buffer<Bool>` even though TYPE-2 admits that type while the OP-1
-`buffer_new` row remains primitive-only. The compiler follows the active
-specification and none of those protected sources, verdicts, or statuses has
-been changed; exact owner approval under `WORKFLOW.md` is required first.
+`buffer_new` row remains primitive-only. In addition,
+`fn8-neg-requires-non-bool-check` expects TYPE-5, while OP-5 explicitly owns
+every non-borrow exact-mode/type failure of a checked condition and FN-8 says
+its final statement has exactly OP-5 semantics. The compiler follows the
+active specification and none of those protected sources, verdicts, or
+statuses has been changed; exact owner approval under `WORKFLOW.md` is required
+first.
 The specification's array frame-limit value is still not defined; the compiler
 does not invent one, and full all-N completeness remains blocked on that owner
 rule rather than on ordinary representable arrays.
@@ -575,9 +589,11 @@ primitive runtime-length buffers are implemented. Resource-bearing struct
 cleanup supports nested and partial owners. The structure-of-arrays experiment
 now runs through separate uniquely borrowed fill and shared-borrowed fold
 helpers, with exact loan expiry, call-region substitution, effects, checks, and
-owner-only cleanup. Concrete FN-8 `requires` prologues are next so the borrowed
-output-capacity experiment can execute before proof-driven check elimination
-is considered.
+owner-only cleanup. Concrete FN-8 `requires` prologues execute before function
+bodies without creating assumptions, and the borrowed output-capacity
+experiment runs with every bounds check retained. Integer OP-6 conversion is
+next because a real byte-oriented CRC32 dogfood kernel needs general
+value-preserving byte-to-word widening.
 
 ## Phase 9: dogfood and language iteration
 

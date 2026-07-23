@@ -605,6 +605,7 @@ pub(crate) struct CheckedFunction {
     pub(crate) result: CheckedType,
     pub(crate) declared_traps: bool,
     pub(crate) declared_allocates_heap: bool,
+    pub(crate) requires: Vec<CheckedStatement>,
     pub(crate) body: Vec<CheckedStatement>,
 }
 

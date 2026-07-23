@@ -3,6 +3,7 @@ mod cleanup;
 mod control;
 mod expressions;
 mod nominals;
+mod requires;
 mod support;
 mod types;
 
@@ -263,13 +264,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             {
                 return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, generics);
             }
-            if let Some(requires) = self
-                .tree
-                .first_child_with(node, ProductionV0_14::RequiresBlock)?
-            {
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::RequiresBlocks, requires);
-            }
-
             let declaration = self.declaration_at(node, DeclarationRole::Function)?;
             let declaration_id = declaration.id();
             let name = declaration.spelling().to_owned();
@@ -466,13 +460,25 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             });
         }
 
-        let statements = self
-            .tree
-            .children_with(signature.node, ProductionV0_14::Stmt)?;
         let mut counters = ControlCounters {
             next_binding: &mut next_binding,
             next_loop: &mut next_loop,
         };
+        let parameter_bindings = bindings.clone();
+        let requires = if let Some(node) = self
+            .tree
+            .first_child_with(signature.node, ProductionV0_14::RequiresBlock)?
+        {
+            let mut requires_bindings = parameter_bindings.clone();
+            Some(self.check_requires(signature, node, &mut requires_bindings, &mut counters)?)
+        } else {
+            None
+        };
+
+        bindings = parameter_bindings;
+        let statements = self
+            .tree
+            .children_with(signature.node, ProductionV0_14::Stmt)?;
         let checked = self.check_block(
             signature,
             &statements,
@@ -493,7 +499,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 kind: SemanticIssueKind::FunctionFallthrough,
             }));
         }
-        if checked.effects != signature.declared_effects {
+        let effects = requires.as_ref().map_or_else(
+            || checked.effects.clone(),
+            |prologue| prologue.effects.clone().union(checked.effects.clone()),
+        );
+        if effects != signature.declared_effects {
             return self.issue_node(
                 SemanticRuleV0_14::Eff2,
                 signature.effects_node,
@@ -509,6 +519,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             result: signature.result,
             declared_traps: signature.declared_effects.traps,
             declared_allocates_heap: signature.declared_effects.allocates_heap,
+            requires: requires
+                .map(|prologue| prologue.statements)
+                .unwrap_or_default(),
             body: checked.statements,
         })
     }

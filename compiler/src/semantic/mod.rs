@@ -65,6 +65,8 @@ pub enum SemanticRuleV0_14 {
     Fn2,
     /// Closed-program `main` contract.
     Fn7,
+    /// Restricted executable function-entry requirement prologue.
+    Fn8,
     /// Exact declared-order named user-call arguments.
     Gram11,
     /// Exact declared-order construction fields.
@@ -109,6 +111,7 @@ impl SemanticRuleV0_14 {
             Self::Fn1 => "FN-1",
             Self::Fn2 => "FN-2",
             Self::Fn7 => "FN-7",
+            Self::Fn8 => "FN-8",
             Self::Gram11 => "GRAM-11",
             Self::Gram8 => "GRAM-8",
             Self::Gram10 => "GRAM-10",
@@ -195,6 +198,8 @@ pub enum SemanticIssueKind {
     UnreachableStatement,
     /// The function body can reach its closing brace.
     FunctionFallthrough,
+    /// A requirement entry uses a construct outside the FN-8 prologue subset.
+    InvalidRequires,
     /// The unique source `main` declaration has the wrong header or effect row.
     InvalidMain,
     /// No source `main` declaration exists.
@@ -294,8 +299,6 @@ pub enum UnsupportedSemanticFeatureV0_14 {
     CompositeValues,
     /// Float types, literals, or operations.
     FloatingPoint,
-    /// Requires blocks.
-    RequiresBlocks,
     /// A loop with no structurally reachable break exit for current SSA lowering.
     StructuredControlFlow,
     /// A recursive nominal layout whose finite representation is not selected.

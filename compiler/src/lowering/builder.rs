@@ -130,6 +130,7 @@ fn lower_function(
         }
         builder.parameters.push((value, ty));
     }
+    builder.lower_statements(&function.requires, None)?;
     builder.lower_statements(&function.body, None)?;
     if builder.current.is_some()
         || builder

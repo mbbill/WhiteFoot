@@ -25,10 +25,10 @@ pub(super) struct BlockResult {
     break_states: Vec<BreakState>,
 }
 
-struct StatementResult {
-    statement: CheckedStatement,
-    can_continue: bool,
-    effects: EffectSet,
+pub(super) struct StatementResult {
+    pub(super) statement: CheckedStatement,
+    pub(super) can_continue: bool,
+    pub(super) effects: EffectSet,
     all_paths_deliver: bool,
     direct_give: bool,
     give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
@@ -107,7 +107,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         })
     }
 
-    fn check_statement(
+    pub(super) fn check_statement(
         &self,
         function: &FunctionSignature,
         node: NodeId,

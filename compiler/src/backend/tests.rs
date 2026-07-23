@@ -6,6 +6,7 @@ mod checked_division;
 mod integer_absolute;
 mod integer_extended;
 mod integer_negation;
+mod requires;
 
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};

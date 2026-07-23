@@ -90,6 +90,15 @@ fill helper and then shared with a fold helper without transferring either
 allocation. The backend remains conservative LLVM without unearned overflow
 flags or check elision.
 
+Concrete `requires` blocks are checked executable prologues. The semantic
+checker admits their restricted own-copy, pure-total ANF subset, retains the
+final OP-5 check separately from the body, and combines prologue and body
+effects exactly. Lowering executes the prologue after parameter binding and
+before the body. Callers do not prove it, and it is never turned into
+`llvm.assume` or used to remove a required check. A borrowed-output capacity
+program exercises this path through the ordinary loop, buffer, effect, and
+cleanup implementation.
+
 This first borrow family deliberately stops before scalar and nominal
 referents, returned borrows, statement-scoped child reborrows, borrow-producing
 branch joins, boxes, arenas, and slices. Those forms remain explicit
