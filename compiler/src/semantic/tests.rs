@@ -1,12 +1,12 @@
 #![allow(clippy::panic)]
 
-use crate::lexer::{LexLimits, LexOutcome, lex_v0_12};
+use crate::lexer::{LexLimits, LexOutcome, lex_v0_13};
 use crate::{
-    CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_12_HASH,
+    CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_13_HASH,
     ParseLimits, ParseOutcome, ResolutionOutcome, SemanticIssueKind, SemanticLocation,
-    SemanticOutcome, SemanticRuleV0_12, SourceBundle, SourceInput, SourceLimits, TerminalLimits,
-    TerminalOutcome, UnsupportedSemanticFeatureV0_12, audit_canonical_v0_12, check_semantics_v0_12,
-    classify_terminals_v0_12, finalize_v0_12, parse_v0_12, resolve_v0_12,
+    SemanticOutcome, SemanticRuleV0_13, SourceBundle, SourceInput, SourceLimits, TerminalLimits,
+    TerminalOutcome, UnsupportedSemanticFeatureV0_13, audit_canonical_v0_13, check_semantics_v0_13,
+    classify_terminals_v0_13, finalize_v0_13, parse_v0_13, resolve_v0_13,
 };
 
 use super::model::{CheckedExpression, CheckedStatement};
@@ -63,35 +63,35 @@ fn with_semantics<ResultValue>(
     let Ok(bundle) = SourceBundle::with_limits(&inputs, SOURCE_LIMITS) else {
         panic!("semantic test bundle must be valid");
     };
-    let LexOutcome::Complete(lexed) = lex_v0_12(&bundle, LEX_LIMITS) else {
+    let LexOutcome::Complete(lexed) = lex_v0_13(&bundle, LEX_LIMITS) else {
         panic!("semantic test source must lex");
     };
-    let TerminalOutcome::Complete(classified) = classify_terminals_v0_12(
+    let TerminalOutcome::Complete(classified) = classify_terminals_v0_13(
         &lexed,
-        KERNEL_SPEC_V0_12_HASH,
+        KERNEL_SPEC_V0_13_HASH,
         TerminalLimits {
             max_tokens: LEX_LIMITS.max_tokens,
         },
     ) else {
         panic!("semantic test source must classify");
     };
-    let ParseOutcome::Complete(parsed) = parse_v0_12(&classified, PARSE_LIMITS) else {
+    let ParseOutcome::Complete(parsed) = parse_v0_13(&classified, PARSE_LIMITS) else {
         panic!("semantic test source must parse");
     };
-    let FinalizeOutcome::Complete(finalized) = finalize_v0_12(parsed, FINALIZE_LIMITS) else {
+    let FinalizeOutcome::Complete(finalized) = finalize_v0_13(parsed, FINALIZE_LIMITS) else {
         panic!("semantic test derivation must finalize");
     };
-    let CanonicalOutcome::Complete(canonical) = audit_canonical_v0_12(finalized, CANONICAL_LIMITS)
+    let CanonicalOutcome::Complete(canonical) = audit_canonical_v0_13(finalized, CANONICAL_LIMITS)
     else {
         panic!("semantic test source must be canonical");
     };
-    let ResolutionOutcome::Complete(resolved) = resolve_v0_12(canonical) else {
+    let ResolutionOutcome::Complete(resolved) = resolve_v0_13(canonical) else {
         panic!("semantic test source must resolve");
     };
-    run(check_semantics_v0_12(resolved))
+    run(check_semantics_v0_13(resolved))
 }
 
-fn assert_rule(source: &[u8], rule: SemanticRuleV0_12, kind: SemanticIssueKind) {
+fn assert_rule(source: &[u8], rule: SemanticRuleV0_13, kind: SemanticIssueKind) {
     with_semantics(source, |outcome| {
         let SemanticOutcome::SourceIssue { issue, .. } = outcome else {
             panic!("expected {rule:?}/{kind:?}, got {outcome:?}");
@@ -101,7 +101,7 @@ fn assert_rule(source: &[u8], rule: SemanticRuleV0_12, kind: SemanticIssueKind) 
     });
 }
 
-fn assert_unsupported(source: &[u8], feature: UnsupportedSemanticFeatureV0_12) {
+fn assert_unsupported(source: &[u8], feature: UnsupportedSemanticFeatureV0_13) {
     with_semantics(source, |outcome| {
         let SemanticOutcome::Unsupported { unsupported, .. } = outcome else {
             panic!("expected unsupported {feature:?}, got {outcome:?}");
@@ -137,27 +137,27 @@ fn main() -> own unit traps {
 fn semantic_rule_owners_remain_distinct() {
     assert_rule(
         b"fn main() -> own unit pure {\n  let value: own i8 = 128_i8;\n  return unit;\n}\n",
-        SemanticRuleV0_12::Form7,
+        SemanticRuleV0_13::Form7,
         SemanticIssueKind::InvalidIntegerLiteral,
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  return 0_i32;\n}\n",
-        SemanticRuleV0_12::Fn1,
+        SemanticRuleV0_13::Fn1,
         SemanticIssueKind::ReturnMismatch,
     );
     assert_rule(
         b"fn main() -> own unit traps {\n  check 1_i32 else trap \"bad\";\n  return unit;\n}\n",
-        SemanticRuleV0_12::Op5,
+        SemanticRuleV0_13::Op5,
         SemanticIssueKind::InvalidCheckCondition,
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  check True() else trap \"bad\";\n  return unit;\n}\n",
-        SemanticRuleV0_12::Eff2,
+        SemanticRuleV0_13::Eff2,
         SemanticIssueKind::EffectMismatch,
     );
     assert_rule(
         b"fn main() -> own unit traps {\n  return unit;\n}\n",
-        SemanticRuleV0_12::Eff2,
+        SemanticRuleV0_13::Eff2,
         SemanticIssueKind::EffectMismatch,
     );
 }
@@ -166,22 +166,22 @@ fn semantic_rule_owners_remain_distinct() {
 fn function_control_and_main_contract_are_checked_before_lowering() {
     assert_rule(
         b"fn main() -> own unit pure {\n}\n",
-        SemanticRuleV0_12::Fn1,
+        SemanticRuleV0_13::Fn1,
         SemanticIssueKind::FunctionFallthrough,
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  return unit;\n  return unit;\n}\n",
-        SemanticRuleV0_12::Fn1,
+        SemanticRuleV0_13::Fn1,
         SemanticIssueKind::UnreachableStatement,
     );
     assert_rule(
         b"fn main(value: own i32) -> own unit pure {\n  return unit;\n}\n",
-        SemanticRuleV0_12::Fn7,
+        SemanticRuleV0_13::Fn7,
         SemanticIssueKind::InvalidMain,
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  loop @done {\n    break @done;\n    return unit;\n  }\n  return unit;\n}\n",
-        SemanticRuleV0_12::Fn1,
+        SemanticRuleV0_13::Fn1,
         SemanticIssueKind::UnreachableStatement,
     );
 }
@@ -190,14 +190,14 @@ fn function_control_and_main_contract_are_checked_before_lowering() {
 fn loops_enforce_own11_for_outer_affine_moves() {
     assert_rule(
         include_bytes!("../../../tests/conformance/cases/own11-neg-move-outer-in-loop.wf"),
-        SemanticRuleV0_12::Own11,
+        SemanticRuleV0_13::Own11,
         SemanticIssueKind::MoveOuterBindingInLoop {
             mechanical_fix: "move the binding before the loop or declare and consume it inside the loop body",
         },
     );
     assert_unsupported(
         b"fn main() -> own unit pure {\n  loop @forever {\n  }\n  return unit;\n}\n",
-        UnsupportedSemanticFeatureV0_12::StructuredControlFlow,
+        UnsupportedSemanticFeatureV0_13::StructuredControlFlow,
     );
 }
 
@@ -261,7 +261,7 @@ fn main() -> own unit pure {
 "#;
     assert_rule(
         wrong_name,
-        SemanticRuleV0_12::Gram11,
+        SemanticRuleV0_13::Gram11,
         SemanticIssueKind::InvalidNamedArguments {
             callee: "take".to_owned(),
             declared_parameters: vec!["value".to_owned()],
@@ -269,7 +269,7 @@ fn main() -> own unit pure {
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  let a: own i32 = 1_i32;\n  let b: own i32 = move a;\n  return unit;\n}\n",
-        SemanticRuleV0_12::Own1,
+        SemanticRuleV0_13::Own1,
         SemanticIssueKind::MoveOfCopy {
             mechanical_fix: "use the copy place without `move`",
         },
@@ -280,12 +280,12 @@ fn main() -> own unit pure {
 fn operation_call_shapes_keep_their_exact_rule_owners() {
     assert_rule(
         b"fn main() -> own unit pure {\n  let value: own i32 = iadd.wrap(1_i32, 2_i32);\n  return unit;\n}\n",
-        SemanticRuleV0_12::Fn2,
+        SemanticRuleV0_13::Fn2,
         SemanticIssueKind::InvalidOperation,
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  let value: own i32 = iadd.wrap<i32>(left: 1_i32, right: 2_i32);\n  return unit;\n}\n",
-        SemanticRuleV0_12::Gram11,
+        SemanticRuleV0_13::Gram11,
         SemanticIssueKind::InvalidNamedArguments {
             callee: "iadd.wrap".to_owned(),
             declared_parameters: Vec::new(),
@@ -301,7 +301,7 @@ fn effect_mismatch_is_located_at_the_written_effect_row() {
         let SemanticOutcome::SourceIssue { issue, .. } = outcome else {
             panic!("expected EFF-2 mismatch, got {outcome:?}");
         };
-        assert_eq!(issue.rule(), SemanticRuleV0_12::Eff2);
+        assert_eq!(issue.rule(), SemanticRuleV0_13::Eff2);
         let SemanticLocation::SourceNode(_, coordinate) = issue.location() else {
             panic!("EFF-2 must use the source effects node");
         };
@@ -315,7 +315,7 @@ fn effect_mismatch_is_located_at_the_written_effect_row() {
 fn invalid_generic_main_is_fn7_not_an_unsupported_generic() {
     assert_rule(
         b"fn main<T>() -> own unit pure {\n  return unit;\n}\n",
-        SemanticRuleV0_12::Fn7,
+        SemanticRuleV0_13::Fn7,
         SemanticIssueKind::InvalidMain,
     );
 }
@@ -329,7 +329,7 @@ fn unimplemented_contract_family_is_not_a_source_rejection() {
         };
         assert_eq!(
             unsupported.feature(),
-            UnsupportedSemanticFeatureV0_12::ContractsAndConformances
+            UnsupportedSemanticFeatureV0_13::ContractsAndConformances
         );
     });
 }
@@ -338,7 +338,7 @@ fn unimplemented_contract_family_is_not_a_source_rejection() {
 fn nominal_diagnostics_retain_required_lists_and_repairs() {
     assert_rule(
         include_bytes!("../../../tests/conformance/cases/x-struct-neg-field-order.wf"),
-        SemanticRuleV0_12::Gram8,
+        SemanticRuleV0_13::Gram8,
         SemanticIssueKind::InvalidConstructionFields {
             constructor: "Pair".to_owned(),
             declared_fields: vec!["a".to_owned(), "b".to_owned()],
@@ -346,7 +346,7 @@ fn nominal_diagnostics_retain_required_lists_and_repairs() {
     );
     assert_rule(
         include_bytes!("../../../tests/conformance/cases/x-match-gram10-out-of-order-fields.wf"),
-        SemanticRuleV0_12::Gram10,
+        SemanticRuleV0_13::Gram10,
         SemanticIssueKind::InvalidMatchFields {
             variant: "Both".to_owned(),
             declared_fields: vec!["a".to_owned(), "b".to_owned()],
@@ -354,21 +354,21 @@ fn nominal_diagnostics_retain_required_lists_and_repairs() {
     );
     assert_rule(
         include_bytes!("../../../tests/conformance/cases/err2-neg-missing-variant.wf"),
-        SemanticRuleV0_12::Err2,
+        SemanticRuleV0_13::Err2,
         SemanticIssueKind::NonExhaustiveMatch {
             missing_variants: vec!["Blue".to_owned()],
         },
     );
     assert_rule(
         b"struct Pair {\n  x: i32;\n  x: i32;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
-        SemanticRuleV0_12::Type6,
+        SemanticRuleV0_13::Type6,
         SemanticIssueKind::DuplicateFieldLabel {
             label: "x".to_owned(),
         },
     );
     assert_rule(
         b"enum Pairing {\n  Both(a: i32, b: i32);\n}\n\nfn main() -> own unit pure {\n  let pair: own Pairing = Both(a: 1_i32, b: 2_i32);\n  match move pair {\n    Both(a: first) => {\n    }\n  }\n  return unit;\n}\n",
-        SemanticRuleV0_12::Gram10,
+        SemanticRuleV0_13::Gram10,
         SemanticIssueKind::InvalidMatchFields {
             variant: "Both".to_owned(),
             declared_fields: vec!["a".to_owned(), "b".to_owned()],
@@ -380,12 +380,12 @@ fn nominal_diagnostics_retain_required_lists_and_repairs() {
 fn give_completeness_rejects_each_structural_failure() {
     assert_rule(
         b"fn main() -> own unit pure {\n  let flag: own Bool = True();\n  let result: own i32 = match flag {\n    True() => {\n    }\n    False() => {\n      give 0_i32;\n    }\n  }\n  return unit;\n}\n",
-        SemanticRuleV0_12::Give1,
+        SemanticRuleV0_13::Give1,
         SemanticIssueKind::InvalidGive,
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  let flag: own Bool = True();\n  let result: own i32 = match flag {\n    True() => {\n      give 1_i32;\n      give 2_i32;\n    }\n    False() => {\n      give 0_i32;\n    }\n  }\n  return unit;\n}\n",
-        SemanticRuleV0_12::Give1,
+        SemanticRuleV0_13::Give1,
         SemanticIssueKind::InvalidGive,
     );
 }
@@ -394,12 +394,12 @@ fn give_completeness_rejects_each_structural_failure() {
 fn enum_equality_exclusions_reach_the_intended_rule() {
     assert_rule(
         b"enum PayloadEq {\n  PayloadEmpty();\n  PayloadValue(value: u32);\n}\n\nfn main() -> own unit pure {\n  let left: own PayloadEq = PayloadEmpty();\n  let right: own PayloadEq = PayloadEmpty();\n  let equal: own Bool = eeq<PayloadEq>(move left, move right);\n  return unit;\n}\n",
-        SemanticRuleV0_12::Op1,
+        SemanticRuleV0_13::Op1,
         SemanticIssueKind::InvalidOperation,
     );
     assert_rule(
         b"enum LeftEq {\n  LeftFirst();\n}\n\nenum RightEq {\n  RightFirst();\n}\n\nfn main() -> own unit pure {\n  let left: own LeftEq = LeftFirst();\n  let right: own RightEq = RightFirst();\n  let equal: own Bool = eeq<LeftEq>(left, right);\n  return unit;\n}\n",
-        SemanticRuleV0_12::Type5,
+        SemanticRuleV0_13::Type5,
         SemanticIssueKind::TypeMismatch,
     );
 }
@@ -412,19 +412,19 @@ fn nominal_adjacent_unimplemented_behavior_stays_non_language_failure() {
     );
     assert_unsupported(
         include_bytes!("../../../tests/conformance/cases/x-enum-borrow-payload-live.wf"),
-        UnsupportedSemanticFeatureV0_12::RegionsAndBorrows,
+        UnsupportedSemanticFeatureV0_13::RegionsAndBorrows,
     );
     assert_unsupported(
         b"struct Node {\n  next: Node;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
-        UnsupportedSemanticFeatureV0_12::RecursiveNominalLayout,
+        UnsupportedSemanticFeatureV0_13::RecursiveNominalLayout,
     );
     assert_unsupported(
         b"enum Flag {\n  A();\n  B();\n}\n\nfn main() -> own unit pure {\n  let flag: own Flag = A();\n  match flag {\n    A() => {\n    }\n    A() => {\n    }\n    B() => {\n    }\n  }\n  return unit;\n}\n",
-        UnsupportedSemanticFeatureV0_12::DuplicateMatchArm,
+        UnsupportedSemanticFeatureV0_13::DuplicateMatchArm,
     );
     assert_unsupported(
         b"struct Cell {\n  value: i32;\n}\n\nfn main() -> own unit pure {\n  let cell: own Cell = Cell(value: 1_i32);\n  let flag: own Bool = True();\n  match flag {\n    True() => {\n      let consumed: own Cell = move cell;\n    }\n    False() => {\n    }\n  }\n  return unit;\n}\n",
-        UnsupportedSemanticFeatureV0_12::OwnershipJoin,
+        UnsupportedSemanticFeatureV0_13::OwnershipJoin,
     );
 }
 
@@ -454,6 +454,12 @@ fn direct(error: own StepError) -> own Result<Pair, StepError> pure {
   return Ok(value: move pair);
 }
 
+fn bare(result: own Result<i32, StepError>) -> own Result<Pair, StepError> pure {
+  let accepted: own i32 = propagate result;
+  let pair: own Pair = Pair(value: accepted);
+  return Ok(value: move pair);
+}
+
 fn main() -> own unit pure {
   return unit;
 }
@@ -478,8 +484,34 @@ fn main() -> own unit pure {
     });
 
     assert_rule(
+        br#"enum StepError {
+  Failed();
+}
+
+fn reuse(result: own Result<i32, StepError>) -> own Result<i32, StepError> pure {
+  let accepted: own i32 = propagate result;
+  match result {
+    Ok(value: second_value) => {
+    }
+    Err(error: second_error) => {
+    }
+  }
+  return Ok(value: accepted);
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRuleV0_13::Own1,
+        SemanticIssueKind::UseAfterMove {
+            mechanical_fix: "introduce a new `let` binding before reuse",
+        },
+    );
+
+    assert_rule(
         include_bytes!("../../../tests/conformance/cases/err3-neg-error-type-mismatch.wf"),
-        SemanticRuleV0_12::Err3,
+        SemanticRuleV0_13::Err3,
         SemanticIssueKind::InvalidPropagation,
     );
     assert_rule(
@@ -499,12 +531,12 @@ fn main() -> own unit pure {
   return unit;
 }
 "#,
-        SemanticRuleV0_12::Type5,
+        SemanticRuleV0_13::Type5,
         SemanticIssueKind::TypeMismatch,
     );
     assert_rule(
         include_bytes!("../../../tests/conformance/cases/x-enum-result-payload-type-mismatch.wf"),
-        SemanticRuleV0_12::Type5,
+        SemanticRuleV0_13::Type5,
         SemanticIssueKind::TypeMismatch,
     );
 }
@@ -549,12 +581,12 @@ fn main() -> own unit pure {
 fn set_rejections_keep_their_exact_rule_owners() {
     assert_rule(
         b"const answer: i32 = 1_i32;\n\nfn main() -> own unit pure {\n  set answer = 2_i32;\n  return unit;\n}\n",
-        SemanticRuleV0_12::Const2,
+        SemanticRuleV0_13::Const2,
         SemanticIssueKind::ImmutableSetTarget,
     );
     assert_rule(
         b"struct Cell {\n  value: i32;\n}\n\nfn main() -> own unit pure {\n  let left: own Cell = Cell(value: 1_i32);\n  let right: own Cell = Cell(value: 2_i32);\n  set left = move right;\n  return unit;\n}\n",
-        SemanticRuleV0_12::Stor1,
+        SemanticRuleV0_13::Stor1,
         SemanticIssueKind::AffineSetTarget {
             target_type: "Cell".to_owned(),
             mechanical_fix:
@@ -563,7 +595,7 @@ fn set_rejections_keep_their_exact_rule_owners() {
     );
     assert_rule(
         b"fn main() -> own unit pure {\n  let number: own i32 = 1_i32;\n  set number = True();\n  return unit;\n}\n",
-        SemanticRuleV0_12::Type5,
+        SemanticRuleV0_13::Type5,
         SemanticIssueKind::TypeMismatch,
     );
 }
@@ -586,7 +618,7 @@ fn main() -> own unit pure {
 "#;
     assert_rule(
         source,
-        SemanticRuleV0_12::Own1,
+        SemanticRuleV0_13::Own1,
         SemanticIssueKind::UseAfterMove {
             mechanical_fix: "introduce a new `let` binding before reuse",
         },

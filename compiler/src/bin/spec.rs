@@ -2,12 +2,12 @@
 
 use std::collections::BTreeSet;
 
-use whitefoot::{KERNEL_SPEC_V0_12_HASH, SYNTAX_DATA_SPEC_V0_12, TERMINAL_CONTRACT_SPEC_V0_12};
+use whitefoot::{KERNEL_SPEC_V0_13_HASH, SYNTAX_DATA_SPEC_V0_13, TERMINAL_CONTRACT_SPEC_V0_13};
 
-const ACTIVE_SPEC: &[u8] = include_bytes!("../../../spec/kernel-spec-v0.12.md");
-const ACTIVE_SPEC_TEXT: &str = include_str!("../../../spec/kernel-spec-v0.12.md");
+const ACTIVE_SPEC: &[u8] = include_bytes!("../../../spec/kernel-spec-v0.13.md");
+const ACTIVE_SPEC_TEXT: &str = include_str!("../../../spec/kernel-spec-v0.13.md");
 const APPROVED_CANDIDATE: &[u8] =
-    include_bytes!("../../../governance/spec-evolution/kernel-spec-v0.12-candidate.md");
+    include_bytes!("../../../governance/spec-evolution/kernel-spec-v0.13-candidate.md");
 const DERIVATION_LEDGER: &str = include_str!("../../../spec/derivation/derivation-ledger.md");
 
 fn is_rule_id(text: &str) -> bool {
@@ -104,13 +104,13 @@ fn validate_spec_integrity(spec: &str, ledger: &str) -> Result<usize, Vec<String
 
 fn main() {
     if ACTIVE_SPEC != APPROVED_CANDIDATE {
-        eprintln!("spec/kernel-spec-v0.12.md differs from the approved candidate");
+        eprintln!("spec/kernel-spec-v0.13.md differs from the approved candidate");
         std::process::exit(1);
     }
-    if SYNTAX_DATA_SPEC_V0_12 != KERNEL_SPEC_V0_12_HASH
-        || TERMINAL_CONTRACT_SPEC_V0_12 != KERNEL_SPEC_V0_12_HASH
+    if SYNTAX_DATA_SPEC_V0_13 != KERNEL_SPEC_V0_13_HASH
+        || TERMINAL_CONTRACT_SPEC_V0_13 != KERNEL_SPEC_V0_13_HASH
     {
-        eprintln!("frontend data is not bound to the active v0.12 identity");
+        eprintln!("frontend data is not bound to the active v0.13 identity");
         std::process::exit(1);
     }
     let rule_count = match validate_spec_integrity(ACTIVE_SPEC_TEXT, DERIVATION_LEDGER) {
@@ -122,8 +122,8 @@ fn main() {
             std::process::exit(1);
         }
     };
-    println!("Whitefoot v0.12 frontend identity: {KERNEL_SPEC_V0_12_HASH}");
-    println!("Whitefoot v0.12 spec integrity: {rule_count} rules");
+    println!("Whitefoot v0.13 frontend identity: {KERNEL_SPEC_V0_13_HASH}");
+    println!("Whitefoot v0.13 spec integrity: {rule_count} rules");
 }
 
 #[cfg(test)]

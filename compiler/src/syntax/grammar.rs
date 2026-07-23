@@ -1,22 +1,22 @@
-//! Immutable exact-v0.12 grammar and strong-LL(2) production data.
+//! Immutable exact-v0.13 grammar and strong-LL(2) production data.
 //!
 //! This crate contains no parser and grants no syntax or semantic authority.
 //! Its committed generated arrays are checked against the exact numbered
 //! specification before the production compiler is built.
 
-use crate::syntax::terminal::TerminalPredicateV0_12;
-use crate::{KERNEL_SPEC_V0_12_HASH, SpecHash};
+use crate::syntax::terminal::TerminalPredicateV0_13;
+use crate::{KERNEL_SPEC_V0_13_HASH, SpecHash};
 
 mod generated;
 
-pub use generated::ProductionV0_12;
+pub use generated::ProductionV0_13;
 
 /// Exact specification identity owning all data in this crate.
-pub const SYNTAX_DATA_SPEC_V0_12: SpecHash = KERNEL_SPEC_V0_12_HASH;
+pub const SYNTAX_DATA_SPEC_V0_13: SpecHash = KERNEL_SPEC_V0_13_HASH;
 
 /// The numbered rule containing a production's unique definition.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuleOwnerV0_12 {
+pub enum RuleOwnerV0_13 {
     /// GRAM-2 item grammar.
     Gram2,
     /// GRAM-3 type grammar.
@@ -35,7 +35,7 @@ pub enum RuleOwnerV0_12 {
 
 /// One of the five name predicates used by DIAG-1 name-slot attribution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum NamePredicateV0_12 {
+pub enum NamePredicateV0_13 {
     /// IDENT.
     Identifier,
     /// TYPEID.
@@ -48,34 +48,34 @@ pub enum NamePredicateV0_12 {
     OperationName,
 }
 
-impl NamePredicateV0_12 {
+impl NamePredicateV0_13 {
     /// Returns the corresponding complete terminal predicate.
     #[must_use]
-    pub const fn terminal(self) -> TerminalPredicateV0_12 {
+    pub const fn terminal(self) -> TerminalPredicateV0_13 {
         match self {
-            Self::Identifier => TerminalPredicateV0_12::Identifier,
-            Self::TypeIdentifier => TerminalPredicateV0_12::TypeIdentifier,
-            Self::RegionIdentifier => TerminalPredicateV0_12::RegionIdentifier,
-            Self::Label => TerminalPredicateV0_12::Label,
-            Self::OperationName => TerminalPredicateV0_12::OperationName,
+            Self::Identifier => TerminalPredicateV0_13::Identifier,
+            Self::TypeIdentifier => TerminalPredicateV0_13::TypeIdentifier,
+            Self::RegionIdentifier => TerminalPredicateV0_13::RegionIdentifier,
+            Self::Label => TerminalPredicateV0_13::Label,
+            Self::OperationName => TerminalPredicateV0_13::OperationName,
         }
     }
 }
 
 /// One position in an exact two-token predictive word.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LookaheadPredicateV0_12 {
+pub enum LookaheadPredicateV0_13 {
     /// One approved predicate over a formed token.
-    Terminal(TerminalPredicateV0_12),
+    Terminal(TerminalPredicateV0_13),
     /// The non-token end-of-source sentinel.
     SourceEnd,
 }
 
-/// Dense stable identity of one source-EBNF node in exact v0.12.
+/// Dense stable identity of one source-EBNF node in exact v0.13.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct GrammarNodeIdV0_12(u16);
+pub struct GrammarNodeIdV0_13(u16);
 
-impl GrammarNodeIdV0_12 {
+impl GrammarNodeIdV0_13 {
     pub(crate) const fn new(index: u16) -> Self {
         Self(index)
     }
@@ -89,9 +89,9 @@ impl GrammarNodeIdV0_12 {
 
 /// The closed runtime form of one source-EBNF node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum GrammarNodeKindV0_12 {
+pub enum GrammarNodeKindV0_13 {
     /// One reference to another normative production.
-    Production(ProductionV0_12),
+    Production(ProductionV0_13),
     /// One source terminal occurrence, possibly expanding to two raw tokens.
     TerminalSequence,
     /// An ordered sequence.
@@ -110,17 +110,17 @@ pub enum GrammarNodeKindV0_12 {
 
 /// One immutable source-EBNF node record.
 #[derive(Clone, Copy, Debug)]
-pub struct GrammarNodeV0_12 {
-    kind: GrammarNodeKindV0_12,
+pub struct GrammarNodeV0_13 {
+    kind: GrammarNodeKindV0_13,
     range_start: u16,
     range_len: u8,
     decision: Option<u8>,
     atom_only_reference: bool,
 }
 
-impl GrammarNodeV0_12 {
+impl GrammarNodeV0_13 {
     pub(crate) const fn new(
-        kind: GrammarNodeKindV0_12,
+        kind: GrammarNodeKindV0_13,
         range_start: u16,
         range_len: u8,
         decision: Option<u8>,
@@ -137,21 +137,21 @@ impl GrammarNodeV0_12 {
 
     /// Returns this node's closed kind.
     #[must_use]
-    pub const fn kind(self) -> GrammarNodeKindV0_12 {
+    pub const fn kind(self) -> GrammarNodeKindV0_13 {
         self.kind
     }
 
     /// Returns the child-node slice for a structural node.
     #[must_use]
-    pub fn children(self) -> &'static [GrammarNodeIdV0_12] {
+    pub fn children(self) -> &'static [GrammarNodeIdV0_13] {
         if !matches!(
             self.kind,
-            GrammarNodeKindV0_12::Sequence
-                | GrammarNodeKindV0_12::Choice
-                | GrammarNodeKindV0_12::Group
-                | GrammarNodeKindV0_12::Optional
-                | GrammarNodeKindV0_12::RepeatZero
-                | GrammarNodeKindV0_12::RepeatOne
+            GrammarNodeKindV0_13::Sequence
+                | GrammarNodeKindV0_13::Choice
+                | GrammarNodeKindV0_13::Group
+                | GrammarNodeKindV0_13::Optional
+                | GrammarNodeKindV0_13::RepeatZero
+                | GrammarNodeKindV0_13::RepeatOne
         ) {
             return &[];
         }
@@ -161,8 +161,8 @@ impl GrammarNodeV0_12 {
 
     /// Returns the terminal sequence for a terminal-bearing node.
     #[must_use]
-    pub fn terminals(self) -> &'static [LookaheadPredicateV0_12] {
-        if self.kind != GrammarNodeKindV0_12::TerminalSequence {
+    pub fn terminals(self) -> &'static [LookaheadPredicateV0_13] {
+        if self.kind != GrammarNodeKindV0_13::TerminalSequence {
             return &[];
         }
         let start = self.range_start as usize;
@@ -171,7 +171,7 @@ impl GrammarNodeV0_12 {
 
     /// Returns this node's predictive decision, if it owns one.
     #[must_use]
-    pub fn decision(self) -> Option<&'static DecisionV0_12> {
+    pub fn decision(self) -> Option<&'static DecisionV0_13> {
         self.decision
             .map(|index| &generated::DECISIONS[index as usize])
     }
@@ -185,7 +185,7 @@ impl GrammarNodeV0_12 {
 
 /// One source-EBNF decision kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DecisionKindV0_12 {
+pub enum DecisionKindV0_13 {
     /// A written `|` choice.
     Choice,
     /// A written `?` decision.
@@ -198,7 +198,7 @@ pub enum DecisionKindV0_12 {
 
 /// Closed DIAG-1 behavior attached to a predictive frontier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DecisionContextV0_12 {
+pub enum DecisionContextV0_13 {
     /// No construct-entry or program-leftover override.
     Ordinary,
     /// An `item`, `stmt`, or `requires_entry` entry frontier.
@@ -209,22 +209,22 @@ pub enum DecisionContextV0_12 {
 
 /// One exact strong-LL(2) decision and its contiguous row range.
 #[derive(Clone, Copy, Debug)]
-pub struct DecisionV0_12 {
-    node: GrammarNodeIdV0_12,
-    production: ProductionV0_12,
-    kind: DecisionKindV0_12,
-    context: DecisionContextV0_12,
+pub struct DecisionV0_13 {
+    node: GrammarNodeIdV0_13,
+    production: ProductionV0_13,
+    kind: DecisionKindV0_13,
+    context: DecisionContextV0_13,
     arm_count: u8,
     row_start: u16,
     row_len: u16,
 }
 
-impl DecisionV0_12 {
+impl DecisionV0_13 {
     pub(crate) const fn new(
-        node: GrammarNodeIdV0_12,
-        production: ProductionV0_12,
-        kind: DecisionKindV0_12,
-        context: DecisionContextV0_12,
+        node: GrammarNodeIdV0_13,
+        production: ProductionV0_13,
+        kind: DecisionKindV0_13,
+        context: DecisionContextV0_13,
         arm_count: u8,
         row_start: u16,
         row_len: u16,
@@ -242,25 +242,25 @@ impl DecisionV0_12 {
 
     /// Returns the stable source-EBNF node identity.
     #[must_use]
-    pub const fn node(self) -> GrammarNodeIdV0_12 {
+    pub const fn node(self) -> GrammarNodeIdV0_13 {
         self.node
     }
 
     /// Returns the containing production.
     #[must_use]
-    pub const fn production(self) -> ProductionV0_12 {
+    pub const fn production(self) -> ProductionV0_13 {
         self.production
     }
 
     /// Returns the source decision kind.
     #[must_use]
-    pub const fn kind(self) -> DecisionKindV0_12 {
+    pub const fn kind(self) -> DecisionKindV0_13 {
         self.kind
     }
 
     /// Returns closed diagnostic-entry metadata.
     #[must_use]
-    pub const fn context(self) -> DecisionContextV0_12 {
+    pub const fn context(self) -> DecisionContextV0_13 {
         self.context
     }
 
@@ -272,7 +272,7 @@ impl DecisionV0_12 {
 
     /// Returns every provenance-retaining SELECT2 row in source-arm order.
     #[must_use]
-    pub fn rows(self) -> &'static [SelectRowV0_12] {
+    pub fn rows(self) -> &'static [SelectRowV0_13] {
         let start = self.row_start as usize;
         &generated::SELECT_ROWS[start..start + self.row_len as usize]
     }
@@ -280,20 +280,20 @@ impl DecisionV0_12 {
 
 /// One SELECT-row position with source-EBNF diagnostic provenance.
 #[derive(Clone, Copy, Debug)]
-pub struct SelectAtomV0_12 {
-    predicate: LookaheadPredicateV0_12,
-    provenance: Option<GrammarNodeIdV0_12>,
+pub struct SelectAtomV0_13 {
+    predicate: LookaheadPredicateV0_13,
+    provenance: Option<GrammarNodeIdV0_13>,
     inside_arm: bool,
-    transparent_name: Option<NamePredicateV0_12>,
+    transparent_name: Option<NamePredicateV0_13>,
     atom_only: bool,
 }
 
-impl SelectAtomV0_12 {
+impl SelectAtomV0_13 {
     pub(crate) const fn new(
-        predicate: LookaheadPredicateV0_12,
-        provenance: Option<GrammarNodeIdV0_12>,
+        predicate: LookaheadPredicateV0_13,
+        provenance: Option<GrammarNodeIdV0_13>,
         inside_arm: bool,
-        transparent_name: Option<NamePredicateV0_12>,
+        transparent_name: Option<NamePredicateV0_13>,
         atom_only: bool,
     ) -> Self {
         Self {
@@ -307,13 +307,13 @@ impl SelectAtomV0_12 {
 
     /// Returns the terminal predicate or source-end sentinel.
     #[must_use]
-    pub const fn predicate(self) -> LookaheadPredicateV0_12 {
+    pub const fn predicate(self) -> LookaheadPredicateV0_13 {
         self.predicate
     }
 
     /// Returns the unique source-EBNF terminal occurrence, when one exists.
     #[must_use]
-    pub const fn provenance(self) -> Option<GrammarNodeIdV0_12> {
+    pub const fn provenance(self) -> Option<GrammarNodeIdV0_13> {
         self.provenance
     }
 
@@ -325,7 +325,7 @@ impl SelectAtomV0_12 {
 
     /// Returns a transparent mandatory-name endpoint, when one exists.
     #[must_use]
-    pub const fn transparent_name(self) -> Option<NamePredicateV0_12> {
+    pub const fn transparent_name(self) -> Option<NamePredicateV0_13> {
         self.transparent_name
     }
 
@@ -338,13 +338,13 @@ impl SelectAtomV0_12 {
 
 /// One provenance-retaining row for one source arm.
 #[derive(Clone, Copy, Debug)]
-pub struct SelectRowV0_12 {
+pub struct SelectRowV0_13 {
     arm: u8,
     first: u16,
     second: u16,
 }
 
-impl SelectRowV0_12 {
+impl SelectRowV0_13 {
     pub(crate) const fn new(arm: u8, first: u16, second: u16) -> Self {
         Self { arm, first, second }
     }
@@ -357,7 +357,7 @@ impl SelectRowV0_12 {
 
     /// Returns the requested position, zero or one.
     #[must_use]
-    pub fn position(self, index: usize) -> Option<SelectAtomV0_12> {
+    pub fn position(self, index: usize) -> Option<SelectAtomV0_13> {
         let atom = match index {
             0 => self.first,
             1 => self.second,
@@ -367,35 +367,35 @@ impl SelectRowV0_12 {
     }
 }
 
-impl ProductionV0_12 {
+impl ProductionV0_13 {
     /// Returns the root source-EBNF node for this production.
     #[must_use]
-    pub fn root(self) -> GrammarNodeIdV0_12 {
+    pub fn root(self) -> GrammarNodeIdV0_13 {
         generated::PRODUCTION_ROOTS[self.index()]
     }
 
     /// Returns the numbered rule containing this production.
     #[must_use]
-    pub fn owner(self) -> RuleOwnerV0_12 {
+    pub fn owner(self) -> RuleOwnerV0_13 {
         generated::PRODUCTION_OWNERS[self.index()]
     }
 }
 
 /// Returns every production in specification-definition order.
 #[must_use]
-pub const fn productions_v0_12() -> &'static [ProductionV0_12] {
+pub const fn productions_v0_13() -> &'static [ProductionV0_13] {
     &generated::PRODUCTIONS
 }
 
 /// Returns one checked grammar node.
 #[must_use]
-pub fn grammar_node_v0_12(node: GrammarNodeIdV0_12) -> Option<GrammarNodeV0_12> {
+pub fn grammar_node_v0_13(node: GrammarNodeIdV0_13) -> Option<GrammarNodeV0_13> {
     generated::GRAMMAR_NODES.get(node.index()).copied()
 }
 
 /// Returns all terminal predicates in first source-grammar occurrence order.
 #[must_use]
-pub const fn diagnostic_terminal_order_v0_12() -> &'static [LookaheadPredicateV0_12] {
+pub const fn diagnostic_terminal_order_v0_13() -> &'static [LookaheadPredicateV0_13] {
     &generated::DIAGNOSTIC_ORDER
 }
 

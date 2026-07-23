@@ -6,9 +6,9 @@ enum Flag {
 fn main() -> own unit pure {
   let first_atom_0001: own Flag = First();
   match Err(error: first_atom_0001) {
-    Ok(value: value) => {
+    Ok(value: ok_value) => {
     }
-    Err(error: error) => {
+    Err(error: err_value) => {
     }
   }
   return unit;

@@ -1,16 +1,16 @@
-use crate::{KERNEL_SPEC_V0_12_HASH, SpecHash};
+use crate::{KERNEL_SPEC_V0_13_HASH, SpecHash};
 
 /// Exact numbered specification owning this terminal contract.
-pub const TERMINAL_CONTRACT_SPEC_V0_12: SpecHash = KERNEL_SPEC_V0_12_HASH;
+pub const TERMINAL_CONTRACT_SPEC_V0_13: SpecHash = KERNEL_SPEC_V0_13_HASH;
 
-/// One exact raw-token spelling produced by a fixed grammar atom in v0.12.
+/// One exact raw-token spelling produced by a fixed grammar atom in v0.13.
 ///
 /// Compound source atoms such as `&uniq` are represented by their two raw
 /// token predicates. The order follows first appearance in the approved
 /// grammar and is stable language data, not parser priority.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(u8)]
-pub enum FixedTerminalV0_12 {
+pub enum FixedTerminalV0_13 {
     /// `struct`.
     Struct,
     /// `{`.
@@ -141,75 +141,75 @@ pub enum FixedTerminalV0_12 {
     Traps,
 }
 
-/// Every v0.12 fixed raw-token predicate, in first-grammar-occurrence order.
-pub const ALL_FIXED_TERMINALS_V0_12: [FixedTerminalV0_12; 64] = [
-    FixedTerminalV0_12::Struct,
-    FixedTerminalV0_12::LeftBrace,
-    FixedTerminalV0_12::RightBrace,
-    FixedTerminalV0_12::Colon,
-    FixedTerminalV0_12::Semicolon,
-    FixedTerminalV0_12::Enum,
-    FixedTerminalV0_12::LeftParen,
-    FixedTerminalV0_12::RightParen,
-    FixedTerminalV0_12::Comma,
-    FixedTerminalV0_12::Fn,
-    FixedTerminalV0_12::ThinArrow,
-    FixedTerminalV0_12::Requires,
-    FixedTerminalV0_12::Contract,
-    FixedTerminalV0_12::Law,
-    FixedTerminalV0_12::Conform,
-    FixedTerminalV0_12::Const,
-    FixedTerminalV0_12::Equal,
-    FixedTerminalV0_12::Doc,
-    FixedTerminalV0_12::LeftAngle,
-    FixedTerminalV0_12::RightAngle,
-    FixedTerminalV0_12::LeftBracket,
-    FixedTerminalV0_12::RightBracket,
-    FixedTerminalV0_12::I8,
-    FixedTerminalV0_12::I16,
-    FixedTerminalV0_12::I32,
-    FixedTerminalV0_12::I64,
-    FixedTerminalV0_12::U8,
-    FixedTerminalV0_12::U16,
-    FixedTerminalV0_12::U32,
-    FixedTerminalV0_12::U64,
-    FixedTerminalV0_12::F32,
-    FixedTerminalV0_12::F64,
-    FixedTerminalV0_12::Unit,
-    FixedTerminalV0_12::Array,
-    FixedTerminalV0_12::Slice,
-    FixedTerminalV0_12::Box,
-    FixedTerminalV0_12::Arena,
-    FixedTerminalV0_12::Buffer,
-    FixedTerminalV0_12::Own,
-    FixedTerminalV0_12::Ampersand,
-    FixedTerminalV0_12::Uniq,
-    FixedTerminalV0_12::Let,
-    FixedTerminalV0_12::Propagate,
-    FixedTerminalV0_12::Set,
-    FixedTerminalV0_12::Return,
-    FixedTerminalV0_12::Loop,
-    FixedTerminalV0_12::Break,
-    FixedTerminalV0_12::Region,
-    FixedTerminalV0_12::Check,
-    FixedTerminalV0_12::Else,
-    FixedTerminalV0_12::Trap,
-    FixedTerminalV0_12::Give,
-    FixedTerminalV0_12::Match,
-    FixedTerminalV0_12::FatArrow,
-    FixedTerminalV0_12::Move,
-    FixedTerminalV0_12::Deref,
-    FixedTerminalV0_12::Index,
-    FixedTerminalV0_12::Dot,
-    FixedTerminalV0_12::Pure,
-    FixedTerminalV0_12::Reads,
-    FixedTerminalV0_12::Writes,
-    FixedTerminalV0_12::Allocates,
-    FixedTerminalV0_12::Heap,
-    FixedTerminalV0_12::Traps,
+/// Every v0.13 fixed raw-token predicate, in first-grammar-occurrence order.
+pub const ALL_FIXED_TERMINALS_V0_13: [FixedTerminalV0_13; 64] = [
+    FixedTerminalV0_13::Struct,
+    FixedTerminalV0_13::LeftBrace,
+    FixedTerminalV0_13::RightBrace,
+    FixedTerminalV0_13::Colon,
+    FixedTerminalV0_13::Semicolon,
+    FixedTerminalV0_13::Enum,
+    FixedTerminalV0_13::LeftParen,
+    FixedTerminalV0_13::RightParen,
+    FixedTerminalV0_13::Comma,
+    FixedTerminalV0_13::Fn,
+    FixedTerminalV0_13::ThinArrow,
+    FixedTerminalV0_13::Requires,
+    FixedTerminalV0_13::Contract,
+    FixedTerminalV0_13::Law,
+    FixedTerminalV0_13::Conform,
+    FixedTerminalV0_13::Const,
+    FixedTerminalV0_13::Equal,
+    FixedTerminalV0_13::Doc,
+    FixedTerminalV0_13::LeftAngle,
+    FixedTerminalV0_13::RightAngle,
+    FixedTerminalV0_13::LeftBracket,
+    FixedTerminalV0_13::RightBracket,
+    FixedTerminalV0_13::I8,
+    FixedTerminalV0_13::I16,
+    FixedTerminalV0_13::I32,
+    FixedTerminalV0_13::I64,
+    FixedTerminalV0_13::U8,
+    FixedTerminalV0_13::U16,
+    FixedTerminalV0_13::U32,
+    FixedTerminalV0_13::U64,
+    FixedTerminalV0_13::F32,
+    FixedTerminalV0_13::F64,
+    FixedTerminalV0_13::Unit,
+    FixedTerminalV0_13::Array,
+    FixedTerminalV0_13::Slice,
+    FixedTerminalV0_13::Box,
+    FixedTerminalV0_13::Arena,
+    FixedTerminalV0_13::Buffer,
+    FixedTerminalV0_13::Own,
+    FixedTerminalV0_13::Ampersand,
+    FixedTerminalV0_13::Uniq,
+    FixedTerminalV0_13::Let,
+    FixedTerminalV0_13::Propagate,
+    FixedTerminalV0_13::Set,
+    FixedTerminalV0_13::Return,
+    FixedTerminalV0_13::Loop,
+    FixedTerminalV0_13::Break,
+    FixedTerminalV0_13::Region,
+    FixedTerminalV0_13::Check,
+    FixedTerminalV0_13::Else,
+    FixedTerminalV0_13::Trap,
+    FixedTerminalV0_13::Give,
+    FixedTerminalV0_13::Match,
+    FixedTerminalV0_13::FatArrow,
+    FixedTerminalV0_13::Move,
+    FixedTerminalV0_13::Deref,
+    FixedTerminalV0_13::Index,
+    FixedTerminalV0_13::Dot,
+    FixedTerminalV0_13::Pure,
+    FixedTerminalV0_13::Reads,
+    FixedTerminalV0_13::Writes,
+    FixedTerminalV0_13::Allocates,
+    FixedTerminalV0_13::Heap,
+    FixedTerminalV0_13::Traps,
 ];
 
-impl FixedTerminalV0_12 {
+impl FixedTerminalV0_13 {
     /// Returns the exact one-token spelling of this predicate.
     #[must_use]
     pub const fn spelling(self) -> &'static [u8] {
@@ -284,7 +284,7 @@ impl FixedTerminalV0_12 {
     /// Finds the fixed predicate with exactly these raw-token bytes.
     #[must_use]
     pub fn from_spelling(spelling: &[u8]) -> Option<Self> {
-        ALL_FIXED_TERMINALS_V0_12
+        ALL_FIXED_TERMINALS_V0_13
             .iter()
             .copied()
             .find(|terminal| terminal.spelling() == spelling)
@@ -295,15 +295,15 @@ impl FixedTerminalV0_12 {
     }
 }
 
-/// One terminal predicate in the complete approved v0.12 token-membership set.
+/// One terminal predicate in the complete approved v0.13 token-membership set.
 ///
 /// A formed token may satisfy more than one predicate. In particular, `unit`
 /// satisfies both its fixed predicate and `Literal`; callers must retain both
 /// rather than choosing one by priority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TerminalPredicateV0_12 {
+pub enum TerminalPredicateV0_13 {
     /// One exact fixed raw-token spelling.
-    Fixed(FixedTerminalV0_12),
+    Fixed(FixedTerminalV0_13),
     /// FORM-3 `IDENT`.
     Identifier,
     /// FORM-3 `TYPEID`.
@@ -322,83 +322,83 @@ pub enum TerminalPredicateV0_12 {
     Digits,
 }
 
-/// Every approved v0.12 token predicate. `SOURCE_END` is intentionally absent.
-pub const ALL_TERMINAL_PREDICATES_V0_12: [TerminalPredicateV0_12; 72] = [
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Struct),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::LeftBrace),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::RightBrace),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Colon),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Semicolon),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Enum),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::LeftParen),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::RightParen),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Comma),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Fn),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::ThinArrow),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Requires),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Contract),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Law),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Conform),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Const),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Equal),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Doc),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::LeftAngle),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::RightAngle),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::LeftBracket),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::RightBracket),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::I8),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::I16),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::I32),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::I64),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::U8),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::U16),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::U32),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::U64),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::F32),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::F64),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Unit),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Array),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Slice),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Box),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Arena),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Buffer),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Own),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Ampersand),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Uniq),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Let),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Propagate),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Set),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Return),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Loop),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Break),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Region),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Check),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Else),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Trap),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Give),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Match),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::FatArrow),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Move),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Deref),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Index),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Dot),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Pure),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Reads),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Writes),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Allocates),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Heap),
-    TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Traps),
-    TerminalPredicateV0_12::Identifier,
-    TerminalPredicateV0_12::TypeIdentifier,
-    TerminalPredicateV0_12::RegionIdentifier,
-    TerminalPredicateV0_12::Label,
-    TerminalPredicateV0_12::OperationName,
-    TerminalPredicateV0_12::Literal,
-    TerminalPredicateV0_12::String,
-    TerminalPredicateV0_12::Digits,
+/// Every approved v0.13 token predicate. `SOURCE_END` is intentionally absent.
+pub const ALL_TERMINAL_PREDICATES_V0_13: [TerminalPredicateV0_13; 72] = [
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Struct),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::LeftBrace),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::RightBrace),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Colon),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Semicolon),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Enum),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::LeftParen),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::RightParen),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Comma),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Fn),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::ThinArrow),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Requires),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Contract),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Law),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Conform),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Const),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Equal),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Doc),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::LeftAngle),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::RightAngle),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::LeftBracket),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::RightBracket),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::I8),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::I16),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::I32),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::I64),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::U8),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::U16),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::U32),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::U64),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::F32),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::F64),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Unit),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Array),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Slice),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Box),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Arena),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Buffer),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Own),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Ampersand),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Uniq),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Let),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Propagate),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Set),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Return),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Loop),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Break),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Region),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Check),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Else),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Trap),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Give),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Match),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::FatArrow),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Move),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Deref),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Index),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Dot),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Pure),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Reads),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Writes),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Allocates),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Heap),
+    TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Traps),
+    TerminalPredicateV0_13::Identifier,
+    TerminalPredicateV0_13::TypeIdentifier,
+    TerminalPredicateV0_13::RegionIdentifier,
+    TerminalPredicateV0_13::Label,
+    TerminalPredicateV0_13::OperationName,
+    TerminalPredicateV0_13::Literal,
+    TerminalPredicateV0_13::String,
+    TerminalPredicateV0_13::Digits,
 ];
 
-impl TerminalPredicateV0_12 {
+impl TerminalPredicateV0_13 {
     const fn index(self) -> u8 {
         match self {
             Self::Fixed(terminal) => terminal.index(),
@@ -414,14 +414,14 @@ impl TerminalPredicateV0_12 {
     }
 }
 
-/// The complete set of v0.12 terminal predicates retained for one formed token.
+/// The complete set of v0.13 terminal predicates retained for one formed token.
 ///
 /// This is a membership set, not a selected token kind. Its compact layout is
 /// runtime-local and is not an artifact encoding.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct TerminalSetV0_12(u128);
+pub struct TerminalSetV0_13(u128);
 
-impl TerminalSetV0_12 {
+impl TerminalSetV0_13 {
     /// Creates an empty membership set.
     #[must_use]
     pub const fn empty() -> Self {
@@ -429,13 +429,13 @@ impl TerminalSetV0_12 {
     }
 
     /// Adds one matching predicate.
-    pub fn insert(&mut self, predicate: TerminalPredicateV0_12) {
+    pub fn insert(&mut self, predicate: TerminalPredicateV0_13) {
         self.0 |= 1_u128 << predicate.index();
     }
 
     /// Reports whether this token matched the given predicate.
     #[must_use]
-    pub const fn contains(self, predicate: TerminalPredicateV0_12) -> bool {
+    pub const fn contains(self, predicate: TerminalPredicateV0_13) -> bool {
         self.0 & (1_u128 << predicate.index()) != 0
     }
 
@@ -456,8 +456,8 @@ impl TerminalSetV0_12 {
     /// This order is not the grammar-occurrence order used by syntax
     /// diagnostics. Parser tables must retain their separately approved
     /// source-grammar ranks.
-    pub fn iter(self) -> impl Iterator<Item = TerminalPredicateV0_12> {
-        ALL_TERMINAL_PREDICATES_V0_12
+    pub fn iter(self) -> impl Iterator<Item = TerminalPredicateV0_13> {
+        ALL_TERMINAL_PREDICATES_V0_13
             .iter()
             .copied()
             .filter(move |predicate| self.contains(*predicate))
@@ -471,34 +471,34 @@ fn lower_word(spelling: &[u8]) -> bool {
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'_')
 }
 
-/// Tests exact v0.12 `IDENT` membership, including the fixed-word exclusion.
+/// Tests exact v0.13 `IDENT` membership, including the fixed-word exclusion.
 #[must_use]
-pub fn is_identifier_v0_12(spelling: &[u8]) -> bool {
-    lower_word(spelling) && FixedTerminalV0_12::from_spelling(spelling).is_none()
+pub fn is_identifier_v0_13(spelling: &[u8]) -> bool {
+    lower_word(spelling) && FixedTerminalV0_13::from_spelling(spelling).is_none()
 }
 
-/// Tests exact v0.12 `TYPEID` membership.
+/// Tests exact v0.13 `TYPEID` membership.
 #[must_use]
-pub fn is_type_identifier_v0_12(spelling: &[u8]) -> bool {
+pub fn is_type_identifier_v0_13(spelling: &[u8]) -> bool {
     spelling.first().is_some_and(u8::is_ascii_uppercase)
         && spelling[1..].iter().all(u8::is_ascii_alphanumeric)
 }
 
-/// Tests exact v0.12 `REGIONID` membership.
+/// Tests exact v0.13 `REGIONID` membership.
 #[must_use]
-pub fn is_region_identifier_v0_12(spelling: &[u8]) -> bool {
+pub fn is_region_identifier_v0_13(spelling: &[u8]) -> bool {
     spelling.strip_prefix(b"'").is_some_and(lower_word)
 }
 
-/// Tests exact v0.12 `LABEL` membership.
+/// Tests exact v0.13 `LABEL` membership.
 #[must_use]
-pub fn is_label_v0_12(spelling: &[u8]) -> bool {
+pub fn is_label_v0_13(spelling: &[u8]) -> bool {
     spelling.strip_prefix(b"@").is_some_and(lower_word)
 }
 
-/// Tests exact v0.12 `OPNAME` membership.
+/// Tests exact v0.13 `OPNAME` membership.
 #[must_use]
-pub fn is_operation_name_v0_12(spelling: &[u8]) -> bool {
+pub fn is_operation_name_v0_13(spelling: &[u8]) -> bool {
     [
         b".wrap".as_slice(),
         b".trap",
@@ -510,9 +510,9 @@ pub fn is_operation_name_v0_12(spelling: &[u8]) -> bool {
     .any(|suffix| spelling.strip_suffix(*suffix).is_some_and(lower_word))
 }
 
-/// Tests the sole v0.12 `[0-9]+` pattern predicate.
+/// Tests the sole v0.13 `[0-9]+` pattern predicate.
 #[must_use]
-pub fn is_digits_v0_12(spelling: &[u8]) -> bool {
+pub fn is_digits_v0_13(spelling: &[u8]) -> bool {
     !spelling.is_empty() && spelling.iter().all(u8::is_ascii_digit)
 }
 
@@ -577,20 +577,20 @@ fn float_literal(spelling: &[u8]) -> bool {
     matches!(&spelling[cursor..], b"_f32" | b"_f64")
 }
 
-/// Tests v0.12 `literal` grammar membership before FORM-7 value checking.
+/// Tests v0.13 `literal` grammar membership before FORM-7 value checking.
 ///
 /// Range, integer leading-zero, finite-value, and shortest-float checks are
 /// deliberately outside this predicate, as required by FORM-7.
 #[must_use]
-pub fn is_literal_v0_12(spelling: &[u8]) -> bool {
+pub fn is_literal_v0_13(spelling: &[u8]) -> bool {
     matches!(spelling, b"unit" | b"0_T" | b"1_T")
         || integer_literal(spelling)
         || float_literal(spelling)
 }
 
-/// Tests exact v0.12 `STRING` membership.
+/// Tests exact v0.13 `STRING` membership.
 #[must_use]
-pub fn is_string_v0_12(spelling: &[u8]) -> bool {
+pub fn is_string_v0_13(spelling: &[u8]) -> bool {
     if spelling.len() < 2 || spelling.first() != Some(&b'"') || spelling.last() != Some(&b'"') {
         return false;
     }
@@ -616,20 +616,20 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::{
-        ALL_FIXED_TERMINALS_V0_12, FixedTerminalV0_12, TerminalPredicateV0_12, TerminalSetV0_12,
-        is_identifier_v0_12, is_literal_v0_12, is_operation_name_v0_12, is_string_v0_12,
+        ALL_FIXED_TERMINALS_V0_13, FixedTerminalV0_13, TerminalPredicateV0_13, TerminalSetV0_13,
+        is_identifier_v0_13, is_literal_v0_13, is_operation_name_v0_13, is_string_v0_13,
     };
 
     #[test]
     fn fixed_inventory_is_unique_and_round_trips() {
-        let spellings: BTreeSet<&[u8]> = ALL_FIXED_TERMINALS_V0_12
+        let spellings: BTreeSet<&[u8]> = ALL_FIXED_TERMINALS_V0_13
             .iter()
             .map(|terminal| terminal.spelling())
             .collect();
-        assert_eq!(spellings.len(), ALL_FIXED_TERMINALS_V0_12.len());
-        for terminal in ALL_FIXED_TERMINALS_V0_12 {
+        assert_eq!(spellings.len(), ALL_FIXED_TERMINALS_V0_13.len());
+        for terminal in ALL_FIXED_TERMINALS_V0_13 {
             assert_eq!(
-                FixedTerminalV0_12::from_spelling(terminal.spelling()),
+                FixedTerminalV0_13::from_spelling(terminal.spelling()),
                 Some(terminal)
             );
         }
@@ -637,17 +637,17 @@ mod tests {
 
     #[test]
     fn fixed_lower_words_are_excluded_from_identifiers() {
-        for terminal in ALL_FIXED_TERMINALS_V0_12 {
+        for terminal in ALL_FIXED_TERMINALS_V0_13 {
             if terminal
                 .spelling()
                 .first()
                 .is_some_and(u8::is_ascii_lowercase)
             {
-                assert!(!is_identifier_v0_12(terminal.spelling()));
+                assert!(!is_identifier_v0_13(terminal.spelling()));
             }
         }
         for spelling in [b"x".as_slice(), b"deref_value", b"wrap", b"ieq"] {
-            assert!(is_identifier_v0_12(spelling));
+            assert!(is_identifier_v0_13(spelling));
         }
     }
 
@@ -660,10 +660,10 @@ mod tests {
             b"iadd.sat",
             b"iadd.strict",
         ] {
-            assert!(is_operation_name_v0_12(spelling));
+            assert!(is_operation_name_v0_13(spelling));
         }
         for spelling in [b".wrap".as_slice(), b"x.other", b"x.wrap_more", b"X.wrap"] {
-            assert!(!is_operation_name_v0_12(spelling));
+            assert!(!is_operation_name_v0_13(spelling));
         }
     }
 
@@ -680,7 +680,7 @@ mod tests {
             b"1.00_f64",
             b"1.5e-0_f64",
         ] {
-            assert!(is_literal_v0_12(spelling));
+            assert!(is_literal_v0_13(spelling));
         }
         for spelling in [
             b"2_T".as_slice(),
@@ -690,31 +690,31 @@ mod tests {
             b"1.0e+1_f32",
             b"1.0_f16",
         ] {
-            assert!(!is_literal_v0_12(spelling));
+            assert!(!is_literal_v0_13(spelling));
         }
     }
 
     #[test]
     fn string_membership_checks_exact_raw_bytes() {
         for spelling in [b"\"\"".as_slice(), b"\"text\"", b"\"\\n\\\"\\\\\""] {
-            assert!(is_string_v0_12(spelling));
+            assert!(is_string_v0_13(spelling));
         }
         for spelling in [b"text".as_slice(), b"\"\\t\"", b"\"line\nfeed\""] {
-            assert!(!is_string_v0_12(spelling));
+            assert!(!is_string_v0_13(spelling));
         }
     }
 
     #[test]
     fn membership_set_retains_noncompeting_overlap() {
-        let mut set = TerminalSetV0_12::empty();
-        set.insert(TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Unit));
-        set.insert(TerminalPredicateV0_12::Literal);
+        let mut set = TerminalSetV0_13::empty();
+        set.insert(TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Unit));
+        set.insert(TerminalPredicateV0_13::Literal);
         assert_eq!(set.len(), 2);
         assert_eq!(
             set.iter().collect::<Vec<_>>(),
             vec![
-                TerminalPredicateV0_12::Fixed(FixedTerminalV0_12::Unit),
-                TerminalPredicateV0_12::Literal,
+                TerminalPredicateV0_13::Fixed(FixedTerminalV0_13::Unit),
+                TerminalPredicateV0_13::Literal,
             ]
         );
     }

@@ -4,18 +4,18 @@ mod finalize;
 mod outcome;
 mod tree;
 
-pub use engine::parse_v0_12;
+pub use engine::parse_v0_13;
 pub use finalize::{
     BundleSourceExtent, CanonicalCompilerFailure, CanonicalIssue, CanonicalLimit, CanonicalLimits,
     CanonicalLocation, CanonicalOutcome, CanonicalResourceFailure, CanonicalStorage,
     CanonicalSyntaxUnit, FinalizeCompilerFailure, FinalizeLimit, FinalizeLimits, FinalizeOutcome,
-    FinalizeResourceFailure, FinalizeStorage, FinalizedBundle, NodePath, audit_canonical_v0_12,
-    finalize_v0_12,
+    FinalizeResourceFailure, FinalizeStorage, FinalizedBundle, NodePath, audit_canonical_v0_13,
+    finalize_v0_13,
 };
 pub use outcome::{
-    ExpectedTerminalsV0_12, ParseCompilerFailure, ParseInvocationFailure, ParseLimit, ParseLimits,
+    ExpectedTerminalsV0_13, ParseCompilerFailure, ParseInvocationFailure, ParseLimit, ParseLimits,
     ParseOutcome, ParseResourceFailure, ParseStorage, ParsedBundle, SyntaxCoordinate, SyntaxIssue,
-    SyntaxRuleV0_12,
+    SyntaxRuleV0_13,
 };
 
 pub(crate) use diagnostic::{

@@ -3,13 +3,13 @@
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::lexer::{LexLimits, LexOutcome, lex_v0_12};
+use crate::lexer::{LexLimits, LexOutcome, lex_v0_13};
 use crate::{
-    CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_12_HASH,
+    CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_13_HASH,
     ParseLimits, ParseOutcome, ResolutionOutcome, SemanticOutcome, SourceBundle, SourceInput,
-    SourceLimits, TerminalLimits, TerminalOutcome, audit_canonical_v0_12, check_semantics_v0_12,
-    classify_terminals_v0_12, compile_v0_12, emit_llvm_v0_12, finalize_v0_12, lower_checked_v0_12,
-    parse_v0_12, resolve_v0_12,
+    SourceLimits, TerminalLimits, TerminalOutcome, audit_canonical_v0_13, check_semantics_v0_13,
+    classify_terminals_v0_13, compile_v0_13, emit_llvm_v0_13, finalize_v0_13, lower_checked_v0_13,
+    parse_v0_13, resolve_v0_13,
 };
 
 const SOURCE_LIMITS: SourceLimits = SourceLimits {
@@ -59,42 +59,42 @@ static NEXT_TEST: AtomicU64 = AtomicU64::new(0);
 fn emit(source: &[u8]) -> String {
     let inputs = [SourceInput::new("test.wf", source)];
     let bundle = SourceBundle::with_limits(&inputs, SOURCE_LIMITS).expect("valid test bundle");
-    let LexOutcome::Complete(lexed) = lex_v0_12(&bundle, LEX_LIMITS) else {
+    let LexOutcome::Complete(lexed) = lex_v0_13(&bundle, LEX_LIMITS) else {
         panic!("backend test source must lex");
     };
-    let TerminalOutcome::Complete(classified) = classify_terminals_v0_12(
+    let TerminalOutcome::Complete(classified) = classify_terminals_v0_13(
         &lexed,
-        KERNEL_SPEC_V0_12_HASH,
+        KERNEL_SPEC_V0_13_HASH,
         TerminalLimits {
             max_tokens: LEX_LIMITS.max_tokens,
         },
     ) else {
         panic!("backend test source must classify");
     };
-    let ParseOutcome::Complete(parsed) = parse_v0_12(&classified, PARSE_LIMITS) else {
+    let ParseOutcome::Complete(parsed) = parse_v0_13(&classified, PARSE_LIMITS) else {
         panic!("backend test source must parse");
     };
-    let FinalizeOutcome::Complete(finalized) = finalize_v0_12(parsed, FINALIZE_LIMITS) else {
+    let FinalizeOutcome::Complete(finalized) = finalize_v0_13(parsed, FINALIZE_LIMITS) else {
         panic!("backend test source must finalize");
     };
-    let CanonicalOutcome::Complete(canonical) = audit_canonical_v0_12(finalized, CANONICAL_LIMITS)
+    let CanonicalOutcome::Complete(canonical) = audit_canonical_v0_13(finalized, CANONICAL_LIMITS)
     else {
         panic!("backend test source must be canonical");
     };
-    let ResolutionOutcome::Complete(resolved) = resolve_v0_12(canonical) else {
+    let ResolutionOutcome::Complete(resolved) = resolve_v0_13(canonical) else {
         panic!("backend test source must resolve");
     };
-    let SemanticOutcome::Complete(checked) = check_semantics_v0_12(resolved) else {
+    let SemanticOutcome::Complete(checked) = check_semantics_v0_13(resolved) else {
         panic!("backend test source must check");
     };
-    let ir = lower_checked_v0_12(*checked).expect("checked program must lower");
-    emit_llvm_v0_12(&ir)
+    let ir = lower_checked_v0_13(*checked).expect("checked program must lower");
+    emit_llvm_v0_13(&ir)
         .expect("lowered program must emit")
         .into_string()
 }
 
 fn compile(source: &[u8]) -> String {
-    compile_v0_12(
+    compile_v0_13(
         &[SourceInput::new("test.wf", source)],
         crate::CompilerLimits::default(),
     )
@@ -410,6 +410,11 @@ struct Pair {
   right: i32;
 }
 
+struct Envelope {
+  result: Result<i32, StepError>;
+  residue: Pair;
+}
+
 fn step(value: own i32) -> own Result<i32, StepError> pure {
   match ilt<i32>(value, 0_i32) {
     True() => {
@@ -423,7 +428,16 @@ fn step(value: own i32) -> own Result<i32, StepError> pure {
 }
 
 fn forward(value: own i32) -> own Result<i64, StepError> pure {
-  let accepted: own i32 = propagate step(value: value);
+  let result: own Result<i32, StepError> = step(value: value);
+  let accepted: own i32 = propagate result;
+  return Ok(value: 42_i64);
+}
+
+fn forward_field(value: own i32) -> own Result<i64, StepError> pure {
+  let result: own Result<i32, StepError> = step(value: value);
+  let residue: own Pair = Pair(left: 1_i32, right: 2_i32);
+  let envelope: own Envelope = Envelope(result: move result, residue: move residue);
+  let accepted: own i32 = propagate envelope.result;
   return Ok(value: 42_i64);
 }
 
@@ -473,6 +487,23 @@ fn main() -> own unit traps {
       check False() else trap "propagated Err became Ok";
     }
     Err(error: forwarded_error) => {
+    }
+  }
+  let field_success: own Result<i64, StepError> = forward_field(value: 7_i32);
+  match move field_success {
+    Ok(value: field_answer) => {
+      check ieq<i64>(field_answer, 42_i64) else trap "field propagation drift";
+    }
+    Err(error: field_failure) => {
+      check False() else trap "unexpected field propagation error";
+    }
+  }
+  let field_failure: own Result<i64, StepError> = forward_field(value: -1_i32);
+  match move field_failure {
+    Ok(value: field_unexpected) => {
+      check False() else trap "field propagation lost Err";
+    }
+    Err(error: field_forwarded_error) => {
     }
   }
   let pair_result: own Result<Pair, StepError> = make_pair();

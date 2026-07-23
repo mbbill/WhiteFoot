@@ -16,6 +16,7 @@
 - 2026-07-22 implementation: the first v0.11 scalar capability now runs through semantic checking, one checked authority, target-independent IR, conservative LLVM, and `whitefootc`; independent corpus programs execute and required integer-overflow and explicit-check traps retain exact attribution. (code)
 - 2026-07-22 implementation: exact owner-approved v0.12 is active, with compiler and conformance identities bound to its hash. SET-1 copy updates for current local-own places use the same checked-program, typed IR, and LLVM path; unsupported index and borrow targets do not create a second path. (code)
 - 2026-07-22 implementation: resolved `loop`/`break` now reuse the compiler's existing checked control flow and typed block parameters; iterative scalar and tag-only-enum programs execute through LLVM while FN-1, OWN-11, and explicit edge cleanup remain enforced. (code)
+- 2026-07-22 implementation: exact owner-approved v0.13 is active, with compiler and conformance identities bound to its hash. Result propagation's contextual affine consumption reuses the normal semantic, checked-program, typed IR, and LLVM path; checked division/remainder is the next closed Result-producing family. (code)
 
 ## Moves
 

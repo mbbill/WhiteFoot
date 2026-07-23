@@ -16,6 +16,6 @@ fn use(x: own i32) -> own Result<i32, ErrB> pure {
   return Ok(value: y);
 }
 
-fn main() -> own unit traps {
+fn main() -> own unit pure {
   return unit;
 }

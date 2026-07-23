@@ -52,12 +52,16 @@ measurement does.
 
 ## Current state
 
-The active language authority is `spec/kernel-spec-v0.12.md`, SHA-256
-`e2d5566379891454c090e037bd45c5f1a8df90ba23506a0f83ce9aaa03b41463`.
+The active language authority is `spec/kernel-spec-v0.13.md`, SHA-256
+`ed93cc43a6a224725f813b1adfc4c19fbb64dc5ab294b25d924392d2959b77cd`.
 Those bytes are immutable and byte-identical to the owner-approved candidate.
-Exact v0.8 through v0.11 remain immutable historical evidence. v0.12 adds the
+Exact v0.8 through v0.12 remain immutable historical evidence. v0.12 added the
 SET-1 copy-place assignment judgment, target-before-RHS ordering, post-RHS
 writability revalidation, and ultimate-storage-origin read/write effects.
+v0.13 makes a direct bare affine own-rooted `Result` place a consuming
+`propagate` operand, matching the already-approved writer form while retaining
+explicit `move` as a valid spelling and leaving every other ownership rule
+unchanged.
 
 The Rust compiler now has one ordinary path from ordered source transport
 through the lossless frontend and direct resolver into semantic checking, a
@@ -116,25 +120,22 @@ branch-dependent ownership joins, index and borrow-backed SET-1 targets,
 checked division/remainder and unary integer operations, and the remaining
 operation/effect table are explicit unsupported compiler capabilities rather
 than source-language rejections. Repeated exhaustive match arms also stop as
-unsupported because v0.12 defines neither duplicate-arm meaning nor a
+unsupported because v0.13 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
 
-The exact approved v0.12 candidate is installed and every live identity names
+The exact approved v0.13 candidate is installed and every live identity names
 it. The resolver implementation completes Phase 6, the first executable scalar
 slice completes Phase 7, and nominal data, the current SET-1 place family,
 structured loops, and the first Result family advance Phase 8.
 
-Before full ERR-3 corpus synchronization, one owner decision is required. OWN-1
-says every affine place expression requires `move`; ERR-3 does not state an
-exception, so the compiler currently applies that rule to a Result place used
-as a propagation operand. Existing conformance cases assume instead that
-`propagate result_binding` consumes the binding implicitly like an OWN-13 match.
-Other Result cases also contain pre-existing GRAM-10 binder-freshness and exact
-EFF-2 mismatches. No numbered specification, conformance verdict, or fixture was
-changed to hide these discrepancies. Resolve the propagation rule through the
-numbered-spec process, then repair the affected cases with owner approval and a
-decision record. After that synchronization, checked division/remainder is the
-next closed Result-producing operation family.
+The compiler implements that v0.13 consuming context through one general
+expression judgment shared by `match` and `propagate`. A direct bare affine
+own-rooted operand consumes its whole storage root exactly once; an explicit
+`move` remains valid; copy operands remain ordinary reads; and a later reuse is
+rejected under OWN-1. The approved ERR-3 source repairs preserve every existing
+conformance verdict and status while restoring required affine returns, exact
+effect rows, complete programs, and fresh match binders. Checked
+division/remainder is the next closed Result-producing operation family.
 
 ## Authority and specification changes
 
@@ -448,8 +449,9 @@ The first closed PRE-1 `Result` slice is implemented through one
 nominal/control-flow path: contextual construction, arbitrary currently
 supported payload types, calls and returns, exhaustive matching, checked
 add/subtract/multiply, and explicit ERR-3 forwarding. It does not special-case
-`run-ex2` or another corpus source. Full ERR-3 corpus synchronization waits on
-the owner resolution above; checked division/remainder follows that resolution.
+`run-ex2` or another corpus source. The v0.13 propagation-ownership rule and
+approved source repairs are synchronized through that same path; checked
+division/remainder is the next end-to-end Result-producing family.
 Buffers, index places, and loan-aware SET-1 targets follow when their storage
 and borrow families become the experiment being unlocked.
 

@@ -22,11 +22,11 @@ fn make_err(second: own Bool) -> own Result<u64, Flag> pure {
 
 fn result_code(result: own Result<u64, Flag>) -> own u64 pure {
   match result {
-    Ok(value: value) => {
-      return value;
+    Ok(value: ok_value) => {
+      return ok_value;
     }
-    Err(error: error) => {
-      match error {
+    Err(error: result_error) => {
+      match result_error {
         First() => {
           return 10_u64;
         }
@@ -60,8 +60,8 @@ fn option_code(option: own Option<Flag>) -> own u64 pure {
     None() => {
       return 30_u64;
     }
-    Some(value: value) => {
-      match value {
+    Some(value: option_value) => {
+      match option_value {
         First() => {
           return 40_u64;
         }

@@ -7,3 +7,7 @@ fn forward ['r](holder: &'r Result<i32, StepError>) -> own Result<i32, StepError
   let value: own i32 = propagate holder;
   return Ok(value: value);
 }
+
+fn main() -> own unit pure {
+  return unit;
+}

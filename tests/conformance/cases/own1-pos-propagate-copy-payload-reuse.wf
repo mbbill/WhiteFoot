@@ -19,3 +19,7 @@ fn forward(incoming: own Result<State, StepError>) -> own Result<i32, StepError>
   }
   return Ok(value: 0_i32);
 }
+
+fn main() -> own unit pure {
+  return unit;
+}
