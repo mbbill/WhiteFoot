@@ -275,21 +275,25 @@ origin, loan checks, and exact EFF-2 reads/writes. The implementation does not
 move affine fields out of a borrow, return references, admit bound or
 result-carrying child reborrows, or add slices, boxes, or arenas.
 
-Five inherited runnable conformance entries need protected-evidence correction
-before the compiler adapter can promote their current families. `pending-op9-buffer-new`
-and `op4-trap-index-oob` allocate but omit `allocates(heap)` from their function
-rows. `type2-pos-buffer-tagonly` and `own1-pos-match-projected-copy` construct
-`buffer<Bool>` even though TYPE-2 admits that type while the OP-1
-`buffer_new` row remains primitive-only. In addition,
-`fn8-neg-requires-non-bool-check` expects TYPE-5, while OP-5 explicitly owns
-every non-borrow exact-mode/type failure of a checked condition and FN-8 says
-its final statement has exactly OP-5 semantics. The compiler follows the
-active specification and none of those protected sources, verdicts, or
-statuses has been changed; exact owner approval under `WORKFLOW.md` is required
-first.
-The specification's array frame-limit value is still not defined; the compiler
-does not invent one, and full all-N completeness remains blocked on that owner
-rule rather than on ordinary representable arrays.
+The owner-approved protected corrections to five inherited runnable
+conformance entries are applied. `pending-op9-buffer-new` and
+`op4-trap-index-oob` now declare the `allocates(heap)` effect exhibited by
+`buffer_new`; `type2-pos-buffer-tagonly` tests the legal type without calling
+the primitive-only allocation row; `own1-pos-match-projected-copy` retains its
+projected-copy judgment through a primitive buffer; and the FN-8 non-Bool
+condition now expects its specification-selected OP-5 rejection. Their
+statuses and expectation kinds are unchanged, and the corrected runnable
+programs execute through the normal compiler path.
+
+The active v0.14 specification still names an undefined array “frame limit,”
+so the compiler does not invent one. Exact candidate
+`governance/spec-evolution/kernel-spec-v0.15-candidate.md`, SHA-256
+`50cdbe4196718f4cd66616e437a97c410943eeaa6168b32696ed3e64fda1d1a7`,
+is awaiting owner approval. It removes the ineffective language-level numeric
+cap and adds a general checked target-layout boundary: unrepresentable target
+objects stop as non-language target failures, while storage class, effects,
+runtime checks, and `array_new` purity remain unchanged. Until exact approval,
+v0.14 remains authoritative and no v0.15 compiler behavior is active.
 
 ## Authority and specification changes
 
