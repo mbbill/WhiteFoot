@@ -849,19 +849,20 @@ box remains an explicit unsupported capability because v0.16 does not define
 the resulting empty owner or allocation cleanup; this implementation does not
 invent one.
 
-Two inherited positive box cases now exercise implemented behavior but omit
-the `allocates(heap)` effect required by OP-1, so their protected sources and
-pending statuses need owner-approved reconciliation before activation. The
-borrowed inline affine-payload case remains pending and outside this box slice.
+The owner-approved protected reconciliation corrects the two inherited
+positive box cases to declare OP-1's required `allocates(heap)` effect and
+makes them runnable now that allocation, dereference, and derived cleanup use
+the ordinary compiler path. Their successful-run expectations and rule
+assignments are unchanged. The borrowed inline affine-payload case remains
+pending and outside this box slice.
 
-After that reconciliation, the exact next work remains Phase 9: run or extend
-another production-shaped dogfood target, observe the first real missing
-language or compiler capability, and select the smallest general
-implementation that removes that blocker. Do not preselect a speculative
-family merely because it remains in the specification. Cyclic generic calls,
-region-bearing generic arguments, generic `requires`, and generic `cvt` remain
-explicit unsupported capabilities unless dogfood selects and implements one
-of them generally.
+The exact next work remains Phase 9: run or extend another production-shaped
+dogfood target, observe the first real missing language or compiler capability,
+and select the smallest general implementation that removes that blocker. Do
+not preselect a speculative family merely because it remains in the
+specification. Cyclic generic calls, region-bearing generic arguments, generic
+`requires`, and generic `cvt` remain explicit unsupported capabilities unless
+dogfood selects and implements one of them generally.
 
 ## Phase 9: dogfood and language iteration
 
