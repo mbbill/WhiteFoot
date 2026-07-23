@@ -9,6 +9,7 @@ mod boxes;
 mod buffer;
 mod cleanup;
 mod conversion;
+mod floating;
 mod integer;
 mod operations;
 
@@ -18,9 +19,9 @@ use std::fmt::Write;
 use super::target::{TargetLayout, TargetLayoutFailure, validate_program};
 use crate::{
     IrArrayRoot, IrBlock, IrBlockId, IrBooleanOperation, IrConstant, IrDrop, IrEnumType,
-    IrFunction, IrGlobalValue, IrInstruction, IrIntegerOperation, IrNominal, IrNominalId,
-    IrNominalKind, IrOperation, IrProgram, IrRuntimeTargetObligations, IrTargetDomainObligation,
-    IrTerminator, IrTrapSite, IrType, IrValueId,
+    IrFloatOperation, IrFunction, IrGlobalValue, IrInstruction, IrIntegerOperation, IrNominal,
+    IrNominalId, IrNominalKind, IrOperation, IrProgram, IrRuntimeTargetObligations,
+    IrTargetDomainObligation, IrTerminator, IrTrapSite, IrType, IrValueId,
 };
 use buffer::{buffer_bounds_continue_label, buffer_fill_done_label, buffer_index_continue_label};
 use cleanup::{emit_resource_drop_helpers, emit_value_cleanup, type_requires_cleanup};
@@ -473,6 +474,11 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 arguments,
                 trap.as_ref(),
             ),
+            IrOperation::Float {
+                operation,
+                operand_type,
+                arguments,
+            } => self.emit_float(result, ty, *operation, *operand_type, arguments),
             IrOperation::IntegerConversion {
                 source_type,
                 destination_type,
@@ -761,6 +767,9 @@ fn llvm_type(program: &IrProgram<'_, '_, '_>, ty: IrType) -> Result<String, Back
         IrType::Integer { width: 32, .. } => Ok("i32".to_owned()),
         IrType::Integer { width: 64, .. } => Ok("i64".to_owned()),
         IrType::Integer { .. } => Err(BackendFailure::InvalidIr),
+        IrType::Float { width: 32 } => Ok("float".to_owned()),
+        IrType::Float { width: 64 } => Ok("double".to_owned()),
+        IrType::Float { .. } => Err(BackendFailure::InvalidIr),
         IrType::Array { element, length } => Ok(format!(
             "[{length} x {}]",
             llvm_type(program, element.ty())?
@@ -826,6 +835,21 @@ fn constant_operand(constant: IrConstant, ty: IrType) -> Result<String, BackendF
                 bits.to_string()
             })
         }
+        (
+            IrConstant::Float {
+                ty: constant_ty,
+                bits,
+            },
+            actual_ty,
+        ) if constant_ty == actual_ty => match actual_ty {
+            IrType::Float { width: 32 } => {
+                let bits = u32::try_from(bits).map_err(|_| BackendFailure::InvalidIr)?;
+                let widened = f64::from(f32::from_bits(bits)).to_bits();
+                Ok(format!("0x{widened:016X}"))
+            }
+            IrType::Float { width: 64 } => Ok(format!("0x{bits:016X}")),
+            _ => Err(BackendFailure::InvalidIr),
+        },
         _ => Err(BackendFailure::InvalidIr),
     }
 }

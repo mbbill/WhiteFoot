@@ -467,7 +467,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     GenericBound::Int
                 }
                 Some((ResolvedTarget::Prelude(id), _)) if id == PreludeDeclarationId::new(23) => {
-                    return self.unsupported(UnsupportedSemanticFeature::FloatingPoint, node);
+                    return self
+                        .unsupported(UnsupportedSemanticFeature::GenericFloatingPoint, node);
                 }
                 Some((
                     ResolvedTarget::Source {

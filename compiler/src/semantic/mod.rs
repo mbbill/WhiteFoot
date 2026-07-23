@@ -19,9 +19,9 @@ pub use check::check_semantics;
 pub(crate) use model::{
     BindingId, CheckedArrayRoot, CheckedBooleanOperation, CheckedBufferRoot,
     CheckedBufferSetTarget, CheckedDrop, CheckedEnumType, CheckedExpression, CheckedFlatElement,
-    CheckedFunction, CheckedIntegerOperation, CheckedLoopId, CheckedMatchArm, CheckedMode,
-    CheckedNominalKind, CheckedParameter, CheckedProgramData, CheckedProjectedDrop,
-    CheckedRuntimeTargetObligations, CheckedSetTarget, CheckedStatement,
+    CheckedFloatOperation, CheckedFunction, CheckedIntegerOperation, CheckedLoopId,
+    CheckedMatchArm, CheckedMode, CheckedNominalKind, CheckedParameter, CheckedProgramData,
+    CheckedProjectedDrop, CheckedRuntimeTargetObligations, CheckedSetTarget, CheckedStatement,
     CheckedTargetDomainObligation, CheckedType, CheckedValue, NominalId, PropagationContext,
     TrapSite,
 };
@@ -153,6 +153,8 @@ pub enum SemanticLocation {
 pub enum SemanticIssueKind {
     /// A literal is not the unique in-range FORM-7 spelling.
     InvalidIntegerLiteral,
+    /// A float literal is not FORM-5's unique finite canonical spelling.
+    InvalidFloatLiteral,
     /// A named constant value does not exactly inhabit its written type.
     InvalidConstValue,
     /// Two exact written modes or types disagree.
@@ -349,8 +351,10 @@ pub enum UnsupportedSemanticFeature {
     RegionsAndBorrows,
     /// Composite types or values outside the implemented nominal-data family.
     CompositeValues,
-    /// Float types, literals, or operations.
-    FloatingPoint,
+    /// A generic parameter bound by the prelude `Float` contract.
+    GenericFloatingPoint,
+    /// An OP-6 conversion with at least one floating-point endpoint.
+    FloatingPointConversion,
     /// A loop with no structurally reachable break exit for current SSA lowering.
     StructuredControlFlow,
     /// A recursive nominal layout whose finite representation is not selected.

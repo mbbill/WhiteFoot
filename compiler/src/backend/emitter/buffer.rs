@@ -247,6 +247,8 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 Ok(u64::from(width / 8))
             }
             IrFlatElement::Integer { .. } => Err(BackendFailure::InvalidIr),
+            IrFlatElement::Float { width } if matches!(width, 32 | 64) => Ok(u64::from(width / 8)),
+            IrFlatElement::Float { .. } => Err(BackendFailure::InvalidIr),
             IrFlatElement::TagOnlyNominal(id) => {
                 let nominal = self.nominal(id)?;
                 if !nominal.is_tag_only_enum() {

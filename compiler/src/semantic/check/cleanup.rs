@@ -20,6 +20,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 CheckedType::Unit
                 | CheckedType::Bool
                 | CheckedType::Integer(_)
+                | CheckedType::Float(_)
                 | CheckedType::GenericInt(_)
                 | CheckedType::Generic(_) => {}
                 CheckedType::Array { .. } | CheckedType::Buffer { .. } => {
@@ -74,6 +75,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 CheckedType::Unit
                 | CheckedType::Bool
                 | CheckedType::Integer(_)
+                | CheckedType::Float(_)
                 | CheckedType::GenericInt(_)
                 | CheckedType::Generic(_)
                 | CheckedType::Array { .. }
@@ -85,6 +87,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 CheckedType::Unit
                 | CheckedType::Bool
                 | CheckedType::Integer(_)
+                | CheckedType::Float(_)
                 | CheckedType::GenericInt(_)
                 | CheckedType::Generic(_) => {}
                 CheckedType::Array { .. } | CheckedType::Buffer { .. } => {

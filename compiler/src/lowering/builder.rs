@@ -45,6 +45,10 @@ fn lower_scalar_constant(value: &CheckedValue) -> Result<IrConstant, LoweringFai
             ty: lower_type(crate::semantic::CheckedType::Integer(*ty))?,
             bits: *bits,
         }),
+        CheckedValue::Float { ty, bits } => Ok(IrConstant::Float {
+            ty: lower_type(crate::semantic::CheckedType::Float(*ty))?,
+            bits: *bits,
+        }),
         CheckedValue::Array { .. } => Err(LoweringFailure::InvalidCheckedProgram),
     }
 }
@@ -658,6 +662,24 @@ impl<'program> IrBuilder<'program> {
                         operand_type: lower_type(*operand_type)?,
                         arguments,
                         trap: trap.clone().map(Into::into),
+                    },
+                )
+            }
+            CheckedExpression::FloatOperation {
+                operation,
+                operand_type,
+                arguments,
+            } => {
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.expression(argument))
+                    .collect::<Result<Vec<_>, _>>()?;
+                self.define(
+                    lower_type(expression.ty())?,
+                    IrOperation::Float {
+                        operation: (*operation).into(),
+                        operand_type: lower_type(CheckedType::Float(*operand_type))?,
+                        arguments,
                     },
                 )
             }

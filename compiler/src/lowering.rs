@@ -6,9 +6,9 @@
 //! judgment.
 
 use crate::semantic::{
-    CheckedBooleanOperation, CheckedEnumType, CheckedFlatElement, CheckedIntegerOperation,
-    CheckedProgram, CheckedRuntimeTargetObligations, CheckedTargetDomainObligation, CheckedType,
-    TrapSite,
+    CheckedBooleanOperation, CheckedEnumType, CheckedFlatElement, CheckedFloatOperation,
+    CheckedIntegerOperation, CheckedProgram, CheckedRuntimeTargetObligations,
+    CheckedTargetDomainObligation, CheckedType, TrapSite,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -78,6 +78,7 @@ pub enum IrFlatElement {
     Unit,
     Bool,
     Integer { width: u8, signed: bool },
+    Float { width: u8 },
     TagOnlyNominal(IrNominalId),
 }
 
@@ -87,6 +88,7 @@ impl IrFlatElement {
             Self::Unit => IrType::Unit,
             Self::Bool => IrType::Bool,
             Self::Integer { width, signed } => IrType::Integer { width, signed },
+            Self::Float { width } => IrType::Float { width },
             Self::TagOnlyNominal(id) => IrType::Nominal(id),
         }
     }
@@ -97,6 +99,7 @@ pub enum IrType {
     Unit,
     Bool,
     Integer { width: u8, signed: bool },
+    Float { width: u8 },
     Nominal(IrNominalId),
     NominalAddress(IrNominalId),
     Array { element: IrFlatElement, length: u64 },
@@ -113,6 +116,9 @@ const fn lower_flat_element(value: CheckedFlatElement) -> Result<IrFlatElement, 
             width: integer.width(),
             signed: integer.signed(),
         },
+        CheckedFlatElement::Float(float) => IrFlatElement::Float {
+            width: float.width(),
+        },
         CheckedFlatElement::GenericInt(_) => {
             return Err(LoweringFailure::InvalidCheckedProgram);
         }
@@ -127,6 +133,9 @@ fn lower_type(value: CheckedType) -> Result<IrType, LoweringFailure> {
         CheckedType::Integer(integer) => IrType::Integer {
             width: integer.width(),
             signed: integer.signed(),
+        },
+        CheckedType::Float(float) => IrType::Float {
+            width: float.width(),
         },
         CheckedType::Generic(_) | CheckedType::GenericInt(_) => {
             return Err(LoweringFailure::InvalidCheckedProgram);
@@ -326,6 +335,65 @@ pub enum IrBooleanOperation {
     Not,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IrFloatOperation {
+    AddStrict,
+    SubtractStrict,
+    MultiplyStrict,
+    DivideStrict,
+    Equal,
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    NotEqual,
+    Negate,
+    Absolute,
+    CopySign,
+    Minimum,
+    Maximum,
+    Floor,
+    Ceil,
+    Truncate,
+    RoundEven,
+    Remainder,
+    SquareRootStrict,
+    FusedMultiplyAddStrict,
+    Infinity,
+    Nan,
+}
+
+impl From<CheckedFloatOperation> for IrFloatOperation {
+    fn from(value: CheckedFloatOperation) -> Self {
+        match value {
+            CheckedFloatOperation::AddStrict => Self::AddStrict,
+            CheckedFloatOperation::SubtractStrict => Self::SubtractStrict,
+            CheckedFloatOperation::MultiplyStrict => Self::MultiplyStrict,
+            CheckedFloatOperation::DivideStrict => Self::DivideStrict,
+            CheckedFloatOperation::Equal => Self::Equal,
+            CheckedFloatOperation::Less => Self::Less,
+            CheckedFloatOperation::LessEqual => Self::LessEqual,
+            CheckedFloatOperation::Greater => Self::Greater,
+            CheckedFloatOperation::GreaterEqual => Self::GreaterEqual,
+            CheckedFloatOperation::NotEqual => Self::NotEqual,
+            CheckedFloatOperation::Negate => Self::Negate,
+            CheckedFloatOperation::Absolute => Self::Absolute,
+            CheckedFloatOperation::CopySign => Self::CopySign,
+            CheckedFloatOperation::Minimum => Self::Minimum,
+            CheckedFloatOperation::Maximum => Self::Maximum,
+            CheckedFloatOperation::Floor => Self::Floor,
+            CheckedFloatOperation::Ceil => Self::Ceil,
+            CheckedFloatOperation::Truncate => Self::Truncate,
+            CheckedFloatOperation::RoundEven => Self::RoundEven,
+            CheckedFloatOperation::Remainder => Self::Remainder,
+            CheckedFloatOperation::SquareRootStrict => Self::SquareRootStrict,
+            CheckedFloatOperation::FusedMultiplyAddStrict => Self::FusedMultiplyAddStrict,
+            CheckedFloatOperation::Infinity => Self::Infinity,
+            CheckedFloatOperation::Nan => Self::Nan,
+        }
+    }
+}
+
 impl From<CheckedBooleanOperation> for IrBooleanOperation {
     fn from(value: CheckedBooleanOperation) -> Self {
         match value {
@@ -342,6 +410,7 @@ pub enum IrConstant {
     Unit,
     Bool(bool),
     Integer { ty: IrType, bits: u64 },
+    Float { ty: IrType, bits: u64 },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -455,6 +524,11 @@ pub enum IrOperation {
         operand_type: IrType,
         arguments: Vec<IrValueId>,
         trap: Option<IrTrapSite>,
+    },
+    Float {
+        operation: IrFloatOperation,
+        operand_type: IrType,
+        arguments: Vec<IrValueId>,
     },
     IntegerConversion {
         source_type: IrType,

@@ -1,4 +1,5 @@
 mod conversions;
+mod floating;
 mod user;
 
 use std::collections::HashMap;
@@ -76,6 +77,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 loop_depth,
             );
         }
+        if floating::is_float_operation(spelling) {
+            return self.check_float_operation(node, spelling, function, bindings, loop_depth);
+        }
         if spelling == "array_new" {
             return self.check_array_new(node, function, bindings, loop_depth);
         }
@@ -89,7 +93,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return self.check_flat_length(node, function, bindings, loop_depth);
         }
         if spelling == "cvt" {
-            return self.check_integer_conversion(node, function, bindings, loop_depth);
+            return self.check_conversion(node, function, bindings, loop_depth);
         }
         let operation = match spelling {
             "iadd.wrap" => CheckedIntegerOperation::AddWrap,
@@ -422,6 +426,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         expected: usize,
     ) -> Result<Vec<NodeId>, CheckStop> {
         let Some(list) = self.tree.first_child_with(node, Production::AtomList)? else {
+            if expected == 0 {
+                return Ok(Vec::new());
+            }
             return self.issue_node(SemanticRule::Op1, node, SemanticIssueKind::InvalidOperation);
         };
         let atoms = self.tree.children_with(list, Production::Atom)?;

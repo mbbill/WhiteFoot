@@ -306,6 +306,14 @@ impl LayoutComputer<'_, '_, '_, '_> {
                 })
             }
             IrType::Integer { .. } => Err(TargetLayoutFailure::InvalidIr),
+            IrType::Float { width } if matches!(width, 32 | 64) => {
+                let bytes = u64::from(width / 8);
+                Ok(Layout {
+                    size: bytes,
+                    align: bytes,
+                })
+            }
+            IrType::Float { .. } => Err(TargetLayoutFailure::InvalidIr),
             IrType::Nominal(id) => self.nominal_layout(id),
             IrType::NominalAddress(_) => Ok(Layout { size: 8, align: 8 }),
             IrType::Array { element, length } => {

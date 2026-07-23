@@ -3,6 +3,7 @@ mod cleanup;
 mod contracts;
 mod control;
 mod expressions;
+mod floats;
 mod generics;
 mod nominal_instances;
 mod nominals;

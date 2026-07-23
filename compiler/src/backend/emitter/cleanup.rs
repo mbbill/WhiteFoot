@@ -103,6 +103,7 @@ pub(super) fn type_requires_cleanup(
             IrType::Unit
             | IrType::Bool
             | IrType::Integer { .. }
+            | IrType::Float { .. }
             | IrType::Array { .. }
             | IrType::NominalAddress(_)
             | IrType::GuardedArrayIndex { .. }
@@ -231,6 +232,7 @@ fn emit_cleanup_jobs(
                 IrType::Unit
                 | IrType::Bool
                 | IrType::Integer { .. }
+                | IrType::Float { .. }
                 | IrType::Array { .. }
                 | IrType::NominalAddress(_)
                 | IrType::GuardedArrayIndex { .. }

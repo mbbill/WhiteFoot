@@ -13,7 +13,7 @@ use crate::{
 
 use super::super::model::{
     CheckedConst, CheckedExpression, CheckedMode, CheckedNominalKind, CheckedProjectedDrop,
-    CheckedSetTarget, CheckedType, CheckedValue, CheckedWritablePlace, IntegerType,
+    CheckedSetTarget, CheckedType, CheckedValue, CheckedWritablePlace, FloatType, IntegerType,
 };
 use super::borrows::{AccessKind, ResolvedPlace};
 use super::{
@@ -154,6 +154,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 IntegerType::U16 => "u16",
                 IntegerType::U32 => "u32",
                 IntegerType::U64 => "u64",
+            }
+            .to_owned(),
+            CheckedType::Float(float) => match float {
+                FloatType::F32 => "f32",
+                FloatType::F64 => "f64",
             }
             .to_owned(),
             CheckedType::Generic(declaration) => {

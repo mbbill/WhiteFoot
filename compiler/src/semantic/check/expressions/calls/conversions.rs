@@ -12,7 +12,7 @@ use super::super::super::{
 };
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
-    pub(super) fn check_integer_conversion(
+    pub(super) fn check_conversion(
         &self,
         node: NodeId,
         function: &FunctionSignature,
@@ -51,8 +51,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .ok_or_else(|| {
                     self.issue_value(SemanticRule::Op1, node, SemanticIssueKind::InvalidOperation)
                 })?;
-            let integer = match self.parse_type_with(type_node, &function.substitution)? {
-                CheckedType::Integer(integer) => integer,
+            let ty = match self.parse_type_with(type_node, &function.substitution)? {
+                ty @ (CheckedType::Integer(_) | CheckedType::Float(_)) => ty,
                 CheckedType::GenericInt(_) => {
                     return self.unsupported(UnsupportedSemanticFeature::Generics, type_node);
                 }
@@ -64,7 +64,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     );
                 }
             };
-            types.push(integer);
+            types.push(ty);
         }
         let [source, destination] = types.as_slice() else {
             return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
@@ -72,30 +72,35 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if source == destination {
             return self.issue_node(SemanticRule::Op6, node, SemanticIssueKind::InvalidOperation);
         }
+        let (CheckedType::Integer(source), CheckedType::Integer(destination)) =
+            (*source, *destination)
+        else {
+            return self.unsupported(UnsupportedSemanticFeature::FloatingPointConversion, node);
+        };
         let atom = self
             .operation_atoms(node, 1)?
             .into_iter()
             .next()
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let argument = self.check_atom(function, atom, bindings, loop_depth)?;
-        if argument.expression.ty() != CheckedType::Integer(*source)
+        if argument.expression.ty() != CheckedType::Integer(source)
             || argument.mode != CheckedMode::Own
         {
             return self.issue_node(SemanticRule::Type5, atom, SemanticIssueKind::TypeMismatch);
         }
-        let result = if source.converts_totally_to(*destination) {
-            CheckedType::Integer(*destination)
+        let result = if source.converts_totally_to(destination) {
+            CheckedType::Integer(destination)
         } else {
             let error = CheckedType::Nominal(self.prelude_nominal(PreludeType::NarrowError)?);
             CheckedType::Nominal(self.prelude_nominal(PreludeType::Result(
-                CheckedType::Integer(*destination),
+                CheckedType::Integer(destination),
                 error,
             ))?)
         };
         Ok(TypedExpression::owned(
             CheckedExpression::IntegerConversion {
-                source: *source,
-                destination: *destination,
+                source,
+                destination,
                 value: Box::new(argument.expression),
                 result,
             },

@@ -8,8 +8,9 @@ use crate::{
 
 use super::super::model::{
     CheckedConst, CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedMode,
-    CheckedNominalKind, CheckedType, CheckedValue, IntegerType,
+    CheckedNominalKind, CheckedType, CheckedValue, FloatType, IntegerType,
 };
+use super::floats::parse_float_literal;
 use super::generics::GenericSubstitution;
 use super::{CheckStop, Checker, EffectSet, ParameterSignature, PreludeType};
 
@@ -102,8 +103,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             return Ok(CheckedType::Unit);
         }
-        if self.has_fixed(node, FixedTerminal::F32)? || self.has_fixed(node, FixedTerminal::F64)? {
-            return self.unsupported(UnsupportedSemanticFeature::FloatingPoint, node);
+        if self.has_fixed(node, FixedTerminal::F32)? {
+            return Ok(CheckedType::Float(FloatType::F32));
+        }
+        if self.has_fixed(node, FixedTerminal::F64)? {
+            return Ok(CheckedType::Float(FloatType::F64));
         }
         if self.has_fixed(node, FixedTerminal::Array)? {
             let element_node = self
@@ -549,11 +553,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         let ty = self.parse_type(node)?;
         let eligible = match ty {
-            CheckedType::Unit | CheckedType::Integer(_) => true,
+            CheckedType::Unit | CheckedType::Integer(_) | CheckedType::Float(_) => true,
             CheckedType::Array { element, .. } => {
                 matches!(
                     element,
-                    CheckedFlatElement::Unit | CheckedFlatElement::Integer(_)
+                    CheckedFlatElement::Unit
+                        | CheckedFlatElement::Integer(_)
+                        | CheckedFlatElement::Float(_)
                 )
             }
             CheckedType::Bool
@@ -582,6 +588,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Unit => Ok(CheckedFlatElement::Unit),
             CheckedType::Bool => Ok(CheckedFlatElement::Bool),
             CheckedType::Integer(ty) => Ok(CheckedFlatElement::Integer(ty)),
+            CheckedType::Float(ty) => Ok(CheckedFlatElement::Float(ty)),
             CheckedType::GenericInt(declaration) => Ok(CheckedFlatElement::GenericInt(declaration)),
             CheckedType::Nominal(id) if self.nominal(id)?.is_copy() => {
                 Ok(CheckedFlatElement::TagOnlyNominal(id))
@@ -604,7 +611,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return Ok(CheckedValue::Unit);
         }
         if bytes.ends_with(b"_f32") || bytes.ends_with(b"_f64") {
-            return self.unsupported(UnsupportedSemanticFeature::FloatingPoint, node);
+            return parse_float_literal(bytes).ok_or_else(|| {
+                self.issue_value(
+                    SemanticRule::Form7,
+                    node,
+                    SemanticIssueKind::InvalidFloatLiteral,
+                )
+            });
         }
         parse_integer(bytes).ok_or_else(|| {
             self.issue_value(

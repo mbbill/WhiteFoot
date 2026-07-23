@@ -80,10 +80,26 @@ impl IntegerType {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) enum FloatType {
+    F32,
+    F64,
+}
+
+impl FloatType {
+    pub(crate) const fn width(self) -> u8 {
+        match self {
+            Self::F32 => 32,
+            Self::F64 => 64,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum CheckedFlatElement {
     Unit,
     Bool,
     Integer(IntegerType),
+    Float(FloatType),
     GenericInt(DeclarationId),
     TagOnlyNominal(NominalId),
 }
@@ -94,6 +110,7 @@ impl CheckedFlatElement {
             Self::Unit => CheckedType::Unit,
             Self::Bool => CheckedType::Bool,
             Self::Integer(ty) => CheckedType::Integer(ty),
+            Self::Float(ty) => CheckedType::Float(ty),
             Self::GenericInt(declaration) => CheckedType::GenericInt(declaration),
             Self::TagOnlyNominal(id) => CheckedType::Nominal(id),
         }
@@ -105,6 +122,7 @@ pub(crate) enum CheckedType {
     Unit,
     Bool,
     Integer(IntegerType),
+    Float(FloatType),
     Generic(DeclarationId),
     GenericInt(DeclarationId),
     Nominal(NominalId),
@@ -123,7 +141,7 @@ impl CheckedType {
             Self::Generic(_) | Self::GenericInt(_) => false,
             Self::Array { element, length } => element.ty().is_concrete() && length.is_concrete(),
             Self::Buffer { element } => element.ty().is_concrete(),
-            Self::Unit | Self::Bool | Self::Integer(_) | Self::Nominal(_) => true,
+            Self::Unit | Self::Bool | Self::Integer(_) | Self::Float(_) | Self::Nominal(_) => true,
         }
     }
 }
@@ -134,6 +152,10 @@ pub(crate) enum CheckedValue {
     Bool(bool),
     Integer {
         ty: IntegerType,
+        bits: u64,
+    },
+    Float {
+        ty: FloatType,
         bits: u64,
     },
     Array {
@@ -148,6 +170,7 @@ impl CheckedValue {
             Self::Unit => CheckedType::Unit,
             Self::Bool(_) => CheckedType::Bool,
             Self::Integer { ty, .. } => CheckedType::Integer(*ty),
+            Self::Float { ty, .. } => CheckedType::Float(*ty),
             Self::Array { ty, .. } => *ty,
         }
     }
@@ -260,6 +283,63 @@ pub(crate) enum CheckedBooleanOperation {
     Or,
     ExclusiveOr,
     Not,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CheckedFloatOperation {
+    AddStrict,
+    SubtractStrict,
+    MultiplyStrict,
+    DivideStrict,
+    Equal,
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    NotEqual,
+    Negate,
+    Absolute,
+    CopySign,
+    Minimum,
+    Maximum,
+    Floor,
+    Ceil,
+    Truncate,
+    RoundEven,
+    Remainder,
+    SquareRootStrict,
+    FusedMultiplyAddStrict,
+    Infinity,
+    Nan,
+}
+
+impl CheckedFloatOperation {
+    pub(crate) const fn operand_count(self) -> usize {
+        match self {
+            Self::Infinity | Self::Nan => 0,
+            Self::Negate
+            | Self::Absolute
+            | Self::Floor
+            | Self::Ceil
+            | Self::Truncate
+            | Self::RoundEven
+            | Self::SquareRootStrict => 1,
+            Self::FusedMultiplyAddStrict => 3,
+            _ => 2,
+        }
+    }
+
+    pub(crate) const fn result_type(self, operand: FloatType) -> CheckedType {
+        match self {
+            Self::Equal
+            | Self::Less
+            | Self::LessEqual
+            | Self::Greater
+            | Self::GreaterEqual
+            | Self::NotEqual => CheckedType::Bool,
+            _ => CheckedType::Float(operand),
+        }
+    }
 }
 
 impl CheckedIntegerOperation {
@@ -439,6 +519,11 @@ pub(crate) enum CheckedExpression {
         result: CheckedType,
         trap: Option<TrapSite>,
     },
+    FloatOperation {
+        operation: CheckedFloatOperation,
+        operand_type: FloatType,
+        arguments: Vec<CheckedExpression>,
+    },
     IntegerConversion {
         source: IntegerType,
         destination: IntegerType,
@@ -543,6 +628,11 @@ impl CheckedExpression {
             Self::IntegerOperation { result, .. } | Self::IntegerConversion { result, .. } => {
                 *result
             }
+            Self::FloatOperation {
+                operation,
+                operand_type,
+                ..
+            } => operation.result_type(*operand_type),
             Self::BooleanOperation { .. } | Self::EnumEquality { .. } => CheckedType::Bool,
             Self::ArrayFill { ty, .. } => *ty,
             Self::ArrayLength { .. } => CheckedType::Integer(IntegerType::U64),

@@ -159,11 +159,12 @@ edge and exact trap record.
 
 This is not a completeness claim. Cyclic and region-bearing generic forms,
 generic `requires`, general borrow referents and borrowed affine match
-payloads, returned borrows, bound/result-carrying/grandchild reborrows, floats,
-affine moves out through owning indirection, arenas, slices, inline recursive
-nominal layouts, branch-dependent ownership/loan joins, projected array
-targets, and floating-point and remaining effect-table operations are explicit
-unsupported compiler capabilities rather than source-language rejections.
+payloads, returned borrows, bound/result-carrying/grandchild reborrows, generic
+`Float`, floating-point OP-6 conversion, `reinterpret`, affine moves out
+through owning indirection, arenas, slices, inline recursive nominal layouts,
+branch-dependent ownership/loan joins, projected array targets, and remaining
+effect-table operations are explicit unsupported compiler capabilities rather
+than source-language rejections.
 Generic source contracts and source-contract bounds instead receive v0.16's
 specified FN-3 rejection; contract-member calls have no v0.16 grammar or
 semantic operation.
@@ -213,7 +214,7 @@ the right-hand side. A failing target never evaluates the right-hand side.
 A compiler-independent two-loop program fills and folds a mutable array through
 that path.
 
-Direct own-root runtime-length non-floating primitive buffers now run through
+Direct own-root runtime-length primitive buffers now run through
 the normal compiler path. `buffer_new` computes `n * sizeof(T)` with retained u64 overflow
 before allocation, checks the selected target's allocator/address domain
 before the allocator call, aborts target-domain or allocator failure as
@@ -653,8 +654,8 @@ guards both LLVM hazards before the partial instruction. All three `iabs`
 modes use one defined-edge unary path. All three `ineg` modes reuse the
 ordinary wrapping and overflow-detecting subtraction path.
 Direct fixed-array index reads, immutable const-table reads, direct-root
-indexed fixed-array SET-1, and direct or struct-projected non-floating
-primitive runtime-length buffers are implemented. Resource-bearing struct
+indexed fixed-array SET-1, and direct or struct-projected primitive
+runtime-length buffers are implemented. Resource-bearing struct
 cleanup supports nested and partial owners. The structure-of-arrays experiment
 now runs through separate uniquely borrowed fill and shared-borrowed fold
 helpers, with exact loan expiry, call-region substitution, effects, checks, and
@@ -865,6 +866,21 @@ through the public compiler boundary without exposing a new capability gap,
 which is evidence that the existing integer, array, loop, call, and SET-1 paths
 compose under sustained use rather than a reason to add SHA-specific compiler
 machinery.
+
+The next Phase 9 domain probe is a 4,096-step feedback controller. It selected
+the concrete scalar floating-point family rather than controller-shaped
+machinery. `f32` and `f64` types and finite literals now retain exact IEEE bits;
+FORM-5/FORM-7 canonicalization searches the bounded round-trip interval and
+applies the specification's shortest-byte and lexicographic rules rather than
+accepting the host formatter's preferred decimal. Every direct OP-1 float
+operation uses one checked operation enum and one typed-IR path for both
+widths. LLVM emission uses strict arithmetic without fast-math flags, the exact
+OP-8 intrinsics, ordered comparisons except unordered `fne`, canonical quiet
+NaNs, and signed-zero-preserving minimum and maximum. Floats compose through
+calls, loop-carried mutation, structs, const arrays, buffers, checked indexing,
+and SET-1. Executable edge tests cover both widths, NaN propagation, infinities,
+and signed zero. Generic `Float`, OP-6 conversions with a float endpoint, and
+`reinterpret` remain separate explicit unsupported capabilities.
 
 The exact next work remains Phase 9: select another production-shaped dogfood
 target in a real-world domain not exercised by the current programs, observe

@@ -102,6 +102,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
+            CheckedType::Float(ty) => CheckedFlatElement::Float(ty),
             CheckedType::GenericInt(declaration) => CheckedFlatElement::GenericInt(declaration),
             _ => {
                 return self.issue_node(
@@ -152,6 +153,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
+            CheckedType::Float(ty) => CheckedFlatElement::Float(ty),
             CheckedType::GenericInt(declaration) => CheckedFlatElement::GenericInt(declaration),
             _ => {
                 return self.issue_node(
