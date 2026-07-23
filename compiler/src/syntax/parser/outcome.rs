@@ -1,7 +1,7 @@
 use crate::syntax::grammar::{
-    LookaheadPredicateV0_11, ProductionV0_11, RuleOwnerV0_11, diagnostic_terminal_order_v0_11,
+    LookaheadPredicateV0_12, ProductionV0_12, RuleOwnerV0_12, diagnostic_terminal_order_v0_12,
 };
-use crate::syntax::terminal::TerminalSetV0_11;
+use crate::syntax::terminal::TerminalSetV0_12;
 use crate::{ByteOffset, SourceId};
 
 use crate::ClassifiedBundle;
@@ -21,7 +21,7 @@ pub enum ParseLimit {
     Elements,
 }
 
-/// Caller-selected implementation ceilings for exact-v0.11 parsing.
+/// Caller-selected implementation ceilings for exact-v0.12 parsing.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ParseLimits {
     /// Maximum parser and diagnostic work units.
@@ -141,7 +141,7 @@ impl SyntaxCoordinate {
 
 /// Numbered language rule selected by exact DIAG-1 grammar attribution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SyntaxRuleV0_11 {
+pub enum SyntaxRuleV0_12 {
     /// FORM-1 unknown construct or canonical-form grammar spelling.
     Form1,
     /// FORM-2 exact per-source canonical byte formatting.
@@ -168,46 +168,46 @@ pub enum SyntaxRuleV0_11 {
     Eff1,
 }
 
-impl From<RuleOwnerV0_11> for SyntaxRuleV0_11 {
-    fn from(owner: RuleOwnerV0_11) -> Self {
+impl From<RuleOwnerV0_12> for SyntaxRuleV0_12 {
+    fn from(owner: RuleOwnerV0_12) -> Self {
         match owner {
-            RuleOwnerV0_11::Gram2 => Self::Gram2,
-            RuleOwnerV0_11::Gram3 => Self::Gram3,
-            RuleOwnerV0_11::Gram4 => Self::Gram4,
-            RuleOwnerV0_11::Gram5 => Self::Gram5,
-            RuleOwnerV0_11::Const1 => Self::Const1,
-            RuleOwnerV0_11::Const2 => Self::Const2,
-            RuleOwnerV0_11::Eff1 => Self::Eff1,
+            RuleOwnerV0_12::Gram2 => Self::Gram2,
+            RuleOwnerV0_12::Gram3 => Self::Gram3,
+            RuleOwnerV0_12::Gram4 => Self::Gram4,
+            RuleOwnerV0_12::Gram5 => Self::Gram5,
+            RuleOwnerV0_12::Const1 => Self::Const1,
+            RuleOwnerV0_12::Const2 => Self::Const2,
+            RuleOwnerV0_12::Eff1 => Self::Eff1,
         }
     }
 }
 
 /// Closed expected-terminal set in approved grammar-first order.
 #[derive(Clone, Copy, Debug)]
-pub struct ExpectedTerminalsV0_11 {
-    terminals: TerminalSetV0_11,
+pub struct ExpectedTerminalsV0_12 {
+    terminals: TerminalSetV0_12,
     source_end: bool,
 }
 
-impl ExpectedTerminalsV0_11 {
+impl ExpectedTerminalsV0_12 {
     /// Returns whether the set contains one terminal or the end sentinel.
     #[must_use]
-    pub const fn contains(self, predicate: LookaheadPredicateV0_11) -> bool {
+    pub const fn contains(self, predicate: LookaheadPredicateV0_12) -> bool {
         match predicate {
-            LookaheadPredicateV0_11::Terminal(terminal) => self.terminals.contains(terminal),
-            LookaheadPredicateV0_11::SourceEnd => self.source_end,
+            LookaheadPredicateV0_12::Terminal(terminal) => self.terminals.contains(terminal),
+            LookaheadPredicateV0_12::SourceEnd => self.source_end,
         }
     }
 
     /// Returns the distinct expected predicates in exact DIAG-1 order.
-    pub fn iter(self) -> impl Iterator<Item = LookaheadPredicateV0_11> {
-        diagnostic_terminal_order_v0_11()
+    pub fn iter(self) -> impl Iterator<Item = LookaheadPredicateV0_12> {
+        diagnostic_terminal_order_v0_12()
             .iter()
             .copied()
             .filter(move |predicate| self.contains(*predicate))
             .chain(
                 self.source_end
-                    .then_some(LookaheadPredicateV0_11::SourceEnd),
+                    .then_some(LookaheadPredicateV0_12::SourceEnd),
             )
     }
 
@@ -225,34 +225,34 @@ impl ExpectedTerminalsV0_11 {
 }
 
 pub(crate) struct ExpectedBuilder {
-    terminals: TerminalSetV0_11,
+    terminals: TerminalSetV0_12,
     source_end: bool,
 }
 
 impl ExpectedBuilder {
     pub(crate) const fn empty() -> Self {
         Self {
-            terminals: TerminalSetV0_11::empty(),
+            terminals: TerminalSetV0_12::empty(),
             source_end: false,
         }
     }
 
     pub(crate) const fn only_end() -> Self {
         Self {
-            terminals: TerminalSetV0_11::empty(),
+            terminals: TerminalSetV0_12::empty(),
             source_end: true,
         }
     }
 
-    pub(crate) fn insert(&mut self, predicate: LookaheadPredicateV0_11) {
+    pub(crate) fn insert(&mut self, predicate: LookaheadPredicateV0_12) {
         match predicate {
-            LookaheadPredicateV0_11::Terminal(terminal) => self.terminals.insert(terminal),
-            LookaheadPredicateV0_11::SourceEnd => self.source_end = true,
+            LookaheadPredicateV0_12::Terminal(terminal) => self.terminals.insert(terminal),
+            LookaheadPredicateV0_12::SourceEnd => self.source_end = true,
         }
     }
 
-    pub(crate) const fn finish(self) -> ExpectedTerminalsV0_11 {
-        ExpectedTerminalsV0_11 {
+    pub(crate) const fn finish(self) -> ExpectedTerminalsV0_12 {
+        ExpectedTerminalsV0_12 {
             terminals: self.terminals,
             source_end: self.source_end,
         }
@@ -262,15 +262,15 @@ impl ExpectedBuilder {
 /// The first exact grammar-derivation rejection in stage order.
 #[derive(Clone, Copy, Debug)]
 pub struct SyntaxIssue {
-    pub(crate) rule: SyntaxRuleV0_11,
+    pub(crate) rule: SyntaxRuleV0_12,
     pub(crate) coordinate: SyntaxCoordinate,
-    pub(crate) expected: ExpectedTerminalsV0_11,
+    pub(crate) expected: ExpectedTerminalsV0_12,
 }
 
 impl SyntaxIssue {
     /// Returns the one numbered language rule selected by DIAG-1.
     #[must_use]
-    pub const fn rule(self) -> SyntaxRuleV0_11 {
+    pub const fn rule(self) -> SyntaxRuleV0_12 {
         self.rule
     }
 
@@ -282,7 +282,7 @@ impl SyntaxIssue {
 
     /// Returns the complete expected-terminal set.
     #[must_use]
-    pub const fn expected(self) -> ExpectedTerminalsV0_11 {
+    pub const fn expected(self) -> ExpectedTerminalsV0_12 {
         self.expected
     }
 }
@@ -327,7 +327,7 @@ impl<'classified, 'lexed, 'source> ParsedBundle<'classified, 'lexed, 'source> {
     pub fn top_level_item_count(&self) -> Option<u32> {
         match self.tree.elements.last()? {
             super::DerivationElement::Production {
-                production: ProductionV0_11::Program,
+                production: ProductionV0_12::Program,
                 child_count,
                 ..
             } => Some(*child_count),
@@ -336,7 +336,7 @@ impl<'classified, 'lexed, 'source> ParsedBundle<'classified, 'lexed, 'source> {
     }
 }
 
-/// Failure-atomic result of complete exact-v0.11 grammar derivation.
+/// Failure-atomic result of complete exact-v0.12 grammar derivation.
 #[derive(Debug)]
 pub enum ParseOutcome<'classified, 'lexed, 'source> {
     /// Every source derived completely into one private postorder program tree.

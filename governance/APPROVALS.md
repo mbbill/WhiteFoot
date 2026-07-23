@@ -87,3 +87,8 @@ specification or test change.
 - owner: approved in session
 - reason: Retire the active `tests/reference/` Python model and preserve it intact under `archive/tests/reference/`. The model consumes its own historical toy AST and does not exercise or compare with the Rust compiler, so it is removed from the active language-change workflow and repository gate. No released specification, compiler behavior, conformance source, verdict, status, or codegen policy changes.
 - evidence: owner instruction “just move it to the archive and fix all the references”
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Approve exact v0.12 candidate SHA-256 `e2d5566379891454c090e037bd45c5f1a8df90ba23506a0f83ce9aaa03b41463` for append-only activation. The change adds SET-1 copy-place assignment and synchronizes target ordering, storage, ownership, effects, diagnostics, and governance references. No existing conformance source, expected verdict, or runnable status is changed; the activation adds focused cases and switches live identities.
+- evidence: `governance/spec-evolution/kernel-spec-v0.12-candidate.md`; native grammar verifier passed 62 productions, 72 decisions, and 72 terminals; exact rule-body audit found fifteen modified rules plus SET-1; two hostile reviews passed before the owner approved the exact hash.

@@ -2,6 +2,7 @@
 - Regions are lexical and named; every borrow is written with its mode and region — there is no inference of modes, regions, or lifetimes anywhere in the language.
 - Two borrow modes exist beside ownership: shared and exclusive; exclusivity is judged over resolved places, and content reached through any borrow can never be moved.
 - Overlap is conservative: struct fields are disjoint by prefix; two indexed places are disjoint only when both indices are unequal literals; slices over the same root always overlap (OWN-7).
+- `set` overwrites only a writable copy-typed final place. Affine replacement remains absent: constructing a fresh owner under a new `let` is required until take/replace, failure, overlap, and old-value disposition have one selected semantics.
 - The checker rejects when unsure: a sound-but-unprovable program is rejected with a diagnostic naming the rule and a restructuring, never accepted on trust.
 
 ## Facts
@@ -31,6 +32,7 @@
 - 2026-07-14 iterator-partition correction: `FromFn`, `Scan`, `MapWhile`, ordinary adapters, `Zip`, and `Peekable` permit source-defined `None`-then-`Some` resurrection; `Chain` retires only its first branch at that branch's first `None`; `Flatten`/`FlatMap` fuse the outer and retire each active inner at its first `None`; and general versus already-fused `Fuse` branches differ in upstream disposition. These are exact ownership/call-count contracts, not grounds for a universal cleanup or fusion rule. (sourced)
 - 2026-07-14 behavior-effect correction: every runtime behavior call is effectful by default, including a shared-receiver call. Normal return preserves each nonconsumed outer owner, not its internal leaf map; declared behavior and result relations jointly account every surviving, ended, moved, and new leaf, and unique transfer ends at the source before destination liveness. Repeated calls consume the preceding post-state. Without a declared relation or verified-body proof there is no purity, idempotence, repeatability, leaf preservation, call elision, duplication, common-subexpression elimination, fusion, or reordering authority. Broken logical laws never relax safety or mint optimizer facts, while direct monomorphization remains the zero-runtime-tax route. (sourced)
 - 2026-07-20 specification gap: TYPE-7 permits moving an affine referent out through an owning `box` or `arena` dereference, while STOR-3 specifies derived drops and releases without defining what happens to the now-empty backing allocation or owning container. Drop elaboration must remain open at that boundary rather than infer destruction or leakage. (code)
+- 2026-07-22 owner-approved specification: v0.12 selects copy-only SET-1 replacement because it creates no temporary ownership hole and requires no destruction of the previous copy; affine replacement remains blocked on exact failure, overlap, and old-storage disposition semantics. (sourced)
 
 ## Moves
 

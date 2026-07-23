@@ -84,6 +84,7 @@ pub(crate) enum CheckedNominalKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CheckedNominal {
     pub(crate) id: NominalId,
+    pub(crate) name: String,
     pub(crate) kind: CheckedNominalKind,
 }
 
@@ -247,10 +248,23 @@ pub(crate) struct CheckedProjectedDrop {
     pub(crate) ty: CheckedType,
 }
 
+/// A SET-1 target whose root, path, copy type, and post-RHS writability have
+/// all been established by semantic checking.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedWritablePlace {
+    pub(crate) binding: BindingId,
+    pub(crate) fields: Vec<u32>,
+    pub(crate) ty: CheckedType,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CheckedStatement {
     Let {
         binding: BindingId,
+        value: CheckedExpression,
+    },
+    Set {
+        target: CheckedWritablePlace,
         value: CheckedExpression,
     },
     Evaluate(CheckedExpression),

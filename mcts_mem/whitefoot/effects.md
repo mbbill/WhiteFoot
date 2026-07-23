@@ -1,7 +1,8 @@
 - Every function signature declares an effect row — reads/writes/allocates over named regions, plus traps — with effect categories ordered reads, writes, allocates, traps; `pure` is the unique spelling of the empty row (EFF-1).
 - Rows are checked in both directions against a syntactic exhibits relation: undeclared-but-exhibited and declared-but-unexhibited are both errors; the relation counts proof-elided checks as still exhibited, and rows are stable under optimization.
 - There is no global mutable state and no static region; parameter-reachable memory is the only memory a function can observe, and the row's named regions cover all of it.
-- The active safe-Rust compiler has not implemented effect checking or LLVM attribute lowering; the archived democ's definition-and-declaration attributes are historical optimization evidence.
+- Region reads and writes are attributed to their ultimate storage origin across calls, borrows, reborrows, slices, and region-carrying actual types; local region spellings never need to escape into an enclosing signature.
+- The active safe-Rust compiler checks the implemented `pure`/`traps` subset but has not implemented region effects or LLVM effect-attribute lowering; the archived democ's attributes are historical optimization evidence.
 - Effect-derived optimization must remain downstream of successful semantic checking and cannot change the active specification's source acceptance or facts-off behavior.
 
 ## Facts
@@ -11,3 +12,4 @@
 - 2026-07-09 rationale: exactness of rows (declared-but-unexhibited is an error too) exists to maximize optimizer facts and to block padding a row as a place to smuggle effects; the "even if later proven away" clause keeps acceptance decidable from the artifact alone. (sourced)
 - 2026-07-20 specification gap: EFF-1 requires canonical rows, but its repetition grammar admits duplicate effect categories and does not define ordering or duplication within a category's region list; the protected duplicate-`reads` case requires an EFF-1 rejection. A checker cannot invent a canonicality rule for these forms. (code)
 - 2026-07-20 specification inconsistency: EFF-2 requires a complete body and `requires` block to exhibit exact region effects in both directions, but the signature grammar cannot name a region introduced only inside the body. FN-7's entry-point ceiling and the protected arena-confinement example expose the same unrepresentable local-region effect. (code)
+- 2026-07-22 owner-approved resolution: v0.12 projects each read/write through borrow and view transformations to the ultimate caller-visible storage origin. This closes the local-region signature gap without erasing effects or inventing body-local names in the function header. (sourced)

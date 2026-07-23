@@ -4,14 +4,14 @@ use std::fmt;
 use std::path::Path;
 
 use whitefoot::{
-    ALL_FIXED_TERMINALS_V0_11, ALL_TERMINAL_PREDICATES_V0_11, GrammarNodeKindV0_11,
-    KERNEL_SPEC_V0_11_HASH, LexLimits, LexOutcome, LookaheadPredicateV0_11, ParseLimits,
+    ALL_FIXED_TERMINALS_V0_12, ALL_TERMINAL_PREDICATES_V0_12, GrammarNodeKindV0_12,
+    KERNEL_SPEC_V0_12_HASH, LexLimits, LexOutcome, LookaheadPredicateV0_12, ParseLimits,
     ParseOutcome, SourceBundle, SourceInput, SourceLimits, TerminalLimits, TerminalOutcome,
-    TerminalPredicateV0_11, classify_terminals_v0_11, diagnostic_terminal_order_v0_11,
-    grammar_node_v0_11, lex_v0_11, parse_v0_11, productions_v0_11,
+    TerminalPredicateV0_12, classify_terminals_v0_12, diagnostic_terminal_order_v0_12,
+    grammar_node_v0_12, lex_v0_12, parse_v0_12, productions_v0_12,
 };
 
-const ACTIVE_SPEC: &[u8] = include_bytes!("../../../spec/kernel-spec-v0.11.md");
+const ACTIVE_SPEC: &[u8] = include_bytes!("../../../spec/kernel-spec-v0.12.md");
 const PARSER_PROBE: &[u8] = b"fn main() -> own unit pure {\n  return unit;\n}\n";
 
 const FRONTEND_SECTIONS: [(&str, &str); 3] = [
@@ -128,8 +128,8 @@ fn line_start(text: &str, marker: &str) -> Option<usize> {
 }
 
 fn verify_compiler_grammar() -> Result<VerifyReport, VerifyError> {
-    for (left_index, left) in ALL_FIXED_TERMINALS_V0_11.iter().enumerate() {
-        for right in &ALL_FIXED_TERMINALS_V0_11[left_index + 1..] {
+    for (left_index, left) in ALL_FIXED_TERMINALS_V0_12.iter().enumerate() {
+        for right in &ALL_FIXED_TERMINALS_V0_12[left_index + 1..] {
             if left.spelling() == right.spelling() {
                 return Err(VerifyError::InvalidCompilerGrammar(
                     "two fixed terminals have the same spelling",
@@ -138,16 +138,16 @@ fn verify_compiler_grammar() -> Result<VerifyReport, VerifyError> {
         }
     }
 
-    let order = diagnostic_terminal_order_v0_11();
-    if order.len() != ALL_TERMINAL_PREDICATES_V0_11.len() {
+    let order = diagnostic_terminal_order_v0_12();
+    if order.len() != ALL_TERMINAL_PREDICATES_V0_12.len() {
         return Err(VerifyError::InvalidCompilerGrammar(
             "terminal inventory and diagnostic order differ",
         ));
     }
-    for predicate in ALL_TERMINAL_PREDICATES_V0_11 {
+    for predicate in ALL_TERMINAL_PREDICATES_V0_12 {
         if order
             .iter()
-            .filter(|candidate| **candidate == LookaheadPredicateV0_11::Terminal(predicate))
+            .filter(|candidate| **candidate == LookaheadPredicateV0_12::Terminal(predicate))
             .count()
             != 1
         {
@@ -158,10 +158,10 @@ fn verify_compiler_grammar() -> Result<VerifyReport, VerifyError> {
     }
 
     let mut decisions = 0_usize;
-    for production in productions_v0_11() {
+    for production in productions_v0_12() {
         let mut stack = vec![production.root()];
         while let Some(node_id) = stack.pop() {
-            let node = grammar_node_v0_11(node_id).ok_or(VerifyError::InvalidCompilerGrammar(
+            let node = grammar_node_v0_12(node_id).ok_or(VerifyError::InvalidCompilerGrammar(
                 "a production references a missing node",
             ))?;
             if let Some(decision) = node.decision() {
@@ -191,25 +191,25 @@ fn verify_compiler_grammar() -> Result<VerifyReport, VerifyError> {
             }
             if matches!(
                 node.kind(),
-                GrammarNodeKindV0_11::Sequence
-                    | GrammarNodeKindV0_11::Choice
-                    | GrammarNodeKindV0_11::Group
-                    | GrammarNodeKindV0_11::Optional
-                    | GrammarNodeKindV0_11::RepeatZero
-                    | GrammarNodeKindV0_11::RepeatOne
+                GrammarNodeKindV0_12::Sequence
+                    | GrammarNodeKindV0_12::Choice
+                    | GrammarNodeKindV0_12::Group
+                    | GrammarNodeKindV0_12::Optional
+                    | GrammarNodeKindV0_12::RepeatZero
+                    | GrammarNodeKindV0_12::RepeatOne
             ) {
                 stack.extend_from_slice(node.children());
             }
         }
     }
     Ok(VerifyReport {
-        productions: productions_v0_11().len(),
+        productions: productions_v0_12().len(),
         decisions,
         terminals: order.len(),
     })
 }
 
-fn verify_disjoint_rows(rows: &[whitefoot::SelectRowV0_11]) -> Result<(), VerifyError> {
+fn verify_disjoint_rows(rows: &[whitefoot::SelectRowV0_12]) -> Result<(), VerifyError> {
     for (left_index, left) in rows.iter().enumerate() {
         for right in &rows[left_index + 1..] {
             if left.arm() == right.arm() {
@@ -251,21 +251,21 @@ fn verify_disjoint_rows(rows: &[whitefoot::SelectRowV0_11]) -> Result<(), Verify
     Ok(())
 }
 
-fn predicates_overlap(left: LookaheadPredicateV0_11, right: LookaheadPredicateV0_11) -> bool {
+fn predicates_overlap(left: LookaheadPredicateV0_12, right: LookaheadPredicateV0_12) -> bool {
     if left == right {
         return true;
     }
     matches!(
         (left, right),
         (
-            LookaheadPredicateV0_11::Terminal(TerminalPredicateV0_11::Fixed(
-                whitefoot::FixedTerminalV0_11::Unit
+            LookaheadPredicateV0_12::Terminal(TerminalPredicateV0_12::Fixed(
+                whitefoot::FixedTerminalV0_12::Unit
             )),
-            LookaheadPredicateV0_11::Terminal(TerminalPredicateV0_11::Literal)
+            LookaheadPredicateV0_12::Terminal(TerminalPredicateV0_12::Literal)
         ) | (
-            LookaheadPredicateV0_11::Terminal(TerminalPredicateV0_11::Literal),
-            LookaheadPredicateV0_11::Terminal(TerminalPredicateV0_11::Fixed(
-                whitefoot::FixedTerminalV0_11::Unit
+            LookaheadPredicateV0_12::Terminal(TerminalPredicateV0_12::Literal),
+            LookaheadPredicateV0_12::Terminal(TerminalPredicateV0_12::Fixed(
+                whitefoot::FixedTerminalV0_12::Unit
             ))
         )
     )
@@ -283,7 +283,7 @@ fn run_parser_probe() -> Result<(), VerifyError> {
         },
     )
     .map_err(|error| VerifyError::ParserProbe(format!("source bundle: {error}")))?;
-    let lexed = match lex_v0_11(
+    let lexed = match lex_v0_12(
         &bundle,
         LexLimits {
             max_sources: 1,
@@ -297,9 +297,9 @@ fn run_parser_probe() -> Result<(), VerifyError> {
         LexOutcome::Complete(lexed) => lexed,
         outcome => return Err(VerifyError::ParserProbe(format!("lexing: {outcome:?}"))),
     };
-    let classified = match classify_terminals_v0_11(
+    let classified = match classify_terminals_v0_12(
         &lexed,
-        KERNEL_SPEC_V0_11_HASH,
+        KERNEL_SPEC_V0_12_HASH,
         TerminalLimits { max_tokens: 256 },
     ) {
         TerminalOutcome::Complete(classified) => classified,
@@ -309,7 +309,7 @@ fn run_parser_probe() -> Result<(), VerifyError> {
             )));
         }
     };
-    match parse_v0_11(
+    match parse_v0_12(
         &classified,
         ParseLimits {
             max_work: 100_000,

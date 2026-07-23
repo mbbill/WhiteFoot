@@ -1,0 +1,10 @@
+struct Cell {
+  value: i32;
+}
+
+fn main() -> own unit pure {
+  let left: own Cell = Cell(value: 1_i32);
+  let right: own Cell = Cell(value: 2_i32);
+  set left = move right;
+  return unit;
+}

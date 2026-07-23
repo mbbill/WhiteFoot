@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::syntax::NodeId;
 use crate::{
-    DeclarationRole, DependentDeclarationRole, ProductionV0_11, SemanticCompilerFailure,
-    SemanticIssueKind, SemanticRuleV0_11, UnsupportedSemanticFeatureV0_11,
+    DeclarationRole, DependentDeclarationRole, ProductionV0_12, SemanticCompilerFailure,
+    SemanticIssueKind, SemanticRuleV0_12, UnsupportedSemanticFeatureV0_12,
 };
 
 use super::super::model::{
@@ -17,23 +17,24 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             self.tree.production(*node).is_ok_and(|production| {
                 matches!(
                     production,
-                    ProductionV0_11::StructDecl | ProductionV0_11::EnumDecl
+                    ProductionV0_12::StructDecl | ProductionV0_12::EnumDecl
                 )
             })
         }) {
             if let Some(generics) = self
                 .tree
-                .first_child_with(node, ProductionV0_11::Generics)?
+                .first_child_with(node, ProductionV0_12::Generics)?
             {
-                return self.unsupported(UnsupportedSemanticFeatureV0_11::Generics, generics);
+                return self.unsupported(UnsupportedSemanticFeatureV0_12::Generics, generics);
             }
             let role = match self.tree.production(node)? {
-                ProductionV0_11::StructDecl => DeclarationRole::Struct,
-                ProductionV0_11::EnumDecl => DeclarationRole::Enum,
+                ProductionV0_12::StructDecl => DeclarationRole::Struct,
+                ProductionV0_12::EnumDecl => DeclarationRole::Enum,
                 _ => return Err(SemanticCompilerFailure::InvalidCanonicalTree.into()),
             };
             let declaration = self.declaration_at(node, role)?;
             let declaration_id = declaration.id();
+            let name = declaration.spelling().to_owned();
             let id = NominalId(
                 u32::try_from(self.nominals.len())
                     .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
@@ -56,6 +57,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             self.nominal_nodes.push(node);
             self.nominals.push(CheckedNominal {
                 id,
+                name,
                 kind: match role {
                     DeclarationRole::Struct => CheckedNominalKind::Struct { fields: Vec::new() },
                     DeclarationRole::Enum => CheckedNominalKind::Enum {
@@ -72,10 +74,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .get(id)
                 .ok_or(SemanticCompilerFailure::InvalidResolution)?;
             let kind = match self.tree.production(node)? {
-                ProductionV0_11::StructDecl => CheckedNominalKind::Struct {
+                ProductionV0_12::StructDecl => CheckedNominalKind::Struct {
                     fields: self.parse_struct_fields(node)?,
                 },
-                ProductionV0_11::EnumDecl => CheckedNominalKind::Enum {
+                ProductionV0_12::EnumDecl => CheckedNominalKind::Enum {
                     variants: self.parse_enum_variants(NominalId(id as u32), node)?,
                 },
                 _ => return Err(SemanticCompilerFailure::InvalidCanonicalTree.into()),
@@ -89,7 +91,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     }
 
     fn parse_struct_fields(&self, node: NodeId) -> Result<Vec<CheckedField>, CheckStop> {
-        let nodes = self.tree.children_with(node, ProductionV0_11::Field)?;
+        let nodes = self.tree.children_with(node, ProductionV0_12::Field)?;
         let mut seen = HashSet::with_capacity(nodes.len());
         let mut fields = Vec::with_capacity(nodes.len());
         for field in nodes {
@@ -98,14 +100,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             let name = declaration.spelling().to_owned();
             if !seen.insert(name.clone()) {
                 return self.issue_node(
-                    SemanticRuleV0_11::Type6,
+                    SemanticRuleV0_12::Type6,
                     field,
                     SemanticIssueKind::DuplicateFieldLabel { label: name },
                 );
             }
             let ty = self
                 .tree
-                .first_child_with(field, ProductionV0_11::Type)?
+                .first_child_with(field, ProductionV0_12::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
             fields.push(CheckedField {
                 name,
@@ -120,7 +122,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         nominal: NominalId,
         node: NodeId,
     ) -> Result<Vec<CheckedVariant>, CheckStop> {
-        let nodes = self.tree.children_with(node, ProductionV0_11::Variant)?;
+        let nodes = self.tree.children_with(node, ProductionV0_12::Variant)?;
         let mut variants = Vec::with_capacity(nodes.len());
         for variant_node in nodes {
             let declaration = self.declaration_at(variant_node, DeclarationRole::Variant)?;
@@ -145,22 +147,22 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             let mut seen = HashSet::new();
             if let Some(list) = self
                 .tree
-                .first_child_with(variant_node, ProductionV0_11::VfieldList)?
+                .first_child_with(variant_node, ProductionV0_12::VfieldList)?
             {
-                for field in self.tree.children_with(list, ProductionV0_11::Vfield)? {
+                for field in self.tree.children_with(list, ProductionV0_12::Vfield)? {
                     let declaration = self
                         .dependent_declaration_at(field, DependentDeclarationRole::VariantField)?;
                     let field_name = declaration.spelling().to_owned();
                     if !seen.insert(field_name.clone()) {
                         return self.issue_node(
-                            SemanticRuleV0_11::Type6,
+                            SemanticRuleV0_12::Type6,
                             field,
                             SemanticIssueKind::DuplicateFieldLabel { label: field_name },
                         );
                     }
                     let ty = self
                         .tree
-                        .first_child_with(field, ProductionV0_11::Type)?
+                        .first_child_with(field, ProductionV0_12::Type)?
                         .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                     fields.push(CheckedField {
                         name: field_name,
@@ -205,7 +207,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             .get(root)
                             .ok_or(SemanticCompilerFailure::InvalidResolution)?;
                         return self.unsupported(
-                            UnsupportedSemanticFeatureV0_11::RecursiveNominalLayout,
+                            UnsupportedSemanticFeatureV0_12::RecursiveNominalLayout,
                             node,
                         );
                     }

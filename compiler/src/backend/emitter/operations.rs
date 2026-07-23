@@ -419,6 +419,40 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         .map_err(|_| BackendFailure::TextEmission)
     }
 
+    pub(super) fn emit_struct_insertion(
+        &mut self,
+        result: IrValueId,
+        ty: IrType,
+        aggregate: IrValueId,
+        nominal: IrNominalId,
+        field: u32,
+        value: IrValueId,
+    ) -> Result<(), BackendFailure> {
+        if ty != IrType::Nominal(nominal) || self.function.value_type(aggregate) != Some(ty) {
+            return Err(BackendFailure::InvalidIr);
+        }
+        let IrNominalKind::Struct { fields } = self.nominal(nominal)?.kind() else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        let field_ty = fields
+            .get(field as usize)
+            .map(|field| field.ty())
+            .ok_or(BackendFailure::InvalidIr)?;
+        if self.function.value_type(value) != Some(field_ty) {
+            return Err(BackendFailure::InvalidIr);
+        }
+        writeln!(
+            self.output,
+            "  {} = insertvalue {} {}, {} {}, {field}",
+            value_name(result),
+            llvm_type(self.program, ty)?,
+            value_name(aggregate),
+            llvm_type(self.program, field_ty)?,
+            value_name(value)
+        )
+        .map_err(|_| BackendFailure::TextEmission)
+    }
+
     pub(super) fn emit_variant_projection(
         &mut self,
         result: IrValueId,

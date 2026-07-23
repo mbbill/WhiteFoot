@@ -4,7 +4,7 @@ use super::super::catalog::{PRELUDE_DECLARATIONS, operation_id};
 use super::super::scopes::ScopeBuild;
 use super::super::{
     DeclarationClass, DeclarationOrigin, DeclarationRecord, LexicalUseRecord, LexicalUseRole,
-    ResolutionCompilerFailure, ResolutionIssue, ResolutionIssueKind, ResolutionRuleV0_11,
+    ResolutionCompilerFailure, ResolutionIssue, ResolutionIssueKind, ResolutionRuleV0_12,
     ResolvedTarget, ScopeId,
 };
 use super::inventory::conflict_key;
@@ -105,7 +105,7 @@ pub(super) fn resolve_uses(
                     .collect();
                 if !labels.is_empty() {
                     return Err(BuildStop::Issue(Box::new(ResolutionIssue {
-                        rule: ResolutionRuleV0_11::Type6,
+                        rule: ResolutionRuleV0_12::Type6,
                         origin: use_record.origin.clone(),
                         kind: ResolutionIssueKind::NonEnclosingLabel {
                             spelling: use_record.spelling.clone(),
@@ -234,26 +234,26 @@ fn universe_classes(role: LexicalUseRole) -> Vec<DeclarationClass> {
     }
 }
 
-fn use_rule(role: LexicalUseRole) -> ResolutionRuleV0_11 {
+fn use_rule(role: LexicalUseRole) -> ResolutionRuleV0_12 {
     match role {
-        LexicalUseRole::Type | LexicalUseRole::PlaceBase => ResolutionRuleV0_11::Type5,
+        LexicalUseRole::Type | LexicalUseRole::PlaceBase => ResolutionRuleV0_12::Type5,
         LexicalUseRole::GenericBound | LexicalUseRole::ConformanceContract => {
-            ResolutionRuleV0_11::Fn3
+            ResolutionRuleV0_12::Fn3
         }
         LexicalUseRole::Construct | LexicalUseRole::ArmVariant | LexicalUseRole::BreakLabel => {
-            ResolutionRuleV0_11::Type6
+            ResolutionRuleV0_12::Type6
         }
         LexicalUseRole::TypeRegion
         | LexicalUseRole::ModeRegion
         | LexicalUseRole::TypeArgumentRegion
         | LexicalUseRole::EffectRegion
-        | LexicalUseRole::BorrowRegion => ResolutionRuleV0_11::Own3,
-        LexicalUseRole::Const => ResolutionRuleV0_11::Const1,
-        LexicalUseRole::ConstValue => ResolutionRuleV0_11::Const2,
+        | LexicalUseRole::BorrowRegion => ResolutionRuleV0_12::Own3,
+        LexicalUseRole::Const => ResolutionRuleV0_12::Const1,
+        LexicalUseRole::ConstValue => ResolutionRuleV0_12::Const2,
         LexicalUseRole::IdentifierCallee | LexicalUseRole::OperationCallee => {
-            ResolutionRuleV0_11::Op1
+            ResolutionRuleV0_12::Op1
         }
-        LexicalUseRole::FunctionBinding => ResolutionRuleV0_11::Fn4,
-        LexicalUseRole::GenericNumericSuffix => ResolutionRuleV0_11::Form5,
+        LexicalUseRole::FunctionBinding => ResolutionRuleV0_12::Fn4,
+        LexicalUseRole::GenericNumericSuffix => ResolutionRuleV0_12::Form5,
     }
 }

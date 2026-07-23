@@ -1,4 +1,4 @@
-//! Target-independent semantic checking for exact Whitefoot v0.11.
+//! Target-independent semantic checking for exact Whitefoot v0.12.
 //!
 //! This stage consumes complete lexical resolution and is the sole producer of
 //! the private checked-program value that may later authorize lowering. A
@@ -14,7 +14,7 @@ mod tests;
 
 use crate::{BundleSourceExtent, NodePath, ResolvedSyntaxUnit, SyntaxCoordinate};
 
-pub use check::check_semantics_v0_11;
+pub use check::check_semantics_v0_12;
 
 pub(crate) use model::{
     BindingId, CheckedBooleanOperation, CheckedDrop, CheckedEnumType, CheckedExpression,
@@ -25,15 +25,19 @@ pub(crate) use model::{
 
 /// Numbered rule owning one post-resolution semantic rejection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SemanticRuleV0_11 {
+pub enum SemanticRuleV0_12 {
     /// Numeric literal range or canonicality.
     Form7,
     /// Named-constant type and value formation.
     Const2,
     /// Exact mode/type agreement.
     Type5,
+    /// Copy-place assignment target formation and writability.
+    Set1,
     /// Copy-versus-affine use spelling.
     Own1,
+    /// Storage-class and affine replacement restrictions.
+    Stor1,
     /// Operation-table row selection.
     Op1,
     /// Exact `own Bool` explicit-check condition.
@@ -62,15 +66,17 @@ pub enum SemanticRuleV0_11 {
     Eff2,
 }
 
-impl SemanticRuleV0_11 {
-    /// Returns the exact numbered rule spelling from kernel specification v0.11.
+impl SemanticRuleV0_12 {
+    /// Returns the exact numbered rule spelling from kernel specification v0.12.
     #[must_use]
     pub const fn id(self) -> &'static str {
         match self {
             Self::Form7 => "FORM-7",
             Self::Const2 => "CONST-2",
             Self::Type5 => "TYPE-5",
+            Self::Set1 => "SET-1",
             Self::Own1 => "OWN-1",
+            Self::Stor1 => "STOR-1",
             Self::Op1 => "OP-1",
             Self::Op5 => "OP-5",
             Self::Fn1 => "FN-1",
@@ -106,6 +112,22 @@ pub enum SemanticIssueKind {
     InvalidConstValue,
     /// Two exact written modes or types disagree.
     TypeMismatch,
+    /// A constant was selected as an assignment target.
+    ImmutableSetTarget,
+    /// SET-1's closed writability relation did not admit the target root.
+    InvalidSetTarget {
+        /// Resolved target-root class.
+        root_class: String,
+        /// Closed set of classes required by SET-1.
+        required_classes: &'static str,
+    },
+    /// An affine final place cannot be replaced by `set`.
+    AffineSetTarget {
+        /// Exact selected affine type.
+        target_type: String,
+        /// Required STOR-1 restructuring.
+        mechanical_fix: &'static str,
+    },
     /// `move` was written for a copy value.
     MoveOfCopy {
         /// Exact mechanical repair required by OWN-1.
@@ -179,7 +201,7 @@ pub enum SemanticIssueKind {
 /// One deterministic post-resolution source-language rejection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SemanticIssue {
-    rule: SemanticRuleV0_11,
+    rule: SemanticRuleV0_12,
     location: SemanticLocation,
     kind: SemanticIssueKind,
 }
@@ -194,7 +216,7 @@ impl SemanticIssue {
     /// Returns the exact numbered rule established by this issue.
     #[must_use]
     #[cfg(test)]
-    pub const fn rule(&self) -> SemanticRuleV0_11 {
+    pub const fn rule(&self) -> SemanticRuleV0_12 {
         self.rule
     }
 
@@ -215,7 +237,7 @@ impl SemanticIssue {
 
 /// A language family that the current compiler has not implemented yet.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UnsupportedSemanticFeatureV0_11 {
+pub enum UnsupportedSemanticFeatureV0_12 {
     /// Contracts or conformances.
     ContractsAndConformances,
     /// Type, const, or region polymorphism.
@@ -236,10 +258,8 @@ pub enum UnsupportedSemanticFeatureV0_11 {
     RecursiveNominalLayout,
     /// An ownership-state join not yet covered by the selected finite rule.
     OwnershipJoin,
-    /// Repeated match arms, whose dispatch meaning v0.11 does not select.
+    /// Repeated match arms, whose dispatch meaning v0.12 does not select.
     DuplicateMatchArm,
-    /// Mutation through `set`.
-    Mutation,
     /// Result propagation.
     ResultPropagation,
     /// An OP-1 family outside the implemented scalar and nominal-tag families.
@@ -251,7 +271,7 @@ pub enum UnsupportedSemanticFeatureV0_11 {
 /// Exact source node at which an unimplemented compiler family was required.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SemanticUnsupported {
-    feature: UnsupportedSemanticFeatureV0_11,
+    feature: UnsupportedSemanticFeatureV0_12,
     node: NodePath,
 }
 
@@ -259,7 +279,7 @@ impl SemanticUnsupported {
     /// Returns the unimplemented semantic family.
     #[must_use]
     #[cfg(test)]
-    pub const fn feature(&self) -> UnsupportedSemanticFeatureV0_11 {
+    pub const fn feature(&self) -> UnsupportedSemanticFeatureV0_12 {
         self.feature
     }
 }

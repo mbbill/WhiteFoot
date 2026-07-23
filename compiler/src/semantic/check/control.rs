@@ -4,8 +4,8 @@ mod matches;
 
 use crate::syntax::NodeId;
 use crate::{
-    DeclarationId, DeclarationRole, ProductionV0_11, SemanticCompilerFailure, SemanticIssue,
-    SemanticIssueKind, SemanticLocation, SemanticRuleV0_11, UnsupportedSemanticFeatureV0_11,
+    DeclarationId, DeclarationRole, ProductionV0_12, SemanticCompilerFailure, SemanticIssue,
+    SemanticIssueKind, SemanticLocation, SemanticRuleV0_12, UnsupportedSemanticFeatureV0_12,
 };
 
 use super::super::model::{BindingId, CheckedDrop, CheckedStatement, CheckedType, TrapSite};
@@ -53,9 +53,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             if !can_continue {
                 return self.issue_node(
                     if direct_give {
-                        SemanticRuleV0_11::Give1
+                        SemanticRuleV0_12::Give1
                     } else {
-                        SemanticRuleV0_11::Fn1
+                        SemanticRuleV0_12::Fn1
                     },
                     statement,
                     if direct_give {
@@ -95,13 +95,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         give_context: Option<&GiveContext>,
     ) -> Result<StatementResult, CheckStop> {
         match self.tree.production(node)? {
-            ProductionV0_11::LetStmt => {
+            ProductionV0_12::LetStmt => {
                 self.check_let(function, node, bindings, next_binding, give_context)
             }
-            ProductionV0_11::ExprStmt => {
+            ProductionV0_12::ExprStmt => {
                 let call = self
                     .tree
-                    .first_child_with(node, ProductionV0_11::Call)?
+                    .first_child_with(node, ProductionV0_12::Call)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                 let value = self.check_call(function, call, bindings)?;
                 let statement = if self.is_copy_type(value.expression.ty())? {
@@ -111,15 +111,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 };
                 Ok(Self::continuing_statement(statement, value.exhibits_traps))
             }
-            ProductionV0_11::ReturnStmt => {
+            ProductionV0_12::ReturnStmt => {
                 let expression_node = self
                     .tree
-                    .first_child_with(node, ProductionV0_11::Expr)?
+                    .first_child_with(node, ProductionV0_12::Expr)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                 let value = self.check_expression(function, expression_node, bindings)?;
                 if value.expression.ty() != function.result {
                     return Err(CheckStop::Issue(SemanticIssue {
-                        rule: SemanticRuleV0_11::Fn1,
+                        rule: SemanticRuleV0_12::Fn1,
                         location: SemanticLocation::SourceNode(
                             self.tree.path(node)?.clone(),
                             self.tree.coordinate(expression_node)?,
@@ -139,15 +139,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     give_states: Vec::new(),
                 })
             }
-            ProductionV0_11::CheckStmt => {
+            ProductionV0_12::CheckStmt => {
                 let expression_node = self
                     .tree
-                    .first_child_with(node, ProductionV0_11::Expr)?
+                    .first_child_with(node, ProductionV0_12::Expr)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                 let condition = self.check_expression(function, expression_node, bindings)?;
                 if condition.expression.ty() != CheckedType::Bool {
                     return Err(CheckStop::Issue(SemanticIssue {
-                        rule: SemanticRuleV0_11::Op5,
+                        rule: SemanticRuleV0_12::Op5,
                         location: SemanticLocation::SourceNode(
                             self.tree.path(node)?.clone(),
                             self.tree.coordinate(expression_node)?,
@@ -168,7 +168,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     true,
                 ))
             }
-            ProductionV0_11::MatchStmt => {
+            ProductionV0_12::MatchStmt => {
                 let matched =
                     self.check_match(function, node, bindings, next_binding, None, give_context)?;
                 Ok(StatementResult {
@@ -185,22 +185,22 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     give_states: matched.give_states,
                 })
             }
-            ProductionV0_11::GiveStmt => {
+            ProductionV0_12::GiveStmt => {
                 let Some(context) = give_context else {
                     return self.issue_node(
-                        SemanticRuleV0_11::Give1,
+                        SemanticRuleV0_12::Give1,
                         node,
                         SemanticIssueKind::InvalidGive,
                     );
                 };
                 let expression_node = self
                     .tree
-                    .first_child_with(node, ProductionV0_11::Expr)?
+                    .first_child_with(node, ProductionV0_12::Expr)?
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                 let value = self.check_expression(function, expression_node, bindings)?;
                 if value.expression.ty() != context.expected {
                     return self.issue_node(
-                        SemanticRuleV0_11::Type5,
+                        SemanticRuleV0_12::Type5,
                         node,
                         SemanticIssueKind::TypeMismatch,
                     );
@@ -217,14 +217,53 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     give_states: vec![bindings.clone()],
                 })
             }
-            ProductionV0_11::SetStmt => {
-                self.unsupported(UnsupportedSemanticFeatureV0_11::Mutation, node)
+            ProductionV0_12::SetStmt => {
+                let target_node = self
+                    .tree
+                    .first_child_with(node, ProductionV0_12::Place)?
+                    .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+                let expression_node = self
+                    .tree
+                    .first_child_with(node, ProductionV0_12::Expr)?
+                    .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+
+                // SET-1 fixes this order: form and check the target first, then
+                // evaluate the RHS, then re-establish target writability.
+                let (declaration, target) = self.check_set_target(target_node, bindings)?;
+                let value = self.check_expression(function, expression_node, bindings)?;
+                if value.expression.ty() != target.ty {
+                    return self.issue_node(
+                        SemanticRuleV0_12::Type5,
+                        expression_node,
+                        SemanticIssueKind::TypeMismatch,
+                    );
+                }
+                if !bindings
+                    .get(&declaration)
+                    .ok_or(SemanticCompilerFailure::InvalidResolution)?
+                    .live
+                {
+                    return self.issue_node(
+                        SemanticRuleV0_12::Own1,
+                        target_node,
+                        SemanticIssueKind::UseAfterMove {
+                            mechanical_fix: "introduce a new `let` binding before reuse",
+                        },
+                    );
+                }
+                Ok(Self::continuing_statement(
+                    CheckedStatement::Set {
+                        target,
+                        value: value.expression,
+                    },
+                    value.exhibits_traps,
+                ))
             }
-            ProductionV0_11::LoopStmt | ProductionV0_11::BreakStmt => {
-                self.unsupported(UnsupportedSemanticFeatureV0_11::StructuredControlFlow, node)
+            ProductionV0_12::LoopStmt | ProductionV0_12::BreakStmt => {
+                self.unsupported(UnsupportedSemanticFeatureV0_12::StructuredControlFlow, node)
             }
-            ProductionV0_11::RegionStmt => {
-                self.unsupported(UnsupportedSemanticFeatureV0_11::RegionsAndBorrows, node)
+            ProductionV0_12::RegionStmt => {
+                self.unsupported(UnsupportedSemanticFeatureV0_12::RegionsAndBorrows, node)
             }
             _ => Err(SemanticCompilerFailure::InvalidCanonicalTree.into()),
         }
@@ -240,12 +279,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<StatementResult, CheckStop> {
         let mode = self
             .tree
-            .first_child_with(node, ProductionV0_11::Mode)?
+            .first_child_with(node, ProductionV0_12::Mode)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         self.require_own_mode(mode)?;
         let ty_node = self
             .tree
-            .first_child_with(node, ProductionV0_11::Type)?
+            .first_child_with(node, ProductionV0_12::Type)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let expected = self.parse_type(ty_node)?;
         let declaration = self.declaration_at(node, DeclarationRole::Let)?;
@@ -254,7 +293,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
 
         if let Some(value_match) = self
             .tree
-            .first_child_with(node, ProductionV0_11::ValueMatch)?
+            .first_child_with(node, ProductionV0_12::ValueMatch)?
         {
             let matched = self.check_match(
                 function,
@@ -266,7 +305,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             )?;
             if !matched.all_paths_deliver {
                 return self.issue_node(
-                    SemanticRuleV0_11::Give1,
+                    SemanticRuleV0_12::Give1,
                     value_match,
                     SemanticIssueKind::InvalidGive,
                 );
@@ -303,25 +342,25 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         if let Some(propagate) = self
             .tree
-            .first_child_with(node, ProductionV0_11::PropagateLetRhs)?
+            .first_child_with(node, ProductionV0_12::PropagateLetRhs)?
         {
             return self.unsupported(
-                UnsupportedSemanticFeatureV0_11::ResultPropagation,
+                UnsupportedSemanticFeatureV0_12::ResultPropagation,
                 propagate,
             );
         }
         let rhs = self
             .tree
-            .first_child_with(node, ProductionV0_11::OrdinaryLetRhs)?
+            .first_child_with(node, ProductionV0_12::OrdinaryLetRhs)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let expression_node = self
             .tree
-            .first_child_with(rhs, ProductionV0_11::Expr)?
+            .first_child_with(rhs, ProductionV0_12::Expr)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let value = self.check_expression(function, expression_node, bindings)?;
         if value.expression.ty() != expected {
             return self.issue_node(
-                SemanticRuleV0_11::Type5,
+                SemanticRuleV0_12::Type5,
                 node,
                 SemanticIssueKind::TypeMismatch,
             );

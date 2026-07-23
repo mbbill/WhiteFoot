@@ -1,4 +1,4 @@
-//! Target-independent lowering from semantically checked Whitefoot v0.11.
+//! Target-independent lowering from semantically checked Whitefoot v0.12.
 //!
 //! The private IR records exact value types, nominal construction/projection,
 //! direct calls, retained checks, and explicit control-flow edges. It performs
@@ -267,6 +267,12 @@ pub enum IrOperation {
         field: u32,
         consume_root: bool,
     },
+    InsertStruct {
+        aggregate: IrValueId,
+        nominal: IrNominalId,
+        field: u32,
+        value: IrValueId,
+    },
     ProjectVariant {
         aggregate: IrValueId,
         nominal: IrNominalId,
@@ -425,4 +431,4 @@ pub enum LoweringFailure {
 
 mod builder;
 
-pub use builder::lower_checked_v0_11;
+pub use builder::lower_checked_v0_12;

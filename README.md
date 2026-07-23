@@ -26,9 +26,9 @@ priority rule and structure discipline future agents must apply.
 
 ## Current state
 
-[Kernel specification v0.11](spec/kernel-spec-v0.11.md), SHA-256
-`050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc`,
-is the immutable active specification. Exact v0.8 through v0.10 remain
+[Kernel specification v0.12](spec/kernel-spec-v0.12.md), SHA-256
+`e2d5566379891454c090e037bd45c5f1a8df90ba23506a0f83ce9aaa03b41463`,
+is the immutable active specification. Exact v0.8 through v0.11 remain
 immutable history.
 
 The safe-Rust compiler currently implements one ordinary path:
@@ -41,7 +41,7 @@ ordered source bundle
   -> one finalized source-bound syntax tree
   -> exact FORM-2 source validation
   -> CanonicalSyntaxUnit
-  -> direct v0.11 lexical name resolution
+  -> direct v0.12 lexical name resolution
   -> ResolvedSyntaxUnit
   -> semantic and ownership checking
   -> private checked program
@@ -56,8 +56,10 @@ pure/traps effects, integer wrap/trap arithmetic and comparisons, Boolean
 operations, nominal tag equality, and nongeneric acyclic structs and enums.
 Nominal values use the same path for construction, nested projection,
 statement/value matching, `give`, whole-binding affine moves, explicit cleanup,
-and cross-function aggregate values. Other valid v0.11 families stop as explicit
-unsupported compiler capabilities; they are not reported as invalid Whitefoot.
+and cross-function aggregate values. SET-1 copy-place assignment is implemented
+for live own-mode locals and nested struct fields through the same checked and
+LLVM path. Other valid v0.12 families stop as explicit unsupported compiler
+capabilities; they are not reported as invalid Whitefoot.
 
 ## Repository layout
 

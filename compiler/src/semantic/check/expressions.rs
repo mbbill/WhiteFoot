@@ -3,19 +3,154 @@ mod calls;
 use std::collections::HashMap;
 
 use crate::syntax::NodeId;
-use crate::syntax::terminal::{FixedTerminalV0_11, TerminalPredicateV0_11};
+use crate::syntax::terminal::{FixedTerminalV0_12, TerminalPredicateV0_12};
 use crate::{
-    DeclarationClass, DeclarationId, DeferredUseRole, LexicalUseRole, ProductionV0_11,
-    ResolvedTarget, SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_11,
-    UnsupportedSemanticFeatureV0_11,
+    DeclarationClass, DeclarationId, DeferredUseRole, LexicalUseRole, ProductionV0_12,
+    ResolvedTarget, SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_12,
+    UnsupportedSemanticFeatureV0_12,
 };
 
 use super::super::model::{
     CheckedExpression, CheckedNominalKind, CheckedProjectedDrop, CheckedType, CheckedValue,
+    CheckedWritablePlace, IntegerType,
 };
 use super::{CheckStop, Checker, Constructor, FunctionSignature, LocalBinding, TypedExpression};
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
+    pub(super) fn check_set_target(
+        &self,
+        node: NodeId,
+        bindings: &HashMap<DeclarationId, LocalBinding>,
+    ) -> Result<(DeclarationId, CheckedWritablePlace), CheckStop> {
+        let pbase = self
+            .tree
+            .first_child_with(node, ProductionV0_12::Pbase)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        if self.has_fixed(pbase, FixedTerminalV0_12::Deref)? {
+            return self.unsupported(UnsupportedSemanticFeatureV0_12::RegionsAndBorrows, pbase);
+        }
+        if self.has_fixed(pbase, FixedTerminalV0_12::Index)? {
+            return self.unsupported(UnsupportedSemanticFeatureV0_12::CompositeValues, pbase);
+        }
+        if !self.tree.children(pbase)?.is_empty() {
+            return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
+        }
+
+        let usage = self.use_at(pbase, LexicalUseRole::PlaceBase)?;
+        let ResolvedTarget::Source { declaration, class } = usage.target() else {
+            return Err(SemanticCompilerFailure::InvalidResolution.into());
+        };
+        if class == DeclarationClass::NamedConst {
+            return self.issue_node(
+                SemanticRuleV0_12::Const2,
+                node,
+                SemanticIssueKind::ImmutableSetTarget,
+            );
+        }
+        if class != DeclarationClass::Value {
+            return self.issue_node(
+                SemanticRuleV0_12::Set1,
+                node,
+                SemanticIssueKind::InvalidSetTarget {
+                    root_class: format!("{class:?}"),
+                    required_classes: "live own storage or a live usable &uniq referent",
+                },
+            );
+        }
+
+        let local = *bindings
+            .get(&declaration)
+            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+        if !local.live {
+            return self.issue_node(
+                SemanticRuleV0_12::Own1,
+                node,
+                SemanticIssueKind::UseAfterMove {
+                    mechanical_fix: "introduce a new `let` binding before reuse",
+                },
+            );
+        }
+
+        let mut ty = local.ty;
+        let mut fields = Vec::new();
+        for suffix in self.tree.children_with(node, ProductionV0_12::Psuffix)? {
+            let name = self
+                .deferred_use_at(suffix, DeferredUseRole::ProjectedField)?
+                .spelling();
+            let CheckedType::Nominal(nominal_id) = ty else {
+                return self.issue_node(
+                    SemanticRuleV0_12::Type5,
+                    suffix,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            };
+            let CheckedNominalKind::Struct {
+                fields: declared_fields,
+            } = &self.nominal(nominal_id)?.kind
+            else {
+                return self.issue_node(
+                    SemanticRuleV0_12::Type5,
+                    suffix,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            };
+            let Some((index, field)) = declared_fields
+                .iter()
+                .enumerate()
+                .find(|(_, field)| field.name == name)
+            else {
+                return self.issue_node(
+                    SemanticRuleV0_12::Type5,
+                    suffix,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            };
+            fields
+                .push(u32::try_from(index).map_err(|_| SemanticCompilerFailure::CounterOverflow)?);
+            ty = field.ty;
+        }
+
+        if !self.is_copy_type(ty)? {
+            return self.issue_node(
+                SemanticRuleV0_12::Stor1,
+                node,
+                SemanticIssueKind::AffineSetTarget {
+                    target_type: self.checked_type_name(ty)?,
+                    mechanical_fix:
+                        "construct a fresh owner under a new let; do not replace an affine place",
+                },
+            );
+        }
+
+        Ok((
+            declaration,
+            CheckedWritablePlace {
+                binding: local.binding,
+                fields,
+                ty,
+            },
+        ))
+    }
+
+    fn checked_type_name(&self, ty: CheckedType) -> Result<String, CheckStop> {
+        Ok(match ty {
+            CheckedType::Unit => "unit".to_owned(),
+            CheckedType::Bool => "Bool".to_owned(),
+            CheckedType::Integer(integer) => match integer {
+                IntegerType::I8 => "i8",
+                IntegerType::I16 => "i16",
+                IntegerType::I32 => "i32",
+                IntegerType::I64 => "i64",
+                IntegerType::U8 => "u8",
+                IntegerType::U16 => "u16",
+                IntegerType::U32 => "u32",
+                IntegerType::U64 => "u64",
+            }
+            .to_owned(),
+            CheckedType::Nominal(id) => self.nominal(id)?.name.clone(),
+        })
+    }
+
     pub(super) fn check_expression(
         &self,
         function: &FunctionSignature,
@@ -24,9 +159,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<TypedExpression, CheckStop> {
         let child = self.tree.only_child(node)?;
         match self.tree.production(child)? {
-            ProductionV0_11::Atom => self.check_atom(function, child, bindings),
-            ProductionV0_11::Call => self.check_call(function, child, bindings),
-            ProductionV0_11::Construct => self.check_construct(function, child, bindings),
+            ProductionV0_12::Atom => self.check_atom(function, child, bindings),
+            ProductionV0_12::Call => self.check_call(function, child, bindings),
+            ProductionV0_12::Construct => self.check_construct(function, child, bindings),
             _ => Err(SemanticCompilerFailure::InvalidCanonicalTree.into()),
         }
     }
@@ -39,7 +174,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<TypedExpression, CheckStop> {
         if let Some(literal) = self
             .tree
-            .direct_token_with(node, TerminalPredicateV0_11::Literal)?
+            .direct_token_with(node, TerminalPredicateV0_12::Literal)?
         {
             return Ok(TypedExpression {
                 expression: CheckedExpression::Constant(
@@ -48,12 +183,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 exhibits_traps: false,
             });
         }
-        if let Some(place) = self.tree.first_child_with(node, ProductionV0_11::Place)? {
+        if let Some(place) = self.tree.first_child_with(node, ProductionV0_12::Place)? {
             let value = self.check_place_use(
                 node,
                 place,
                 bindings,
-                self.has_fixed(node, FixedTerminalV0_11::Move)?,
+                self.has_fixed(node, FixedTerminalV0_12::Move)?,
                 false,
             )?;
             return Ok(TypedExpression {
@@ -63,9 +198,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         if let Some(borrow) = self
             .tree
-            .first_child_with(node, ProductionV0_11::BorrowExpr)?
+            .first_child_with(node, ProductionV0_12::BorrowExpr)?
         {
-            return self.unsupported(UnsupportedSemanticFeatureV0_11::RegionsAndBorrows, borrow);
+            return self.unsupported(UnsupportedSemanticFeatureV0_12::RegionsAndBorrows, borrow);
         }
         let _ = function;
         Err(SemanticCompilerFailure::InvalidCanonicalTree.into())
@@ -81,10 +216,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<CheckedExpression, CheckStop> {
         let pbase = self
             .tree
-            .first_child_with(node, ProductionV0_11::Pbase)?
+            .first_child_with(node, ProductionV0_12::Pbase)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         if !self.tree.children(pbase)?.is_empty() {
-            return self.unsupported(UnsupportedSemanticFeatureV0_11::CompositeValues, pbase);
+            return self.unsupported(UnsupportedSemanticFeatureV0_12::CompositeValues, pbase);
         }
         let usage = self.use_at(pbase, LexicalUseRole::PlaceBase)?;
         let ResolvedTarget::Source { declaration, class } = usage.target() else {
@@ -97,7 +232,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?;
                 if !local.live {
                     return self.issue_node(
-                        SemanticRuleV0_11::Own1,
+                        SemanticRuleV0_12::Own1,
                         use_node,
                         SemanticIssueKind::UseAfterMove {
                             mechanical_fix: "introduce a new `let` binding before reuse",
@@ -107,13 +242,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 let mut ty = local.ty;
                 let mut fields = Vec::new();
                 let mut residual_drops = Vec::new();
-                for suffix in self.tree.children_with(node, ProductionV0_11::Psuffix)? {
+                for suffix in self.tree.children_with(node, ProductionV0_12::Psuffix)? {
                     let name = self
                         .deferred_use_at(suffix, DeferredUseRole::ProjectedField)?
                         .spelling();
                     let CheckedType::Nominal(nominal_id) = ty else {
                         return self.issue_node(
-                            SemanticRuleV0_11::Type5,
+                            SemanticRuleV0_12::Type5,
                             suffix,
                             SemanticIssueKind::TypeMismatch,
                         );
@@ -123,7 +258,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     } = &self.nominal(nominal_id)?.kind
                     else {
                         return self.issue_node(
-                            SemanticRuleV0_11::Type5,
+                            SemanticRuleV0_12::Type5,
                             suffix,
                             SemanticIssueKind::TypeMismatch,
                         );
@@ -134,7 +269,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .find(|(_, field)| field.name == name)
                     else {
                         return self.issue_node(
-                            SemanticRuleV0_11::Type5,
+                            SemanticRuleV0_12::Type5,
                             suffix,
                             SemanticIssueKind::TypeMismatch,
                         );
@@ -161,7 +296,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 let copy = self.is_copy_type(ty)?;
                 if explicit_move && copy {
                     return self.issue_node(
-                        SemanticRuleV0_11::Own1,
+                        SemanticRuleV0_12::Own1,
                         use_node,
                         SemanticIssueKind::MoveOfCopy {
                             mechanical_fix: "use the copy place without `move`",
@@ -170,7 +305,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
                 if !copy && !explicit_move && !match_scrutinee {
                     return self.issue_node(
-                        SemanticRuleV0_11::Own1,
+                        SemanticRuleV0_12::Own1,
                         use_node,
                         SemanticIssueKind::BareAffineUse {
                             mechanical_fix: "write `move p` for the affine place",
@@ -201,7 +336,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             DeclarationClass::NamedConst => {
                 if explicit_move {
                     return self.issue_node(
-                        SemanticRuleV0_11::Own1,
+                        SemanticRuleV0_12::Own1,
                         use_node,
                         SemanticIssueKind::MoveOfCopy {
                             mechanical_fix: "use the copy place without `move`",
@@ -210,11 +345,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
                 if !self
                     .tree
-                    .children_with(node, ProductionV0_11::Psuffix)?
+                    .children_with(node, ProductionV0_12::Psuffix)?
                     .is_empty()
                 {
                     return self
-                        .unsupported(UnsupportedSemanticFeatureV0_11::CompositeValues, node);
+                        .unsupported(UnsupportedSemanticFeatureV0_12::CompositeValues, node);
                 }
                 self.constants
                     .get(&declaration)
@@ -233,15 +368,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
     ) -> Result<TypedExpression, CheckStop> {
         let child = self.tree.only_child(node)?;
-        if self.tree.production(child)? == ProductionV0_11::Atom
-            && let Some(place) = self.tree.first_child_with(child, ProductionV0_11::Place)?
+        if self.tree.production(child)? == ProductionV0_12::Atom
+            && let Some(place) = self.tree.first_child_with(child, ProductionV0_12::Place)?
         {
             return Ok(TypedExpression {
                 expression: self.check_place_use(
                     child,
                     place,
                     bindings,
-                    self.has_fixed(child, FixedTerminalV0_11::Move)?,
+                    self.has_fixed(child, FixedTerminalV0_12::Move)?,
                     true,
                 )?,
                 exhibits_traps: false,
@@ -256,8 +391,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
     ) -> Result<TypedExpression, CheckStop> {
-        if let Some(targs) = self.tree.first_child_with(node, ProductionV0_11::Targs)? {
-            return self.unsupported(UnsupportedSemanticFeatureV0_11::Generics, targs);
+        if let Some(targs) = self.tree.first_child_with(node, ProductionV0_12::Targs)? {
+            return self.unsupported(UnsupportedSemanticFeatureV0_12::Generics, targs);
         }
         let usage = self.use_at(node, LexicalUseRole::Construct)?;
         let constructor_name = usage.spelling().to_owned();
@@ -267,16 +402,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 2 => CheckedValue::Bool(false),
                 _ => {
                     return self
-                        .unsupported(UnsupportedSemanticFeatureV0_11::PreludeNominalValues, node);
+                        .unsupported(UnsupportedSemanticFeatureV0_12::PreludeNominalValues, node);
                 }
             };
             if self
                 .tree
-                .first_child_with(node, ProductionV0_11::FieldinitList)?
+                .first_child_with(node, ProductionV0_12::FieldinitList)?
                 .is_some()
             {
                 return self.issue_node(
-                    SemanticRuleV0_11::Gram8,
+                    SemanticRuleV0_12::Gram8,
                     node,
                     SemanticIssueKind::InvalidConstructionFields {
                         constructor: constructor_name,
@@ -312,9 +447,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         let written_fields = if let Some(list) = self
             .tree
-            .first_child_with(node, ProductionV0_11::FieldinitList)?
+            .first_child_with(node, ProductionV0_12::FieldinitList)?
         {
-            self.tree.children_with(list, ProductionV0_11::Fieldinit)?
+            self.tree.children_with(list, ProductionV0_12::Fieldinit)?
         } else {
             Vec::new()
         };
@@ -324,7 +459,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .collect::<Vec<_>>();
         if written_fields.len() != declared_fields.len() {
             return self.issue_node(
-                SemanticRuleV0_11::Gram8,
+                SemanticRuleV0_12::Gram8,
                 node,
                 SemanticIssueKind::InvalidConstructionFields {
                     constructor: constructor_name,
@@ -341,7 +476,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 != declared.name
             {
                 return self.issue_node(
-                    SemanticRuleV0_11::Gram8,
+                    SemanticRuleV0_12::Gram8,
                     written,
                     SemanticIssueKind::InvalidConstructionFields {
                         constructor: constructor_name,
@@ -351,12 +486,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             let atom = self
                 .tree
-                .first_child_with(written, ProductionV0_11::Atom)?
+                .first_child_with(written, ProductionV0_12::Atom)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
             let value = self.check_atom(function, atom, bindings)?;
             if value.expression.ty() != declared.ty {
                 return self.issue_node(
-                    SemanticRuleV0_11::Type5,
+                    SemanticRuleV0_12::Type5,
                     atom,
                     SemanticIssueKind::TypeMismatch,
                 );

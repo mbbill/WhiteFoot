@@ -30,8 +30,8 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 CASES = HERE / "cases"
 MANIFEST = HERE / "manifest.jsonl"
-ACTIVE_SPEC = Path("spec/kernel-spec-v0.11.md")
-ACTIVE_SPEC_SHA256 = "050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc"
+ACTIVE_SPEC = Path("spec/kernel-spec-v0.12.md")
+ACTIVE_SPEC_SHA256 = "e2d5566379891454c090e037bd45c5f1a8df90ba23506a0f83ce9aaa03b41463"
 # A later entrance-gated integration may install a named Rust adapter. Keeping
 # this explicit prevents a missing compiler, crash, or broad exception from
 # becoming `Unsupported`.

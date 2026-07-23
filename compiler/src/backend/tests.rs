@@ -3,13 +3,13 @@
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::lexer::{LexLimits, LexOutcome, lex_v0_11};
+use crate::lexer::{LexLimits, LexOutcome, lex_v0_12};
 use crate::{
-    CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_11_HASH,
+    CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_12_HASH,
     ParseLimits, ParseOutcome, ResolutionOutcome, SemanticOutcome, SourceBundle, SourceInput,
-    SourceLimits, TerminalLimits, TerminalOutcome, audit_canonical_v0_11, check_semantics_v0_11,
-    classify_terminals_v0_11, compile_v0_11, emit_llvm_v0_11, finalize_v0_11, lower_checked_v0_11,
-    parse_v0_11, resolve_v0_11,
+    SourceLimits, TerminalLimits, TerminalOutcome, audit_canonical_v0_12, check_semantics_v0_12,
+    classify_terminals_v0_12, compile_v0_12, emit_llvm_v0_12, finalize_v0_12, lower_checked_v0_12,
+    parse_v0_12, resolve_v0_12,
 };
 
 const SOURCE_LIMITS: SourceLimits = SourceLimits {
@@ -59,42 +59,42 @@ static NEXT_TEST: AtomicU64 = AtomicU64::new(0);
 fn emit(source: &[u8]) -> String {
     let inputs = [SourceInput::new("test.wf", source)];
     let bundle = SourceBundle::with_limits(&inputs, SOURCE_LIMITS).expect("valid test bundle");
-    let LexOutcome::Complete(lexed) = lex_v0_11(&bundle, LEX_LIMITS) else {
+    let LexOutcome::Complete(lexed) = lex_v0_12(&bundle, LEX_LIMITS) else {
         panic!("backend test source must lex");
     };
-    let TerminalOutcome::Complete(classified) = classify_terminals_v0_11(
+    let TerminalOutcome::Complete(classified) = classify_terminals_v0_12(
         &lexed,
-        KERNEL_SPEC_V0_11_HASH,
+        KERNEL_SPEC_V0_12_HASH,
         TerminalLimits {
             max_tokens: LEX_LIMITS.max_tokens,
         },
     ) else {
         panic!("backend test source must classify");
     };
-    let ParseOutcome::Complete(parsed) = parse_v0_11(&classified, PARSE_LIMITS) else {
+    let ParseOutcome::Complete(parsed) = parse_v0_12(&classified, PARSE_LIMITS) else {
         panic!("backend test source must parse");
     };
-    let FinalizeOutcome::Complete(finalized) = finalize_v0_11(parsed, FINALIZE_LIMITS) else {
+    let FinalizeOutcome::Complete(finalized) = finalize_v0_12(parsed, FINALIZE_LIMITS) else {
         panic!("backend test source must finalize");
     };
-    let CanonicalOutcome::Complete(canonical) = audit_canonical_v0_11(finalized, CANONICAL_LIMITS)
+    let CanonicalOutcome::Complete(canonical) = audit_canonical_v0_12(finalized, CANONICAL_LIMITS)
     else {
         panic!("backend test source must be canonical");
     };
-    let ResolutionOutcome::Complete(resolved) = resolve_v0_11(canonical) else {
+    let ResolutionOutcome::Complete(resolved) = resolve_v0_12(canonical) else {
         panic!("backend test source must resolve");
     };
-    let SemanticOutcome::Complete(checked) = check_semantics_v0_11(resolved) else {
+    let SemanticOutcome::Complete(checked) = check_semantics_v0_12(resolved) else {
         panic!("backend test source must check");
     };
-    let ir = lower_checked_v0_11(*checked).expect("checked program must lower");
-    emit_llvm_v0_11(&ir)
+    let ir = lower_checked_v0_12(*checked).expect("checked program must lower");
+    emit_llvm_v0_12(&ir)
         .expect("lowered program must emit")
         .into_string()
 }
 
 fn compile(source: &[u8]) -> String {
-    compile_v0_11(
+    compile_v0_12(
         &[SourceInput::new("test.wf", source)],
         crate::CompilerLimits::default(),
     )
@@ -104,7 +104,7 @@ fn compile(source: &[u8]) -> String {
 fn compile_and_run(llvm: &str) -> Output {
     let sequence = NEXT_TEST.fetch_add(1, Ordering::Relaxed);
     let directory =
-        std::env::temp_dir().join(format!("whitefoot-v011-{}-{sequence}", std::process::id()));
+        std::env::temp_dir().join(format!("whitefoot-v012-{}-{sequence}", std::process::id()));
     std::fs::create_dir(&directory).expect("unique backend test directory");
     let module = directory.join("program.ll");
     let executable = directory.join("program");
@@ -302,6 +302,63 @@ fn main() -> own unit pure {
 }
 
 #[test]
+fn copy_place_set_executes_for_root_and_nested_struct_fields() {
+    let source = br#"struct Inner {
+  value: i32;
+}
+
+struct Outer {
+  inner: Inner;
+  other: i32;
+}
+
+fn main() -> own unit traps {
+  let number: own i32 = 1_i32;
+  let inner: own Inner = Inner(value: 2_i32);
+  let outer: own Outer = Outer(inner: move inner, other: 7_i32);
+  let flag: own Bool = True();
+  match flag {
+    True() => {
+      set number = 42_i32;
+      set outer.inner.value = number;
+    }
+    False() => {
+      set number = 9_i32;
+      set outer.inner.value = number;
+    }
+  }
+  let observed: own i32 = outer.inner.value;
+  check ieq<i32>(observed, 42_i32) else trap "nested set failed";
+  let preserved: own i32 = outer.other;
+  check ieq<i32>(preserved, 7_i32) else trap "sibling changed";
+  let selected: own i32 = match flag {
+    True() => {
+      set number = 43_i32;
+      give number;
+    }
+    False() => {
+      set number = 10_i32;
+      give number;
+    }
+  }
+  check ieq<i32>(selected, 43_i32) else trap "value match result failed";
+  check ieq<i32>(number, 43_i32) else trap "value match set failed";
+  return unit;
+}
+"#;
+    let llvm = emit(source);
+    let main = emitted_function(&llvm, "main");
+    assert!(main.contains(" = phi i32 "));
+    assert!(main.contains(" = insertvalue %wf.t1"));
+    assert!(main.contains(" = insertvalue %wf.t0"));
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn compiler_independent_scalar_cases_execute_through_host_llvm() {
     for source in [
         include_bytes!("../../../tests/conformance/cases/scope3-pos-defined-run.wf").as_slice(),
@@ -332,6 +389,7 @@ fn compiler_independent_nominal_data_cases_execute_through_host_llvm() {
         include_bytes!("../../../tests/conformance/cases/x-struct-cross-fn.wf").as_slice(),
         include_bytes!("../../../tests/conformance/cases/x-struct-mixed-width.wf").as_slice(),
         include_bytes!("../../../tests/conformance/cases/x-struct-nested-field.wf").as_slice(),
+        include_bytes!("../../../tests/conformance/cases/x-struct-set-field.wf").as_slice(),
         include_bytes!("../../../tests/conformance/cases/x-enum-payload-give.wf").as_slice(),
         include_bytes!("../../../tests/conformance/cases/x-enum-multiwidth-dispatch.wf").as_slice(),
         include_bytes!("../../../tests/conformance/cases/x-enum-stmt-payload-check.wf").as_slice(),

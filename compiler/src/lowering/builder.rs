@@ -8,7 +8,7 @@ use crate::semantic::{
 
 use super::*;
 
-pub fn lower_checked_v0_11<'classified, 'lexed, 'source>(
+pub fn lower_checked_v0_12<'classified, 'lexed, 'source>(
     checked: CheckedProgram<'classified, 'lexed, 'source>,
 ) -> Result<IrProgram<'classified, 'lexed, 'source>, LoweringFailure> {
     let nominals = lower_nominals(&checked.data)?;
@@ -127,6 +127,13 @@ struct IrBuilder<'nominals> {
     current: Option<IrBlockId>,
 }
 
+#[derive(Clone)]
+struct GiveTarget {
+    block: IrBlockId,
+    result: IrType,
+    carried_bindings: Vec<BindingId>,
+}
+
 impl<'nominals> IrBuilder<'nominals> {
     fn new(nominals: &'nominals [IrNominal]) -> Result<Self, LoweringFailure> {
         let mut builder = Self {
@@ -206,7 +213,7 @@ impl<'nominals> IrBuilder<'nominals> {
     fn lower_statements(
         &mut self,
         statements: &[CheckedStatement],
-        give_target: Option<(IrBlockId, IrType)>,
+        give_target: Option<GiveTarget>,
     ) -> Result<(), LoweringFailure> {
         for statement in statements {
             if self.current.is_none() {
@@ -216,6 +223,28 @@ impl<'nominals> IrBuilder<'nominals> {
                 CheckedStatement::Let { binding, value } => {
                     let value = self.expression(value)?;
                     if self.bindings.insert(*binding, value).is_some() {
+                        return Err(LoweringFailure::InvalidCheckedProgram);
+                    }
+                }
+                CheckedStatement::Set { target, value } => {
+                    let root = self
+                        .bindings
+                        .get(&target.binding)
+                        .copied()
+                        .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                    let value = self.expression(value)?;
+                    if self.value_type(value)? != lower_type(target.ty) {
+                        return Err(LoweringFailure::InvalidCheckedProgram);
+                    }
+                    let replacement = if target.fields.is_empty() {
+                        if self.value_type(root)? != self.value_type(value)? {
+                            return Err(LoweringFailure::InvalidCheckedProgram);
+                        }
+                        value
+                    } else {
+                        self.replace_struct_path(root, &target.fields, value)?
+                    };
+                    if self.bindings.insert(target.binding, replacement) != Some(root) {
                         return Err(LoweringFailure::InvalidCheckedProgram);
                     }
                 }
@@ -247,16 +276,20 @@ impl<'nominals> IrBuilder<'nominals> {
                     self.terminate(IrTerminator::Return { value, drops })?;
                 }
                 CheckedStatement::Give { value, drops } => {
-                    let (target, expected) =
-                        give_target.ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                    let target = give_target
+                        .as_ref()
+                        .ok_or(LoweringFailure::InvalidCheckedProgram)?;
                     let value = self.expression(value)?;
-                    if self.value_type(value)? != expected {
+                    if self.value_type(value)? != target.result {
                         return Err(LoweringFailure::InvalidCheckedProgram);
                     }
+                    let mut arguments = Vec::with_capacity(1 + target.carried_bindings.len());
+                    arguments.push(value);
+                    arguments.extend(self.binding_values(&target.carried_bindings)?);
                     let drops = self.lower_drops(drops)?;
                     self.terminate(IrTerminator::Jump {
-                        target,
-                        arguments: vec![value],
+                        target: target.block,
+                        arguments,
                         drops,
                     })?;
                 }
@@ -265,9 +298,14 @@ impl<'nominals> IrBuilder<'nominals> {
                     enum_type,
                     arms,
                     continues,
-                } => {
-                    self.lower_match(scrutinee, *enum_type, arms, *continues, None, give_target)?
-                }
+                } => self.lower_match(
+                    scrutinee,
+                    *enum_type,
+                    arms,
+                    *continues,
+                    None,
+                    give_target.clone(),
+                )?,
                 CheckedStatement::ValueMatchLet {
                     binding,
                     result_type,
@@ -281,7 +319,7 @@ impl<'nominals> IrBuilder<'nominals> {
                     arms,
                     *continues,
                     Some((*binding, lower_type(*result_type))),
-                    give_target,
+                    give_target.clone(),
                 )?,
             }
         }
@@ -296,11 +334,25 @@ impl<'nominals> IrBuilder<'nominals> {
         arms: &[CheckedMatchArm],
         continues: bool,
         value_binding: Option<(BindingId, IrType)>,
-        outer_give_target: Option<(IrBlockId, IrType)>,
+        outer_give_target: Option<GiveTarget>,
     ) -> Result<(), LoweringFailure> {
         let scrutinee = self.expression(scrutinee)?;
+        let base_bindings = self.bindings.clone();
+        let mut carried_bindings = base_bindings.keys().copied().collect::<Vec<_>>();
+        carried_bindings.sort_by_key(|binding| binding.0);
         let join = if continues {
-            let parameter_types = value_binding.map_or_else(Vec::new, |(_, ty)| vec![ty]);
+            let mut parameter_types =
+                Vec::with_capacity(carried_bindings.len() + usize::from(value_binding.is_some()));
+            if let Some((_, ty)) = value_binding {
+                parameter_types.push(ty);
+            }
+            for binding in &carried_bindings {
+                let value = base_bindings
+                    .get(binding)
+                    .copied()
+                    .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                parameter_types.push(self.value_type(value)?);
+            }
             let (block, parameters) = self.new_block(&parameter_types)?;
             Some((block, parameters))
         } else {
@@ -322,8 +374,6 @@ impl<'nominals> IrBuilder<'nominals> {
                 })
                 .collect(),
         })?;
-
-        let base_bindings = self.bindings.clone();
         for (arm, block) in arms.iter().zip(arm_blocks) {
             self.current = Some(block);
             self.bindings = base_bindings.clone();
@@ -345,8 +395,12 @@ impl<'nominals> IrBuilder<'nominals> {
                 }
             }
             let arm_give_target = match value_binding {
-                Some((_, ty)) => join.as_ref().map(|(block, _)| (*block, ty)),
-                None => outer_give_target,
+                Some((_, ty)) => join.as_ref().map(|(block, _)| GiveTarget {
+                    block: *block,
+                    result: ty,
+                    carried_bindings: carried_bindings.clone(),
+                }),
+                None => outer_give_target.clone(),
             };
             self.lower_statements(&arm.body, arm_give_target)?;
             if self.current.is_some() {
@@ -357,9 +411,10 @@ impl<'nominals> IrBuilder<'nominals> {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
                 let drops = self.lower_drops(&arm.fallthrough_drops)?;
+                let arguments = self.binding_values(&carried_bindings)?;
                 self.terminate(IrTerminator::Jump {
                     target: *join,
-                    arguments: Vec::new(),
+                    arguments,
                     drops,
                 })?;
             }
@@ -367,15 +422,22 @@ impl<'nominals> IrBuilder<'nominals> {
         self.bindings = base_bindings;
         if let Some((join, parameters)) = join {
             self.current = Some(join);
-            if let Some((binding, _)) = value_binding {
-                let [value] = parameters.as_slice() else {
-                    return Err(LoweringFailure::InvalidCheckedProgram);
-                };
-                if self.bindings.insert(binding, *value).is_some() {
+            let carried_start = usize::from(value_binding.is_some());
+            if parameters.len() != carried_start + carried_bindings.len() {
+                return Err(LoweringFailure::InvalidCheckedProgram);
+            }
+            for (binding, value) in carried_bindings.iter().zip(&parameters[carried_start..]) {
+                if self.bindings.insert(*binding, *value).is_none() {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
-            } else if !parameters.is_empty() {
-                return Err(LoweringFailure::InvalidCheckedProgram);
+            }
+            if let Some((binding, _)) = value_binding {
+                let value = *parameters
+                    .first()
+                    .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                if self.bindings.insert(binding, value).is_some() {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
             }
         } else {
             self.current = None;
@@ -583,6 +645,62 @@ impl<'nominals> IrBuilder<'nominals> {
         Ok(value)
     }
 
+    fn replace_struct_path(
+        &mut self,
+        aggregate: IrValueId,
+        fields: &[u32],
+        replacement: IrValueId,
+    ) -> Result<IrValueId, LoweringFailure> {
+        let Some((field, remaining)) = fields.split_first() else {
+            return Err(LoweringFailure::InvalidCheckedProgram);
+        };
+        let IrType::Nominal(nominal) = self.value_type(aggregate)? else {
+            return Err(LoweringFailure::InvalidCheckedProgram);
+        };
+        let field_ty = match &self
+            .nominals
+            .get(nominal.index())
+            .ok_or(LoweringFailure::InvalidCheckedProgram)?
+            .kind
+        {
+            IrNominalKind::Struct { fields } => {
+                fields
+                    .get(*field as usize)
+                    .ok_or(LoweringFailure::InvalidCheckedProgram)?
+                    .ty
+            }
+            IrNominalKind::Enum { .. } => {
+                return Err(LoweringFailure::InvalidCheckedProgram);
+            }
+        };
+        let value = if remaining.is_empty() {
+            if self.value_type(replacement)? != field_ty {
+                return Err(LoweringFailure::InvalidCheckedProgram);
+            }
+            replacement
+        } else {
+            let selected = self.define(
+                field_ty,
+                IrOperation::ProjectStruct {
+                    aggregate,
+                    nominal,
+                    field: *field,
+                    consume_root: false,
+                },
+            )?;
+            self.replace_struct_path(selected, remaining, replacement)?
+        };
+        self.define(
+            IrType::Nominal(nominal),
+            IrOperation::InsertStruct {
+                aggregate,
+                nominal,
+                field: *field,
+                value,
+            },
+        )
+    }
+
     fn lower_projected_drop(
         &mut self,
         root: IrValueId,
@@ -601,6 +719,18 @@ impl<'nominals> IrBuilder<'nominals> {
             .get(value.index())
             .copied()
             .ok_or(LoweringFailure::InvalidCheckedProgram)
+    }
+
+    fn binding_values(&self, bindings: &[BindingId]) -> Result<Vec<IrValueId>, LoweringFailure> {
+        bindings
+            .iter()
+            .map(|binding| {
+                self.bindings
+                    .get(binding)
+                    .copied()
+                    .ok_or(LoweringFailure::InvalidCheckedProgram)
+            })
+            .collect()
     }
 
     fn lower_drops(&self, drops: &[CheckedDrop]) -> Result<Vec<IrDrop>, LoweringFailure> {

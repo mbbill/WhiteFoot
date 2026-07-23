@@ -1,0 +1,13 @@
+struct Cell {
+  value: i32;
+}
+
+fn take(cell: own Cell) -> own i32 pure {
+  return cell.value;
+}
+
+fn main() -> own unit pure {
+  let cell: own Cell = Cell(value: 1_i32);
+  set cell.value = take(cell: move cell);
+  return unit;
+}

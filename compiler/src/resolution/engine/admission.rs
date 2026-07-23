@@ -1,10 +1,10 @@
 use crate::syntax::{FinalizedExtent, FinalizedTopology, NodeId};
-use crate::{ProductionV0_11, SyntaxCoordinate};
+use crate::{ProductionV0_12, SyntaxCoordinate};
 
 use super::super::scopes::ScopeBuild;
 use super::super::{
     RequiresShapeIssue, ResolutionCompilerFailure, ResolutionIssue, ResolutionIssueKind,
-    ResolutionRuleV0_11, SourceOrigin,
+    ResolutionRuleV0_12, SourceOrigin,
 };
 use super::EventKey;
 
@@ -14,7 +14,7 @@ pub(super) fn check_requires_blocks(
 ) -> Result<Option<ResolutionIssue>, ResolutionCompilerFailure> {
     let mut candidates = Vec::new();
     for (index, node) in topology.nodes.iter().enumerate() {
-        if node.production != ProductionV0_11::RequiresBlock {
+        if node.production != ProductionV0_12::RequiresBlock {
             continue;
         }
         let id = NodeId::from_index(index).ok_or(ResolutionCompilerFailure::CounterOverflow)?;
@@ -42,7 +42,7 @@ pub(super) fn check_requires_blocks(
         if let Some((issue_node, issue_kind)) = selected {
             let origin = node_origin(topology, scopes, issue_node)?;
             candidates.push(ResolutionIssue {
-                rule: ResolutionRuleV0_11::Fn8,
+                rule: ResolutionRuleV0_12::Fn8,
                 origin,
                 kind: ResolutionIssueKind::RequiresShape(issue_kind),
             });
@@ -72,7 +72,7 @@ fn requires_entry_kind(
     let selected_record = topology
         .node(*selected)
         .ok_or(ResolutionCompilerFailure::InvalidCanonicalTree)?;
-    if selected_record.production != ProductionV0_11::Stmt {
+    if selected_record.production != ProductionV0_12::Stmt {
         return Ok(RequiresEntryKind::Other);
     }
     let [statement] = topology
@@ -85,8 +85,8 @@ fn requires_entry_kind(
         .node(*statement)
         .ok_or(ResolutionCompilerFailure::InvalidCanonicalTree)?;
     match statement_record.production {
-        ProductionV0_11::CheckStmt => Ok(RequiresEntryKind::Check),
-        ProductionV0_11::LetStmt => {
+        ProductionV0_12::CheckStmt => Ok(RequiresEntryKind::Check),
+        ProductionV0_12::LetStmt => {
             let ordinary = topology
                 .node_children(*statement)
                 .ok_or(ResolutionCompilerFailure::InvalidCanonicalTree)?
@@ -94,7 +94,7 @@ fn requires_entry_kind(
                 .any(|child| {
                     topology
                         .node(*child)
-                        .is_some_and(|record| record.production == ProductionV0_11::OrdinaryLetRhs)
+                        .is_some_and(|record| record.production == ProductionV0_12::OrdinaryLetRhs)
                 });
             Ok(if ordinary {
                 RequiresEntryKind::OrdinaryLet

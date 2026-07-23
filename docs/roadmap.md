@@ -52,12 +52,12 @@ measurement does.
 
 ## Current state
 
-The active language authority is `spec/kernel-spec-v0.11.md`, SHA-256
-`050e110c8c5eb3143c9d3f54968a9df9125f1d4b5991f527b8a15938a4292fbc`.
+The active language authority is `spec/kernel-spec-v0.12.md`, SHA-256
+`e2d5566379891454c090e037bd45c5f1a8df90ba23506a0f83ce9aaa03b41463`.
 Those bytes are immutable and byte-identical to the owner-approved candidate.
-Exact v0.8 through v0.10 remain immutable historical evidence. v0.11 replaces
-the Result-forwarding spelling `try` with `propagate`, with no compatibility
-alias; `try` is an ordinary IDENT.
+Exact v0.8 through v0.11 remain immutable historical evidence. v0.12 adds the
+SET-1 copy-place assignment judgment, target-before-RHS ordering, post-RHS
+writability revalidation, and ultimate-storage-origin read/write effects.
 
 The Rust compiler now has one ordinary path from ordered source transport
 through the lossless frontend and direct resolver into semantic checking, a
@@ -79,24 +79,30 @@ consuming projection, including nested paths. Current resource-free nominal
 drops need no runtime action. Required checks
 remain explicit through lowering and emit the exact DIAG-3 record before abort.
 
-This is not a completeness claim. Generics and contracts, regions and borrows,
-floats, loops and breaks, mutation, Result propagation, allocations and
-containers, recursive nominal layouts, branch-dependent ownership joins, and
-the remaining operation/effect table are explicit unsupported compiler
-capabilities rather than source-language rejections. Repeated exhaustive match
-arms also stop as unsupported because v0.11 defines neither duplicate-arm
-meaning nor a duplicate-arm rejection rule.
+The v0.12 activation adds one general SET-1 path for the place families the
+compiler already represents: live own-mode scalar/tag-only-enum locals and
+nested copy fields inside acyclic structs. Semantic checking forms the target
+before the RHS, rejects constants and affine final places under their owning
+rules, checks the exact RHS type, and revalidates root liveness afterward. The
+checked program retains the root and field path; lowering performs an SSA
+rebinding or rebuilds the required aggregate layers with LLVM `insertvalue`.
+Focused host tests execute root and nested-field updates and preserve siblings.
 
-The owner approved the exact successor proposal SHA-256
-`7fc48cc30f94d25be5be1106e3265d92c1b0cdf2bfea5a7a17759a12f3cf092d` and
-the exact generated v0.10 candidate SHA-256
-`71073e25219455896250e15e13d1ffdbfc443c87a9b28cb9906d73a020dc33e9`.
-The exact approved candidate is installed and the compiler is reproduced
-against its identity in one safe-Rust crate. The resolver implementation and
-its owner-approved duplicate-main expectation correction complete Phase 6.
-The first executable scalar slice completes Phase 7. The next work is the
-highest-value coherent Phase 8 family, selected by the next real program it
-unlocks rather than by issue count.
+This is not a completeness claim. Generics and contracts, regions and borrows,
+floats, loops and breaks, Result propagation, allocations and containers,
+recursive nominal layouts, branch-dependent ownership joins, index and
+borrow-backed SET-1 targets, and the remaining operation/effect table are
+explicit unsupported compiler capabilities rather than source-language
+rejections. Repeated exhaustive match arms also stop as unsupported because
+v0.12 defines neither duplicate-arm meaning nor a duplicate-arm rejection
+rule.
+
+The exact approved v0.12 candidate is installed and every live identity names
+it. The resolver implementation completes Phase 6, the first executable scalar
+slice completes Phase 7, and nominal data plus the current SET-1 place family
+advance Phase 8. The next work is loops and breaks over these copy locals: that
+is the smallest remaining family needed to run an actual iterative accumulator
+and expose the next control-flow, ownership-join, and performance questions.
 
 ## Authority and specification changes
 
@@ -382,6 +388,16 @@ cases cover cross-function aggregate values, mixed-width and multi-field enum
 payloads, every Boolean operation, nested fields, ownership failures, wrong
 variants, missing arms, and invalid field order.
 
+The implemented SET-1 subset covers direct live own-mode copy locals and nested
+copy fields. One checked writable-place record carries the root and path across
+RHS checking; lowering uses the existing binding map and one struct-insertion
+operation rather than a second mutation pipeline. Constants cite CONST-2,
+affine final places cite STOR-1 with the required restructuring, type mismatch
+cites TYPE-5 at the RHS, and an RHS that moves the root cites OWN-1 at the later
+commit. Dereference, index, slice, buffer, box, arena, and loan-aware targets
+remain unsupported because their underlying type/storage/borrow families are
+not implemented; they are not treated as invalid source.
+
 This is not the complete ERR-2 toolchain contract: a whole-unit
 variant-addition query that enumerates every affected match site is still
 pending. The compiler adapter also does not yet implement the full independent
@@ -389,8 +405,10 @@ conformance manifest. Neither is claimed by the current green gate.
 
 Direct recursive nominal layout and branch-dependent affine state joins remain
 explicit implementation limits, as do repeated exhaustive match arms; no
-source-language rule has been invented for them. Select the next family by the
-real program or language experiment it unlocks.
+source-language rule has been invented for them. Next implement `loop` and
+`break` through the same checked CFG and LLVM path so a real iterative scalar
+program can run; do not expand SET-1 into container or loan machinery before
+those underlying families exist.
 
 ## Phase 9: dogfood and language iteration
 
