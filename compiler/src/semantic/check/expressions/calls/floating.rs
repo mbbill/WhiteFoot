@@ -55,19 +55,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<TypedExpression, CheckStop> {
         let operation = float_operation(spelling)
             .expect("caller dispatches only closed floating-point operation names");
-        let CheckedType::Float(operand_type) =
-            self.operation_type_argument(node, spelling, function)?
-        else {
+        let operand_type = self.operation_type_argument(node, spelling, function)?;
+        if !matches!(
+            operand_type,
+            CheckedType::Float(_) | CheckedType::GenericFloat(_)
+        ) {
             return self.issue_node(SemanticRule::Op1, node, SemanticIssueKind::InvalidOperation);
-        };
+        }
         let atoms = self.operation_atoms(node, operation.operand_count())?;
         let mut arguments = Vec::with_capacity(atoms.len());
         let mut effects = EffectSet::NONE;
         for atom in atoms {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
-            if argument.mode != CheckedMode::Own
-                || argument.expression.ty() != CheckedType::Float(operand_type)
-            {
+            if argument.mode != CheckedMode::Own || argument.expression.ty() != operand_type {
                 return self.issue_node(SemanticRule::Type5, atom, SemanticIssueKind::TypeMismatch);
             }
             effects = effects.union(argument.effects);

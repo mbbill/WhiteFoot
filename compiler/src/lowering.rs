@@ -123,6 +123,9 @@ const fn lower_flat_element(value: CheckedFlatElement) -> Result<IrFlatElement, 
         CheckedFlatElement::GenericInt(_) => {
             return Err(LoweringFailure::InvalidCheckedProgram);
         }
+        CheckedFlatElement::GenericFloat(_) => {
+            return Err(LoweringFailure::InvalidCheckedProgram);
+        }
         CheckedFlatElement::TagOnlyNominal(id) => IrFlatElement::TagOnlyNominal(IrNominalId(id.0)),
     })
 }
@@ -138,7 +141,7 @@ fn lower_type(value: CheckedType) -> Result<IrType, LoweringFailure> {
         CheckedType::Float(float) => IrType::Float {
             width: float.width(),
         },
-        CheckedType::Generic(_) | CheckedType::GenericInt(_) => {
+        CheckedType::Generic(_) | CheckedType::GenericInt(_) | CheckedType::GenericFloat(_) => {
             return Err(LoweringFailure::InvalidCheckedProgram);
         }
         CheckedType::Nominal(id) => IrType::Nominal(IrNominalId(id.0)),

@@ -167,6 +167,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::GenericInt(declaration) => {
                 format!("<Int-parameter:{}>", declaration.index())
             }
+            CheckedType::GenericFloat(declaration) => {
+                format!("<Float-parameter:{}>", declaration.index())
+            }
             CheckedType::Nominal(id) => self.nominal(id)?.name.clone(),
             CheckedType::Array { element, length } => {
                 let length = match length {
@@ -354,10 +357,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .direct_token_with(node, TerminalPredicate::Literal)?
         {
+            let bytes = self.tree.token_bytes(literal)?;
+            if matches!(bytes, b"0_T" | b"1_T") {
+                return self.check_generic_numeric_identity(function, node, bytes == b"1_T");
+            }
             return Ok(TypedExpression::owned(
-                CheckedExpression::Constant(
-                    self.parse_literal(node, self.tree.token_bytes(literal)?)?,
-                ),
+                CheckedExpression::Constant(self.parse_literal(node, bytes)?),
                 EffectSet::NONE,
             ));
         }
@@ -384,8 +389,51 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 child_reborrow_allowed,
             );
         }
-        let _ = function;
         Err(SemanticCompilerFailure::InvalidCanonicalTree.into())
+    }
+
+    fn check_generic_numeric_identity(
+        &self,
+        function: &FunctionSignature,
+        node: NodeId,
+        one: bool,
+    ) -> Result<TypedExpression, CheckStop> {
+        let usage = self.use_at(node, LexicalUseRole::GenericNumericSuffix)?;
+        let ResolvedTarget::Source {
+            declaration,
+            class: DeclarationClass::GenericType,
+        } = usage.target()
+        else {
+            return Err(SemanticCompilerFailure::InvalidResolution.into());
+        };
+        let ty = function
+            .substitution
+            .type_argument(declaration)
+            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+        let value = match ty {
+            CheckedType::Integer(ty) => CheckedValue::Integer {
+                ty,
+                bits: u64::from(one),
+            },
+            CheckedType::Float(FloatType::F32) => CheckedValue::Float {
+                ty: FloatType::F32,
+                bits: if one { 0x3f80_0000 } else { 0 },
+            },
+            CheckedType::Float(FloatType::F64) => CheckedValue::Float {
+                ty: FloatType::F64,
+                bits: if one { 0x3ff0_0000_0000_0000 } else { 0 },
+            },
+            CheckedType::GenericInt(_) | CheckedType::GenericFloat(_) => {
+                CheckedValue::NumericIdentity { ty, one }
+            }
+            _ => {
+                return self.issue_node(SemanticRule::Form5, node, SemanticIssueKind::TypeMismatch);
+            }
+        };
+        Ok(TypedExpression::owned(
+            CheckedExpression::Constant(value),
+            EffectSet::NONE,
+        ))
     }
 
     fn check_place_use(

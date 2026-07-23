@@ -594,6 +594,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Bool
             | CheckedType::Generic(_)
             | CheckedType::GenericInt(_)
+            | CheckedType::GenericFloat(_)
             | CheckedType::Nominal(_) => false,
             CheckedType::Slice { .. } | CheckedType::Buffer { .. } => false,
         };
@@ -630,6 +631,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Float(ty) => Some(CheckedFlatElement::Float(ty)),
             CheckedType::GenericInt(declaration) => {
                 Some(CheckedFlatElement::GenericInt(declaration))
+            }
+            CheckedType::GenericFloat(declaration) => {
+                Some(CheckedFlatElement::GenericFloat(declaration))
             }
             CheckedType::Nominal(id) if self.nominal(id)?.is_copy() => {
                 Some(CheckedFlatElement::TagOnlyNominal(id))

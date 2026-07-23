@@ -1,6 +1,8 @@
 use crate::{SemanticIssueKind, SemanticOutcome, SemanticRule};
 
-use super::super::model::{CheckedExpression, CheckedFloatOperation, CheckedStatement, FloatType};
+use super::super::model::{
+    CheckedExpression, CheckedFloatOperation, CheckedStatement, CheckedType, FloatType,
+};
 use super::{assert_rule, with_semantics};
 
 #[test]
@@ -56,16 +58,25 @@ fn retains_the_complete_direct_float_operation_family() {
         assert_eq!(operations.len(), 24);
         assert_eq!(
             operations[0],
-            (CheckedFloatOperation::AddStrict, FloatType::F32)
+            (
+                CheckedFloatOperation::AddStrict,
+                CheckedType::Float(FloatType::F32)
+            )
         );
         assert_eq!(
             operations[21],
             (
                 CheckedFloatOperation::FusedMultiplyAddStrict,
-                FloatType::F32
+                CheckedType::Float(FloatType::F32)
             )
         );
-        assert_eq!(operations[23], (CheckedFloatOperation::Nan, FloatType::F32));
+        assert_eq!(
+            operations[23],
+            (
+                CheckedFloatOperation::Nan,
+                CheckedType::Float(FloatType::F32)
+            )
+        );
     });
 }
 

@@ -291,7 +291,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 match self.parse_type_with(type_node, &function.substitution)? {
                     CheckedType::Integer(ty) => CheckedNumericType::Integer(ty),
                     CheckedType::Float(ty) => CheckedNumericType::Float(ty),
-                    CheckedType::GenericInt(_) => {
+                    CheckedType::GenericInt(_) | CheckedType::GenericFloat(_) => {
                         return self.unsupported(UnsupportedSemanticFeature::Generics, type_node);
                     }
                     _ => {

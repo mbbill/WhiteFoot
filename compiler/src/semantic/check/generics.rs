@@ -12,6 +12,7 @@ use super::{CheckStop, Checker, FunctionSignature, FunctionTemplate};
 pub(super) enum GenericBound {
     Unbounded,
     Int,
+    Float,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -361,6 +362,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     } => GenericArgument::Type(CheckedType::GenericInt(declaration)),
                     GenericParameter::Type {
                         declaration,
+                        bound: GenericBound::Float,
+                    } => GenericArgument::Type(CheckedType::GenericFloat(declaration)),
+                    GenericParameter::Type {
+                        declaration,
                         bound: GenericBound::Unbounded,
                     } => GenericArgument::Type(CheckedType::Generic(declaration)),
                     GenericParameter::Const { declaration } => {
@@ -470,8 +475,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     GenericBound::Int
                 }
                 Some((ResolvedTarget::Prelude(id), _)) if id == PreludeDeclarationId::new(23) => {
-                    return self
-                        .unsupported(UnsupportedSemanticFeature::GenericFloatingPoint, node);
+                    GenericBound::Float
                 }
                 Some((
                     ResolvedTarget::Source {
@@ -554,9 +558,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     if matches!(ty, CheckedType::Slice { .. }) {
                         return self.unsupported(UnsupportedSemanticFeature::Generics, argument);
                     }
-                    if bound == GenericBound::Int
-                        && !matches!(ty, CheckedType::Integer(_) | CheckedType::GenericInt(_))
-                    {
+                    let satisfies_bound = match bound {
+                        GenericBound::Unbounded => true,
+                        GenericBound::Int => {
+                            matches!(ty, CheckedType::Integer(_) | CheckedType::GenericInt(_))
+                        }
+                        GenericBound::Float => {
+                            matches!(ty, CheckedType::Float(_) | CheckedType::GenericFloat(_))
+                        }
+                    };
+                    if !satisfies_bound {
                         return self.issue_node(
                             SemanticRule::Fn3,
                             argument,

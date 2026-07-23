@@ -49,6 +49,78 @@ fn main() -> own unit traps {
 }
 
 #[test]
+fn float_bound_selects_operations_and_identities_for_every_concrete_instance() {
+    let source = br#"fn affine<T: Float>(value: own T) -> own T pure {
+  let zero: own T = 0_T;
+  let one: own T = 1_T;
+  let shifted: own T = fadd.strict<T>(value, one);
+  return fadd.strict<T>(zero, shifted);
+}
+
+fn main() -> own unit traps {
+  let single: own f32 = affine<f32>(value: 2.0_f32);
+  let double: own f64 = affine<f64>(value: 4.0_f64);
+  check feq<f32>(single, 3.0_f32) else trap "f32 generic operation";
+  check feq<f64>(double, 5.0_f64) else trap "f64 generic operation";
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("Float-bound operations must check for each instance: {outcome:?}");
+        };
+        assert_eq!(checked.function_count(), 3);
+    });
+}
+
+#[test]
+fn float_bound_rejects_a_non_float_explicit_argument_under_fn3() {
+    let source = br#"fn identity<T: Float>(value: own T) -> own T pure {
+  return value;
+}
+
+fn main() -> own unit pure {
+  let invalid: own u32 = identity<u32>(value: 7_u32);
+  return unit;
+}
+"#;
+    assert_rule(source, SemanticRule::Fn3, SemanticIssueKind::TypeMismatch);
+}
+
+#[test]
+fn numeric_identity_requires_an_int_or_float_bound() {
+    let source = br#"fn invalid<T>() -> own T pure {
+  return 0_T;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#;
+    assert_rule(source, SemanticRule::Form5, SemanticIssueKind::TypeMismatch);
+}
+
+#[test]
+fn int_bound_identity_is_concretized_before_lowering() {
+    let source = br#"fn one<T: Int>() -> own T pure {
+  return 1_T;
+}
+
+fn main() -> own unit traps {
+  let value: own u16 = one<u16>();
+  check ieq<u16>(value, 1_u16) else trap "generic integer identity";
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("Int-bound identity must check and concretize: {outcome:?}");
+        };
+        assert_eq!(checked.function_count(), 2);
+    });
+}
+
+#[test]
 fn generic_conversion_is_reported_as_unsupported_instead_of_invalid_source() {
     let source = br#"fn convert<T: Int>(value: own T) -> own unit pure {
   cvt<T, u64>(value);
@@ -494,12 +566,20 @@ fn main() -> own unit pure {
 }
 
 #[test]
-fn int_and_const_parameters_flow_through_flat_storage_operations() {
+fn numeric_and_const_parameters_flow_through_flat_storage_operations() {
     let source = br#"fn filled_array<T: Int, const n: u64>(value: own T) -> own array<T, n> pure {
   return array_new<T, n>(value);
 }
 
 fn filled_buffer<T: Int>(length: own u64, value: own T) -> own buffer<T> allocates(heap), traps {
+  return buffer_new<T>(length, value);
+}
+
+fn filled_float_array<T: Float, const n: u64>(value: own T) -> own array<T, n> pure {
+  return array_new<T, n>(value);
+}
+
+fn filled_float_buffer<T: Float>(length: own u64, value: own T) -> own buffer<T> allocates(heap), traps {
   return buffer_new<T>(length, value);
 }
 
@@ -510,9 +590,15 @@ fn main() -> own unit allocates(heap), traps {
   let word: own i64 = index<i64>(words, 2_u64);
   let storage: own buffer<u16> = filled_buffer<u16>(length: 2_u64, value: 9_u16);
   let buffered: own u16 = index<u16>(storage, 1_u64);
+  let samples: own array<f32, 2> = filled_float_array<f32, 2>(value: 1.5_f32);
+  let sample: own f32 = index<f32>(samples, 1_u64);
+  let weights: own buffer<f64> = filled_float_buffer<f64>(length: 2_u64, value: 2.5_f64);
+  let weight: own f64 = index<f64>(weights, 1_u64);
   check ieq<u8>(byte, 7_u8) else trap "generic array";
   check ieq<i64>(word, -5_i64) else trap "generic const array";
   check ieq<u16>(buffered, 9_u16) else trap "generic buffer";
+  check feq<f32>(sample, 1.5_f32) else trap "generic float array";
+  check feq<f64>(weight, 2.5_f64) else trap "generic float buffer";
   return unit;
 }
 "#;
@@ -520,6 +606,6 @@ fn main() -> own unit allocates(heap), traps {
         let SemanticOutcome::Complete(checked) = outcome else {
             panic!("generic flat storage must check and concretize: {outcome:?}");
         };
-        assert_eq!(checked.function_count(), 4);
+        assert_eq!(checked.function_count(), 6);
     });
 }

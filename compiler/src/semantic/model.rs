@@ -141,6 +141,7 @@ pub(crate) enum CheckedFlatElement {
     Integer(IntegerType),
     Float(FloatType),
     GenericInt(DeclarationId),
+    GenericFloat(DeclarationId),
     TagOnlyNominal(NominalId),
 }
 
@@ -152,6 +153,7 @@ impl CheckedFlatElement {
             Self::Integer(ty) => CheckedType::Integer(ty),
             Self::Float(ty) => CheckedType::Float(ty),
             Self::GenericInt(declaration) => CheckedType::GenericInt(declaration),
+            Self::GenericFloat(declaration) => CheckedType::GenericFloat(declaration),
             Self::TagOnlyNominal(id) => CheckedType::Nominal(id),
         }
     }
@@ -165,6 +167,7 @@ pub(crate) enum CheckedType {
     Float(FloatType),
     Generic(DeclarationId),
     GenericInt(DeclarationId),
+    GenericFloat(DeclarationId),
     Nominal(NominalId),
     Array {
         element: CheckedFlatElement,
@@ -182,7 +185,7 @@ pub(crate) enum CheckedType {
 impl CheckedType {
     pub(crate) const fn is_concrete(self) -> bool {
         match self {
-            Self::Generic(_) | Self::GenericInt(_) => false,
+            Self::Generic(_) | Self::GenericInt(_) | Self::GenericFloat(_) => false,
             Self::Array { element, length } => element.ty().is_concrete() && length.is_concrete(),
             Self::Slice { element, .. } => element.ty().is_concrete(),
             Self::Buffer { element } => element.ty().is_concrete(),
@@ -203,6 +206,10 @@ pub(crate) enum CheckedValue {
         ty: FloatType,
         bits: u64,
     },
+    NumericIdentity {
+        ty: CheckedType,
+        one: bool,
+    },
     Array {
         ty: CheckedType,
         elements: Vec<CheckedValue>,
@@ -216,6 +223,7 @@ impl CheckedValue {
             Self::Bool(_) => CheckedType::Bool,
             Self::Integer { ty, .. } => CheckedType::Integer(*ty),
             Self::Float { ty, .. } => CheckedType::Float(*ty),
+            Self::NumericIdentity { ty, .. } => *ty,
             Self::Array { ty, .. } => *ty,
         }
     }
@@ -374,7 +382,7 @@ impl CheckedFloatOperation {
         }
     }
 
-    pub(crate) const fn result_type(self, operand: FloatType) -> CheckedType {
+    pub(crate) const fn result_type(self, operand: CheckedType) -> CheckedType {
         match self {
             Self::Equal
             | Self::Less
@@ -382,7 +390,7 @@ impl CheckedFloatOperation {
             | Self::Greater
             | Self::GreaterEqual
             | Self::NotEqual => CheckedType::Bool,
-            _ => CheckedType::Float(operand),
+            _ => operand,
         }
     }
 }
@@ -584,7 +592,7 @@ pub(crate) enum CheckedExpression {
     },
     FloatOperation {
         operation: CheckedFloatOperation,
-        operand_type: FloatType,
+        operand_type: CheckedType,
         arguments: Vec<CheckedExpression>,
     },
     NumericConversion {

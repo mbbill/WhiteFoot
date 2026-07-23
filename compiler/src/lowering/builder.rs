@@ -50,7 +50,9 @@ fn lower_scalar_constant(value: &CheckedValue) -> Result<IrConstant, LoweringFai
             ty: lower_type(crate::semantic::CheckedType::Float(*ty))?,
             bits: *bits,
         }),
-        CheckedValue::Array { .. } => Err(LoweringFailure::InvalidCheckedProgram),
+        CheckedValue::NumericIdentity { .. } | CheckedValue::Array { .. } => {
+            Err(LoweringFailure::InvalidCheckedProgram)
+        }
     }
 }
 
@@ -679,7 +681,7 @@ impl<'program> IrBuilder<'program> {
                     lower_type(expression.ty())?,
                     IrOperation::Float {
                         operation: (*operation).into(),
-                        operand_type: lower_type(CheckedType::Float(*operand_type))?,
+                        operand_type: lower_type(*operand_type)?,
                         arguments,
                     },
                 )

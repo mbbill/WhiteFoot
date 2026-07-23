@@ -29,6 +29,8 @@ pub(crate) use model::{
 /// Numbered rule owning one post-resolution semantic rejection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SemanticRule {
+    /// Generic numeric identity literal eligibility.
+    Form5,
     /// Numeric literal range or canonicality.
     Form7,
     /// Composite-type formation and element eligibility.
@@ -102,6 +104,7 @@ impl SemanticRule {
     #[must_use]
     pub const fn id(self) -> &'static str {
         match self {
+            Self::Form5 => "FORM-5",
             Self::Form7 => "FORM-7",
             Self::Type2 => "TYPE-2",
             Self::Const1 => "CONST-1",
@@ -351,8 +354,6 @@ pub enum UnsupportedSemanticFeature {
     RegionsAndBorrows,
     /// Composite types or values outside the implemented nominal-data family.
     CompositeValues,
-    /// A generic parameter bound by the prelude `Float` contract.
-    GenericFloatingPoint,
     /// A loop with no structurally reachable break exit for current SSA lowering.
     StructuredControlFlow,
     /// A recursive nominal layout whose finite representation is not selected.

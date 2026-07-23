@@ -159,8 +159,8 @@ edge and exact trap record.
 
 This is not a completeness claim. Cyclic and region-bearing generic forms,
 generic `requires`, general borrow referents and borrowed affine match
-payloads, returned borrows, bound/result-carrying/grandchild reborrows, generic
-`Float`, affine moves out through owning indirection, arenas, returned slices,
+payloads, returned borrows, bound/result-carrying/grandchild reborrows, affine
+moves out through owning indirection, arenas, returned slices,
 non-flat slice elements, slice formation through borrow holders, inline
 recursive nominal layouts, branch-dependent ownership/loan joins, projected
 array targets reached through borrow holders, and remaining effect-table
@@ -882,8 +882,8 @@ OP-8 intrinsics, ordered comparisons except unordered `fne`, canonical quiet
 NaNs, and signed-zero-preserving minimum and maximum. Floats compose through
 calls, loop-carried mutation, structs, const arrays, buffers, checked indexing,
 and SET-1. Executable edge tests cover both widths, NaN propagation, infinities,
-and signed zero. Generic `Float` remains a separate explicit unsupported
-capability.
+and signed zero. `Float`-bounded templates now reuse this concrete path after
+monomorphization as described below.
 
 A 64-by-48 Mandelbrot grid then selected OP-6's complete total-conversion
 family with a floating-point endpoint. One numeric-conversion judgment now
@@ -953,14 +953,28 @@ Returned slices, non-flat slice elements, slice formation through `deref`
 borrow holders, region-bearing generic arguments, and branch-dependent
 slice-provenance joins remain explicit unsupported capability boundaries.
 
+A precision-polymorphic 3D vector kernel then selected the built-in `Float`
+generic bound. Symbolic checking now distinguishes a `Float`-bounded type
+parameter from an unbounded parameter and an `Int`-bounded parameter, admits
+exactly the OP-1 floating rows for it, and treats it as copy and primitive-flat
+because every admitted substitution is `f32` or `f64`. FORM-5 `0_T` and `1_T`
+remain symbolic only while the template is checked and become exact integer or
+IEEE identity bits during each concrete recheck. Generic float struct fields,
+arrays, buffers, indexing, and calls therefore reuse the existing substitution
+and concrete semantic path; checked IR and LLVM see only ordinary concrete
+types. The public vector dot product instantiates one source definition at both
+float widths and executes both bodies. Type-dependent generic `cvt` and
+`reinterpret` remain explicit unsupported capabilities rather than selecting a
+result from an expected type.
+
 The exact next work remains Phase 9: select another production-shaped dogfood
 target in a real-world domain not exercised by the current programs, observe
 its first real missing language or compiler capability, and implement the
 smallest general semantic family that removes that blocker. Do not preselect a
 speculative family merely because it remains in the specification. Cyclic
 generic calls, region-bearing generic arguments, generic `requires`, and
-generic `cvt` remain explicit unsupported capabilities unless dogfood selects
-and implements one of them generally.
+type-dependent generic `cvt`/`reinterpret` remain explicit unsupported
+capabilities unless dogfood selects and implements one of them generally.
 
 ## Phase 9: dogfood and language iteration
 

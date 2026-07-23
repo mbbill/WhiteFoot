@@ -95,7 +95,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             | CheckedType::Bool
             | CheckedType::Integer(_)
             | CheckedType::Float(_)
-            | CheckedType::GenericInt(_) => true,
+            | CheckedType::GenericInt(_)
+            | CheckedType::GenericFloat(_) => true,
             CheckedType::Generic(_)
             | CheckedType::Array { .. }
             | CheckedType::Slice { .. }

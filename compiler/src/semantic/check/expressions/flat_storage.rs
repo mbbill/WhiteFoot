@@ -128,6 +128,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
             CheckedType::Float(ty) => CheckedFlatElement::Float(ty),
             CheckedType::GenericInt(declaration) => CheckedFlatElement::GenericInt(declaration),
+            CheckedType::GenericFloat(declaration) => CheckedFlatElement::GenericFloat(declaration),
             _ => {
                 return self.issue_node(
                     SemanticRule::Op1,
@@ -179,6 +180,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
             CheckedType::Float(ty) => CheckedFlatElement::Float(ty),
             CheckedType::GenericInt(declaration) => CheckedFlatElement::GenericInt(declaration),
+            CheckedType::GenericFloat(declaration) => CheckedFlatElement::GenericFloat(declaration),
             _ => {
                 return self.issue_node(
                     SemanticRule::Op1,
