@@ -138,8 +138,8 @@ detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
 This is not a completeness claim. Generics and contracts, borrow referents
-outside primitive buffers, returned borrows, child reborrows, floats, `Option`,
-boxes, arenas, slices, resource-bearing nominal payloads, recursive nominal
+outside primitive buffers, returned borrows, child reborrows, floats, boxes,
+arenas, slices, resource-bearing nominal payloads, recursive nominal
 layouts, branch-dependent ownership/loan joins, projected array targets, and
 floating-point, remaining conversion, and remaining effect-table operations
 are explicit unsupported compiler capabilities rather than source-language
@@ -244,15 +244,25 @@ unrepresentable edge for every checked pair. A compiler-independent CRC32
 program computes the standard `123456789` vector through checked buffer access
 and the same general `u8`-to-`u32` conversion path.
 
-The next slice is concrete PRE-1 `Option<T>` for every resource-free payload
-type the compiler can already represent. It is selected by a byte-scanner
-dogfood program that returns the first matching offset as `Some(value: u64)` or
-`None()`, then crosses function and match boundaries through the ordinary
-nominal path. This extends the existing generic-prelude instantiation mechanism
-by one declared nominal family; it does not add source generics, infer a
-constructor type from a context-free match scrutinee, or pretend that
-resource-bearing enum payload cleanup is solved. Those forms remain explicit
-unsupported capabilities.
+Concrete PRE-1 `Option<T>` now reuses the ordinary nominal path for every
+resource-free payload type the compiler can already represent. Explicitly
+written Option instances are interned structurally; `None` and `Some` use their
+declared variants and fields; and calls, returns, nested Options, construction,
+and exhaustive matches need no Option-specific IR or backend representation.
+The existing combined Result/Option program and a compiler-independent
+shared-borrow byte scanner execute both `Some(value: offset)` and `None()`
+edges. A context-free generic constructor still has no inferred instance, and
+an Option whose payload owns a buffer remains explicitly unsupported.
+
+The next slice is variant-dependent ownership and cleanup for resource-bearing
+enum payloads, both source enums and concrete PRE-1 `Option`/`Result`
+instances. It is selected by a fallible fixed-size byte transform that returns
+`Result<buffer<u8>, DecodeError>` and exercises success transfer, error return,
+matching, and abandonment cleanup through one general enum path. The slice
+must derive cleanup before lowering, drop exactly the active variant's owned
+fields, transfer a matched payload without double-free, and keep fully
+initialized inactive LLVM slots. It does not introduce user destructors,
+source generics, replacement storage, or container growth.
 
 Five inherited runnable conformance entries need protected-evidence correction
 before the compiler adapter can promote their current families. `pending-op9-buffer-new`
@@ -606,8 +616,11 @@ bodies without creating assumptions, and the borrowed output-capacity
 experiment runs with every bounds check retained. Integer OP-6 conversion is
 complete for all signed/unsigned pairs, and the standard CRC32 vector executes
 through its general byte-to-word widening path. Concrete resource-free
-`Option<T>` is next because a byte scanner needs to return either a real offset
-or absence without sentinel values.
+`Option<T>` also executes through the normal nominal path, and a borrowed byte
+scanner returns real offsets or absence without sentinel values.
+Variant-dependent resource-bearing enum cleanup is next because a fallible
+byte transform must transfer an owned output buffer on success without leaking
+or double-freeing either result arm.
 
 ## Phase 9: dogfood and language iteration
 

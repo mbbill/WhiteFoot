@@ -613,6 +613,29 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .get(&declaration)
                 .ok_or(SemanticCompilerFailure::InvalidResolution)?,
             ResolvedTarget::Prelude(id) => match id.ordinal() {
+                5 | 6 => {
+                    let Some(CheckedType::Nominal(nominal)) = expected else {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Type5,
+                            node,
+                            SemanticIssueKind::TypeMismatch,
+                        );
+                    };
+                    if !matches!(
+                        self.prelude_type(nominal),
+                        Some(super::PreludeType::Option(_))
+                    ) {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Type5,
+                            node,
+                            SemanticIssueKind::TypeMismatch,
+                        );
+                    }
+                    Constructor::Enum {
+                        nominal,
+                        variant: u32::from(id.ordinal() == 6),
+                    }
+                }
                 11 | 13 => {
                     let Some(CheckedType::Nominal(nominal)) = expected else {
                         return self.issue_node(

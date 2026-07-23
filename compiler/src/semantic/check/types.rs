@@ -135,6 +135,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     }
                     return Ok(CheckedType::Bool);
                 }
+                ResolvedTarget::Prelude(id) if id == PreludeDeclarationId::new(3) => {
+                    let value = self.option_type_argument(node)?;
+                    return self
+                        .prelude_nominals
+                        .get(&PreludeType::Option(value))
+                        .copied()
+                        .map(CheckedType::Nominal)
+                        .ok_or(SemanticCompilerFailure::InvalidResolution.into());
+                }
                 ResolvedTarget::Prelude(id) if id == PreludeDeclarationId::new(8) => {
                     let (ok, error) = self.result_type_arguments(node)?;
                     return self
@@ -245,6 +254,36 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
         }
         Ok((ok_type, error_type))
+    }
+
+    pub(super) fn option_type_argument(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
+        let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? else {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                node,
+                SemanticIssueKind::TypeMismatch,
+            );
+        };
+        let arguments = self.tree.children_with(targs, ProductionV0_14::Targ)?;
+        let [value] = arguments.as_slice() else {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                node,
+                SemanticIssueKind::TypeMismatch,
+            );
+        };
+        let Some(value) = self.tree.first_child_with(*value, ProductionV0_14::Type)? else {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                node,
+                SemanticIssueKind::TypeMismatch,
+            );
+        };
+        let value = self.parse_type(value)?;
+        if matches!(value, CheckedType::Buffer { .. }) {
+            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
+        }
+        Ok(value)
     }
 
     pub(super) fn integer_type(&self, node: NodeId) -> Result<Option<IntegerType>, CheckStop> {

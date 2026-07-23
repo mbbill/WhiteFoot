@@ -8,6 +8,7 @@ mod integer_absolute;
 mod integer_conversion;
 mod integer_extended;
 mod integer_negation;
+mod options;
 mod requires;
 
 use crate::lexer::{LexLimits, LexOutcome, lex_v0_14};

@@ -102,6 +102,14 @@ before the body. Callers do not prove it, and it is never turned into
 program exercises this path through the ordinary loop, buffer, effect, and
 cleanup implementation.
 
+Concrete PRE-1 `Option<T>` instances reuse the same checked nominal, typed IR,
+and LLVM representation as source enums and `Result<T, E>` for every currently
+supported resource-free payload. `None` and `Some` cross ordinary function,
+return, and match boundaries; nested Options are concrete nominal instances,
+not erased values. A shared-borrow byte scanner returns `Option<u64>` through
+this path. Resource-bearing Option and Result payloads remain unsupported until
+variant-dependent cleanup is represented before lowering.
+
 This first borrow family deliberately stops before scalar and nominal
 referents, returned borrows, statement-scoped child reborrows, borrow-producing
 branch joins, boxes, arenas, and slices. Those forms remain explicit

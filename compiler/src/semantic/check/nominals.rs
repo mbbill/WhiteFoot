@@ -386,9 +386,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .then(left.1.index().cmp(&right.1.index()))
         });
         for (_, node) in type_nodes {
-            if self.prelude_type_ordinal(node)? == Some(8) {
-                let (ok, error) = self.result_type_arguments(node)?;
-                self.intern_prelude_nominal(PreludeType::Result(ok, error))?;
+            match self.prelude_type_ordinal(node)? {
+                Some(3) => {
+                    let value = self.option_type_argument(node)?;
+                    self.intern_prelude_nominal(PreludeType::Option(value))?;
+                }
+                Some(8) => {
+                    let (ok, error) = self.result_type_arguments(node)?;
+                    self.intern_prelude_nominal(PreludeType::Result(ok, error))?;
+                }
+                _ => {}
             }
         }
 
@@ -518,6 +525,26 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
         );
         let (name, variants) = match ty {
+            PreludeType::Option(value) => (
+                format!("Option<{}>", self.checked_type_name(value)?),
+                vec![
+                    CheckedVariant {
+                        name: "None".to_owned(),
+                        constructor: CheckedConstructor::Prelude(PreludeDeclarationId::new(5)),
+                        tag: 0,
+                        fields: Vec::new(),
+                    },
+                    CheckedVariant {
+                        name: "Some".to_owned(),
+                        constructor: CheckedConstructor::Prelude(PreludeDeclarationId::new(6)),
+                        tag: 1,
+                        fields: vec![CheckedField {
+                            name: "value".to_owned(),
+                            ty: value,
+                        }],
+                    },
+                ],
+            ),
             PreludeType::Result(ok, error) => (
                 format!(
                     "Result<{}, {}>",

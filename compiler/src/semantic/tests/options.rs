@@ -1,0 +1,63 @@
+use crate::{SemanticOutcome, UnsupportedSemanticFeatureV0_14};
+
+use super::{assert_unsupported, with_semantics};
+
+#[test]
+fn concrete_options_reuse_the_nominal_path_for_supported_payloads() {
+    let source = br#"struct Pair {
+  left: u32;
+  right: u32;
+}
+
+fn scalar(value: own i32) -> own Option<i32> pure {
+  return Some(value: value);
+}
+
+fn aggregate(value: own Pair) -> own Option<Pair> pure {
+  return Some(value: move value);
+}
+
+fn nested() -> own Option<Option<u8>> pure {
+  let inner: own Option<u8> = Some(value: 7_u8);
+  return Some(value: move inner);
+}
+
+fn absent() -> own Option<Pair> pure {
+  return None();
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("resource-free Option payloads must check: {outcome:?}");
+        };
+        let names = checked
+            .data
+            .nominals
+            .iter()
+            .map(|nominal| nominal.name.as_str())
+            .collect::<Vec<_>>();
+        for expected in [
+            "Option<i32>",
+            "Option<Pair>",
+            "Option<u8>",
+            "Option<Option<u8>>",
+        ] {
+            assert!(
+                names.contains(&expected),
+                "missing concrete prelude nominal {expected}: {names:?}"
+            );
+        }
+    });
+}
+
+#[test]
+fn option_of_a_resource_bearing_payload_stays_explicitly_unsupported() {
+    assert_unsupported(
+        b"fn main() -> own unit pure {\n  let absent: own Option<buffer<u8>> = None();\n  return unit;\n}\n",
+        UnsupportedSemanticFeatureV0_14::CompositeValues,
+    );
+}

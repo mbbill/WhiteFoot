@@ -141,6 +141,7 @@ impl EffectSet {
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum PreludeType {
+    Option(CheckedType),
     Result(CheckedType, CheckedType),
     Overflow,
     DivError,
