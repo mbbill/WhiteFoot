@@ -365,7 +365,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             let spelling = self.tree.direct_spelling(callee)?;
             if !matches!(
                 spelling.as_slice(),
-                b"iadd.checked" | b"isub.checked" | b"imul.checked"
+                b"iadd.checked"
+                    | b"isub.checked"
+                    | b"imul.checked"
+                    | b"idiv.checked"
+                    | b"irem.checked"
             ) {
                 continue;
             }
@@ -385,9 +389,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             let Some(integer) = self.integer_type(ty_node)? else {
                 continue;
             };
+            let error = if matches!(spelling.as_slice(), b"idiv.checked" | b"irem.checked") {
+                PreludeType::DivError
+            } else {
+                PreludeType::Overflow
+            };
             self.intern_prelude_nominal(PreludeType::Result(
                 CheckedType::Integer(integer),
-                CheckedType::Nominal(self.prelude_nominal(PreludeType::Overflow)?),
+                CheckedType::Nominal(self.prelude_nominal(error)?),
             ))?;
         }
         Ok(())

@@ -113,13 +113,19 @@ its `(function, node_path)` context and lowers to an explicit Ok continuation
 and Err return edge with exact same-E checking and derived cleanup. Independent
 Result value-match, checked-overflow, loop, and custom propagation programs run
 through the host backend, including a Result whose Ok payload is a struct.
+Checked division and remainder now use the same Result, match, propagation,
+checked-program, and typed-IR path for all eight integer types. The backend
+tests divisor zero and signed minimum/-1 before entering a block containing
+`sdiv`, `udiv`, `srem`, or `urem`; error edges construct the exact
+`DivideByZero` or `DivOverflow` payload without executing a partial LLVM
+instruction.
 
 This is not a completeness claim. Generics and contracts, regions and borrows,
 floats, `Option`, allocations and containers, recursive nominal layouts,
 branch-dependent ownership joins, index and borrow-backed SET-1 targets,
-checked division/remainder and unary integer operations, and the remaining
-operation/effect table are explicit unsupported compiler capabilities rather
-than source-language rejections. Repeated exhaustive match arms also stop as
+unary integer operations, and the remaining operation/effect table are
+explicit unsupported compiler capabilities rather than source-language
+rejections. Repeated exhaustive match arms also stop as
 unsupported because v0.13 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
 
@@ -135,7 +141,8 @@ own-rooted operand consumes its whole storage root exactly once; an explicit
 rejected under OWN-1. The approved ERR-3 source repairs preserve every existing
 conformance verdict and status while restoring required affine returns, exact
 effect rows, complete programs, and fresh match binders. Checked
-division/remainder is the next closed Result-producing operation family.
+division/remainder is complete; the unary integer modes are the next closed
+OP-2 family.
 
 ## Authority and specification changes
 
@@ -450,8 +457,10 @@ nominal/control-flow path: contextual construction, arbitrary currently
 supported payload types, calls and returns, exhaustive matching, checked
 add/subtract/multiply, and explicit ERR-3 forwarding. It does not special-case
 `run-ex2` or another corpus source. The v0.13 propagation-ownership rule and
-approved source repairs are synchronized through that same path; checked
-division/remainder is the next end-to-end Result-producing family.
+approved source repairs are synchronized through that same path. Checked
+division/remainder now produces `Result<T, DivError>` through this path and
+guards both LLVM hazards before the partial instruction. Unary integer modes
+are the next closed arithmetic family.
 Buffers, index places, and loan-aware SET-1 targets follow when their storage
 and borrow families become the experiment being unlocked.
 

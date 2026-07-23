@@ -1,5 +1,7 @@
 #![allow(clippy::panic)]
 
+mod checked_division;
+
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 

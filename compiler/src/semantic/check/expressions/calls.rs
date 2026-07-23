@@ -157,6 +157,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             "iadd.checked" => CheckedIntegerOperation::AddChecked,
             "isub.checked" => CheckedIntegerOperation::SubtractChecked,
             "imul.checked" => CheckedIntegerOperation::MultiplyChecked,
+            "idiv.checked" => CheckedIntegerOperation::DivideChecked,
+            "irem.checked" => CheckedIntegerOperation::RemainderChecked,
             "ieq" => CheckedIntegerOperation::Equal,
             "ine" => CheckedIntegerOperation::NotEqual,
             "ilt" => CheckedIntegerOperation::Less,
@@ -241,15 +243,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         } else {
             None
         };
-        let result = if matches!(
-            operation,
+        let checked_error = match operation {
             CheckedIntegerOperation::AddChecked
-                | CheckedIntegerOperation::SubtractChecked
-                | CheckedIntegerOperation::MultiplyChecked
-        ) {
+            | CheckedIntegerOperation::SubtractChecked
+            | CheckedIntegerOperation::MultiplyChecked => Some(PreludeType::Overflow),
+            CheckedIntegerOperation::DivideChecked | CheckedIntegerOperation::RemainderChecked => {
+                Some(PreludeType::DivError)
+            }
+            _ => None,
+        };
+        let result = if let Some(error) = checked_error {
             CheckedType::Nominal(self.prelude_nominal(PreludeType::Result(
                 CheckedType::Integer(operand_type),
-                CheckedType::Nominal(self.prelude_nominal(PreludeType::Overflow)?),
+                CheckedType::Nominal(self.prelude_nominal(error)?),
             ))?)
         } else {
             operation

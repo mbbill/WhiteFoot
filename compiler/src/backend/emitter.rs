@@ -640,6 +640,16 @@ fn block_exit_label(block_id: IrBlockId, block: &IrBlock) -> String {
             IrInstruction::Check { .. } => label = check_continue_label(block_id, index),
             IrInstruction::Define {
                 result,
+                operation:
+                    IrOperation::Integer {
+                        operation:
+                            IrIntegerOperation::DivideChecked | IrIntegerOperation::RemainderChecked,
+                        ..
+                    },
+                ..
+            } => label = integer_continue_label(*result),
+            IrInstruction::Define {
+                result,
                 operation: IrOperation::Integer { trap: Some(_), .. },
                 ..
             } => label = overflow_continue_label(*result),
@@ -679,6 +689,18 @@ fn overflow_continue_label(value: IrValueId) -> String {
 
 fn overflow_trap_label(value: IrValueId) -> String {
     format!("overflow.trap.v{}", value.ordinal())
+}
+
+fn integer_safe_label(value: IrValueId) -> String {
+    format!("integer.safe.v{}", value.ordinal())
+}
+
+fn integer_error_label(value: IrValueId) -> String {
+    format!("integer.error.v{}", value.ordinal())
+}
+
+fn integer_continue_label(value: IrValueId) -> String {
+    format!("integer.cont.v{}", value.ordinal())
 }
 
 fn invalid_tag_label(block: IrBlockId) -> String {

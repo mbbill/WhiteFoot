@@ -132,44 +132,10 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
             IrIntegerOperation::AddChecked
             | IrIntegerOperation::SubtractChecked
             | IrIntegerOperation::MultiplyChecked => {
-                let IrType::Nominal(result_nominal) = result_type else {
-                    return Err(BackendFailure::InvalidIr);
-                };
                 if trap.is_some() {
                     return Err(BackendFailure::InvalidIr);
                 }
-                let error_type = {
-                    let IrNominalKind::Enum { variants } = self.nominal(result_nominal)?.kind()
-                    else {
-                        return Err(BackendFailure::InvalidIr);
-                    };
-                    let [ok, error] = variants.as_slice() else {
-                        return Err(BackendFailure::InvalidIr);
-                    };
-                    if ok.tag() != 0
-                        || error.tag() != 1
-                        || ok.fields().len() != 1
-                        || error.fields().len() != 1
-                        || ok.fields()[0].ty() != operand_type
-                    {
-                        return Err(BackendFailure::InvalidIr);
-                    }
-                    error.fields()[0].ty()
-                };
-                let IrType::Nominal(error_nominal) = error_type else {
-                    return Err(BackendFailure::InvalidIr);
-                };
-                let IrNominalKind::Enum {
-                    variants: error_variants,
-                } = self.nominal(error_nominal)?.kind()
-                else {
-                    return Err(BackendFailure::InvalidIr);
-                };
-                if !self.nominal(error_nominal)?.is_tag_only_enum()
-                    || !matches!(error_variants.as_slice(), [variant] if variant.tag() == 0)
-                {
-                    return Err(BackendFailure::InvalidIr);
-                }
+                let error_type = self.checked_result_error_type(result_type, operand_type, &[0])?;
 
                 let stem = match operation {
                     IrIntegerOperation::AddChecked => "add",
@@ -193,6 +159,78 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                     self.output,
                     "  %{pair} = call {{ {ty}, i1 }} @{intrinsic}({ty} {left}, {ty} {right})\n  %{value} = extractvalue {{ {ty}, i1 }} %{pair}, 0\n  %{overflow} = extractvalue {{ {ty}, i1 }} %{pair}, 1\n  %{ok_tag} = insertvalue {result_ty} zeroinitializer, i32 0, 0\n  %{ok_value} = insertvalue {result_ty} %{ok_tag}, {ty} %{value}, 1\n  %{error_tag} = insertvalue {result_ty} zeroinitializer, i32 1, 0\n  %{error_value} = insertvalue {result_ty} %{error_tag}, {error_ty} 0, 2\n  {} = select i1 %{overflow}, {result_ty} %{error_value}, {result_ty} %{ok_value}",
                     value_name(result)
+                )
+                .map_err(|_| BackendFailure::TextEmission)?;
+            }
+            IrIntegerOperation::DivideChecked | IrIntegerOperation::RemainderChecked => {
+                if trap.is_some() {
+                    return Err(BackendFailure::InvalidIr);
+                }
+                let error_type =
+                    self.checked_result_error_type(result_type, operand_type, &[0, 1])?;
+                let result_ty = llvm_type(self.program, result_type)?;
+                let error_ty = llvm_type(self.program, error_type)?;
+                let is_zero = self.next_temporary()?;
+                writeln!(self.output, "  %{is_zero} = icmp eq {ty} {right}, 0")
+                    .map_err(|_| BackendFailure::TextEmission)?;
+
+                let error_condition = if signed {
+                    let is_minimum = self.next_temporary()?;
+                    let is_minus_one = self.next_temporary()?;
+                    let is_overflow = self.next_temporary()?;
+                    let is_error = self.next_temporary()?;
+                    let minimum = -(1_i128 << (width - 1));
+                    writeln!(
+                        self.output,
+                        "  %{is_minimum} = icmp eq {ty} {left}, {minimum}\n  %{is_minus_one} = icmp eq {ty} {right}, -1\n  %{is_overflow} = and i1 %{is_minimum}, %{is_minus_one}\n  %{is_error} = or i1 %{is_zero}, %{is_overflow}"
+                    )
+                    .map_err(|_| BackendFailure::TextEmission)?;
+                    is_error
+                } else {
+                    is_zero.clone()
+                };
+
+                let opcode = match (operation, signed) {
+                    (IrIntegerOperation::DivideChecked, true) => "sdiv",
+                    (IrIntegerOperation::DivideChecked, false) => "udiv",
+                    (IrIntegerOperation::RemainderChecked, true) => "srem",
+                    (IrIntegerOperation::RemainderChecked, false) => "urem",
+                    _ => return Err(BackendFailure::InvalidIr),
+                };
+                let safe_value = self.next_temporary()?;
+                let ok_tag = self.next_temporary()?;
+                let ok_value = self.next_temporary()?;
+                let error_kind = signed.then(|| self.next_temporary()).transpose()?;
+                let error_tag = self.next_temporary()?;
+                let error_value = self.next_temporary()?;
+                writeln!(
+                    self.output,
+                    "  br i1 %{error_condition}, label %{}, label %{}\n{}:\n  %{safe_value} = {opcode} {ty} {left}, {right}\n  %{ok_tag} = insertvalue {result_ty} zeroinitializer, i32 0, 0\n  %{ok_value} = insertvalue {result_ty} %{ok_tag}, {ty} %{safe_value}, 1\n  br label %{}\n{}:",
+                    integer_error_label(result),
+                    integer_safe_label(result),
+                    integer_safe_label(result),
+                    integer_continue_label(result),
+                    integer_error_label(result),
+                )
+                .map_err(|_| BackendFailure::TextEmission)?;
+                let error_operand = if let Some(error_kind) = error_kind {
+                    writeln!(
+                        self.output,
+                        "  %{error_kind} = select i1 %{is_zero}, {error_ty} 0, {error_ty} 1"
+                    )
+                    .map_err(|_| BackendFailure::TextEmission)?;
+                    format!("%{error_kind}")
+                } else {
+                    "0".to_owned()
+                };
+                writeln!(
+                    self.output,
+                    "  %{error_tag} = insertvalue {result_ty} zeroinitializer, i32 1, 0\n  %{error_value} = insertvalue {result_ty} %{error_tag}, {error_ty} {error_operand}, 2\n  br label %{}\n{}:\n  {} = phi {result_ty} [ %{ok_value}, %{} ], [ %{error_value}, %{} ]",
+                    integer_continue_label(result),
+                    integer_continue_label(result),
+                    value_name(result),
+                    integer_safe_label(result),
+                    integer_error_label(result),
                 )
                 .map_err(|_| BackendFailure::TextEmission)?;
             }
@@ -228,6 +266,51 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         }
         let _ = block;
         Ok(())
+    }
+
+    fn checked_result_error_type(
+        &self,
+        result_type: IrType,
+        operand_type: IrType,
+        expected_error_tags: &[u32],
+    ) -> Result<IrType, BackendFailure> {
+        let IrType::Nominal(result_nominal) = result_type else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        let IrNominalKind::Enum { variants } = self.nominal(result_nominal)?.kind() else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        let [ok, error] = variants.as_slice() else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        if ok.tag() != 0
+            || error.tag() != 1
+            || ok.fields().len() != 1
+            || error.fields().len() != 1
+            || ok.fields()[0].ty() != operand_type
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        let error_type = error.fields()[0].ty();
+        let IrType::Nominal(error_nominal) = error_type else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        let IrNominalKind::Enum {
+            variants: error_variants,
+        } = self.nominal(error_nominal)?.kind()
+        else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        if !self.nominal(error_nominal)?.is_tag_only_enum()
+            || error_variants.len() != expected_error_tags.len()
+            || error_variants
+                .iter()
+                .zip(expected_error_tags)
+                .any(|(variant, expected)| variant.tag() != *expected)
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        Ok(error_type)
     }
 
     pub(super) fn emit_boolean(

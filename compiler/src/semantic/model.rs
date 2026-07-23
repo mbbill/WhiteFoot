@@ -118,6 +118,8 @@ pub(crate) enum CheckedIntegerOperation {
     AddChecked,
     SubtractChecked,
     MultiplyChecked,
+    DivideChecked,
+    RemainderChecked,
     Equal,
     NotEqual,
     Less,
@@ -144,7 +146,11 @@ impl CheckedIntegerOperation {
 
     pub(crate) const fn scalar_result_type(self, operand: IntegerType) -> Option<CheckedType> {
         match self {
-            Self::AddChecked | Self::SubtractChecked | Self::MultiplyChecked => None,
+            Self::AddChecked
+            | Self::SubtractChecked
+            | Self::MultiplyChecked
+            | Self::DivideChecked
+            | Self::RemainderChecked => None,
             Self::Equal
             | Self::NotEqual
             | Self::Less

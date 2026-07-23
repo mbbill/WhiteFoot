@@ -1,5 +1,7 @@
 #![allow(clippy::panic)]
 
+mod checked_division;
+
 use crate::lexer::{LexLimits, LexOutcome, lex_v0_13};
 use crate::{
     CanonicalLimits, CanonicalOutcome, FinalizeLimits, FinalizeOutcome, KERNEL_SPEC_V0_13_HASH,
