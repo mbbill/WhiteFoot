@@ -20,7 +20,8 @@ pub(crate) use model::{
     BindingId, CheckedArrayElement, CheckedArrayRoot, CheckedBooleanOperation, CheckedDrop,
     CheckedEnumType, CheckedExpression, CheckedFunction, CheckedIntegerOperation, CheckedLoopId,
     CheckedMatchArm, CheckedNominalKind, CheckedProgramData, CheckedProjectedDrop,
-    CheckedStatement, CheckedType, CheckedValue, NominalId, PropagationContext, TrapSite,
+    CheckedSetTarget, CheckedStatement, CheckedType, CheckedValue, NominalId, PropagationContext,
+    TrapSite,
 };
 
 /// Numbered rule owning one post-resolution semantic rejection.

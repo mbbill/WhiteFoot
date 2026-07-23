@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedArrayRoot, CheckedExpression, CheckedNominalKind, CheckedProjectedDrop, CheckedType,
+    CheckedExpression, CheckedNominalKind, CheckedProjectedDrop, CheckedSetTarget, CheckedType,
     CheckedValue, CheckedWritablePlace, IntegerType,
 };
 use super::{CheckStop, Checker, Constructor, FunctionSignature, LocalBinding, TypedExpression};
@@ -33,9 +33,11 @@ struct PlaceUseOptions {
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
     pub(super) fn check_set_target(
         &self,
+        function: &FunctionSignature,
         node: NodeId,
-        bindings: &HashMap<DeclarationId, LocalBinding>,
-    ) -> Result<(DeclarationId, CheckedWritablePlace), CheckStop> {
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
+    ) -> Result<(DeclarationId, CheckedSetTarget, bool), CheckStop> {
         let pbase = self
             .tree
             .first_child_with(node, ProductionV0_14::Pbase)?
@@ -44,21 +46,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, pbase);
         }
         if self.has_fixed(pbase, FixedTerminalV0_14::Index)? {
-            let base = self
-                .tree
-                .first_child_with(pbase, ProductionV0_14::Place)?
-                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            if matches!(
-                self.check_array_place(base, bindings)?.root,
-                CheckedArrayRoot::Constant(_)
-            ) {
-                return self.issue_node(
-                    SemanticRuleV0_14::Const2,
-                    node,
-                    SemanticIssueKind::ImmutableSetTarget,
-                );
-            }
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, pbase);
+            return self.check_array_set_target(function, node, pbase, bindings, loop_depth);
         }
         if !self.tree.children(pbase)?.is_empty() {
             return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
@@ -152,11 +140,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
 
         Ok((
             declaration,
-            CheckedWritablePlace {
+            CheckedSetTarget::Place(CheckedWritablePlace {
                 binding: local.binding,
                 fields,
                 ty,
-            },
+            }),
+            false,
         ))
     }
 

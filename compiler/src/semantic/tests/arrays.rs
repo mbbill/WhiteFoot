@@ -1,8 +1,8 @@
 use crate::{SemanticIssueKind, SemanticOutcome, SemanticRuleV0_14};
 
 use super::super::model::{
-    CheckedArrayElement, CheckedArrayRoot, CheckedExpression, CheckedStatement, CheckedType,
-    CheckedValue, IntegerType,
+    CheckedArrayElement, CheckedArrayRoot, CheckedExpression, CheckedSetTarget, CheckedStatement,
+    CheckedType, CheckedValue, IntegerType,
 };
 use super::{assert_rule, with_semantics};
 
@@ -163,5 +163,60 @@ fn main() -> own unit pure {
         b"enum Payload {\n  Item(value: i32);\n}\n\nstruct Holder {\n  values: array<Payload, 2>;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
         SemanticRuleV0_14::Type2,
         SemanticIssueKind::TypeMismatch,
+    );
+}
+
+#[test]
+fn indexed_set_retains_its_pre_rhs_guard_and_copy_target() {
+    let source = br#"fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  set index<u8>(values, 1_u64) = 9_u8;
+  let stored: own u8 = index<u8>(values, 1_u64);
+  check ieq<u8>(stored, 9_u8) else trap "set drift";
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("indexed fixed-array set must check: {outcome:?}");
+        };
+        let CheckedStatement::Set { target, .. } = &checked.data.functions[0].body[1] else {
+            panic!("second statement must be the indexed set");
+        };
+        let CheckedSetTarget::ArrayIndex(target) = target else {
+            panic!("indexed set must retain an array-index target");
+        };
+        assert_eq!(
+            target.array_type,
+            CheckedType::Array {
+                element: CheckedArrayElement::Integer(IntegerType::U8),
+                length: 2,
+            }
+        );
+        assert_eq!(target.element_type, CheckedType::Integer(IntegerType::U8));
+        assert_eq!(target.length, 2);
+        assert_eq!(target.offset.ty(), CheckedType::Integer(IntegerType::U64));
+        assert_eq!(target.trap.rule_id, "OP-4");
+    });
+}
+
+#[test]
+fn indexed_set_rechecks_type_effect_and_root_liveness() {
+    assert_rule(
+        b"fn main() -> own unit pure {\n  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);\n  set index<u8>(values, 0_u64) = 1_u8;\n  return unit;\n}\n",
+        SemanticRuleV0_14::Eff2,
+        SemanticIssueKind::EffectMismatch,
+    );
+    assert_rule(
+        b"fn main() -> own unit traps {\n  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);\n  set index<u8>(values, 0_u64) = 1_u16;\n  return unit;\n}\n",
+        SemanticRuleV0_14::Type5,
+        SemanticIssueKind::TypeMismatch,
+    );
+    assert_rule(
+        b"fn consume(values: own array<u8, 2>) -> own u8 pure {\n  return 1_u8;\n}\n\nfn main() -> own unit traps {\n  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);\n  set index<u8>(values, 0_u64) = consume(values: move values);\n  return unit;\n}\n",
+        SemanticRuleV0_14::Own1,
+        SemanticIssueKind::UseAfterMove {
+            mechanical_fix: "introduce a new `let` binding before reuse",
+        },
     );
 }

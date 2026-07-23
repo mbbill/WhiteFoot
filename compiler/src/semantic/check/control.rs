@@ -263,15 +263,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
 
                 // SET-1 fixes this order: form and check the target first, then
                 // evaluate the RHS, then re-establish target writability.
-                let (declaration, target) = self.check_set_target(target_node, bindings)?;
+                let (declaration, target, target_exhibits_traps) =
+                    self.check_set_target(function, target_node, bindings, scope.loops.len())?;
                 let value = self.check_expression_with_expected(
                     function,
                     expression_node,
                     bindings,
                     scope.loops.len(),
-                    Some(target.ty),
+                    Some(target.ty()),
                 )?;
-                if value.expression.ty() != target.ty {
+                if value.expression.ty() != target.ty() {
                     return self.issue_node(
                         SemanticRuleV0_14::Type5,
                         expression_node,
@@ -296,7 +297,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         target,
                         value: value.expression,
                     },
-                    value.exhibits_traps,
+                    target_exhibits_traps || value.exhibits_traps,
                 ))
             }
             ProductionV0_14::LoopStmt => self.check_loop(function, node, bindings, counters, scope),

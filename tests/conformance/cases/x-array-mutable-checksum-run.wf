@@ -1,0 +1,32 @@
+fn main() -> own unit traps {
+  doc "A mutable fixed array is filled and folded through checked indexed writes and reads.";
+  let values: own array<u64, 8> = array_new<u64, 8>(0_u64);
+  let cursor: own u64 = 0_u64;
+  loop @fill {
+    match ieq<u64>(cursor, 8_u64) {
+      True() => {
+        break @fill;
+      }
+      False() => {
+      }
+    }
+    set index<u64>(values, cursor) = iadd.wrap<u64>(cursor, 1_u64);
+    set cursor = iadd.wrap<u64>(cursor, 1_u64);
+  }
+  set cursor = 0_u64;
+  let total: own u64 = 0_u64;
+  loop @fold {
+    match ieq<u64>(cursor, 8_u64) {
+      True() => {
+        break @fold;
+      }
+      False() => {
+      }
+    }
+    let value: own u64 = index<u64>(values, cursor);
+    set total = iadd.wrap<u64>(total, value);
+    set cursor = iadd.wrap<u64>(cursor, 1_u64);
+  }
+  check ieq<u64>(total, 36_u64) else trap "mutable array checksum drift";
+  return unit;
+}

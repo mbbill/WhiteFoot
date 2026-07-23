@@ -104,6 +104,9 @@ pub enum IrType {
         element: IrArrayElement,
         length: u64,
     },
+    GuardedArrayIndex {
+        length: u64,
+    },
 }
 
 const fn lower_array_element(value: CheckedArrayElement) -> IrArrayElement {
@@ -421,6 +424,15 @@ pub enum IrOperation {
         root: IrArrayRoot,
         offset: IrValueId,
         trap: IrTrapSite,
+    },
+    ArrayBoundsCheck {
+        offset: IrValueId,
+        trap: IrTrapSite,
+    },
+    InsertArray {
+        aggregate: IrValueId,
+        index: IrValueId,
+        value: IrValueId,
     },
     ConstructStruct {
         nominal: IrNominalId,

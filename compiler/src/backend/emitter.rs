@@ -448,6 +448,14 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
             IrOperation::ArrayIndex { root, offset, trap } => {
                 self.emit_array_index(result, ty, *root, *offset, trap)
             }
+            IrOperation::ArrayBoundsCheck { offset, trap } => {
+                self.emit_array_bounds_check(result, ty, *offset, trap)
+            }
+            IrOperation::InsertArray {
+                aggregate,
+                index,
+                value,
+            } => self.emit_array_insertion(result, ty, *aggregate, *index, *value),
             IrOperation::ConstructStruct { nominal, fields } => {
                 self.emit_struct(result, ty, *nominal, fields)
             }
@@ -651,6 +659,7 @@ fn llvm_type(program: &IrProgram<'_, '_, '_>, ty: IrType) -> Result<String, Back
             "[{length} x {}]",
             llvm_type(program, element.ty())?
         )),
+        IrType::GuardedArrayIndex { .. } => Ok("i64".to_owned()),
         IrType::Nominal(id) => {
             let nominal = program.nominal(id).ok_or(BackendFailure::InvalidIr)?;
             if nominal.is_tag_only_enum() {
@@ -755,6 +764,11 @@ fn block_exit_label(block_id: IrBlockId, block: &IrBlock) -> String {
                 operation: IrOperation::ArrayIndex { .. },
                 ..
             } => label = array_index_continue_label(*result),
+            IrInstruction::Define {
+                result,
+                operation: IrOperation::ArrayBoundsCheck { .. },
+                ..
+            } => label = array_bounds_continue_label(*result),
             _ => {}
         }
     }
@@ -827,6 +841,14 @@ fn array_index_trap_label(value: IrValueId) -> String {
 
 fn array_index_continue_label(value: IrValueId) -> String {
     format!("array.index.cont.v{}", value.ordinal())
+}
+
+fn array_bounds_trap_label(value: IrValueId) -> String {
+    format!("array.bounds.trap.v{}", value.ordinal())
+}
+
+fn array_bounds_continue_label(value: IrValueId) -> String {
+    format!("array.bounds.cont.v{}", value.ordinal())
 }
 
 fn invalid_tag_label(block: IrBlockId) -> String {

@@ -87,3 +87,76 @@ fn compiler_independent_array_checksum_executes() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
 }
+
+#[test]
+fn indexed_set_checks_before_rhs_and_updates_the_array() {
+    let source = br#"fn replacement() -> own u8 traps {
+  check True() else trap "replacement drift";
+  return 9_u8;
+}
+
+fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  set index<u8>(values, 1_u64) = replacement();
+  let stored: own u8 = index<u8>(values, 1_u64);
+  check ieq<u8>(stored, 9_u8) else trap "set drift";
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    let main = emitted_function(&llvm, "main");
+    let bounds = main
+        .find("icmp ult i64")
+        .expect("indexed target must retain its bounds check");
+    let target_trap = main[bounds..]
+        .find("call void @wf_trap")
+        .map(|offset| bounds + offset)
+        .expect("indexed target must retain its trap edge");
+    let rhs = main[target_trap..]
+        .find("call i8 @wf_replacement")
+        .map(|offset| target_trap + offset)
+        .expect("RHS must be emitted after target evaluation");
+    let store = main[rhs..]
+        .find("store i8")
+        .map(|offset| rhs + offset)
+        .expect("array update must store only after the RHS");
+    assert!(bounds < target_trap && target_trap < rhs && rhs < store);
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn failing_indexed_set_target_never_evaluates_rhs() {
+    let source = br#"fn replacement() -> own u8 traps {
+  check False() else trap "RHS evaluated";
+  return 9_u8;
+}
+
+fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  set index<u8>(values, 2_u64) = replacement();
+  return unit;
+}
+"#;
+    let output = compile_and_run(&compile(source));
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).expect("trap record is UTF-8");
+    assert!(stderr.starts_with(
+        "{\"rule_id\":\"OP-4\",\"message\":\"\",\"function\":\"main\",\"node_path\":["
+    ));
+    assert!(!stderr.contains("RHS evaluated"));
+    assert_eq!(stderr.lines().count(), 1);
+}
+
+#[test]
+fn compiler_independent_mutable_array_checksum_executes() {
+    let output = compile_and_run(&compile(include_bytes!(
+        "../../../../tests/conformance/cases/x-array-mutable-checksum-run.wf"
+    )));
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}

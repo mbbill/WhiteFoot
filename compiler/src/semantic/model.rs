@@ -436,6 +436,38 @@ pub(crate) struct CheckedWritablePlace {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedArraySetTarget {
+    pub(crate) binding: BindingId,
+    pub(crate) array_type: CheckedType,
+    pub(crate) element_type: CheckedType,
+    pub(crate) length: u64,
+    pub(crate) offset: CheckedExpression,
+    pub(crate) trap: TrapSite,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum CheckedSetTarget {
+    Place(CheckedWritablePlace),
+    ArrayIndex(Box<CheckedArraySetTarget>),
+}
+
+impl CheckedSetTarget {
+    pub(crate) const fn binding(&self) -> BindingId {
+        match self {
+            Self::Place(target) => target.binding,
+            Self::ArrayIndex(target) => target.binding,
+        }
+    }
+
+    pub(crate) const fn ty(&self) -> CheckedType {
+        match self {
+            Self::Place(target) => target.ty,
+            Self::ArrayIndex(target) => target.element_type,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PropagationContext {
     pub(crate) function: String,
     pub(crate) node_path: NodePath,
@@ -458,7 +490,7 @@ pub(crate) enum CheckedStatement {
         context: PropagationContext,
     },
     Set {
-        target: CheckedWritablePlace,
+        target: CheckedSetTarget,
         value: CheckedExpression,
     },
     Evaluate(CheckedExpression),

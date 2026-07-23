@@ -4,6 +4,7 @@ mod loops;
 mod results;
 
 use crate::CheckedProgram;
+use crate::semantic::CheckedSetTarget;
 use crate::semantic::{
     BindingId, CheckedArrayRoot, CheckedDrop, CheckedExpression, CheckedMatchArm,
     CheckedNominalKind, CheckedProgramData, CheckedProjectedDrop, CheckedStatement, CheckedValue,
@@ -301,28 +302,7 @@ impl<'program> IrBuilder<'program> {
                     error_drops,
                     context,
                 )?,
-                CheckedStatement::Set { target, value } => {
-                    let root = self
-                        .bindings
-                        .get(&target.binding)
-                        .copied()
-                        .ok_or(LoweringFailure::InvalidCheckedProgram)?;
-                    let value = self.expression(value)?;
-                    if self.value_type(value)? != lower_type(target.ty) {
-                        return Err(LoweringFailure::InvalidCheckedProgram);
-                    }
-                    let replacement = if target.fields.is_empty() {
-                        if self.value_type(root)? != self.value_type(value)? {
-                            return Err(LoweringFailure::InvalidCheckedProgram);
-                        }
-                        value
-                    } else {
-                        self.replace_struct_path(root, &target.fields, value)?
-                    };
-                    if self.bindings.insert(target.binding, replacement) != Some(root) {
-                        return Err(LoweringFailure::InvalidCheckedProgram);
-                    }
-                }
+                CheckedStatement::Set { target, value } => self.set(target, value)?,
                 CheckedStatement::Evaluate(expression) => {
                     self.expression(expression)?;
                 }
@@ -781,6 +761,79 @@ impl<'program> IrBuilder<'program> {
                 ))
             }
         }
+    }
+
+    fn set(
+        &mut self,
+        target: &CheckedSetTarget,
+        value: &CheckedExpression,
+    ) -> Result<(), LoweringFailure> {
+        let binding = target.binding();
+        let root = self
+            .bindings
+            .get(&binding)
+            .copied()
+            .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+        let replacement = match target {
+            CheckedSetTarget::Place(target) => {
+                let value = self.expression(value)?;
+                if self.value_type(value)? != lower_type(target.ty) {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
+                if target.fields.is_empty() {
+                    if self.value_type(root)? != self.value_type(value)? {
+                        return Err(LoweringFailure::InvalidCheckedProgram);
+                    }
+                    value
+                } else {
+                    self.replace_struct_path(root, &target.fields, value)?
+                }
+            }
+            CheckedSetTarget::ArrayIndex(target) => {
+                let array_type = lower_type(target.array_type);
+                let IrType::Array { element, length } = array_type else {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                };
+                if self.value_type(root)? != array_type
+                    || element.ty() != lower_type(target.element_type)
+                    || length != target.length
+                {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
+                let offset = self.expression(&target.offset)?;
+                if self.value_type(offset)?
+                    != (IrType::Integer {
+                        width: 64,
+                        signed: false,
+                    })
+                {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
+                let index = self.define(
+                    IrType::GuardedArrayIndex { length },
+                    IrOperation::ArrayBoundsCheck {
+                        offset,
+                        trap: target.trap.clone().into(),
+                    },
+                )?;
+                let value = self.expression(value)?;
+                if self.value_type(value)? != element.ty() {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
+                self.define(
+                    array_type,
+                    IrOperation::InsertArray {
+                        aggregate: root,
+                        index,
+                        value,
+                    },
+                )?
+            }
+        };
+        if self.bindings.insert(binding, replacement) != Some(root) {
+            return Err(LoweringFailure::InvalidCheckedProgram);
+        }
+        Ok(())
     }
 
     fn project_struct_path(

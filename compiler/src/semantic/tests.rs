@@ -575,9 +575,15 @@ fn main() -> own unit pure {
         let CheckedStatement::Set { target, .. } = &body[1] else {
             panic!("second statement must be the root set");
         };
+        let super::model::CheckedSetTarget::Place(target) = target else {
+            panic!("root set must retain an ordinary writable place");
+        };
         assert!(target.fields.is_empty());
         let CheckedStatement::Set { target, .. } = &body[4] else {
             panic!("fifth statement must be the nested-field set");
+        };
+        let super::model::CheckedSetTarget::Place(target) = target else {
+            panic!("nested set must retain an ordinary writable place");
         };
         assert_eq!(target.fields, vec![0, 0]);
     });

@@ -177,12 +177,22 @@ Arrays remain affine and use the ordinary cleanup and cross-function aggregate
 paths. A compiler-independent loop checksum reads a static table through a
 runtime cursor and executes through host LLVM.
 
-The next implementation slice is indexed SET-1 for direct local fixed-array
-roots. This reuses the completed array layout and OP-4 read machinery while
-adding the target-before-RHS check/store ordering and rebuilt array value
-needed by mutable block experiments. It is smaller and more immediately useful
-than introducing heap allocation at the same time. Projected array roots,
-buffers, slices, and borrow-backed targets remain explicit later capabilities.
+Indexed SET-1 for direct local fixed-array roots now uses the same array layout
+and OP-4 machinery. The checked program retains the evaluated offset and trap
+site; lowering creates a guarded-index value before lowering the right-hand
+side, then performs one copy-element store and rebinds the rebuilt array after
+the right-hand side. A failing target never evaluates the right-hand side.
+A compiler-independent two-loop program fills and folds a mutable array through
+that path.
+
+The next implementation slice is the complete primitive `buffer<T>` value
+family: `buffer_new`, `len`, checked reads and indexed SET-1, explicit
+`allocates(heap), traps` effects, OP-9 allocation-size overflow, and one
+compiler-derived free on every normal owner exit. This is the smallest
+runtime-sized storage experiment and directly extends the completed fixed-array
+block path without introducing regions, slices, or borrow provenance.
+Projected array roots, slices, and borrow-backed targets remain explicit later
+capabilities.
 The specification's array frame-limit value is still not defined; the compiler
 does not invent one, and full all-N completeness remains blocked on that owner
 rule rather than on ordinary representable arrays.
@@ -505,10 +515,10 @@ division/remainder now produces `Result<T, DivError>` through this path and
 guards both LLVM hazards before the partial instruction. All three `iabs`
 modes use one defined-edge unary path. All three `ineg` modes reuse the
 ordinary wrapping and overflow-detecting subtraction path.
-Direct fixed-array index reads and immutable const-table reads are implemented.
-Indexed fixed-array SET-1 is next; buffers, slices, projected index roots, and
-loan-aware SET-1 targets follow when their storage and borrow families become
-the experiment being unlocked.
+Direct fixed-array index reads, immutable const-table reads, and direct-root
+indexed fixed-array SET-1 are implemented. Primitive runtime-length buffers are
+next; slices, projected index roots, and loan-aware SET-1 targets follow when
+their storage and borrow families become the experiment being unlocked.
 
 ## Phase 9: dogfood and language iteration
 

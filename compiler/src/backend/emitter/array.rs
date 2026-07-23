@@ -112,4 +112,72 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         )
         .map_err(|_| BackendFailure::TextEmission)
     }
+
+    pub(super) fn emit_array_bounds_check(
+        &mut self,
+        result: IrValueId,
+        ty: IrType,
+        offset: IrValueId,
+        trap: &IrTrapSite,
+    ) -> Result<(), BackendFailure> {
+        let IrType::GuardedArrayIndex { length } = ty else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        if self.function.value_type(offset)
+            != Some(IrType::Integer {
+                width: 64,
+                signed: false,
+            })
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        let in_range = self.next_temporary()?;
+        let trap_id = self.register_trap(trap)?;
+        writeln!(
+            self.output,
+            "  %{in_range} = icmp ult i64 {}, {length}\n  br i1 %{in_range}, label %{}, label %{}\n{}:\n  call void @wf_trap(ptr @.wf_trap.{trap_id}, i64 {})\n  unreachable\n{}:\n  {} = add i64 {}, 0",
+            value_name(offset),
+            array_bounds_continue_label(result),
+            array_bounds_trap_label(result),
+            array_bounds_trap_label(result),
+            self.traps[trap_id].len(),
+            array_bounds_continue_label(result),
+            value_name(result),
+            value_name(offset),
+        )
+        .map_err(|_| BackendFailure::TextEmission)
+    }
+
+    pub(super) fn emit_array_insertion(
+        &mut self,
+        result: IrValueId,
+        ty: IrType,
+        aggregate: IrValueId,
+        index: IrValueId,
+        value: IrValueId,
+    ) -> Result<(), BackendFailure> {
+        let IrType::Array { element, length } = ty else {
+            return Err(BackendFailure::InvalidIr);
+        };
+        let element_type = element.ty();
+        if self.function.value_type(aggregate) != Some(ty)
+            || self.function.value_type(index) != Some(IrType::GuardedArrayIndex { length })
+            || self.function.value_type(value) != Some(element_type)
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        let array_type = llvm_type(self.program, ty)?;
+        let llvm_element_type = llvm_type(self.program, element_type)?;
+        let array_slot = self.next_temporary()?;
+        let element_pointer = self.next_temporary()?;
+        writeln!(
+            self.output,
+            "  %{array_slot} = alloca {array_type}\n  store {array_type} {}, ptr %{array_slot}\n  %{element_pointer} = getelementptr inbounds {array_type}, ptr %{array_slot}, i64 0, i64 {}\n  store {llvm_element_type} {}, ptr %{element_pointer}\n  {} = load {array_type}, ptr %{array_slot}",
+            value_name(aggregate),
+            value_name(index),
+            value_name(value),
+            value_name(result),
+        )
+        .map_err(|_| BackendFailure::TextEmission)
+    }
 }

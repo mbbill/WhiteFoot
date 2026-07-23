@@ -8,7 +8,8 @@ use crate::{
 };
 
 use super::super::super::model::{
-    CheckedArrayElement, CheckedArrayRoot, CheckedExpression, CheckedType, IntegerType, TrapSite,
+    CheckedArrayElement, CheckedArrayRoot, CheckedArraySetTarget, CheckedExpression,
+    CheckedSetTarget, CheckedType, IntegerType, TrapSite,
 };
 use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding, TypedExpression};
 use super::PlaceUseOptions;
@@ -16,6 +17,8 @@ use super::PlaceUseOptions;
 #[derive(Clone, Copy)]
 pub(super) struct CheckedArrayPlace {
     pub(super) root: CheckedArrayRoot,
+    declaration: Option<DeclarationId>,
+    array_type: CheckedType,
     element_type: CheckedType,
     length: u64,
 }
@@ -212,6 +215,83 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         })
     }
 
+    pub(in crate::semantic::check) fn check_array_set_target(
+        &self,
+        function: &FunctionSignature,
+        node: NodeId,
+        pbase: NodeId,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
+    ) -> Result<(DeclarationId, CheckedSetTarget, bool), CheckStop> {
+        if !self
+            .tree
+            .children_with(node, ProductionV0_14::Psuffix)?
+            .is_empty()
+        {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                node,
+                SemanticIssueKind::TypeMismatch,
+            );
+        }
+        let selected_node = self
+            .tree
+            .first_child_with(pbase, ProductionV0_14::Type)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        let selected = self.parse_type(selected_node)?;
+        let base = self
+            .tree
+            .first_child_with(pbase, ProductionV0_14::Place)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        let array = self.check_array_place(base, bindings)?;
+        let Some(declaration) = array.declaration else {
+            return self.issue_node(
+                SemanticRuleV0_14::Const2,
+                node,
+                SemanticIssueKind::ImmutableSetTarget,
+            );
+        };
+        let CheckedArrayRoot::Binding(binding) = array.root else {
+            return Err(SemanticCompilerFailure::InvalidResolution.into());
+        };
+        if selected != array.element_type {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                pbase,
+                SemanticIssueKind::TypeMismatch,
+            );
+        }
+        let offset_node = self
+            .tree
+            .first_child_with(pbase, ProductionV0_14::Atom)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        let offset = self.check_atom(function, offset_node, bindings, loop_depth)?;
+        if offset.expression.ty() != CheckedType::Integer(IntegerType::U64) {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                pbase,
+                SemanticIssueKind::TypeMismatch,
+            );
+        }
+        Ok((
+            declaration,
+            CheckedSetTarget::ArrayIndex(Box::new(CheckedArraySetTarget {
+                binding,
+                array_type: array.array_type,
+                element_type: array.element_type,
+                length: array.length,
+                offset: offset.expression,
+                trap: TrapSite {
+                    rule_id: "OP-4",
+                    message: String::new(),
+                    function: function.name.clone(),
+                    node_path: self.tree.path(pbase)?.clone(),
+                },
+            })),
+            true,
+        ))
+    }
+
     fn check_array_atom_place(
         &self,
         node: NodeId,
@@ -247,11 +327,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .children_with(node, ProductionV0_14::Psuffix)?
             .is_empty()
         {
-            return self.issue_node(
-                SemanticRuleV0_14::Type5,
-                node,
-                SemanticIssueKind::TypeMismatch,
-            );
+            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
         }
         let pbase = self
             .tree
@@ -270,7 +346,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let ResolvedTarget::Source { declaration, class } = usage.target() else {
             return Err(SemanticCompilerFailure::InvalidResolution.into());
         };
-        let (root, ty) = match class {
+        let (root, declaration, ty) = match class {
             DeclarationClass::Value => {
                 let local = *bindings
                     .get(&declaration)
@@ -284,14 +360,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
-                (CheckedArrayRoot::Binding(local.binding), local.ty)
+                (
+                    CheckedArrayRoot::Binding(local.binding),
+                    Some(declaration),
+                    local.ty,
+                )
             }
             DeclarationClass::NamedConst => {
                 let id = *self
                     .constants
                     .get(&declaration)
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-                (CheckedArrayRoot::Constant(id), self.constant(id)?.ty)
+                (CheckedArrayRoot::Constant(id), None, self.constant(id)?.ty)
             }
             _ => return Err(SemanticCompilerFailure::InvalidResolution.into()),
         };
@@ -304,6 +384,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         Ok(CheckedArrayPlace {
             root,
+            declaration,
+            array_type: ty,
             element_type: element.ty(),
             length,
         })

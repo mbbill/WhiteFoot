@@ -67,15 +67,18 @@ reverse-order cleanup edges. Consuming field projections also retain the
 untouched affine sibling subtrees that must be dropped. SET-1 supports live
 own-mode copy locals and nested copy fields, rejects affine replacement under
 STOR-1, and rechecks target liveness after the right-hand side. Semantic
-success produces the only lowering authority. The IR retains required checks,
+success produces the only lowering authority. Concrete fixed arrays support
+decimal or earlier-integer lengths, complete `array_new` initialization,
+immutable static const tables, `len`, checked index reads, and target-before-RHS
+checked indexed writes for direct local roots. The IR retains required checks,
 source trap sites, checked set paths, and cleanup;
 the backend uses conservative LLVM without unearned overflow flags or check
 elision. Unimplemented v0.14 families stop as explicit unsupported compiler
 capabilities rather than source-language rejections. Whole-unit ERR-2
 variant-addition edit-list enumeration and the full conformance adapter remain
-future work. Index and borrow-backed SET-1 targets remain explicit unsupported
-capabilities until those place families exist; none of these gaps is implied
-complete by the current gate.
+future work. Projected-array, buffer, slice, and borrow-backed SET-1 targets
+remain explicit unsupported capabilities until those place families exist;
+none of these gaps is implied complete by the current gate.
 
 Compile a source file through the normal path with:
 
