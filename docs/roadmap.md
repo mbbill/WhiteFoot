@@ -827,6 +827,14 @@ optimizer fact exists. Generic source contracts and source-contract bounds
 receive their specified FN-3 rejections; contract member calls remain absent.
 This closes the selected Phase 8 static-conformance milestone.
 
+The first Phase 9 text probes are current-spec ports of the preserved
+percent-decoder and stateful UTF-8 parser kernels. Both execute through the
+public compiler pipeline with their ordinary bounds guards and trap paths
+retained, and neither exposed a missing compiler capability. Repository-owned
+program sources remain in `tests/programs/`; Cargo exercises them from the
+`compiler/tests/programs.rs` integration boundary, while private backend tests
+remain responsible only for lowering and emission invariants.
+
 The exact next work is Phase 9: run or extend one production-shaped dogfood
 target, observe the first real missing language or compiler capability, and
 select the smallest general implementation that removes that blocker. Do not

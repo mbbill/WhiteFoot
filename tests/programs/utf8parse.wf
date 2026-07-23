@@ -1,0 +1,318 @@
+fn parse ['r](out: &uniq 'r buffer<u32>, src: own buffer<u8>) -> own u64 reads('r), writes('r), traps requires {
+  let source_length: own u64 = len<u8>(src);
+  let output_length: own u64 = len<u32>(deref(out));
+  let enough_output: own Bool = ige<u64>(output_length, source_length);
+  check enough_output else trap "output too short";
+} {
+  let source_length: own u64 = len<u8>(src);
+  let i: own u64 = 0_u64;
+  let count: own u64 = 0_u64;
+  let state: own u8 = 0_u8;
+  let value: own u32 = 0_u32;
+  loop @bytes {
+    let finished: own Bool = ieq<u64>(i, source_length);
+    match finished {
+      True() => {
+        break @bytes;
+      }
+      False() => {
+      }
+    }
+    let byte: own u8 = index<u8>(src, i);
+    let in_ground: own Bool = ieq<u8>(state, 0_u8);
+    match in_ground {
+      True() => {
+        let ascii: own Bool = ile<u8>(byte, 127_u8);
+        match ascii {
+          True() => {
+            let event: own u32 = cvt<u8, u32>(byte);
+            set index<u32>(deref(out), count) = event;
+            set count = iadd.wrap<u64>(count, 1_u64);
+          }
+          False() => {
+            let two_low: own Bool = ige<u8>(byte, 194_u8);
+            let two_high: own Bool = ile<u8>(byte, 223_u8);
+            let two: own Bool = band<Bool>(two_low, two_high);
+            match two {
+              True() => {
+                let payload: own u8 = isub.wrap<u8>(byte, 192_u8);
+                set value = cvt<u8, u32>(payload);
+                set state = 1_u8;
+              }
+              False() => {
+                let e0: own Bool = ieq<u8>(byte, 224_u8);
+                match e0 {
+                  True() => {
+                    let payload: own u8 = isub.wrap<u8>(byte, 224_u8);
+                    set value = cvt<u8, u32>(payload);
+                    set state = 3_u8;
+                  }
+                  False() => {
+                    let e_low: own Bool = ige<u8>(byte, 225_u8);
+                    let e_high: own Bool = ile<u8>(byte, 239_u8);
+                    let e_range: own Bool = band<Bool>(e_low, e_high);
+                    let not_ed: own Bool = ine<u8>(byte, 237_u8);
+                    let regular_e: own Bool = band<Bool>(e_range, not_ed);
+                    match regular_e {
+                      True() => {
+                        let payload: own u8 = isub.wrap<u8>(byte, 224_u8);
+                        set value = cvt<u8, u32>(payload);
+                        set state = 2_u8;
+                      }
+                      False() => {
+                        let ed: own Bool = ieq<u8>(byte, 237_u8);
+                        match ed {
+                          True() => {
+                            let payload: own u8 = isub.wrap<u8>(byte, 224_u8);
+                            set value = cvt<u8, u32>(payload);
+                            set state = 4_u8;
+                          }
+                          False() => {
+                            let f0: own Bool = ieq<u8>(byte, 240_u8);
+                            match f0 {
+                              True() => {
+                                let payload: own u8 = isub.wrap<u8>(byte, 240_u8);
+                                set value = cvt<u8, u32>(payload);
+                                set state = 6_u8;
+                              }
+                              False() => {
+                                let f_low: own Bool = ige<u8>(byte, 241_u8);
+                                let f_high: own Bool = ile<u8>(byte, 243_u8);
+                                let regular_f: own Bool = band<Bool>(f_low, f_high);
+                                match regular_f {
+                                  True() => {
+                                    let payload: own u8 = isub.wrap<u8>(byte, 240_u8);
+                                    set value = cvt<u8, u32>(payload);
+                                    set state = 5_u8;
+                                  }
+                                  False() => {
+                                    let f4: own Bool = ieq<u8>(byte, 244_u8);
+                                    match f4 {
+                                      True() => {
+                                        let payload: own u8 = isub.wrap<u8>(byte, 240_u8);
+                                        set value = cvt<u8, u32>(payload);
+                                        set state = 7_u8;
+                                      }
+                                      False() => {
+                                        set index<u32>(deref(out), count) = 1114112_u32;
+                                        set count = iadd.wrap<u64>(count, 1_u64);
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      False() => {
+        let continuation_low: own Bool = ige<u8>(byte, 128_u8);
+        let continuation_high: own Bool = ile<u8>(byte, 191_u8);
+        let continuation: own Bool = band<Bool>(continuation_low, continuation_high);
+        let state_one: own Bool = ieq<u8>(state, 1_u8);
+        match state_one {
+          True() => {
+            match continuation {
+              True() => {
+                let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                let payload_wide: own u32 = cvt<u8, u32>(payload);
+                let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                let event: own u32 = iadd.wrap<u32>(shifted, payload_wide);
+                set index<u32>(deref(out), count) = event;
+                set count = iadd.wrap<u64>(count, 1_u64);
+                set state = 0_u8;
+              }
+              False() => {
+                set index<u32>(deref(out), count) = 1114112_u32;
+                set count = iadd.wrap<u64>(count, 1_u64);
+                set state = 0_u8;
+              }
+            }
+          }
+          False() => {
+            let state_two: own Bool = ieq<u8>(state, 2_u8);
+            match state_two {
+              True() => {
+                match continuation {
+                  True() => {
+                    let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                    let payload_wide: own u32 = cvt<u8, u32>(payload);
+                    let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                    set value = iadd.wrap<u32>(shifted, payload_wide);
+                    set state = 1_u8;
+                  }
+                  False() => {
+                    set index<u32>(deref(out), count) = 1114112_u32;
+                    set count = iadd.wrap<u64>(count, 1_u64);
+                    set state = 0_u8;
+                  }
+                }
+              }
+              False() => {
+                let state_three: own Bool = ieq<u8>(state, 3_u8);
+                match state_three {
+                  True() => {
+                    let lower: own Bool = ige<u8>(byte, 160_u8);
+                    let upper: own Bool = ile<u8>(byte, 191_u8);
+                    let valid: own Bool = band<Bool>(lower, upper);
+                    match valid {
+                      True() => {
+                        let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                        let payload_wide: own u32 = cvt<u8, u32>(payload);
+                        let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                        set value = iadd.wrap<u32>(shifted, payload_wide);
+                        set state = 1_u8;
+                      }
+                      False() => {
+                        set index<u32>(deref(out), count) = 1114112_u32;
+                        set count = iadd.wrap<u64>(count, 1_u64);
+                        set state = 0_u8;
+                      }
+                    }
+                  }
+                  False() => {
+                    let state_four: own Bool = ieq<u8>(state, 4_u8);
+                    match state_four {
+                      True() => {
+                        let lower: own Bool = ige<u8>(byte, 128_u8);
+                        let upper: own Bool = ile<u8>(byte, 159_u8);
+                        let valid: own Bool = band<Bool>(lower, upper);
+                        match valid {
+                          True() => {
+                            let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                            let payload_wide: own u32 = cvt<u8, u32>(payload);
+                            let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                            set value = iadd.wrap<u32>(shifted, payload_wide);
+                            set state = 1_u8;
+                          }
+                          False() => {
+                            set index<u32>(deref(out), count) = 1114112_u32;
+                            set count = iadd.wrap<u64>(count, 1_u64);
+                            set state = 0_u8;
+                          }
+                        }
+                      }
+                      False() => {
+                        let state_five: own Bool = ieq<u8>(state, 5_u8);
+                        match state_five {
+                          True() => {
+                            match continuation {
+                              True() => {
+                                let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                                let payload_wide: own u32 = cvt<u8, u32>(payload);
+                                let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                                set value = iadd.wrap<u32>(shifted, payload_wide);
+                                set state = 2_u8;
+                              }
+                              False() => {
+                                set index<u32>(deref(out), count) = 1114112_u32;
+                                set count = iadd.wrap<u64>(count, 1_u64);
+                                set state = 0_u8;
+                              }
+                            }
+                          }
+                          False() => {
+                            let state_six: own Bool = ieq<u8>(state, 6_u8);
+                            match state_six {
+                              True() => {
+                                let lower: own Bool = ige<u8>(byte, 144_u8);
+                                let upper: own Bool = ile<u8>(byte, 191_u8);
+                                let valid: own Bool = band<Bool>(lower, upper);
+                                match valid {
+                                  True() => {
+                                    let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                                    let payload_wide: own u32 = cvt<u8, u32>(payload);
+                                    let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                                    set value = iadd.wrap<u32>(shifted, payload_wide);
+                                    set state = 2_u8;
+                                  }
+                                  False() => {
+                                    set index<u32>(deref(out), count) = 1114112_u32;
+                                    set count = iadd.wrap<u64>(count, 1_u64);
+                                    set state = 0_u8;
+                                  }
+                                }
+                              }
+                              False() => {
+                                let lower: own Bool = ige<u8>(byte, 128_u8);
+                                let upper: own Bool = ile<u8>(byte, 143_u8);
+                                let valid: own Bool = band<Bool>(lower, upper);
+                                match valid {
+                                  True() => {
+                                    let payload: own u8 = isub.wrap<u8>(byte, 128_u8);
+                                    let payload_wide: own u32 = cvt<u8, u32>(payload);
+                                    let shifted: own u32 = imul.wrap<u32>(value, 64_u32);
+                                    set value = iadd.wrap<u32>(shifted, payload_wide);
+                                    set state = 2_u8;
+                                  }
+                                  False() => {
+                                    set index<u32>(deref(out), count) = 1114112_u32;
+                                    set count = iadd.wrap<u64>(count, 1_u64);
+                                    set state = 0_u8;
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    set i = iadd.wrap<u64>(i, 1_u64);
+  }
+  return count;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let input: own buffer<u8> = buffer_new<u8>(15_u64, 0_u8);
+  set index<u8>(input, 0_u64) = 65_u8;
+  set index<u8>(input, 1_u64) = 194_u8;
+  set index<u8>(input, 2_u64) = 162_u8;
+  set index<u8>(input, 3_u64) = 226_u8;
+  set index<u8>(input, 4_u64) = 130_u8;
+  set index<u8>(input, 5_u64) = 172_u8;
+  set index<u8>(input, 6_u64) = 240_u8;
+  set index<u8>(input, 7_u64) = 159_u8;
+  set index<u8>(input, 8_u64) = 152_u8;
+  set index<u8>(input, 9_u64) = 128_u8;
+  set index<u8>(input, 10_u64) = 194_u8;
+  set index<u8>(input, 11_u64) = 65_u8;
+  set index<u8>(input, 12_u64) = 255_u8;
+  set index<u8>(input, 13_u64) = 226_u8;
+  set index<u8>(input, 14_u64) = 130_u8;
+  let output: own buffer<u32> = buffer_new<u32>(15_u64, 99_u32);
+  region 'parse_region {
+    let produced: own u64 = parse<'parse_region>(out: &uniq 'parse_region output, src: move input);
+    check ieq<u64>(produced, 6_u64) else trap "event count";
+  }
+  let event_zero: own u32 = index<u32>(output, 0_u64);
+  let event_one: own u32 = index<u32>(output, 1_u64);
+  let event_two: own u32 = index<u32>(output, 2_u64);
+  let event_three: own u32 = index<u32>(output, 3_u64);
+  let event_four: own u32 = index<u32>(output, 4_u64);
+  let event_five: own u32 = index<u32>(output, 5_u64);
+  let event_tail: own u32 = index<u32>(output, 6_u64);
+  check ieq<u32>(event_zero, 65_u32) else trap "ASCII event";
+  check ieq<u32>(event_one, 162_u32) else trap "two-byte event";
+  check ieq<u32>(event_two, 8364_u32) else trap "three-byte event";
+  check ieq<u32>(event_three, 128512_u32) else trap "four-byte event";
+  check ieq<u32>(event_four, 1114112_u32) else trap "bad continuation event";
+  check ieq<u32>(event_five, 1114112_u32) else trap "bad ground byte event";
+  check ieq<u32>(event_tail, 99_u32) else trap "incomplete sequence changed output";
+  return unit;
+}

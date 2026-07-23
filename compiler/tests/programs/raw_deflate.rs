@@ -1,20 +1,12 @@
-use super::*;
-
-const RAW_DEFLATE: &[u8] = include_bytes!("../../../../tests/programs/raw_deflate.wf");
-const RAW_DEFLATE_DYNAMIC: &[u8] =
-    include_bytes!("../../../../tests/programs/raw_deflate_dynamic.wf");
-const RAW_DEFLATE_DYNAMIC_DECODE: &[u8] =
-    include_bytes!("../../../../tests/programs/raw_deflate_dynamic_decode.wf");
-const RAW_DEFLATE_VECTORS: &[u8] =
-    include_bytes!("../../../../tests/programs/raw_deflate_vectors.wf");
+use super::support::{compile_and_run, compile_programs, emitted_function};
 
 #[test]
-fn raw_deflate_stored_fixed_and_dynamic_blocks_execute_with_data_failures() {
-    let llvm = compile_sources(&[
-        ("raw_deflate.wf", RAW_DEFLATE),
-        ("raw_deflate_dynamic.wf", RAW_DEFLATE_DYNAMIC),
-        ("raw_deflate_dynamic_decode.wf", RAW_DEFLATE_DYNAMIC_DECODE),
-        ("raw_deflate_vectors.wf", RAW_DEFLATE_VECTORS),
+fn stored_fixed_and_dynamic_blocks_execute_with_data_failures() {
+    let llvm = compile_programs(&[
+        "raw_deflate.wf",
+        "raw_deflate_dynamic.wf",
+        "raw_deflate_dynamic_decode.wf",
+        "raw_deflate_vectors.wf",
     ]);
     let inflate = emitted_function(&llvm, "inflate");
     assert!(inflate.contains("call void @free"));

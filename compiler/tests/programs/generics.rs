@@ -1,7 +1,5 @@
-use super::{compile, compile_and_run, compile_sources};
+use super::support::{compile_and_run, compile_program, compile_sources};
 
-const GENERIC_INSTANCES: &[u8] = include_bytes!("../../../../tests/programs/generic_instances.wf");
-const GENERIC_NOMINALS: &[u8] = include_bytes!("../../../../tests/programs/generic_nominals.wf");
 const GENERIC_LIBRARY: &[u8] = br#"struct Pair<T: Int> {
   value: T;
 }
@@ -27,7 +25,7 @@ fn main() -> own unit traps {
 
 #[test]
 fn concrete_type_and_const_instances_have_distinct_symbols_and_execute() {
-    let llvm = compile(GENERIC_INSTANCES);
+    let llvm = compile_program("generic_instances.wf");
     for name in ["maximum", "forward", "preserve"] {
         let symbol = format!("@wf_{name}$instance$");
         let definitions = llvm
@@ -62,12 +60,15 @@ fn concrete_type_and_const_instances_have_distinct_symbols_and_execute() {
 
 #[test]
 fn concrete_generic_symbol_order_is_deterministic() {
-    assert_eq!(compile(GENERIC_INSTANCES), compile(GENERIC_INSTANCES));
+    assert_eq!(
+        compile_program("generic_instances.wf"),
+        compile_program("generic_instances.wf")
+    );
 }
 
 #[test]
 fn concrete_generic_struct_enum_and_const_nominal_instances_execute() {
-    let llvm = compile(GENERIC_NOMINALS);
+    let llvm = compile_program("generic_nominals.wf");
     for name in ["duplicate", "present", "checked_sum"] {
         let symbol = format!("@wf_{name}$instance$");
         assert_eq!(
@@ -87,7 +88,10 @@ fn concrete_generic_struct_enum_and_const_nominal_instances_execute() {
 
 #[test]
 fn concrete_generic_nominal_order_is_deterministic() {
-    assert_eq!(compile(GENERIC_NOMINALS), compile(GENERIC_NOMINALS));
+    assert_eq!(
+        compile_program("generic_nominals.wf"),
+        compile_program("generic_nominals.wf")
+    );
 }
 
 #[test]
