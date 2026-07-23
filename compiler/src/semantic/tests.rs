@@ -14,6 +14,7 @@ mod integer_conversion;
 mod integer_extended;
 mod integer_negation;
 mod options;
+mod reinterpret;
 mod requires;
 
 use crate::lexer::{LexLimits, LexOutcome, lex};

@@ -1,5 +1,6 @@
 mod conversions;
 mod floating;
+mod reinterpret;
 mod user;
 
 use std::collections::HashMap;
@@ -12,7 +13,7 @@ use crate::{
 
 use super::super::super::model::{
     CheckedBooleanOperation, CheckedExpression, CheckedIntegerOperation, CheckedMode,
-    CheckedNominalKind, CheckedType, TrapSite,
+    CheckedNominalKind, CheckedNumericType, CheckedType, TrapSite,
 };
 use super::super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, PreludeType, TypedExpression,
@@ -94,6 +95,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         if spelling == "cvt" {
             return self.check_conversion(node, function, bindings, loop_depth);
+        }
+        if spelling == "reinterpret" {
+            return self.check_reinterpret(node, function, bindings, loop_depth);
         }
         let operation = match spelling {
             "iadd.wrap" => CheckedIntegerOperation::AddWrap,
@@ -255,6 +259,51 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             },
             effects,
         ))
+    }
+
+    fn numeric_type_arguments(
+        &self,
+        node: NodeId,
+        function: &FunctionSignature,
+    ) -> Result<[CheckedNumericType; 2], CheckStop> {
+        let targs = self
+            .tree
+            .first_child_with(node, Production::Targs)?
+            .ok_or_else(|| {
+                self.issue_value(SemanticRule::Fn2, node, SemanticIssueKind::InvalidOperation)
+            })?;
+        let arguments = self.tree.children_with(targs, Production::Targ)?;
+        let [source, destination] = arguments.as_slice() else {
+            return self.issue_node(SemanticRule::Op1, node, SemanticIssueKind::InvalidOperation);
+        };
+        let mut parsed = Vec::with_capacity(2);
+        for argument in [*source, *destination] {
+            let type_node = self
+                .tree
+                .first_child_with(argument, Production::Type)?
+                .ok_or_else(|| {
+                    self.issue_value(SemanticRule::Op1, node, SemanticIssueKind::InvalidOperation)
+                })?;
+            parsed.push(
+                match self.parse_type_with(type_node, &function.substitution)? {
+                    CheckedType::Integer(ty) => CheckedNumericType::Integer(ty),
+                    CheckedType::Float(ty) => CheckedNumericType::Float(ty),
+                    CheckedType::GenericInt(_) => {
+                        return self.unsupported(UnsupportedSemanticFeature::Generics, type_node);
+                    }
+                    _ => {
+                        return self.issue_node(
+                            SemanticRule::Op1,
+                            node,
+                            SemanticIssueKind::InvalidOperation,
+                        );
+                    }
+                },
+            );
+        }
+        parsed
+            .try_into()
+            .map_err(|_| SemanticCompilerFailure::InvalidCanonicalTree.into())
     }
 
     fn check_box_new(

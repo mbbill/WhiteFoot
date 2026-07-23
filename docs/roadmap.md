@@ -160,11 +160,10 @@ edge and exact trap record.
 This is not a completeness claim. Cyclic and region-bearing generic forms,
 generic `requires`, general borrow referents and borrowed affine match
 payloads, returned borrows, bound/result-carrying/grandchild reborrows, generic
-`Float`, `reinterpret`, affine moves out through owning indirection, arenas,
-slices, inline recursive nominal layouts, branch-dependent ownership/loan
-joins, projected array targets, and remaining effect-table operations are
-explicit unsupported compiler capabilities rather than source-language
-rejections.
+`Float`, affine moves out through owning indirection, arenas, slices, inline
+recursive nominal layouts, branch-dependent ownership/loan joins, projected
+array targets, and remaining effect-table operations are explicit unsupported
+compiler capabilities rather than source-language rejections.
 Generic source contracts and source-contract bounds instead receive v0.16's
 specified FN-3 rejection; contract-member calls have no v0.16 grammar or
 semantic operation.
@@ -879,8 +878,8 @@ OP-8 intrinsics, ordered comparisons except unordered `fne`, canonical quiet
 NaNs, and signed-zero-preserving minimum and maximum. Floats compose through
 calls, loop-carried mutation, structs, const arrays, buffers, checked indexing,
 and SET-1. Executable edge tests cover both widths, NaN propagation, infinities,
-and signed zero. Generic `Float` and `reinterpret` remain separate explicit
-unsupported capabilities.
+and signed zero. Generic `Float` remains a separate explicit unsupported
+capability.
 
 A 64-by-48 Mandelbrot grid then selected OP-6's complete total-conversion
 family with a floating-point endpoint. One numeric-conversion judgment now
@@ -907,6 +906,18 @@ Executable tests cover every float-endpoint pair and the range boundaries.
 The image program converts RGB bytes to strict `f32`, rounds an eight-pixel
 grayscale result, converts it exactly back to `u8`, and writes it through a
 uniquely borrowed output buffer.
+
+A big-endian telemetry packet then selected OP-1/OP-8 bit-preserving
+`reinterpret`. One semantic judgment admits exactly the 16 listed equal-width
+primitive pairs and retains the concrete source and destination types.
+Lowering carries that judgment without consulting source spelling. LLVM uses
+`bitcast` for integer/float pairs and an integer identity operation for
+same-width signed/unsigned relabelling, whose LLVM storage type is already the
+same. Family-wide executable tests preserve every integer bit, including
+noncanonical NaN payloads, in both directions. The public packet program
+serializes normal `f32`, negative zero, and NaN values to network-order bytes,
+loads them again through checked buffer accesses, and verifies their value,
+sign, and NaN behavior.
 
 The exact next work remains Phase 9: select another production-shaped dogfood
 target in a real-world domain not exercised by the current programs, observe

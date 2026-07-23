@@ -119,6 +119,19 @@ impl CheckedNumericType {
             _ => false,
         }
     }
+
+    pub(crate) const fn reinterprets_to(self, destination: Self) -> bool {
+        match (self, destination) {
+            (Self::Integer(source), Self::Integer(destination)) => {
+                source.width() == destination.width() && source.signed() != destination.signed()
+            }
+            (Self::Integer(source), Self::Float(destination))
+            | (Self::Float(destination), Self::Integer(source)) => {
+                source.width() == destination.width()
+            }
+            (Self::Float(_), Self::Float(_)) => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -557,6 +570,11 @@ pub(crate) enum CheckedExpression {
         value: Box<CheckedExpression>,
         result: CheckedType,
     },
+    Reinterpret {
+        source: CheckedNumericType,
+        destination: CheckedNumericType,
+        value: Box<CheckedExpression>,
+    },
     BooleanOperation {
         operation: CheckedBooleanOperation,
         arguments: Vec<CheckedExpression>,
@@ -655,6 +673,7 @@ impl CheckedExpression {
             Self::IntegerOperation { result, .. } | Self::NumericConversion { result, .. } => {
                 *result
             }
+            Self::Reinterpret { destination, .. } => destination.ty(),
             Self::FloatOperation {
                 operation,
                 operand_type,

@@ -699,6 +699,21 @@ impl<'program> IrBuilder<'program> {
                     },
                 )
             }
+            CheckedExpression::Reinterpret {
+                source,
+                destination,
+                value,
+            } => {
+                let value = self.expression(value)?;
+                self.define(
+                    lower_numeric_type(*destination),
+                    IrOperation::Reinterpret {
+                        source_type: lower_numeric_type(*source),
+                        destination_type: lower_numeric_type(*destination),
+                        value,
+                    },
+                )
+            }
             CheckedExpression::BooleanOperation {
                 operation,
                 arguments,

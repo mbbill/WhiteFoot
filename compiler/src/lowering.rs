@@ -547,6 +547,11 @@ pub enum IrOperation {
         destination_type: IrType,
         value: IrValueId,
     },
+    Reinterpret {
+        source_type: IrType,
+        destination_type: IrType,
+        value: IrValueId,
+    },
     Boolean {
         operation: IrBooleanOperation,
         arguments: Vec<IrValueId>,

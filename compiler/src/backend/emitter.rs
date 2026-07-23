@@ -12,6 +12,7 @@ mod conversion;
 mod floating;
 mod integer;
 mod operations;
+mod reinterpret;
 
 use std::collections::BTreeSet;
 use std::fmt::Write;
@@ -510,6 +511,11 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 destination_type,
                 value,
             } => self.emit_numeric_conversion(result, ty, *source_type, *destination_type, *value),
+            IrOperation::Reinterpret {
+                source_type,
+                destination_type,
+                value,
+            } => self.emit_reinterpret(result, ty, *source_type, *destination_type, *value),
             IrOperation::Boolean {
                 operation,
                 arguments,

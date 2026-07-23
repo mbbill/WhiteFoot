@@ -12,6 +12,7 @@ mod integer_extended;
 mod integer_negation;
 mod options;
 mod reborrows;
+mod reinterpret;
 mod requires;
 mod resource_enums;
 
