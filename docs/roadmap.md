@@ -162,8 +162,9 @@ generic `requires`, general borrow referents and borrowed affine match
 payloads, returned borrows, bound/result-carrying/grandchild reborrows, generic
 `Float`, affine moves out through owning indirection, arenas, slices, inline
 recursive nominal layouts, branch-dependent ownership/loan joins, projected
-array targets, and remaining effect-table operations are explicit unsupported
-compiler capabilities rather than source-language rejections.
+array targets reached through borrow holders, and remaining effect-table
+operations are explicit unsupported compiler capabilities rather than
+source-language rejections.
 Generic source contracts and source-contract bounds instead receive v0.16's
 specified FN-3 rejection; contract-member calls have no v0.16 grammar or
 semantic operation.
@@ -918,6 +919,19 @@ noncanonical NaN payloads, in both directions. The public packet program
 serializes normal `f32`, negative zero, and NaN values to network-order bytes,
 loads them again through checked buffer accesses, and verifies their value,
 sign, and NaN behavior.
+
+A finite-impulse-response audio filter then selected fixed arrays projected
+through direct own-rooted nested structs. The checked array root now retains
+one binding plus its complete field path for `len`, guarded `index` reads, and
+indexed SET-1 targets. A projected write is checked against overlapping loans,
+forms and guards its target before the right-hand side, and revalidates the
+whole owner afterward. Lowering projects the current array value, performs one
+guarded element replacement, and rebuilds every enclosing struct layer while
+preserving siblings. Focused tests cover nested paths, shared-loan conflicts,
+RHS owner consumption, update ordering, and sibling preservation. The public
+eight-tap filter executes a 64-frame impulse response through nested array
+state and strict `f64` arithmetic. Array places reached through borrow holders
+remain part of the explicitly unsupported general-borrow-referent family.
 
 The exact next work remains Phase 9: select another production-shaped dogfood
 target in a real-world domain not exercised by the current programs, observe

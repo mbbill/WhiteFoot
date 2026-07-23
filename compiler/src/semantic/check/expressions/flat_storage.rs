@@ -21,13 +21,26 @@ use super::super::{
 };
 use super::PlaceUseOptions;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) struct CheckedArrayPlace {
     pub(super) root: CheckedArrayRoot,
     declaration: Option<DeclarationId>,
     array_type: CheckedType,
     element_type: CheckedType,
     length: CheckedConst,
+}
+
+impl CheckedArrayPlace {
+    fn resolved_place(&self) -> Option<ResolvedPlace> {
+        let declaration = self.declaration?;
+        let CheckedArrayRoot::Binding { fields, .. } = &self.root else {
+            return None;
+        };
+        Some(ResolvedPlace {
+            root: declaration,
+            fields: fields.clone(),
+        })
+    }
 }
 
 #[derive(Clone)]
@@ -284,14 +297,21 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if selected != indexed.element_type() {
             return self.issue_node(SemanticRule::Type5, pbase, SemanticIssueKind::TypeMismatch);
         }
-        if let CheckedIndexedPlace::Buffer(buffer) = &indexed {
-            self.check_loan_access(
-                bindings,
-                buffer.holder,
-                &buffer.resolved,
-                AccessKind::Read,
-                pbase,
-            )?;
+        match &indexed {
+            CheckedIndexedPlace::Array(array) => {
+                if let Some(resolved) = array.resolved_place() {
+                    self.check_loan_access(bindings, None, &resolved, AccessKind::Read, pbase)?;
+                }
+            }
+            CheckedIndexedPlace::Buffer(buffer) => {
+                self.check_loan_access(
+                    bindings,
+                    buffer.holder,
+                    &buffer.resolved,
+                    AccessKind::Read,
+                    pbase,
+                )?;
+            }
         }
         let offset = self
             .tree
@@ -313,12 +333,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut accesses = offset.accesses;
         match &indexed {
             CheckedIndexedPlace::Array(array) => {
-                if let Some(root) = array.declaration {
+                if let Some(place) = array.resolved_place() {
                     accesses.push(PlaceAccess {
-                        place: ResolvedPlace {
-                            root,
-                            fields: Vec::new(),
-                        },
+                        place,
                         kind: AccessKind::Read,
                     });
                 }
@@ -387,24 +404,31 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if selected != indexed.element_type() {
             return self.issue_node(SemanticRule::Type5, pbase, SemanticIssueKind::TypeMismatch);
         }
-        if let CheckedIndexedPlace::Buffer(buffer) = &indexed {
-            if buffer.borrow_kind == Some(BorrowKind::Shared) {
-                return self.issue_node(
-                    SemanticRule::Set1,
-                    node,
-                    SemanticIssueKind::InvalidSetTarget {
-                        root_class: "shared borrow".to_owned(),
-                        required_classes: "live own storage or a live usable &uniq referent",
-                    },
-                );
+        match &indexed {
+            CheckedIndexedPlace::Array(array) => {
+                if let Some(resolved) = array.resolved_place() {
+                    self.check_loan_access(bindings, None, &resolved, AccessKind::Write, node)?;
+                }
             }
-            self.check_loan_access(
-                bindings,
-                buffer.holder,
-                &buffer.resolved,
-                AccessKind::Write,
-                node,
-            )?;
+            CheckedIndexedPlace::Buffer(buffer) => {
+                if buffer.borrow_kind == Some(BorrowKind::Shared) {
+                    return self.issue_node(
+                        SemanticRule::Set1,
+                        node,
+                        SemanticIssueKind::InvalidSetTarget {
+                            root_class: "shared borrow".to_owned(),
+                            required_classes: "live own storage or a live usable &uniq referent",
+                        },
+                    );
+                }
+                self.check_loan_access(
+                    bindings,
+                    buffer.holder,
+                    &buffer.resolved,
+                    AccessKind::Write,
+                    node,
+                )?;
+            }
         }
         let offset_node = self
             .tree
@@ -432,13 +456,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         SemanticIssueKind::ImmutableSetTarget,
                     );
                 };
-                let CheckedArrayRoot::Binding(binding) = array.root else {
+                let CheckedArrayRoot::Binding { binding, fields } = array.root else {
                     return Err(SemanticCompilerFailure::InvalidResolution.into());
                 };
                 (
                     declaration,
                     CheckedSetTarget::ArrayIndex(Box::new(CheckedArraySetTarget {
                         binding,
+                        fields,
                         array_type: array.array_type,
                         element_type: array.element_type,
                         length: array.length,
@@ -531,7 +556,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     );
                 }
                 (
-                    CheckedArrayRoot::Binding(local.binding),
+                    CheckedArrayRoot::Binding {
+                        binding: local.binding,
+                        fields: Vec::new(),
+                    },
                     Some(local.binding),
                     Some(declaration),
                     fields,
@@ -562,9 +590,17 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         match ty {
             CheckedType::Array { element, length } => {
-                if !fields.is_empty() {
-                    return self.unsupported(UnsupportedSemanticFeature::CompositeValues, node);
-                }
+                let root = match root {
+                    CheckedArrayRoot::Binding { binding, .. } => {
+                        CheckedArrayRoot::Binding { binding, fields }
+                    }
+                    CheckedArrayRoot::Constant(id) => {
+                        if !fields.is_empty() {
+                            return Err(SemanticCompilerFailure::InvalidResolution.into());
+                        }
+                        CheckedArrayRoot::Constant(id)
+                    }
+                };
                 Ok(CheckedIndexedPlace::Array(CheckedArrayPlace {
                     root,
                     declaration,

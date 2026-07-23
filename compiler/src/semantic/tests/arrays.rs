@@ -69,7 +69,7 @@ fn main() -> own unit traps {
             &body[2],
             CheckedStatement::Let {
                 value: CheckedExpression::ArrayIndex {
-                    root: CheckedArrayRoot::Binding(_),
+                    root: CheckedArrayRoot::Binding { .. },
                     length: CheckedConst::Value(4),
                     trap,
                     target_domain: CheckedTargetDomainObligation::ElementAddress,
@@ -228,5 +228,103 @@ fn indexed_set_rechecks_type_effect_and_root_liveness() {
         SemanticIssueKind::UseAfterMove {
             mechanical_fix: "introduce a new `let` binding before reuse",
         },
+    );
+}
+
+#[test]
+fn nested_struct_array_places_retain_their_complete_paths() {
+    let source = br#"struct Inner {
+  values: array<u8, 2>;
+}
+
+struct Outer {
+  inner: Inner;
+}
+
+fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  let inner: own Inner = Inner(values: move values);
+  let outer: own Outer = Outer(inner: move inner);
+  let length: own u64 = len<u8>(outer.inner.values);
+  set index<u8>(outer.inner.values, 1_u64) = 9_u8;
+  let stored: own u8 = index<u8>(outer.inner.values, 1_u64);
+  check ieq<u64>(length, 2_u64) else trap "length drift";
+  check ieq<u8>(stored, 9_u8) else trap "set drift";
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("nested struct array places must check: {outcome:?}");
+        };
+        let body = &checked.data.functions[0].body;
+        let CheckedStatement::Set { target, .. } = &body[4] else {
+            panic!("fifth statement must be the projected indexed set");
+        };
+        let CheckedSetTarget::ArrayIndex(target) = target else {
+            panic!("set must retain one checked array-index target");
+        };
+        assert_eq!(target.fields, vec![0, 0]);
+        assert!(matches!(
+            &body[5],
+            CheckedStatement::Let {
+                value: CheckedExpression::ArrayIndex {
+                    root: CheckedArrayRoot::Binding { fields, .. },
+                    ..
+                },
+                ..
+            } if fields == &[0, 0]
+        ));
+    });
+
+    assert_rule(
+        br#"struct Inner {
+  values: array<u8, 2>;
+}
+
+struct Outer {
+  inner: Inner;
+}
+
+fn replacement(value: own Outer) -> own u8 pure {
+  return 9_u8;
+}
+
+fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  let inner: own Inner = Inner(values: move values);
+  let outer: own Outer = Outer(inner: move inner);
+  set index<u8>(outer.inner.values, 1_u64) = replacement(value: move outer);
+  return unit;
+}
+"#,
+        SemanticRule::Own1,
+        SemanticIssueKind::UseAfterMove {
+            mechanical_fix: "introduce a new `let` binding before reuse",
+        },
+    );
+
+    assert_rule(
+        br#"struct Inner {
+  values: array<u8, 2>;
+}
+
+struct Outer {
+  inner: Inner;
+}
+
+fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  let inner: own Inner = Inner(values: move values);
+  let outer: own Outer = Outer(inner: move inner);
+  region 'view {
+    let held: &'view Outer = &'view outer;
+    set index<u8>(outer.inner.values, 1_u64) = 9_u8;
+  }
+  return unit;
+}
+"#,
+        SemanticRule::Own5,
+        SemanticIssueKind::BorrowConflict,
     );
 }

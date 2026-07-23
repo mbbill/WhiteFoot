@@ -770,7 +770,7 @@ impl<'program> IrBuilder<'program> {
                 )
             }
             CheckedExpression::ArrayLength { root, length } => {
-                let (_, ty) = self.array_root(*root)?;
+                let (_, ty) = self.array_root(root)?;
                 let IrType::Array { length: actual, .. } = ty else {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 };
@@ -802,7 +802,7 @@ impl<'program> IrBuilder<'program> {
                 trap,
                 target_domain,
             } => {
-                let (root, ty) = self.array_root(*root)?;
+                let (root, ty) = self.array_root(root)?;
                 let IrType::Array {
                     element,
                     length: actual,
@@ -958,14 +958,23 @@ impl<'program> IrBuilder<'program> {
         }
     }
 
-    fn array_root(&self, root: CheckedArrayRoot) -> Result<(IrArrayRoot, IrType), LoweringFailure> {
+    fn array_root(
+        &mut self,
+        root: &CheckedArrayRoot,
+    ) -> Result<(IrArrayRoot, IrType), LoweringFailure> {
         match root {
-            CheckedArrayRoot::Binding(binding) => {
-                let value = self
+            CheckedArrayRoot::Binding { binding, fields } => {
+                let storage = self
                     .bindings
-                    .get(&binding)
+                    .get(binding)
                     .copied()
                     .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                let root = self.load_storage_value(storage)?;
+                let value = if fields.is_empty() {
+                    root
+                } else {
+                    self.project_struct_path(root, fields, false)?
+                };
                 Ok((IrArrayRoot::Value(value), self.value_type(value)?))
             }
             CheckedArrayRoot::Constant(constant) => {
@@ -1013,7 +1022,12 @@ impl<'program> IrBuilder<'program> {
                 let IrType::Array { element, length } = array_type else {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 };
-                if self.value_type(root)? != array_type
+                let array = if target.fields.is_empty() {
+                    root
+                } else {
+                    self.project_struct_path(root, &target.fields, false)?
+                };
+                if self.value_type(array)? != array_type
                     || element.ty() != lower_type(target.element_type)?
                     || Some(length) != target.length.value()
                 {
@@ -1040,14 +1054,19 @@ impl<'program> IrBuilder<'program> {
                 if self.value_type(value)? != element.ty() {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
-                self.define(
+                let replacement = self.define(
                     array_type,
                     IrOperation::InsertArray {
-                        aggregate: root,
+                        aggregate: array,
                         index,
                         value,
                     },
-                )?
+                )?;
+                if target.fields.is_empty() {
+                    replacement
+                } else {
+                    self.replace_struct_path(root, &target.fields, replacement)?
+                }
             }
             CheckedSetTarget::BufferIndex(target) => self.lower_buffer_set(root, target, value)?,
         };

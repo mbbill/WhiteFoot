@@ -8,6 +8,7 @@ mod programs {
     mod image;
     mod numerics;
     mod raw_deflate;
+    mod signal;
     mod support;
     mod text;
 }

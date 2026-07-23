@@ -1,0 +1,82 @@
+struct DelayLine {
+  samples: array<f64, 8>;
+  cursor: u64;
+}
+
+struct FirFilter {
+  taps: array<f64, 8>;
+  delay: DelayLine;
+}
+
+fn main() -> own unit traps {
+  let taps: own array<f64, 8> = array_new<f64, 8>(0.125_f64);
+  let samples: own array<f64, 8> = array_new<f64, 8>(0.0_f64);
+  let delay: own DelayLine = DelayLine(samples: move samples, cursor: 0_u64);
+  let filter: own FirFilter = FirFilter(taps: move taps, delay: move delay);
+  let tap_count: own u64 = len<f64>(filter.taps);
+  check ieq<u64>(tap_count, 8_u64) else trap "FIR tap count";
+  let frame: own u64 = 0_u64;
+  let output_sum: own f64 = 0.0_f64;
+  loop @frames {
+    let finished: own Bool = ieq<u64>(frame, 64_u64);
+    match finished {
+      True() => {
+        break @frames;
+      }
+      False() => {
+      }
+    }
+    let first_frame: own Bool = ieq<u64>(frame, 0_u64);
+    let sample: own f64 = match first_frame {
+      True() => {
+        give 8.0_f64;
+      }
+      False() => {
+        give 0.0_f64;
+      }
+    }
+    set index<f64>(filter.delay.samples, filter.delay.cursor) = sample;
+    let tap: own u64 = 0_u64;
+    let read_cursor: own u64 = filter.delay.cursor;
+    let output: own f64 = 0.0_f64;
+    loop @taps {
+      let taps_finished: own Bool = ieq<u64>(tap, tap_count);
+      match taps_finished {
+        True() => {
+          break @taps;
+        }
+        False() => {
+        }
+      }
+      let coefficient: own f64 = index<f64>(filter.taps, tap);
+      let delayed: own f64 = index<f64>(filter.delay.samples, read_cursor);
+      let contribution: own f64 = fmul.strict<f64>(coefficient, delayed);
+      set output = fadd.strict<f64>(output, contribution);
+      let at_start: own Bool = ieq<u64>(read_cursor, 0_u64);
+      let previous_cursor: own u64 = match at_start {
+        True() => {
+          give 7_u64;
+        }
+        False() => {
+          give isub.wrap<u64>(read_cursor, 1_u64);
+        }
+      }
+      set read_cursor = previous_cursor;
+      set tap = iadd.wrap<u64>(tap, 1_u64);
+    }
+    set output_sum = fadd.strict<f64>(output_sum, output);
+    let at_end: own Bool = ieq<u64>(filter.delay.cursor, 7_u64);
+    let next_cursor: own u64 = match at_end {
+      True() => {
+        give 0_u64;
+      }
+      False() => {
+        give iadd.wrap<u64>(filter.delay.cursor, 1_u64);
+      }
+    }
+    set filter.delay.cursor = next_cursor;
+    set frame = iadd.wrap<u64>(frame, 1_u64);
+  }
+  check feq<f64>(output_sum, 8.0_f64) else trap "FIR impulse response";
+  return unit;
+}

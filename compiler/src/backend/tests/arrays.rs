@@ -160,3 +160,57 @@ fn compiler_independent_mutable_array_checksum_executes() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
 }
+
+#[test]
+fn nested_struct_array_updates_rebuild_every_aggregate_layer_after_the_rhs() {
+    let source = br#"struct Inner {
+  values: array<u8, 2>;
+  sibling: u16;
+}
+
+struct Outer {
+  prefix: u32;
+  inner: Inner;
+}
+
+fn replacement() -> own u8 traps {
+  check True() else trap "replacement drift";
+  return 9_u8;
+}
+
+fn main() -> own unit traps {
+  let values: own array<u8, 2> = array_new<u8, 2>(0_u8);
+  let inner: own Inner = Inner(values: move values, sibling: 77_u16);
+  let outer: own Outer = Outer(prefix: 123_u32, inner: move inner);
+  set index<u8>(outer.inner.values, 1_u64) = replacement();
+  let stored: own u8 = index<u8>(outer.inner.values, 1_u64);
+  check ieq<u8>(stored, 9_u8) else trap "array update";
+  check ieq<u16>(outer.inner.sibling, 77_u16) else trap "inner sibling";
+  check ieq<u32>(outer.prefix, 123_u32) else trap "outer sibling";
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    let main = emitted_function(&llvm, "main");
+    let bounds = main
+        .find("icmp ult i64")
+        .expect("projected array target must retain its bounds check");
+    let target_trap = main[bounds..]
+        .find("call void @wf_trap")
+        .map(|offset| bounds + offset)
+        .expect("projected array target must retain its OP-4 trap edge");
+    let rhs = main[target_trap..]
+        .find("call i8 @wf_replacement")
+        .map(|offset| target_trap + offset)
+        .expect("RHS must follow projected target evaluation");
+    let rebuild = main[rhs..]
+        .find("insertvalue %wf.t")
+        .map(|offset| rhs + offset)
+        .expect("projected update must rebuild its enclosing structs");
+    assert!(bounds < target_trap && target_trap < rhs && rhs < rebuild);
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}

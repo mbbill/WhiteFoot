@@ -527,9 +527,12 @@ impl CheckedRuntimeTargetObligations {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CheckedArrayRoot {
-    Binding(BindingId),
+    Binding {
+        binding: BindingId,
+        fields: Vec<u32>,
+    },
     Constant(CheckedConstantId),
 }
 
@@ -750,6 +753,7 @@ pub(crate) struct CheckedWritablePlace {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CheckedArraySetTarget {
     pub(crate) binding: BindingId,
+    pub(crate) fields: Vec<u32>,
     pub(crate) array_type: CheckedType,
     pub(crate) element_type: CheckedType,
     pub(crate) length: CheckedConst,
