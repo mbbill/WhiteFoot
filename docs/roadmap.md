@@ -150,6 +150,13 @@ table names three `ineg` modes but does not define the trap and checked edge
 behavior; the next work is the bounded specification clarification, followed
 by the matching general unary implementation.
 
+The grammar-preserving v0.14 review candidate at
+`governance/spec-evolution/kernel-spec-v0.14-candidate.md`, SHA-256
+`b35d9bef9f2ed5dc61786f392816f3ea508cd485403e59face0c39a424bd2a1a`,
+closes only that `ineg` judgment. It is non-authoritative pending exact owner
+approval; normal compilation remains bound to v0.13, and no protected
+conformance verdict or status change is requested.
+
 ## Authority and specification changes
 
 `docs/constitution.md` is project law. The active numbered specification defines the
