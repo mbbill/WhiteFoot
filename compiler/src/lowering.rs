@@ -163,6 +163,9 @@ pub enum IrIntegerOperation {
     MultiplyChecked,
     DivideChecked,
     RemainderChecked,
+    AbsoluteWrap,
+    AbsoluteTrap,
+    AbsoluteChecked,
     Equal,
     NotEqual,
     Less,
@@ -185,6 +188,9 @@ impl From<CheckedIntegerOperation> for IrIntegerOperation {
             CheckedIntegerOperation::MultiplyChecked => Self::MultiplyChecked,
             CheckedIntegerOperation::DivideChecked => Self::DivideChecked,
             CheckedIntegerOperation::RemainderChecked => Self::RemainderChecked,
+            CheckedIntegerOperation::AbsoluteWrap => Self::AbsoluteWrap,
+            CheckedIntegerOperation::AbsoluteTrap => Self::AbsoluteTrap,
+            CheckedIntegerOperation::AbsoluteChecked => Self::AbsoluteChecked,
             CheckedIntegerOperation::Equal => Self::Equal,
             CheckedIntegerOperation::NotEqual => Self::NotEqual,
             CheckedIntegerOperation::Less => Self::Less,
@@ -250,7 +256,7 @@ pub enum IrOperation {
     Integer {
         operation: IrIntegerOperation,
         operand_type: IrType,
-        arguments: [IrValueId; 2],
+        arguments: Vec<IrValueId>,
         trap: Option<IrTrapSite>,
     },
     Boolean {

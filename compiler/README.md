@@ -49,10 +49,13 @@ The implemented semantic families support exact scalar integers, unit,
 `Bool`, integer and unit constants, nongeneric own-mode functions, locals,
 direct calls, returns, pure/traps effects, wrapping and trapping
 add/subtract/multiply, checked add/subtract/multiply/divide/remainder, integer
-comparisons, Boolean operations, and nominal tag equality. Checked division and
-remainder guard divisor zero and signed minimum/-1 before the partial LLVM
-instruction and produce the exact `Result<T, DivError>` variant. Nongeneric
-acyclic structs and enums flow through the same path,
+absolute value in all three modes, integer comparisons, Boolean operations,
+and nominal tag equality. Checked division and remainder guard divisor zero
+and signed minimum/-1 before the partial LLVM instruction and produce the exact
+`Result<T, DivError>` variant. Absolute value uses defined-edge `llvm.abs` for
+every signed width: wrapping retains the minimum value, trapping emits OP-2,
+and checked returns `Err(Overflow())`. Nongeneric acyclic structs and enums flow
+through the same path,
 including construction, nested projection, statement/value matching, `give`,
 per-site exhaustiveness checking, whole-binding affine moves, and explicit
 reverse-order cleanup edges. Consuming field projections also retain the

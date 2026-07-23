@@ -1,6 +1,7 @@
 #![allow(clippy::panic)]
 
 mod checked_division;
+mod integer_absolute;
 
 use crate::lexer::{LexLimits, LexOutcome, lex_v0_13};
 use crate::{

@@ -119,13 +119,17 @@ tests divisor zero and signed minimum/-1 before entering a block containing
 `sdiv`, `udiv`, `srem`, or `urem`; error edges construct the exact
 `DivideByZero` or `DivOverflow` payload without executing a partial LLVM
 instruction.
+All three `iabs` modes now share one unary integer path for every signed width.
+The backend calls `llvm.abs` with `is_int_min_poison = false`, so the signed
+minimum edge is defined before the selected mode retains it, emits the exact
+OP-2 trap record, or constructs `Err(Overflow())`.
 
 This is not a completeness claim. Generics and contracts, regions and borrows,
 floats, `Option`, allocations and containers, recursive nominal layouts,
 branch-dependent ownership joins, index and borrow-backed SET-1 targets,
-unary integer operations, and the remaining operation/effect table are
-explicit unsupported compiler capabilities rather than source-language
-rejections. Repeated exhaustive match arms also stop as
+integer negation, and the remaining operation/effect table are explicit
+unsupported compiler capabilities rather than source-language rejections.
+Repeated exhaustive match arms also stop as
 unsupported because v0.13 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
 
@@ -141,8 +145,10 @@ own-rooted operand consumes its whole storage root exactly once; an explicit
 rejected under OWN-1. The approved ERR-3 source repairs preserve every existing
 conformance verdict and status while restoring required affine returns, exact
 effect rows, complete programs, and fresh match binders. Checked
-division/remainder is complete; the unary integer modes are the next closed
-OP-2 family.
+division/remainder and all three `iabs` modes are complete. The active v0.13
+table names three `ineg` modes but does not define the trap and checked edge
+behavior; the next work is the bounded specification clarification, followed
+by the matching general unary implementation.
 
 ## Authority and specification changes
 
@@ -459,8 +465,9 @@ add/subtract/multiply, and explicit ERR-3 forwarding. It does not special-case
 `run-ex2` or another corpus source. The v0.13 propagation-ownership rule and
 approved source repairs are synchronized through that same path. Checked
 division/remainder now produces `Result<T, DivError>` through this path and
-guards both LLVM hazards before the partial instruction. Unary integer modes
-are the next closed arithmetic family.
+guards both LLVM hazards before the partial instruction. All three `iabs`
+modes use one defined-edge unary path. `ineg` follows after the missing
+trap/checked edge semantics are installed through the numbered workflow.
 Buffers, index places, and loan-aware SET-1 targets follow when their storage
 and borrow families become the experiment being unlocked.
 

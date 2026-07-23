@@ -1,6 +1,7 @@
 #![allow(clippy::panic)]
 
 mod checked_division;
+mod integer_absolute;
 
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -106,7 +107,7 @@ fn compile(source: &[u8]) -> String {
 fn compile_and_run(llvm: &str) -> Output {
     let sequence = NEXT_TEST.fetch_add(1, Ordering::Relaxed);
     let directory =
-        std::env::temp_dir().join(format!("whitefoot-v012-{}-{sequence}", std::process::id()));
+        std::env::temp_dir().join(format!("whitefoot-v013-{}-{sequence}", std::process::id()));
     std::fs::create_dir(&directory).expect("unique backend test directory");
     let module = directory.join("program.ll");
     let executable = directory.join("program");

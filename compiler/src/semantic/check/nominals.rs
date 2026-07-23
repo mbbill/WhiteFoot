@@ -370,6 +370,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     | b"imul.checked"
                     | b"idiv.checked"
                     | b"irem.checked"
+                    | b"iabs.checked"
             ) {
                 continue;
             }

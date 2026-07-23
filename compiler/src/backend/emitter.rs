@@ -86,9 +86,16 @@ pub fn emit_llvm_v0_13(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, Ba
         text.push('\n');
     }
     for intrinsic in intrinsics {
-        let (name, ty) = intrinsic.split_once('|').ok_or(BackendFailure::InvalidIr)?;
-        writeln!(text, "declare {{ {ty}, i1 }} @{name}({ty}, {ty})")
-            .map_err(|_| BackendFailure::TextEmission)?;
+        match intrinsic {
+            IntrinsicDeclaration::Overflow { name, ty } => {
+                writeln!(text, "declare {{ {ty}, i1 }} @{name}({ty}, {ty})")
+                    .map_err(|_| BackendFailure::TextEmission)?;
+            }
+            IntrinsicDeclaration::Absolute { name, ty } => {
+                writeln!(text, "declare {ty} @{name}({ty}, i1)")
+                    .map_err(|_| BackendFailure::TextEmission)?;
+            }
+        }
     }
     if !functions.is_empty() {
         text.push('\n');
@@ -148,11 +155,17 @@ struct Incoming {
     arguments: Vec<IrValueId>,
 }
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+enum IntrinsicDeclaration {
+    Overflow { name: String, ty: String },
+    Absolute { name: String, ty: String },
+}
+
 struct FunctionEmitter<'program, 'state> {
     program: &'program IrProgram<'program, 'program, 'program>,
     function: &'program IrFunction,
     traps: &'state mut Vec<Vec<u8>>,
-    intrinsics: &'state mut BTreeSet<String>,
+    intrinsics: &'state mut BTreeSet<IntrinsicDeclaration>,
     incoming: Vec<Vec<Incoming>>,
     output: String,
     temporary: u32,
@@ -163,7 +176,7 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         program: &'program IrProgram<'_, '_, '_>,
         function: &'program IrFunction,
         traps: &'state mut Vec<Vec<u8>>,
-        intrinsics: &'state mut BTreeSet<String>,
+        intrinsics: &'state mut BTreeSet<IntrinsicDeclaration>,
     ) -> Self {
         Self {
             program,
@@ -347,7 +360,7 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 ty,
                 *operation,
                 *operand_type,
-                *arguments,
+                arguments,
                 trap.as_ref(),
             ),
             IrOperation::Boolean {

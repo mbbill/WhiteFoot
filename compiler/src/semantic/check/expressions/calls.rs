@@ -159,6 +159,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             "imul.checked" => CheckedIntegerOperation::MultiplyChecked,
             "idiv.checked" => CheckedIntegerOperation::DivideChecked,
             "irem.checked" => CheckedIntegerOperation::RemainderChecked,
+            "iabs.wrap" => CheckedIntegerOperation::AbsoluteWrap,
+            "iabs.trap" => CheckedIntegerOperation::AbsoluteTrap,
+            "iabs.checked" => CheckedIntegerOperation::AbsoluteChecked,
             "ieq" => CheckedIntegerOperation::Equal,
             "ine" => CheckedIntegerOperation::NotEqual,
             "ilt" => CheckedIntegerOperation::Less,
@@ -218,8 +221,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::InvalidOperation,
             );
         };
-        let atoms = self.operation_atoms(node, 2)?;
-        let mut arguments = Vec::with_capacity(2);
+        if operation.signed_only() && !operand_type.signed() {
+            return self.issue_node(
+                SemanticRuleV0_13::Op1,
+                node,
+                SemanticIssueKind::InvalidOperation,
+            );
+        }
+        let operand_count = operation.operand_count();
+        let atoms = self.operation_atoms(node, operand_count)?;
+        let mut arguments = Vec::with_capacity(operand_count);
         let mut exhibits_traps = operation.traps();
         for atom in atoms {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
@@ -236,7 +247,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let trap = if operation.traps() {
             Some(TrapSite {
                 rule_id: "OP-2",
-                message: "integer overflow".to_owned(),
+                message: if operation == CheckedIntegerOperation::AbsoluteTrap {
+                    String::new()
+                } else {
+                    "integer overflow".to_owned()
+                },
                 function: function.name.clone(),
                 node_path: self.tree.path(node)?.clone(),
             })
@@ -250,6 +265,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedIntegerOperation::DivideChecked | CheckedIntegerOperation::RemainderChecked => {
                 Some(PreludeType::DivError)
             }
+            CheckedIntegerOperation::AbsoluteChecked => Some(PreludeType::Overflow),
             _ => None,
         };
         let result = if let Some(error) = checked_error {

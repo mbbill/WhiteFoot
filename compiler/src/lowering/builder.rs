@@ -542,17 +542,16 @@ impl<'nominals> IrBuilder<'nominals> {
                 trap,
                 ..
             } => {
-                let [left, right] = arguments.as_slice() else {
-                    return Err(LoweringFailure::InvalidCheckedProgram);
-                };
-                let left = self.expression(left)?;
-                let right = self.expression(right)?;
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.expression(argument))
+                    .collect::<Result<Vec<_>, _>>()?;
                 self.define(
                     lower_type(expression.ty()),
                     IrOperation::Integer {
                         operation: (*operation).into(),
                         operand_type: lower_type(CheckedType::Integer(*operand_type)),
-                        arguments: [left, right],
+                        arguments,
                         trap: trap.clone().map(Into::into),
                     },
                 )

@@ -63,7 +63,7 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         result_type: IrType,
         operation: IrIntegerOperation,
         operand_type: IrType,
-        arguments: [IrValueId; 2],
+        arguments: &[IrValueId],
         trap: Option<&IrTrapSite>,
     ) -> Result<(), BackendFailure> {
         let IrType::Integer { width, signed } = operand_type else {
@@ -76,12 +76,17 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
             return Err(BackendFailure::InvalidIr);
         }
         let ty = llvm_type(self.program, operand_type)?;
-        let left = value_name(arguments[0]);
-        let right = value_name(arguments[1]);
+        let binary = match arguments {
+            [left, right] => Some((value_name(*left), value_name(*right))),
+            _ => None,
+        };
         match operation {
             IrIntegerOperation::AddWrap
             | IrIntegerOperation::SubtractWrap
             | IrIntegerOperation::MultiplyWrap => {
+                let Some((left, right)) = &binary else {
+                    return Err(BackendFailure::InvalidIr);
+                };
                 if result_type != operand_type || trap.is_some() {
                     return Err(BackendFailure::InvalidIr);
                 }
@@ -101,6 +106,9 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
             IrIntegerOperation::AddTrap
             | IrIntegerOperation::SubtractTrap
             | IrIntegerOperation::MultiplyTrap => {
+                let Some((left, right)) = &binary else {
+                    return Err(BackendFailure::InvalidIr);
+                };
                 if result_type != operand_type {
                     return Err(BackendFailure::InvalidIr);
                 }
@@ -113,7 +121,10 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 };
                 let sign = if signed { 's' } else { 'u' };
                 let intrinsic = format!("llvm.{sign}{stem}.with.overflow.i{width}");
-                self.intrinsics.insert(format!("{intrinsic}|{ty}"));
+                self.intrinsics.insert(IntrinsicDeclaration::Overflow {
+                    name: intrinsic.clone(),
+                    ty: ty.clone(),
+                });
                 let pair = self.next_temporary()?;
                 let overflow = self.next_temporary()?;
                 let trap_id = self.register_trap(trap)?;
@@ -132,6 +143,9 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
             IrIntegerOperation::AddChecked
             | IrIntegerOperation::SubtractChecked
             | IrIntegerOperation::MultiplyChecked => {
+                let Some((left, right)) = &binary else {
+                    return Err(BackendFailure::InvalidIr);
+                };
                 if trap.is_some() {
                     return Err(BackendFailure::InvalidIr);
                 }
@@ -145,7 +159,10 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 };
                 let sign = if signed { 's' } else { 'u' };
                 let intrinsic = format!("llvm.{sign}{stem}.with.overflow.i{width}");
-                self.intrinsics.insert(format!("{intrinsic}|{ty}"));
+                self.intrinsics.insert(IntrinsicDeclaration::Overflow {
+                    name: intrinsic.clone(),
+                    ty: ty.clone(),
+                });
                 let pair = self.next_temporary()?;
                 let value = self.next_temporary()?;
                 let overflow = self.next_temporary()?;
@@ -163,6 +180,9 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 .map_err(|_| BackendFailure::TextEmission)?;
             }
             IrIntegerOperation::DivideChecked | IrIntegerOperation::RemainderChecked => {
+                let Some((left, right)) = &binary else {
+                    return Err(BackendFailure::InvalidIr);
+                };
                 if trap.is_some() {
                     return Err(BackendFailure::InvalidIr);
                 }
@@ -234,12 +254,87 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 )
                 .map_err(|_| BackendFailure::TextEmission)?;
             }
+            IrIntegerOperation::AbsoluteWrap
+            | IrIntegerOperation::AbsoluteTrap
+            | IrIntegerOperation::AbsoluteChecked => {
+                let [argument] = arguments else {
+                    return Err(BackendFailure::InvalidIr);
+                };
+                if !signed {
+                    return Err(BackendFailure::InvalidIr);
+                }
+                let argument = value_name(*argument);
+                let intrinsic = format!("llvm.abs.i{width}");
+                self.intrinsics.insert(IntrinsicDeclaration::Absolute {
+                    name: intrinsic.clone(),
+                    ty: ty.clone(),
+                });
+                match operation {
+                    IrIntegerOperation::AbsoluteWrap => {
+                        if result_type != operand_type || trap.is_some() {
+                            return Err(BackendFailure::InvalidIr);
+                        }
+                        writeln!(
+                            self.output,
+                            "  {} = call {ty} @{intrinsic}({ty} {argument}, i1 false)",
+                            value_name(result)
+                        )
+                        .map_err(|_| BackendFailure::TextEmission)?;
+                    }
+                    IrIntegerOperation::AbsoluteTrap => {
+                        if result_type != operand_type {
+                            return Err(BackendFailure::InvalidIr);
+                        }
+                        let trap = trap.ok_or(BackendFailure::InvalidIr)?;
+                        let overflow = self.next_temporary()?;
+                        let trap_id = self.register_trap(trap)?;
+                        let minimum = -(1_i128 << (width - 1));
+                        writeln!(
+                            self.output,
+                            "  {} = call {ty} @{intrinsic}({ty} {argument}, i1 false)\n  %{overflow} = icmp eq {ty} {argument}, {minimum}\n  br i1 %{overflow}, label %{}, label %{}\n{}:\n  call void @wf_trap(ptr @.wf_trap.{trap_id}, i64 {})\n  unreachable\n{}:",
+                            value_name(result),
+                            overflow_trap_label(result),
+                            overflow_continue_label(result),
+                            overflow_trap_label(result),
+                            self.traps[trap_id].len(),
+                            overflow_continue_label(result),
+                        )
+                        .map_err(|_| BackendFailure::TextEmission)?;
+                    }
+                    IrIntegerOperation::AbsoluteChecked => {
+                        if trap.is_some() {
+                            return Err(BackendFailure::InvalidIr);
+                        }
+                        let error_type =
+                            self.checked_result_error_type(result_type, operand_type, &[0])?;
+                        let absolute = self.next_temporary()?;
+                        let overflow = self.next_temporary()?;
+                        let ok_tag = self.next_temporary()?;
+                        let ok_value = self.next_temporary()?;
+                        let error_tag = self.next_temporary()?;
+                        let error_value = self.next_temporary()?;
+                        let result_ty = llvm_type(self.program, result_type)?;
+                        let error_ty = llvm_type(self.program, error_type)?;
+                        let minimum = -(1_i128 << (width - 1));
+                        writeln!(
+                            self.output,
+                            "  %{absolute} = call {ty} @{intrinsic}({ty} {argument}, i1 false)\n  %{overflow} = icmp eq {ty} {argument}, {minimum}\n  %{ok_tag} = insertvalue {result_ty} zeroinitializer, i32 0, 0\n  %{ok_value} = insertvalue {result_ty} %{ok_tag}, {ty} %{absolute}, 1\n  %{error_tag} = insertvalue {result_ty} zeroinitializer, i32 1, 0\n  %{error_value} = insertvalue {result_ty} %{error_tag}, {error_ty} 0, 2\n  {} = select i1 %{overflow}, {result_ty} %{error_value}, {result_ty} %{ok_value}",
+                            value_name(result)
+                        )
+                        .map_err(|_| BackendFailure::TextEmission)?;
+                    }
+                    _ => return Err(BackendFailure::InvalidIr),
+                }
+            }
             IrIntegerOperation::Equal
             | IrIntegerOperation::NotEqual
             | IrIntegerOperation::Less
             | IrIntegerOperation::LessEqual
             | IrIntegerOperation::Greater
             | IrIntegerOperation::GreaterEqual => {
+                let Some((left, right)) = &binary else {
+                    return Err(BackendFailure::InvalidIr);
+                };
                 if result_type != IrType::Bool || trap.is_some() {
                     return Err(BackendFailure::InvalidIr);
                 }
