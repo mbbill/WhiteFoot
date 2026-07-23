@@ -152,7 +152,7 @@ by the matching general unary implementation.
 
 The grammar-preserving v0.14 review candidate at
 `governance/spec-evolution/kernel-spec-v0.14-candidate.md`, SHA-256
-`b35d9bef9f2ed5dc61786f392816f3ea508cd485403e59face0c39a424bd2a1a`,
+`31c09313363304f405c8db1191d1982e3625b86788bf953ec3bb169648466e9f`,
 closes only that `ineg` judgment. It is non-authoritative pending exact owner
 approval; normal compilation remains bound to v0.13, and no protected
 conformance verdict or status change is requested.
