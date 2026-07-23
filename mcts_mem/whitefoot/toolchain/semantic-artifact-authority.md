@@ -1,6 +1,6 @@
 - The numbered specification alone defines source-language behavior.
 - The compiler's checked in-memory representation is the sole lowering authority; no serialized or replayed form grants compiler authority.
-- Conformance cases and focused reference models are independent evidence, not production acceptance authorities.
+- Conformance cases are independent evidence, not production acceptance authorities.
 - Serialization, cache validation, or third-party artifact trust must be designed only when a real consumer requires them.
 
 ## Facts

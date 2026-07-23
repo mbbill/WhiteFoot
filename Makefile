@@ -1,12 +1,12 @@
 # Whitefoot gate — only what a research compiler needs: the compiler builds and
 # passes its tests, the conformance corpus has valid structure and declared rule
-# coverage, the focused reference model passes, and the numbered spec stays
-# append-only. Everything else is guarded by AGENTS.md/CLAUDE.md. A green gate
-# states only what it exercises; the full corpus has no compiler adapter yet.
+# coverage, and the numbered spec stays append-only. Everything else is guarded
+# by AGENTS.md/CLAUDE.md. A green gate states only what it exercises; the full
+# corpus has no compiler adapter yet.
 
 PY := python3 -B
 
-check: repository-invariants spec-append-only conformance reference compiler
+check: repository-invariants spec-append-only conformance compiler
 	@echo "== WHITEFOOT GATE GREEN (active compiler + independent evidence) =="
 
 # repository invariants: identical agent instructions and the canonical roadmap marker
@@ -37,10 +37,6 @@ conformance:
 	cd tests/conformance && $(PY) test_runner.py
 	$(PY) tests/conformance/runner.py coverage
 
-reference:
-	cd tests/reference && $(PY) test_checker.py -v
-	cd tests/reference && $(PY) modelcheck.py 2000
-
 compiler:
 	$(MAKE) -C compiler check
 
@@ -52,4 +48,4 @@ install-hooks:
 	git config core.hooksPath governance/hooks
 	@echo "installed governance/hooks (spec append-only pre-commit)"
 
-.PHONY: check repository-invariants spec-append-only spec-append-only-staged conformance reference compiler conformance-run install-hooks
+.PHONY: check repository-invariants spec-append-only spec-append-only-staged conformance compiler conformance-run install-hooks

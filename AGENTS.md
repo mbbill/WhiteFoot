@@ -124,9 +124,8 @@ entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
 ## Specification and test integrity
 
 - Root `WORKFLOW.md` is the sole operational language-change workflow.
-  `governance/`, `spec/`, `tests/conformance/`, and `tests/reference/` provide
-  its records, resources, and tools; none defines an independent update
-  lifecycle.
+  `governance/`, `spec/`, and `tests/conformance/` provide its records,
+  resources, and tools; none defines an independent update lifecycle.
 - The numbered kernel specification is append-only, enforced by a pre-commit
   hook (`make install-hooks`): a released `spec/kernel-spec-v*.md` is never
   edited, renamed, or deleted. Amending the language is allowed, with care — a
@@ -138,14 +137,14 @@ entry. Append-only `spec/` is enforced by a pre-commit hook (installed with
   complete proposal, approval, activation, and closure loop in
   `WORKFLOW.md`.
 - When the spec changes, bring everything derived from it to the newest version
-  in the same work: conformance cases and verdicts, the reference model, the
-  lexer/parser and generated syntax data, tests, and docs. This consistency is
-  your responsibility and is deliberately not machine-enforced.
+  in the same work: conformance cases and verdicts, the lexer/parser and
+  generated syntax data, tests, and docs. This consistency is your
+  responsibility and is deliberately not machine-enforced.
 - Do not silently weaken derived material to make a check pass. Editing a
   conformance verdict, deleting a failing test, or regenerating evidence to go
   green is a governance breach even though no script blocks it. Add tests
-  freely; change or remove existing conformance or reference material only with
-  owner agreement and an approval-ledger entry.
+  freely; change or remove existing conformance material only with owner
+  agreement and an approval-ledger entry.
 - Compiler capability, an internal error, a timeout, or an unimplemented
   feature is not a source-language rejection and must not rewrite normative
   expectations.

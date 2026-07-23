@@ -69,25 +69,25 @@ live next to what they check.
 | [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
 | [compiler/](compiler/README.md) | The safe-Rust compiler: frontend, resolver, first semantic/IR slice, LLVM backend, and `whitefootc` |
-| [tests/](tests/) | Test evidence: the active compiler-independent `conformance/` behavior corpus and `reference/` semantics oracle, plus preserved `codegen/` source cases awaiting production-compiler integration |
+| [tests/](tests/) | Test evidence: the active compiler-independent `conformance/` behavior corpus, plus preserved `codegen/` source cases awaiting production-compiler integration |
 | [governance/](governance/) | The protected approval ledger, exact successor candidates, and the tracked spec-append-only hook |
 | [research/](research/) | Active language and compiler experiments |
 | [mcts_mem/](mcts_mem/) | The live design tree, consulted and maintained only through the `mcts-mem-use` skill |
-| [archive/](archive/) | Retired and superseded material, including the historical [decision log](archive/governance/decision-log.md) and democ-era codegen harness; inert — no active source, build, test, or tool depends on it |
+| [archive/](archive/) | Retired and superseded material, including the historical [decision log](archive/governance/decision-log.md), Python reference model, and democ-era codegen harness; inert — no active source, build, test, or tool depends on it |
 
 ## Verification
 
 ```sh
 make install-hooks   # once: enable the spec append-only pre-commit hook
-make check           # the gate: compiler, conformance, reference, spec append-only
+make check           # the gate: compiler, conformance, spec append-only
 ```
 
 The gate is deliberately small: the compiler builds and passes its tests; the
-conformance corpus has valid active-spec identity, structure, rule coverage, and
-expectations; the focused reference model passes; and numbered specifications
-remain append-only. The complete conformance corpus is not yet executed against
-the compiler because its adapter is still Phase 8 work. A green result states
-only what the gate exercises and is not a completeness claim.
+conformance corpus has valid active-spec identity, structure, rule coverage,
+and expectations; and numbered specifications remain append-only. The complete
+conformance corpus is not yet executed against the compiler because its
+adapter is still Phase 8 work. A green result states only what the gate
+exercises and is not a completeness claim.
 
 ## License
 

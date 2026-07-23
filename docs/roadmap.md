@@ -122,11 +122,10 @@ parser and satisfy the grammar constraints (parses, strong-LL(2), clean
 terminal partition, no conflicts).
 
 When the specification changes, everything derived from it is brought to the
-newest version in the same work: conformance cases and verdicts, the reference
-model, the lexer/parser and generated syntax data, tests, and docs. This
-consistency is the responsibility of whoever changes the spec; it is not
-machine-enforced, and derived material is never silently weakened to make a
-check pass.
+newest version in the same work: conformance cases and verdicts, the
+lexer/parser and generated syntax data, tests, and docs. This consistency is
+the responsibility of whoever changes the spec; it is not machine-enforced,
+and derived material is never silently weakened to make a check pass.
 
 **Grammar proposal check.** The native `whitefoot-grammar` tool verifies an
 unchanged frontend contract against the active compiler, checks the complete
@@ -210,8 +209,10 @@ pause with unrelated infrastructure.
 Status: complete.
 
 Obsolete wfc and democ implementations were archived. The continuing safe-Rust
-workspace, specification governance, compiler-independent conformance data,
-and focused reference models were established.
+workspace, specification governance, and compiler-independent conformance data
+were established. The historical Python reference model was later archived;
+it consumed its own toy AST and did not exercise or compare with the Rust
+compiler.
 
 ## Phase 2: grammar evidence
 
@@ -363,8 +364,12 @@ Changing order must name the experiment unlocked; it may not be justified by
 which issue list is easiest to clear.
 
 **Exit:** every construct in the active specification has one general semantic
-and lowering path, and the full compiler-independent conformance suite is
-implemented by the compiler adapter.
+and lowering path, and the compiler adapter passes the full conformance suite
+after its sources and expected verdicts have been reconciled with the active
+specification. The suite is evidence, not language authority: an inherited
+case or expectation that contradicts the specification is corrected through
+`WORKFLOW.md` and protected owner approval, never implemented merely to make an
+old test pass.
 
 The implemented nominal-data subset covers nongeneric own-mode acyclic structs
 and enums. It implements construction, nested projection, statement and value
@@ -408,6 +413,15 @@ Keep facts-off compilation correct. Add proof-based check removal and other
 optimizations one proposition family at a time, with focused independent
 verification and facts-on/facts-off comparisons. Optimize measured problems,
 not hypothetical workloads.
+
+The preserved `tests/codegen/` sources are a pool of historical experiments,
+not a completion checklist or an active gate. Do not revive the democ runner or
+assume its manifests and expected code shapes are correct. Promote a selected
+case into a small regression owned by the current Rust compiler only after
+reconciling its source, semantic expectation, and code-generation hypothesis
+with the active specification and the experiment that needs it; explicitly
+retire obsolete hypotheses instead of preserving them as accidental compiler
+requirements.
 
 An optimizer fact may improve an accepted program but may not change source
 acceptance or remove a required check without proof.

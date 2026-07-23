@@ -82,3 +82,8 @@ specification or test change.
 - owner: approved in session
 - reason: Correct five malformed protected expectations whose `accept` kind caused their nested runtime result to be ignored. `op2-pos-sat-mode`, `const2-pos-array-lookup`, `own1-pos-tagonly-copy`, `type2-pos-buffer-tagonly`, and `type2-pos-twostate-enum-i1` now require the already-documented successful execution result (`run`, exit 0). Their sources, rule assignments, runnable statuses, and language behavior are unchanged. The manifest validator now rejects fields that do not belong to the declared expectation kind.
 - evidence: owner instruction “forget about 0.12. make sure everything else is good” following the consistency report that identified these exact five malformed expectations
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Retire the active `tests/reference/` Python model and preserve it intact under `archive/tests/reference/`. The model consumes its own historical toy AST and does not exercise or compare with the Rust compiler, so it is removed from the active language-change workflow and repository gate. No released specification, compiler behavior, conformance source, verdict, status, or codegen policy changes.
+- evidence: owner instruction “just move it to the archive and fix all the references”

@@ -1,6 +1,6 @@
 - Build one serious research compiler in safe Rust, with private interfaces that may evolve as language experiments demand.
 - Advance through general end-to-end capabilities: frontend, resolution, checking, simple IR, LLVM, execution, then measured optimization.
-- Preserve compiler-independent conformance data and focused reference models where they catch a distinct class of error; do not construct a second production compiler.
+- Preserve compiler-independent conformance data as evidence alongside the production compiler.
 - Required runtime checks remain in facts-off compilation. An optional fact may remove a check only after focused proof and negative-canary testing.
 - Treat artifacts, replay, stable protocols, release machinery, and product-scale resource controls as optional later hardening, not compiler prerequisites.
 - Keep runtime performance measurements in research experiments; keep deterministic execution, check-retention, and proof-elision regressions near the backend.
@@ -18,3 +18,4 @@
 ## Moves
 
 - 2026-07-22 (ed9e3db4) replaced [[product-scale-checked-artifact-toolchain]]: mandatory checked artifacts, replay, capability overlays, release gates, and whole-compiler resource profiles delayed the first executable compiler without serving the current research goal; proportional independent tests and direct ordinary compiler structures retain the useful correctness constraints (sourced)
+- 2026-07-22 dropped: the active Python reference-model gate: it consumed a historical toy AST and did not exercise or compare with the Rust compiler, so it did not justify active workflow and maintenance cost (sourced)

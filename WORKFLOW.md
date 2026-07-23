@@ -20,8 +20,8 @@ parent; participating directories do not carry their own workflow README.
   `mcts-mem-use` skill; never treat its files as ordinary Markdown.
 - `governance/APPROVALS.md` records explicit owner approval for protected
   changes.
-- Compiler behavior, tests, reference models, candidates, and archived records
-  never define language behavior.
+- Compiler behavior, tests, candidates, and archived records never define
+  language behavior.
 
 ## Parts of the loop
 
@@ -33,7 +33,6 @@ parent; participating directories do not carry their own workflow README.
 | `governance/APPROVALS.md` | Records exact-byte and protected-evidence approval |
 | `spec/` | Holds immutable released specifications and supporting derivation evidence |
 | `tests/conformance/` | Holds compiler-independent source-to-verdict evidence for the active specification |
-| `tests/reference/` | Holds focused independent semantic models where a second implementation catches distinct errors |
 | `compiler/` | Implements the active specification through the normal compiler path |
 | `docs/patterns.md` and other live docs | Teach and describe the active language |
 | `mcts_mem/` | Preserves why a durable design won over real alternatives |
@@ -53,10 +52,9 @@ test expectation.
   disagrees, this is a compiler defect. Keep the specification and existing
   expectations unchanged, add the smallest useful regression, and fix the
   normal compiler path.
-- If an existing conformance verdict or reference judgment contradicts the
-  active specification, this is protected-evidence correction. Stop and obtain
-  owner approval before changing or removing it. Do not change the language to
-  preserve a bad test.
+- If an existing conformance verdict contradicts the active specification,
+  this is protected-evidence correction. Stop and obtain owner approval before
+  changing or removing it. Do not change the language to preserve a bad test.
 - If the specification is ambiguous, incomplete, or intentionally needs new
   behavior, enter the complete language-change loop below.
 - If the compiler cannot yet implement valid specified behavior, report the
@@ -83,11 +81,10 @@ Before drafting, inventory every potentially affected surface and mark it
 - name resolution, typing, ownership, effects, constants, and diagnostics;
 - runtime values, traps, ABI behavior, and required safety checks;
 - conformance sources, expected verdicts, and runnable/pending/xfail status;
-- focused reference-model judgments and mutation tests;
 - compiler identities, generated syntax data, frontend, semantics, lowering,
   backend, and runtime;
 - writer patterns, examples, derivation evidence, and live documentation; and
-- existing protected cases, verdicts, oracle data, or approval boundaries.
+- existing protected cases, verdicts, or approval boundaries.
 
 This impact inventory is part of the owner-review packet. It is not a new
 repository document or a second proposal artifact.
@@ -116,9 +113,9 @@ candidate before activation.
 
 Derive the expected behavior change from the candidate before implementing it.
 Review every row of the impact inventory, including negative and near-miss
-cases that prove required checks remain. Identify every existing conformance or
-reference expectation that would need protected modification; do not silently
-apply those changes before approval.
+cases that prove required checks remain. Identify every existing conformance
+expectation that would need protected modification; do not silently apply
+those changes before approval.
 
 For a grammar or syntax change, run the compiler-sharing verifier:
 
@@ -145,7 +142,7 @@ Present one review packet containing:
 - the candidate path, complete SHA-256, and concise semantic delta;
 - the completed impact inventory;
 - grammar-verifier and other independent evidence;
-- every requested protected verdict, status, reference, or oracle change; and
+- every requested protected verdict or status change; and
 - any remaining limitation or unsupported compiler capability.
 
 Owner approval covers only the exact candidate bytes and explicitly listed
@@ -172,9 +169,8 @@ Copy the approved candidate byte-for-byte to the new immutable
    lowering, backend, and runtime wherever the impact inventory requires it;
 3. update conformance sources, manifest expectations, statuses, coverage
    annotations, and active-spec identity;
-4. update focused reference models, their tests, and mutation checks;
-5. update writer patterns, examples, derivation evidence, and live docs; and
-6. append the approval record and use the `mcts-mem-use` skill for any MCTS
+4. update writer patterns, examples, derivation evidence, and live docs; and
+5. append the approval record and use the `mcts-mem-use` skill for any MCTS
    update required by the approved change.
 
 The specification may describe a capability the research compiler does not yet
@@ -203,7 +199,6 @@ Then run the relevant component checks and the complete repository gate:
 ```sh
 make -C compiler check
 make conformance
-make reference
 make check
 ```
 
@@ -213,8 +208,8 @@ only the behavior it exercises; it does not excuse an omitted derived update.
 
 Commit the activation as one cohesive state transition. Record completed
 status and exact next work in `docs/roadmap.md`. Do not leave the repository in
-a committed state where the active spec, compiler identity, conformance
-identity, or reference material name different language versions.
+a committed state where the active spec, compiler identity, or conformance
+identity name different language versions.
 
 ## Resource contracts
 
@@ -290,31 +285,6 @@ make conformance-run
 ```
 
 `make conformance-run` fails explicitly while the adapter slot is empty.
-
-### Reference-model resources
-
-`tests/reference/` supplies a deliberately narrow independent model of the
-ownership/effect subset described in `checker.py`:
-
-- `checker.py` implements the focused judgments;
-- `oracle.py` exposes the independent comparison surface;
-- `test_checker.py` holds examples, regressions, and mutation checks; and
-- `modelcheck.py` explores bounded generated states.
-
-The model does not define the language, parse Whitefoot source, or claim full
-language coverage. It cannot settle a disagreement with the active
-specification, copy compiler data structures, or grow into a second compiler.
-A replacement may retire the Python implementation only after preserving every
-still-relevant judgment, regression, bounded-state check, mutation check, and
-unique counterexample. Changing or removing an existing judgment is protected
-work handled by this workflow; a new judgment belongs only when independence
-can catch a distinct semantic error.
-
-Run it from the repository root:
-
-```sh
-make reference
-```
 
 ### Tool boundary
 
