@@ -23,6 +23,7 @@ use super::model::{
 use super::tree::TreeView;
 use super::{CheckStop, CheckedProgram};
 use borrows::BorrowInfo;
+use borrows::{AccessKind, ResolvedPlace};
 use control::{ControlCounters, ControlScope};
 
 #[derive(Clone)]
@@ -70,6 +71,13 @@ struct TypedExpression {
     borrow: Option<BorrowInfo>,
     holder: Option<DeclarationId>,
     effects: EffectSet,
+    accesses: Vec<PlaceAccess>,
+}
+
+#[derive(Clone)]
+struct PlaceAccess {
+    place: ResolvedPlace,
+    kind: AccessKind,
 }
 
 impl TypedExpression {
@@ -80,6 +88,23 @@ impl TypedExpression {
             borrow: None,
             holder: None,
             effects,
+            accesses: Vec::new(),
+        }
+    }
+
+    fn owned_with_access(
+        expression: CheckedExpression,
+        effects: EffectSet,
+        place: ResolvedPlace,
+        kind: AccessKind,
+    ) -> Self {
+        Self {
+            expression,
+            mode: CheckedMode::Own,
+            borrow: None,
+            holder: None,
+            effects,
+            accesses: vec![PlaceAccess { place, kind }],
         }
     }
 }

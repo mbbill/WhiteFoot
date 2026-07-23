@@ -90,6 +90,6 @@ impl IrBuilder<'_> {
         if self.bindings.insert(binding, value).is_some() {
             return Err(LoweringFailure::InvalidCheckedProgram);
         }
-        Ok(())
+        self.promote_binding_if_needed(binding)
     }
 }

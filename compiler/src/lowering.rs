@@ -97,6 +97,7 @@ pub enum IrType {
     Bool,
     Integer { width: u8, signed: bool },
     Nominal(IrNominalId),
+    NominalAddress(IrNominalId),
     Array { element: IrFlatElement, length: u64 },
     Buffer { element: IrFlatElement },
     GuardedArrayIndex { length: u64 },
@@ -479,6 +480,14 @@ pub enum IrOperation {
         variant: u32,
         field: u32,
     },
+    AddressOfNominal {
+        value: IrValueId,
+        nominal: IrNominalId,
+    },
+    LoadNominal {
+        address: IrValueId,
+        nominal: IrNominalId,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -496,6 +505,11 @@ pub enum IrInstruction {
         buffer: IrValueId,
         index: IrValueId,
         value: IrValueId,
+    },
+    StoreNominal {
+        address: IrValueId,
+        value: IrValueId,
+        nominal: IrNominalId,
     },
     Drop(IrDrop),
 }

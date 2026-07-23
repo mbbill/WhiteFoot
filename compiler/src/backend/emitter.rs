@@ -415,6 +415,11 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 index,
                 value,
             } => self.emit_buffer_store(*buffer, *index, *value),
+            IrInstruction::StoreNominal {
+                address,
+                value,
+                nominal,
+            } => self.emit_nominal_store(*address, *value, *nominal),
             IrInstruction::Drop(drop) => self.emit_drop(*drop),
         }
     }
@@ -521,6 +526,12 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 variant,
                 field,
             } => self.emit_variant_projection(result, ty, *aggregate, *nominal, *variant, *field),
+            IrOperation::AddressOfNominal { value, nominal } => {
+                self.emit_nominal_address(result, ty, *value, *nominal)
+            }
+            IrOperation::LoadNominal { address, nominal } => {
+                self.emit_nominal_load(result, ty, *address, *nominal)
+            }
         }
     }
 
@@ -720,6 +731,7 @@ fn llvm_type(program: &IrProgram<'_, '_, '_>, ty: IrType) -> Result<String, Back
             llvm_type(program, element.ty())?
         )),
         IrType::Buffer { .. } => Ok("{ ptr, i64 }".to_owned()),
+        IrType::NominalAddress(_) => Ok("ptr".to_owned()),
         IrType::GuardedArrayIndex { .. } => Ok("i64".to_owned()),
         IrType::GuardedBufferIndex { .. } => Ok("i64".to_owned()),
         IrType::Nominal(id) => {

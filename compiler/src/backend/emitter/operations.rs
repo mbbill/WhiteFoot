@@ -1,6 +1,74 @@
 use super::*;
 
 impl<'program, 'state> FunctionEmitter<'program, 'state> {
+    pub(super) fn emit_nominal_address(
+        &mut self,
+        result: IrValueId,
+        ty: IrType,
+        value: IrValueId,
+        nominal: IrNominalId,
+    ) -> Result<(), BackendFailure> {
+        if ty != IrType::NominalAddress(nominal)
+            || self.function.value_type(value) != Some(IrType::Nominal(nominal))
+            || !matches!(self.nominal(nominal)?.kind(), IrNominalKind::Struct { .. })
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        writeln!(
+            self.output,
+            "  {} = alloca {}\n  store {} {}, ptr {}",
+            value_name(result),
+            llvm_type(self.program, IrType::Nominal(nominal))?,
+            llvm_type(self.program, IrType::Nominal(nominal))?,
+            value_name(value),
+            value_name(result)
+        )
+        .map_err(|_| BackendFailure::TextEmission)
+    }
+
+    pub(super) fn emit_nominal_load(
+        &mut self,
+        result: IrValueId,
+        ty: IrType,
+        address: IrValueId,
+        nominal: IrNominalId,
+    ) -> Result<(), BackendFailure> {
+        if ty != IrType::Nominal(nominal)
+            || self.function.value_type(address) != Some(IrType::NominalAddress(nominal))
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        writeln!(
+            self.output,
+            "  {} = load {}, ptr {}",
+            value_name(result),
+            llvm_type(self.program, ty)?,
+            value_name(address)
+        )
+        .map_err(|_| BackendFailure::TextEmission)
+    }
+
+    pub(super) fn emit_nominal_store(
+        &mut self,
+        address: IrValueId,
+        value: IrValueId,
+        nominal: IrNominalId,
+    ) -> Result<(), BackendFailure> {
+        if self.function.value_type(address) != Some(IrType::NominalAddress(nominal))
+            || self.function.value_type(value) != Some(IrType::Nominal(nominal))
+        {
+            return Err(BackendFailure::InvalidIr);
+        }
+        writeln!(
+            self.output,
+            "  store {} {}, ptr {}",
+            llvm_type(self.program, IrType::Nominal(nominal))?,
+            value_name(value),
+            value_name(address)
+        )
+        .map_err(|_| BackendFailure::TextEmission)
+    }
+
     pub(super) fn emit_constant(
         &mut self,
         result: IrValueId,

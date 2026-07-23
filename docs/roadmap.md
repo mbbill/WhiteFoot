@@ -141,11 +141,11 @@ detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
 This is not a completeness claim. Generics and contracts, borrow referents
-outside primitive buffers, returned borrows, child reborrows, floats, boxes,
-arenas, slices, recursive nominal layouts, branch-dependent ownership/loan
-joins, projected array targets, and floating-point and remaining effect-table
-operations are explicit unsupported compiler capabilities rather than
-source-language rejections.
+outside buffers and acyclic structs, returned borrows, child reborrows, floats,
+boxes, arenas, slices, recursive nominal layouts, branch-dependent
+ownership/loan joins, projected array targets, and floating-point and remaining
+effect-table operations are explicit unsupported compiler capabilities rather
+than source-language rejections.
 Repeated exhaustive match arms also stop as
 unsupported because v0.14 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
@@ -265,15 +265,13 @@ active tag, drops its fields in reverse declaration order, and aborts
 defensively on an invalid tag. It introduces no user destructors, source
 generics, replacement storage, or container growth.
 
-The next slice extends the existing lexical buffer-borrow family to projected
-fields of borrowed acyclic structs. It is selected by the preserved
-structure-of-arrays binary-tree workload: helpers receive `&'r Pool` or
-`&uniq 'r Pool`, read and index projected buffer fields such as
-`deref(pool).left`, and update copy state such as `deref(pool).count` through a
-usable unique holder. One resolved place path must retain the borrowed root,
-field prefix, ultimate caller origin, loan checks, and exact EFF-2 reads/writes
-through semantic checking, checked IR, lowering, and execution. The slice does
-not move affine fields out of a borrow, return references, generalize child
+The borrowed-struct slice is complete through semantic checking, checked IR,
+lowering, LLVM, and execution. Helpers receive `&'r Pool` or `&uniq 'r Pool`,
+read and index projected buffer fields such as `deref(pool).left`, and update
+copy state such as `deref(pool).count` through a usable unique holder. One
+resolved place path retains the borrowed root, field prefix, ultimate caller
+origin, loan checks, and exact EFF-2 reads/writes. The implementation does not
+move affine fields out of a borrow, return references, generalize child
 reborrows, or add slices, boxes, or arenas.
 
 Five inherited runnable conformance entries need protected-evidence correction
@@ -635,9 +633,30 @@ through its general byte-to-word widening path. Concrete `Option<T>` also
 executes through the normal nominal path, and a borrowed byte scanner returns
 real offsets or absence without sentinel values. Resource-bearing source enums
 and concrete Option/Result instances now use the same active-variant cleanup
-path. The next slice projects reads, checked buffer accesses, and copy-field
-writes through borrowed struct roots so the preserved structure-of-arrays
-binary-tree workload can run on the current compiler.
+path.
+
+Whole acyclic struct borrows now use the same resolved-root and field-prefix
+loan model as buffer borrows. Shared and unique parameters project copy-field
+reads, checked buffer accesses, and copy-field SET-1 writes with the ultimate
+caller storage region preserved for exact EFF-2 attribution. Checked IR
+distinguishes borrowing the struct owner from copying an aggregate value;
+lowering gives every actually borrowed owner one stable address, passes
+borrowed struct parameters as addresses, reloads owner values for ordinary
+projection and cleanup, and stores reconstructed aggregates after copy-field
+updates. Call-scoped loan facts are checked against later argument-place
+accesses, so correctness does not depend on putting a borrow last in a
+signature. No alias promise or required check is removed.
+
+The compiler-independent `x-borrowed-pool-tree-run` program now builds a
+63-node complete binary tree bottom-up in two buffer fields, recursively checks
+it through a shared whole-struct borrow, observes unique-borrowed count updates
+from the caller, and releases both buffers only from the original owner. The
+next work is to reconcile and execute the preserved `wc-chunk-summary` text
+workload through the current compiler. That experiment should exercise one
+unique output struct, multiple shared input structs, early returns, and an
+owned byte buffer through the ordinary path; implement only the first general
+compiler capability it actually exposes. It does not authorize strings, CLI
+infrastructure, parallel execution, or proof-based check removal.
 
 ## Phase 9: dogfood and language iteration
 

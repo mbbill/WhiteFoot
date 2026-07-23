@@ -19,9 +19,10 @@ pub use check::check_semantics_v0_14;
 pub(crate) use model::{
     BindingId, CheckedArrayRoot, CheckedBooleanOperation, CheckedBufferRoot,
     CheckedBufferSetTarget, CheckedDrop, CheckedEnumType, CheckedExpression, CheckedFlatElement,
-    CheckedFunction, CheckedIntegerOperation, CheckedLoopId, CheckedMatchArm, CheckedNominalKind,
-    CheckedProgramData, CheckedProjectedDrop, CheckedSetTarget, CheckedStatement, CheckedType,
-    CheckedValue, NominalId, PropagationContext, TrapSite,
+    CheckedFunction, CheckedIntegerOperation, CheckedLoopId, CheckedMatchArm, CheckedMode,
+    CheckedNominalKind, CheckedParameter, CheckedProgramData, CheckedProjectedDrop,
+    CheckedSetTarget, CheckedStatement, CheckedType, CheckedValue, NominalId, PropagationContext,
+    TrapSite,
 };
 
 /// Numbered rule owning one post-resolution semantic rejection.

@@ -176,6 +176,87 @@ fn borrowed_columns_cross_helpers_without_transferring_ownership() {
 }
 
 #[test]
+fn borrowed_struct_projection_updates_caller_storage_through_one_address_path() {
+    let source = br#"struct Pool {
+  left: buffer<u64>;
+  right: buffer<u64>;
+  count: u64;
+}
+
+fn update ['r](pool: &uniq 'r Pool) -> own unit writes('r), traps {
+  set index<u64>(deref(pool).left, 1_u64) = 13_u64;
+  set deref(pool).count = 1_u64;
+  return unit;
+}
+
+fn observe ['r](pool: &'r Pool) -> own u64 reads('r), traps {
+  let value: own u64 = index<u64>(deref(pool).left, 1_u64);
+  let count: own u64 = deref(pool).count;
+  return iadd.trap<u64>(value, count);
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let left: own buffer<u64> = buffer_new<u64>(2_u64, 0_u64);
+  let right: own buffer<u64> = buffer_new<u64>(2_u64, 0_u64);
+  let pool: own Pool = Pool(left: move left, right: move right, count: 0_u64);
+  let apply: own Bool = True();
+  match apply {
+    True() => {
+      region 'write {
+        update<'write>(pool: &uniq 'write pool);
+      }
+    }
+    False() => {
+    }
+  }
+  region 'read {
+    let observed: own u64 = observe<'read>(pool: &'read pool);
+    check ieq<u64>(observed, 14_u64) else trap "borrowed struct update drift";
+  }
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    let update = emitted_function(&llvm, "update");
+    let observe = emitted_function(&llvm, "observe");
+    let main = emitted_function(&llvm, "main");
+    assert!(update.starts_with("define internal i8 @wf_update(ptr "));
+    assert!(observe.starts_with("define internal i64 @wf_observe(ptr "));
+    assert!(main.contains("call i8 @wf_update(ptr "));
+    assert!(main.contains("call i64 @wf_observe(ptr "));
+    assert!(!update.contains("call void @free"));
+    assert!(!observe.contains("call void @free"));
+    assert_eq!(main.matches("call void @free").count(), 2);
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn compiler_independent_borrowed_pool_tree_executes() {
+    let llvm = compile(include_bytes!(
+        "../../../../tests/conformance/cases/x-borrowed-pool-tree-run.wf"
+    ));
+    let build = emitted_function(&llvm, "build");
+    let checksum = emitted_function(&llvm, "checksum");
+    let main = emitted_function(&llvm, "main");
+    assert!(build.starts_with("define internal i64 @wf_build(ptr "));
+    assert!(build.contains(", i32 "));
+    assert!(checksum.starts_with("define internal i64 @wf_checksum(ptr "));
+    assert!(checksum.contains(", i64 "));
+    assert!(!build.contains("call void @free"));
+    assert!(!checksum.contains("call void @free"));
+    assert_eq!(main.matches("call void @free").count(), 2);
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn projected_buffer_target_is_formed_once_before_rhs() {
     let source = br#"struct Columns {
   left: buffer<u16>;

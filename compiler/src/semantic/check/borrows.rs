@@ -7,7 +7,9 @@ use crate::{
     UnsupportedSemanticFeatureV0_14,
 };
 
-use super::super::model::{CheckedBufferRoot, CheckedExpression, CheckedMode, CheckedType};
+use super::super::model::{
+    CheckedBufferRoot, CheckedExpression, CheckedMode, CheckedNominalKind, CheckedType,
+};
 use super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, ParameterSignature,
     TypedExpression,
@@ -115,7 +117,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         })
     }
 
-    pub(super) fn check_buffer_borrow(
+    pub(super) fn check_borrow(
         &self,
         node: NodeId,
         function: &FunctionSignature,
@@ -191,12 +193,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
         let (fields, ty) = self.resolve_struct_path(place_node, local.ty)?;
-        let CheckedType::Buffer { element } = ty else {
-            return self.unsupported(
-                UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
-                place_node,
-            );
-        };
         let place = ResolvedPlace {
             root: declaration,
             fields: fields.clone(),
@@ -217,19 +213,99 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             place,
             origin_region: None,
         };
-        Ok(TypedExpression {
-            expression: CheckedExpression::BorrowBuffer {
+        let expression = match ty {
+            CheckedType::Buffer { element } => CheckedExpression::BorrowBuffer {
                 root: CheckedBufferRoot {
                     binding: local.binding,
                     fields,
                     element,
                 },
             },
+            CheckedType::Nominal(nominal)
+                if fields.is_empty()
+                    && matches!(
+                        self.nominal(nominal)?.kind,
+                        CheckedNominalKind::Struct { .. }
+                    ) =>
+            {
+                CheckedExpression::BorrowStruct {
+                    binding: local.binding,
+                    nominal,
+                }
+            }
+            _ => {
+                return self.unsupported(
+                    UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
+                    place_node,
+                );
+            }
+        };
+        Ok(TypedExpression {
+            expression,
             mode: borrow.mode(),
             borrow: Some(borrow),
             holder: None,
             effects: EffectSet::NONE,
+            accesses: Vec::new(),
         })
+    }
+
+    pub(super) fn resolve_dereference_holder(
+        &self,
+        node: NodeId,
+        pbase: NodeId,
+        bindings: &HashMap<DeclarationId, LocalBinding>,
+    ) -> Result<(DeclarationId, LocalBinding, BorrowInfo), CheckStop> {
+        let holder_place = self
+            .tree
+            .first_child_with(pbase, ProductionV0_14::Place)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        let holder_base = self
+            .tree
+            .first_child_with(holder_place, ProductionV0_14::Pbase)?
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        if !self.tree.children(holder_base)?.is_empty()
+            || !self
+                .tree
+                .children_with(holder_place, ProductionV0_14::Psuffix)?
+                .is_empty()
+        {
+            return self.unsupported(
+                UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
+                holder_place,
+            );
+        }
+        let usage = self.use_at(holder_base, LexicalUseRole::PlaceBase)?;
+        let ResolvedTarget::Source {
+            declaration,
+            class: DeclarationClass::Value,
+        } = usage.target()
+        else {
+            return Err(SemanticCompilerFailure::InvalidResolution.into());
+        };
+        let local = bindings
+            .get(&declaration)
+            .cloned()
+            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+        if !local.live {
+            return self.issue_node(
+                SemanticRuleV0_14::Own1,
+                holder_place,
+                SemanticIssueKind::UseAfterMove {
+                    mechanical_fix: "introduce a new `let` binding before reuse",
+                },
+            );
+        }
+        let Some(borrow) = local.borrow.clone() else {
+            return self.issue_node(
+                SemanticRuleV0_14::Type7,
+                node,
+                SemanticIssueKind::MissingDereference {
+                    mechanical_fix: "deref requires a borrow holder",
+                },
+            );
+        };
+        Ok((declaration, local, borrow))
     }
 
     pub(super) fn borrow_for_destination(

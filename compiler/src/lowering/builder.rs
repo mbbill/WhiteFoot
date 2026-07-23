@@ -3,16 +3,19 @@ use std::collections::HashMap;
 mod buffers;
 mod loops;
 mod results;
+mod storage;
 
 use crate::CheckedProgram;
 use crate::semantic::CheckedSetTarget;
 use crate::semantic::{
-    BindingId, CheckedArrayRoot, CheckedDrop, CheckedExpression, CheckedMatchArm,
-    CheckedNominalKind, CheckedProgramData, CheckedProjectedDrop, CheckedStatement, CheckedValue,
+    BindingId, CheckedArrayRoot, CheckedDrop, CheckedExpression, CheckedMatchArm, CheckedMode,
+    CheckedNominalKind, CheckedParameter, CheckedProgramData, CheckedProjectedDrop,
+    CheckedStatement, CheckedValue,
 };
 
 use super::*;
 use loops::LoopTarget;
+use storage::collect_addressed_bindings;
 
 pub fn lower_checked_v0_14<'classified, 'lexed, 'source>(
     checked: CheckedProgram<'classified, 'lexed, 'source>,
@@ -121,14 +124,21 @@ fn lower_function(
     nominals: &[IrNominal],
     constants: &[IrGlobalConstant],
 ) -> Result<IrFunction, LoweringFailure> {
-    let mut builder = IrBuilder::new(nominals, constants, lower_type(function.result))?;
+    let addressed_bindings = collect_addressed_bindings(function);
+    let mut builder = IrBuilder::new(
+        nominals,
+        constants,
+        lower_type(function.result),
+        addressed_bindings,
+    )?;
     for parameter in &function.parameters {
-        let ty = lower_type(parameter.ty);
+        let ty = lower_parameter_type(parameter, nominals)?;
         let value = builder.new_value(ty)?;
         if builder.bindings.insert(parameter.binding, value).is_some() {
             return Err(LoweringFailure::InvalidCheckedProgram);
         }
         builder.parameters.push((value, ty));
+        builder.promote_binding_if_needed(parameter.binding)?;
     }
     builder.lower_statements(&function.requires, None)?;
     builder.lower_statements(&function.body, None)?;
@@ -161,6 +171,29 @@ fn lower_function(
     })
 }
 
+fn lower_parameter_type(
+    parameter: &CheckedParameter,
+    nominals: &[IrNominal],
+) -> Result<IrType, LoweringFailure> {
+    let ty = lower_type(parameter.ty);
+    if parameter.mode == CheckedMode::Own {
+        return Ok(ty);
+    }
+    let IrType::Nominal(nominal) = ty else {
+        return Ok(ty);
+    };
+    let nominal_data = nominals
+        .get(nominal.index())
+        .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+    Ok(
+        if matches!(nominal_data.kind, IrNominalKind::Struct { .. }) {
+            IrType::NominalAddress(nominal)
+        } else {
+            ty
+        },
+    )
+}
+
 struct BuildingBlock {
     parameters: Vec<(IrValueId, IrType)>,
     instructions: Vec<IrInstruction>,
@@ -177,6 +210,7 @@ struct IrBuilder<'program> {
     current: Option<IrBlockId>,
     loops: Vec<LoopTarget>,
     result: IrType,
+    addressed_bindings: std::collections::HashSet<BindingId>,
 }
 
 #[derive(Clone)]
@@ -191,6 +225,7 @@ impl<'program> IrBuilder<'program> {
         nominals: &'program [IrNominal],
         constants: &'program [IrGlobalConstant],
         result: IrType,
+        addressed_bindings: std::collections::HashSet<BindingId>,
     ) -> Result<Self, LoweringFailure> {
         let mut builder = Self {
             nominals,
@@ -202,6 +237,7 @@ impl<'program> IrBuilder<'program> {
             current: None,
             loops: Vec::new(),
             result,
+            addressed_bindings,
         };
         let (entry, parameters) = builder.new_block(&[])?;
         if !parameters.is_empty() {
@@ -284,6 +320,7 @@ impl<'program> IrBuilder<'program> {
                     if self.bindings.insert(*binding, value).is_some() {
                         return Err(LoweringFailure::InvalidCheckedProgram);
                     }
+                    self.promote_binding_if_needed(*binding)?;
                 }
                 CheckedStatement::PropagateLet {
                     binding,
@@ -405,14 +442,19 @@ impl<'program> IrBuilder<'program> {
                     enum_type,
                     arms,
                     continues,
-                } => self.lower_match(
-                    scrutinee,
-                    *enum_type,
-                    arms,
-                    *continues,
-                    Some((*binding, lower_type(*result_type))),
-                    give_target.clone(),
-                )?,
+                } => {
+                    self.lower_match(
+                        scrutinee,
+                        *enum_type,
+                        arms,
+                        *continues,
+                        Some((*binding, lower_type(*result_type))),
+                        give_target.clone(),
+                    )?;
+                    if self.current.is_some() {
+                        self.promote_binding_if_needed(*binding)?;
+                    }
+                }
             }
         }
         Ok(())
@@ -485,6 +527,7 @@ impl<'program> IrBuilder<'program> {
                 if self.bindings.insert(binder.binding, value).is_some() {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
+                self.promote_binding_if_needed(binder.binding)?;
             }
             let arm_give_target = match value_binding {
                 Some((_, ty)) => join.as_ref().map(|(block, _)| GiveTarget {
@@ -545,7 +588,19 @@ impl<'program> IrBuilder<'program> {
                     .get(binding)
                     .copied()
                     .ok_or(LoweringFailure::InvalidCheckedProgram)?;
-                if self.value_type(value)? != lower_type(*ty) {
+                let expected = lower_type(*ty);
+                let actual = self.value_type(value)?;
+                let value = if self.addressed_bindings.contains(binding) {
+                    self.load_storage_value(value)?
+                } else {
+                    value
+                };
+                if self.value_type(value)? != expected
+                    && !matches!(
+                        (actual, expected),
+                        (IrType::NominalAddress(left), IrType::Nominal(right)) if left == right
+                    )
+                {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
                 Ok(value)
@@ -723,6 +778,9 @@ impl<'program> IrBuilder<'program> {
                 self.lower_buffer_index(root, offset, trap)
             }
             CheckedExpression::BorrowBuffer { root } => self.lower_buffer_borrow(root),
+            CheckedExpression::BorrowStruct { binding, nominal } => {
+                self.lower_struct_borrow(*binding, IrNominalId(nominal.0))
+            }
             CheckedExpression::ConstructStruct { nominal, fields } => {
                 let fields = fields
                     .iter()
@@ -760,11 +818,7 @@ impl<'program> IrBuilder<'program> {
                 consume_root,
                 residual_drops,
             } => {
-                let root = self
-                    .bindings
-                    .get(binding)
-                    .copied()
-                    .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+                let root = self.binding_value(*binding)?;
                 let mut lowered_drops = Vec::with_capacity(residual_drops.len());
                 for drop in residual_drops {
                     lowered_drops.push(self.lower_projected_drop(root, drop)?);
@@ -812,11 +866,12 @@ impl<'program> IrBuilder<'program> {
         value: &CheckedExpression,
     ) -> Result<(), LoweringFailure> {
         let binding = target.binding();
-        let root = self
+        let storage = self
             .bindings
             .get(&binding)
             .copied()
             .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+        let root = self.load_storage_value(storage)?;
         let replacement = match target {
             CheckedSetTarget::Place(target) => {
                 let value = self.expression(value)?;
@@ -874,7 +929,17 @@ impl<'program> IrBuilder<'program> {
             }
             CheckedSetTarget::BufferIndex(target) => self.lower_buffer_set(root, target, value)?,
         };
-        if self.bindings.insert(binding, replacement) != Some(root) {
+        let stored = match self.value_type(storage)? {
+            IrType::NominalAddress(nominal) => {
+                if self.value_type(replacement)? != IrType::Nominal(nominal) {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
+                self.store_nominal(storage, replacement, nominal)?;
+                storage
+            }
+            _ => replacement,
+        };
+        if self.bindings.insert(binding, stored) != Some(storage) {
             return Err(LoweringFailure::InvalidCheckedProgram);
         }
         Ok(())
@@ -1013,11 +1078,7 @@ impl<'program> IrBuilder<'program> {
     fn lower_drops(&mut self, drops: &[CheckedDrop]) -> Result<Vec<IrDrop>, LoweringFailure> {
         let mut lowered = Vec::with_capacity(drops.len());
         for drop in drops {
-            let root = self
-                .bindings
-                .get(&drop.binding)
-                .copied()
-                .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+            let root = self.binding_value(drop.binding)?;
             let value = if drop.fields.is_empty() {
                 root
             } else {

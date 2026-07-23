@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::syntax::NodeId;
 use crate::{
     DeclarationClass, DeclarationId, LexicalUseRole, ProductionV0_14, ResolvedTarget,
-    SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_14, UnsupportedSemanticFeatureV0_14,
+    SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_14,
 };
 
 use super::super::super::super::model::{CheckedExpression, CheckedMode};
@@ -53,7 +53,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut arguments = Vec::with_capacity(fields.len());
         let mut checked_borrows = Vec::with_capacity(fields.len());
         let mut argument_holders = Vec::with_capacity(fields.len());
-        let mut has_call_scoped_borrow = false;
+        let mut call_scoped_borrows: Vec<BorrowInfo> = Vec::new();
         let mut effects = EffectSet {
             reads: Vec::new(),
             writes: Vec::new(),
@@ -72,20 +72,26 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(field, ProductionV0_14::Atom)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let is_borrow = self
-                .tree
-                .first_child_with(atom, ProductionV0_14::BorrowExpr)?
-                .is_some();
-            if has_call_scoped_borrow
-                && !is_borrow
-                && self
-                    .tree
-                    .first_child_with(atom, ProductionV0_14::Place)?
-                    .is_some()
-            {
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, atom);
-            }
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
+            for access in &argument.accesses {
+                for borrow in &call_scoped_borrows {
+                    if places_overlap(&access.place, &borrow.place)
+                        && match access.kind {
+                            AccessKind::Read => borrow.kind == BorrowKind::Unique,
+                            AccessKind::Write
+                            | AccessKind::Move
+                            | AccessKind::SharedBorrow
+                            | AccessKind::UniqueBorrow => true,
+                        }
+                    {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Own12,
+                            atom,
+                            SemanticIssueKind::BorrowConflict,
+                        );
+                    }
+                }
+            }
             let expected_mode = self.substitute_mode(parameter.mode, signature, &actual_regions)?;
             if argument.expression.ty() != parameter.ty {
                 return self.issue_node(
@@ -95,7 +101,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 );
             }
             let passed_borrow = self.borrow_for_destination(expected_mode, &argument, atom)?;
-            has_call_scoped_borrow |= argument.borrow.is_some() && argument.holder.is_none();
+            if argument.holder.is_none()
+                && let Some(borrow) = &argument.borrow
+            {
+                call_scoped_borrows.push(borrow.clone());
+            }
             checked_borrows.push(passed_borrow);
             argument_holders.push(argument.holder);
             effects = effects.union(argument.effects);
@@ -120,6 +130,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             borrow: None,
             holder: None,
             effects,
+            accesses: Vec::new(),
         })
     }
 

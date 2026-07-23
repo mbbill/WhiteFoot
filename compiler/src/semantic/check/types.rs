@@ -7,8 +7,8 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedMode, CheckedType, CheckedValue,
-    IntegerType,
+    CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedMode, CheckedNominalKind,
+    CheckedType, CheckedValue, IntegerType,
 };
 use super::{CheckStop, Checker, EffectSet, ParameterSignature, PreludeType};
 
@@ -36,8 +36,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .first_child_with(node, ProductionV0_14::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
             let ty = self.parse_type(ty_node)?;
-            if mode != CheckedMode::Own && !matches!(ty, CheckedType::Buffer { .. }) {
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, node);
+            if mode != CheckedMode::Own {
+                let supported = matches!(ty, CheckedType::Buffer { .. })
+                    || matches!(
+                        ty,
+                        CheckedType::Nominal(nominal)
+                            if matches!(
+                                self.nominal(nominal)?.kind,
+                                CheckedNominalKind::Struct { .. }
+                            )
+                    );
+                if !supported {
+                    return self
+                        .unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, node);
+                }
             }
             parameters.push(ParameterSignature {
                 declaration: declaration.id(),

@@ -172,3 +172,189 @@ fn main() -> own unit pure {
         assert!(checked.data.functions[1].declared_traps);
     });
 }
+
+#[test]
+fn borrowed_struct_fields_keep_projection_provenance_and_exact_effects() {
+    let source = br#"struct Pool {
+  left: buffer<u64>;
+  right: buffer<u64>;
+  count: u64;
+}
+
+fn count ['r](pool: &'r Pool) -> own u64 reads('r) {
+  return deref(pool).count;
+}
+
+fn first ['r](pool: &'r Pool) -> own u64 reads('r), traps {
+  return index<u64>(deref(pool).left, 0_u64);
+}
+
+fn update ['r](pool: &uniq 'r Pool) -> own unit writes('r), traps {
+  set index<u64>(deref(pool).right, 0_u64) = 9_u64;
+  set deref(pool).count = 1_u64;
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("borrowed struct projections must check: {outcome:?}");
+        };
+
+        let CheckedStatement::Return {
+            value:
+                CheckedExpression::Project {
+                    fields,
+                    consume_root,
+                    ..
+                },
+            ..
+        } = &checked.data.functions[0].body[0]
+        else {
+            panic!("copy field read must retain one checked projection");
+        };
+        assert_eq!(fields, &[2]);
+        assert!(!consume_root);
+
+        let CheckedStatement::Return {
+            value: CheckedExpression::BufferIndex { root, .. },
+            ..
+        } = &checked.data.functions[1].body[0]
+        else {
+            panic!("borrowed buffer field read must retain its checked root");
+        };
+        assert_eq!(root.fields, [0]);
+
+        let update = &checked.data.functions[2];
+        let CheckedStatement::Set {
+            target: CheckedSetTarget::BufferIndex(target),
+            ..
+        } = &update.body[0]
+        else {
+            panic!("borrowed buffer field write must retain its checked target");
+        };
+        assert_eq!(target.root.fields, [1]);
+        let CheckedStatement::Set {
+            target: CheckedSetTarget::Place(target),
+            ..
+        } = &update.body[1]
+        else {
+            panic!("borrowed copy field write must retain its checked target");
+        };
+        assert_eq!(target.fields, [2]);
+    });
+}
+
+#[test]
+fn shared_struct_borrows_cannot_write_copy_fields() {
+    assert_rule(
+        br#"struct Counter {
+  value: u64;
+}
+
+fn invalid ['r](counter: &'r Counter) -> own unit writes('r) {
+  set deref(counter).value = 1_u64;
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRuleV0_14::Set1,
+        SemanticIssueKind::InvalidSetTarget {
+            root_class: "shared borrow".to_owned(),
+            required_classes: "live own storage or a live usable &uniq referent",
+        },
+    );
+}
+
+#[test]
+fn struct_borrow_roots_block_owner_access_and_affine_moves() {
+    assert_rule(
+        br#"struct Pool {
+  values: buffer<u64>;
+  count: u64;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let values: own buffer<u64> = buffer_new<u64>(1_u64, 0_u64);
+  let pool: own Pool = Pool(values: move values, count: 0_u64);
+  region 'r {
+    let view: &'r Pool = &'r pool;
+    set pool.count = 1_u64;
+  }
+  return unit;
+}
+"#,
+        SemanticRuleV0_14::Own5,
+        SemanticIssueKind::BorrowConflict,
+    );
+    assert_rule(
+        br#"struct Pool {
+  values: buffer<u64>;
+}
+
+fn steal ['r](pool: &'r Pool) -> own buffer<u64> pure {
+  return move deref(pool).values;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRuleV0_14::Own5,
+        SemanticIssueKind::BorrowConflict,
+    );
+}
+
+#[test]
+fn call_scoped_struct_loans_are_checked_against_later_place_arguments() {
+    assert_rule(
+        br#"struct Counter {
+  value: u64;
+}
+
+fn consume ['r](counter: &uniq 'r Counter, value: own u64) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit pure {
+  let counter: own Counter = Counter(value: 1_u64);
+  region 'r {
+    consume<'r>(counter: &uniq 'r counter, value: counter.value);
+  }
+  return unit;
+}
+"#,
+        SemanticRuleV0_14::Own12,
+        SemanticIssueKind::BorrowConflict,
+    );
+
+    with_semantics(
+        br#"struct Counter {
+  value: u64;
+}
+
+fn observe ['r](counter: &'r Counter, value: own u64) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit pure {
+  let counter: own Counter = Counter(value: 1_u64);
+  region 'r {
+    observe<'r>(counter: &'r counter, value: counter.value);
+  }
+  return unit;
+}
+"#,
+        |outcome| {
+            let SemanticOutcome::Complete(_) = outcome else {
+                panic!("a shared call loan permits a later overlapping read: {outcome:?}");
+            };
+        },
+    );
+}

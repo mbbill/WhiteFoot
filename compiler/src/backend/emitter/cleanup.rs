@@ -95,6 +95,7 @@ pub(super) fn type_contains_buffer(
             | IrType::Bool
             | IrType::Integer { .. }
             | IrType::Array { .. }
+            | IrType::NominalAddress(_)
             | IrType::GuardedArrayIndex { .. }
             | IrType::GuardedBufferIndex { .. }
             | IrType::Nominal(_) => {}
@@ -188,6 +189,7 @@ fn emit_cleanup_jobs(
                 | IrType::Bool
                 | IrType::Integer { .. }
                 | IrType::Array { .. }
+                | IrType::NominalAddress(_)
                 | IrType::GuardedArrayIndex { .. }
                 | IrType::GuardedBufferIndex { .. } => {}
             },

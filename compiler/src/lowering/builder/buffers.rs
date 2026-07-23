@@ -124,11 +124,7 @@ impl IrBuilder<'_> {
     }
 
     fn buffer_root(&mut self, root: &CheckedBufferRoot) -> Result<IrValueId, LoweringFailure> {
-        let value = self
-            .bindings
-            .get(&root.binding)
-            .copied()
-            .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+        let value = self.binding_value(root.binding)?;
         self.project_buffer_root(value, root)
     }
 

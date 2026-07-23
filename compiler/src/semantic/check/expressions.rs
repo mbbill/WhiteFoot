@@ -46,7 +46,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .first_child_with(node, ProductionV0_14::Pbase)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         if self.has_fixed(pbase, FixedTerminalV0_14::Deref)? {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, pbase);
+            return self.check_dereferenced_set_target(node, pbase, bindings);
         }
         if self.has_fixed(pbase, FixedTerminalV0_14::Index)? {
             return self.check_indexed_set_target(function, node, pbase, bindings, loop_depth);
@@ -332,7 +332,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::BorrowExpr)?
         {
-            return self.check_buffer_borrow(borrow, function, bindings, loop_depth);
+            return self.check_borrow(borrow, function, bindings, loop_depth);
         }
         let _ = function;
         Err(SemanticCompilerFailure::InvalidCanonicalTree.into())
@@ -351,7 +351,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .first_child_with(node, ProductionV0_14::Pbase)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         if self.has_fixed(pbase, FixedTerminalV0_14::Deref)? {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, pbase);
+            return self.check_dereferenced_place_use(use_node, node, pbase, bindings, options);
         }
         if self.has_fixed(pbase, FixedTerminalV0_14::Index)? {
             return self.check_index_use(function, use_node, node, pbase, bindings, options);
@@ -429,6 +429,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         borrow: local.borrow,
                         holder: Some(declaration),
                         effects: EffectSet::NONE,
+                        accesses: Vec::new(),
                     });
                 }
                 let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
@@ -491,16 +492,27 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .ok_or(SemanticCompilerFailure::InvalidResolution)?
                         .live = false;
                 }
+                let access = ResolvedPlace {
+                    root: declaration,
+                    fields: fields.clone(),
+                };
+                let access_kind = if copy {
+                    AccessKind::Read
+                } else {
+                    AccessKind::Move
+                };
                 if fields.is_empty() {
-                    Ok(TypedExpression::owned(
+                    Ok(TypedExpression::owned_with_access(
                         CheckedExpression::Binding {
                             binding: local.binding,
                             ty,
                         },
                         EffectSet::NONE,
+                        access,
+                        access_kind,
                     ))
                 } else {
-                    Ok(TypedExpression::owned(
+                    Ok(TypedExpression::owned_with_access(
                         CheckedExpression::Project {
                             binding: local.binding,
                             fields,
@@ -509,6 +521,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             residual_drops,
                         },
                         EffectSet::NONE,
+                        access,
+                        access_kind,
                     ))
                 }
             }
@@ -555,6 +569,131 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
         }
+    }
+
+    fn check_dereferenced_place_use(
+        &self,
+        use_node: NodeId,
+        node: NodeId,
+        pbase: NodeId,
+        bindings: &HashMap<DeclarationId, LocalBinding>,
+        options: PlaceUseOptions,
+    ) -> Result<TypedExpression, CheckStop> {
+        let (declaration, local, borrow) =
+            self.resolve_dereference_holder(node, pbase, bindings)?;
+        let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
+        if !self.is_copy_type(ty)? {
+            if !options.explicit_move {
+                return self.issue_node(
+                    SemanticRuleV0_14::Own1,
+                    use_node,
+                    SemanticIssueKind::BareAffineUse {
+                        mechanical_fix: "write `move p` for the affine place",
+                    },
+                );
+            }
+            return self.issue_node(
+                SemanticRuleV0_14::Own5,
+                use_node,
+                SemanticIssueKind::BorrowConflict,
+            );
+        }
+        if options.explicit_move {
+            return self.issue_node(
+                SemanticRuleV0_14::Own1,
+                use_node,
+                SemanticIssueKind::MoveOfCopy {
+                    mechanical_fix: "use the copy place without `move`",
+                },
+            );
+        }
+        let mut resolved = borrow.place;
+        resolved.fields.extend_from_slice(&fields);
+        self.check_loan_access(
+            bindings,
+            Some(declaration),
+            &resolved,
+            AccessKind::Read,
+            use_node,
+        )?;
+        let mut effects = EffectSet::NONE;
+        if let Some(region) = borrow.origin_region {
+            effects.add_read(region);
+        }
+        let expression = if fields.is_empty() {
+            CheckedExpression::Binding {
+                binding: local.binding,
+                ty,
+            }
+        } else {
+            CheckedExpression::Project {
+                binding: local.binding,
+                fields,
+                ty,
+                consume_root: false,
+                residual_drops: Vec::new(),
+            }
+        };
+        Ok(TypedExpression::owned_with_access(
+            expression,
+            effects,
+            resolved,
+            AccessKind::Read,
+        ))
+    }
+
+    fn check_dereferenced_set_target(
+        &self,
+        node: NodeId,
+        pbase: NodeId,
+        bindings: &HashMap<DeclarationId, LocalBinding>,
+    ) -> Result<(DeclarationId, CheckedSetTarget, EffectSet), CheckStop> {
+        let (declaration, local, borrow) =
+            self.resolve_dereference_holder(node, pbase, bindings)?;
+        if borrow.kind != super::borrows::BorrowKind::Unique {
+            return self.issue_node(
+                SemanticRuleV0_14::Set1,
+                node,
+                SemanticIssueKind::InvalidSetTarget {
+                    root_class: "shared borrow".to_owned(),
+                    required_classes: "live own storage or a live usable &uniq referent",
+                },
+            );
+        }
+        let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
+        let mut resolved = borrow.place;
+        resolved.fields.extend_from_slice(&fields);
+        self.check_loan_access(
+            bindings,
+            Some(declaration),
+            &resolved,
+            AccessKind::Write,
+            node,
+        )?;
+        if !self.is_copy_type(ty)? {
+            return self.issue_node(
+                SemanticRuleV0_14::Stor1,
+                node,
+                SemanticIssueKind::AffineSetTarget {
+                    target_type: self.checked_type_name(ty)?,
+                    mechanical_fix:
+                        "construct a fresh owner under a new let; do not replace an affine place",
+                },
+            );
+        }
+        let mut effects = EffectSet::NONE;
+        if let Some(region) = borrow.origin_region {
+            effects.add_write(region);
+        }
+        Ok((
+            declaration,
+            CheckedSetTarget::Place(CheckedWritablePlace {
+                binding: local.binding,
+                fields,
+                ty,
+            }),
+            effects,
+        ))
     }
 
     pub(super) fn check_match_expression(

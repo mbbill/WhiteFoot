@@ -16,7 +16,7 @@ use super::super::super::model::{
 };
 use super::super::borrows::{AccessKind, BorrowKind, ResolvedPlace};
 use super::super::{
-    CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, TypedExpression,
+    CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, PlaceAccess, TypedExpression,
 };
 use super::PlaceUseOptions;
 
@@ -323,6 +323,24 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             node_path: self.tree.path(pbase)?.clone(),
         };
         let mut effects = offset.effects.union(EffectSet::TRAPS);
+        let mut accesses = offset.accesses;
+        match &indexed {
+            CheckedIndexedPlace::Array(array) => {
+                if let Some(root) = array.declaration {
+                    accesses.push(PlaceAccess {
+                        place: ResolvedPlace {
+                            root,
+                            fields: Vec::new(),
+                        },
+                        kind: AccessKind::Read,
+                    });
+                }
+            }
+            CheckedIndexedPlace::Buffer(buffer) => accesses.push(PlaceAccess {
+                place: buffer.resolved.clone(),
+                kind: AccessKind::Read,
+            }),
+        }
         let expression = match indexed {
             CheckedIndexedPlace::Array(array) => CheckedExpression::ArrayIndex {
                 root: array.root,
@@ -342,7 +360,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
             }
         };
-        Ok(TypedExpression::owned(expression, effects))
+        Ok(TypedExpression {
+            expression,
+            mode: CheckedMode::Own,
+            borrow: None,
+            holder: None,
+            effects,
+            accesses,
+        })
     }
 
     pub(in crate::semantic::check) fn check_indexed_set_target(
