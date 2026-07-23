@@ -355,6 +355,8 @@ pub enum UnsupportedSemanticFeature {
     StructuredControlFlow,
     /// A recursive nominal layout whose finite representation is not selected.
     RecursiveNominalLayout,
+    /// Moving an affine referent out of owning indirection has no selected cleanup semantics.
+    BoxReferentMove,
     /// An ownership-state join not yet covered by the selected finite rule.
     OwnershipJoin,
     /// Repeated match arms, whose meaning the active specification does not select.

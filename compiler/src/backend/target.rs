@@ -114,6 +114,11 @@ pub(super) fn validate_program(
     for nominal in program.nominals() {
         layouts.layout(IrType::Nominal(nominal.id()))?;
     }
+    for nominal in program.nominals() {
+        if let IrNominalKind::Box { referent } = nominal.kind() {
+            layouts.layout(*referent)?;
+        }
+    }
     for constant in program.constants() {
         layouts
             .layout(constant.ty())
@@ -342,7 +347,9 @@ impl LayoutComputer<'_, '_, '_, '_> {
             .program
             .nominal(id)
             .ok_or(TargetLayoutFailure::InvalidIr)?;
-        let layout = if nominal.is_tag_only_enum() {
+        let layout = if matches!(nominal.kind(), IrNominalKind::Box { .. }) {
+            Layout { size: 8, align: 8 }
+        } else if nominal.is_tag_only_enum() {
             let IrNominalKind::Enum { variants } = nominal.kind() else {
                 return Err(TargetLayoutFailure::InvalidIr);
             };
@@ -369,6 +376,7 @@ impl LayoutComputer<'_, '_, '_, '_> {
                             .map(|field| field.ty()),
                     );
                 }
+                IrNominalKind::Box { .. } => return Err(TargetLayoutFailure::InvalidIr),
             }
             self.struct_layout(fields)?
         };

@@ -15,7 +15,7 @@ pub(super) fn emit_resource_drop_helpers(
             continue;
         };
         let ty = IrType::Nominal(nominal.id());
-        if !type_contains_buffer(program, ty)? {
+        if !type_requires_cleanup(program, ty)? {
             continue;
         }
 
@@ -46,7 +46,7 @@ pub(super) fn emit_resource_drop_helpers(
             let base = variant_field_base(variants, variant.tag())?;
             let mut jobs = Vec::new();
             for (field, declaration) in variant.fields().iter().enumerate() {
-                if type_contains_buffer(program, declaration.ty())? {
+                if type_requires_cleanup(program, declaration.ty())? {
                     jobs.push(CleanupJob::Field {
                         aggregate_ty: ty,
                         aggregate: "%value".to_owned(),
@@ -66,7 +66,7 @@ pub(super) fn emit_resource_drop_helpers(
     Ok(output)
 }
 
-pub(super) fn type_contains_buffer(
+pub(super) fn type_requires_cleanup(
     program: &IrProgram<'_, '_, '_>,
     ty: IrType,
 ) -> Result<bool, BackendFailure> {
@@ -75,6 +75,14 @@ pub(super) fn type_contains_buffer(
     while let Some(current) = pending.pop() {
         match current {
             IrType::Buffer { .. } => return Ok(true),
+            IrType::Nominal(id)
+                if matches!(
+                    program.nominal(id).map(|nominal| nominal.kind()),
+                    Some(IrNominalKind::Box { .. })
+                ) =>
+            {
+                return Ok(true);
+            }
             IrType::Nominal(id) if visited.insert(id) => {
                 let nominal = program.nominal(id).ok_or(BackendFailure::InvalidIr)?;
                 match nominal.kind() {
@@ -89,6 +97,7 @@ pub(super) fn type_contains_buffer(
                                 .map(|field| field.ty()),
                         );
                     }
+                    IrNominalKind::Box { .. } => return Ok(true),
                 }
             }
             IrType::Unit
@@ -119,6 +128,22 @@ enum CleanupJob {
         index: usize,
         field_ty: IrType,
     },
+    FreePointer(String),
+}
+
+pub(super) fn emit_value_cleanup(
+    program: &IrProgram<'_, '_, '_>,
+    output: &mut String,
+    temporary: &mut u32,
+    ty: IrType,
+    operand: String,
+) -> Result<(), BackendFailure> {
+    emit_cleanup_jobs(
+        program,
+        output,
+        temporary,
+        vec![CleanupJob::Value { ty, operand }],
+    )
 }
 
 fn emit_cleanup_jobs(
@@ -129,6 +154,10 @@ fn emit_cleanup_jobs(
 ) -> Result<(), BackendFailure> {
     while let Some(job) = jobs.pop() {
         match job {
+            CleanupJob::FreePointer(pointer) => {
+                writeln!(output, "  call void @free(ptr {pointer})")
+                    .map_err(|_| BackendFailure::TextEmission)?;
+            }
             CleanupJob::Field {
                 aggregate_ty,
                 aggregate,
@@ -162,7 +191,7 @@ fn emit_cleanup_jobs(
                     match nominal.kind() {
                         IrNominalKind::Struct { fields } => {
                             for (index, field) in fields.iter().enumerate() {
-                                if type_contains_buffer(program, field.ty())? {
+                                if type_requires_cleanup(program, field.ty())? {
                                     jobs.push(CleanupJob::Field {
                                         aggregate_ty: ty,
                                         aggregate: operand.clone(),
@@ -173,7 +202,7 @@ fn emit_cleanup_jobs(
                             }
                         }
                         IrNominalKind::Enum { .. } => {
-                            if type_contains_buffer(program, ty)? {
+                            if type_requires_cleanup(program, ty)? {
                                 writeln!(
                                     output,
                                     "  call void @{}({} {operand})",
@@ -182,6 +211,20 @@ fn emit_cleanup_jobs(
                                 )
                                 .map_err(|_| BackendFailure::TextEmission)?;
                             }
+                        }
+                        IrNominalKind::Box { referent } => {
+                            let loaded = next_temporary(temporary)?;
+                            writeln!(
+                                output,
+                                "  %{loaded} = load {}, ptr {operand}",
+                                llvm_type(program, *referent)?
+                            )
+                            .map_err(|_| BackendFailure::TextEmission)?;
+                            jobs.push(CleanupJob::FreePointer(operand));
+                            jobs.push(CleanupJob::Value {
+                                ty: *referent,
+                                operand: format!("%{loaded}"),
+                            });
                         }
                     }
                 }

@@ -5,6 +5,7 @@
 //! representations, and keeps a defensive abort edge for enum discriminants.
 
 mod array;
+mod boxes;
 mod buffer;
 mod cleanup;
 mod conversion;
@@ -22,7 +23,7 @@ use crate::{
     IrTerminator, IrTrapSite, IrType, IrValueId,
 };
 use buffer::{buffer_bounds_continue_label, buffer_fill_done_label, buffer_index_continue_label};
-use cleanup::{drop_helper_symbol, emit_resource_drop_helpers, type_contains_buffer};
+use cleanup::{emit_resource_drop_helpers, emit_value_cleanup, type_requires_cleanup};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BackendFailure {
@@ -70,8 +71,12 @@ pub fn emit_llvm(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, BackendF
             .any(|block| matches!(block.terminator(), IrTerminator::Match { .. }))
     });
     let drop_helpers = emit_resource_drop_helpers(program)?;
-    let has_buffers =
-        !drop_helpers.is_empty() || program.functions().iter().any(IrFunction::contains_buffer);
+    let has_heap_storage = !drop_helpers.is_empty()
+        || program.functions().iter().any(IrFunction::contains_buffer)
+        || program
+            .nominals()
+            .iter()
+            .any(|nominal| matches!(nominal.kind(), IrNominalKind::Box { .. }));
 
     let mut text = format!(
         "; Whitefoot conservative module\nsource_filename = \"whitefoot\"\ntarget datalayout = \"{}\"\ntarget triple = \"{}\"\n\n",
@@ -93,10 +98,10 @@ pub fn emit_llvm(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, BackendF
         text.push('\n');
         text.push_str("declare i64 @write(i32, ptr, i64)\n");
     }
-    if !traps.is_empty() || has_matches || has_buffers {
+    if !traps.is_empty() || has_matches || has_heap_storage {
         text.push_str("declare void @abort() noreturn\n");
     }
-    if has_buffers {
+    if has_heap_storage {
         text.push_str("declare ptr @malloc(i64)\ndeclare void @free(ptr)\n");
     }
     if !traps.is_empty() {
@@ -204,7 +209,7 @@ fn emit_nominal_declarations(
 ) -> Result<(), BackendFailure> {
     let mut emitted = false;
     for nominal in program.nominals() {
-        if nominal.is_tag_only_enum() {
+        if nominal.is_tag_only_enum() || matches!(nominal.kind(), IrNominalKind::Box { .. }) {
             continue;
         }
         emitted = true;
@@ -228,6 +233,7 @@ fn emit_nominal_declarations(
                     }
                 }
             }
+            IrNominalKind::Box { .. } => return Err(BackendFailure::InvalidIr),
         }
         output.push_str(" }\n");
     }
@@ -520,6 +526,12 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 trap,
                 target_domain,
             } => self.emit_buffer_bounds_check(result, ty, *buffer, *offset, trap, *target_domain),
+            IrOperation::BoxNew { nominal, value } => {
+                self.emit_box_new(result, ty, *nominal, *value)
+            }
+            IrOperation::BoxDeref { nominal, value } => {
+                self.emit_box_deref(result, ty, *nominal, *value)
+            }
             IrOperation::ConstructStruct { nominal, fields } => {
                 self.emit_struct(result, ty, *nominal, fields)
             }
@@ -693,27 +705,28 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         match drop.ty() {
             IrType::Array { .. } => {}
             IrType::Buffer { .. } => {
-                let pointer = self.next_temporary()?;
-                writeln!(
-                    self.output,
-                    "  %{pointer} = extractvalue {} {}, 0\n  call void @free(ptr %{pointer})",
-                    llvm_type(self.program, drop.ty())?,
-                    value_name(drop.value())
-                )
-                .map_err(|_| BackendFailure::TextEmission)?;
+                emit_value_cleanup(
+                    self.program,
+                    &mut self.output,
+                    &mut self.temporary,
+                    drop.ty(),
+                    value_name(drop.value()),
+                )?;
             }
             IrType::Nominal(nominal) if !self.nominal(nominal)?.is_tag_only_enum() => {
-                if matches!(self.nominal(nominal)?.kind(), IrNominalKind::Enum { .. })
-                    && type_contains_buffer(self.program, drop.ty())?
-                {
-                    writeln!(
-                        self.output,
-                        "  call void @{}({} {})",
-                        drop_helper_symbol(nominal),
-                        llvm_type(self.program, drop.ty())?,
-                        value_name(drop.value())
-                    )
-                    .map_err(|_| BackendFailure::TextEmission)?;
+                match self.nominal(nominal)?.kind() {
+                    IrNominalKind::Struct { .. } => {}
+                    IrNominalKind::Enum { .. } | IrNominalKind::Box { .. } => {
+                        if type_requires_cleanup(self.program, drop.ty())? {
+                            emit_value_cleanup(
+                                self.program,
+                                &mut self.output,
+                                &mut self.temporary,
+                                drop.ty(),
+                                value_name(drop.value()),
+                            )?;
+                        }
+                    }
                 }
             }
             _ => return Err(BackendFailure::InvalidIr),
@@ -758,6 +771,9 @@ fn llvm_type(program: &IrProgram<'_, '_, '_>, ty: IrType) -> Result<String, Back
         IrType::GuardedBufferIndex { .. } => Ok("i64".to_owned()),
         IrType::Nominal(id) => {
             let nominal = program.nominal(id).ok_or(BackendFailure::InvalidIr)?;
+            if matches!(nominal.kind(), IrNominalKind::Box { .. }) {
+                return Ok("ptr".to_owned());
+            }
             if nominal.is_tag_only_enum() {
                 let IrNominalKind::Enum { variants } = nominal.kind() else {
                     return Err(BackendFailure::InvalidIr);

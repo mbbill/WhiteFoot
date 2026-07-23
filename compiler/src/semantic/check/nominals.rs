@@ -62,11 +62,21 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .iter()
                 .flat_map(|variant| variant.fields.iter())
                 .collect(),
+            CheckedNominalKind::Box { .. } => Vec::new(),
         };
         Ok(fields
             .into_iter()
             .filter_map(|field| match field.ty {
-                CheckedType::Nominal(id) => Some(id),
+                CheckedType::Nominal(id)
+                    if !matches!(
+                        self.nominals
+                            .get(id.0 as usize)
+                            .map(|nominal| &nominal.kind),
+                        Some(CheckedNominalKind::Box { .. })
+                    ) =>
+                {
+                    Some(id)
+                }
                 _ => None,
             })
             .collect())
@@ -100,6 +110,33 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .get(&ty)
             .copied()
             .ok_or_else(|| SemanticCompilerFailure::InvalidResolution.into())
+    }
+
+    pub(super) fn intern_box_nominal(
+        &mut self,
+        referent: CheckedType,
+    ) -> Result<NominalId, CheckStop> {
+        if let Some(id) = self.box_nominals.get(&referent) {
+            return Ok(*id);
+        }
+        let id = NominalId(
+            u32::try_from(self.nominals.len())
+                .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
+        );
+        let name = format!("box<{}>", self.checked_type_name(referent)?);
+        self.nominals.push(CheckedNominal {
+            id,
+            name,
+            kind: CheckedNominalKind::Box { referent },
+        });
+        self.nominal_nodes.push(None);
+        self.nominal_states.push(2);
+        self.source_nominal_instances.push(None);
+        self.prelude_types.push(None);
+        if self.box_nominals.insert(referent, id).is_some() {
+            return Err(SemanticCompilerFailure::InvalidResolution.into());
+        }
+        Ok(id)
     }
 
     pub(super) fn register_prelude_nominals(&mut self) -> Result<(), CheckStop> {

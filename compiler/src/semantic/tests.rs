@@ -2,6 +2,7 @@
 
 mod arrays;
 mod borrows;
+mod boxes;
 mod buffers;
 mod checked_division;
 mod contracts;

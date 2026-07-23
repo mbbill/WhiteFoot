@@ -175,6 +175,7 @@ impl IrVariant {
 pub enum IrNominalKind {
     Struct { fields: Vec<IrField> },
     Enum { variants: Vec<IrVariant> },
+    Box { referent: IrType },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -509,6 +510,14 @@ pub enum IrOperation {
         offset: IrValueId,
         trap: IrTrapSite,
         target_domain: IrTargetDomainObligation,
+    },
+    BoxNew {
+        nominal: IrNominalId,
+        value: IrValueId,
+    },
+    BoxDeref {
+        nominal: IrNominalId,
+        value: IrValueId,
     },
     ConstructStruct {
         nominal: IrNominalId,

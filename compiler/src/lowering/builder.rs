@@ -116,6 +116,9 @@ fn lower_nominals(data: &CheckedProgramData) -> Result<Vec<IrNominal>, LoweringF
                         })
                         .collect::<Result<Vec<_>, LoweringFailure>>()?,
                 },
+                CheckedNominalKind::Box { referent } => IrNominalKind::Box {
+                    referent: lower_type(*referent)?,
+                },
             };
             Ok(IrNominal {
                 id: IrNominalId(
@@ -535,7 +538,9 @@ impl<'program> IrBuilder<'program> {
                 if self.bindings.insert(binder.binding, value).is_some() {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
-                self.promote_binding_if_needed(binder.binding)?;
+                if binder.mode == CheckedMode::Own {
+                    self.promote_binding_if_needed(binder.binding)?;
+                }
             }
             let arm_give_target = match value_binding {
                 Some((_, ty)) => join.as_ref().map(|(block, _)| GiveTarget {
@@ -807,9 +812,37 @@ impl<'program> IrBuilder<'program> {
                 trap,
                 target_domain,
             } => self.lower_buffer_index(root, offset, trap, *target_domain),
+            CheckedExpression::BoxNew { nominal, value } => {
+                let value = self.expression(value)?;
+                let nominal = IrNominalId(nominal.0);
+                self.define(
+                    IrType::Nominal(nominal),
+                    IrOperation::BoxNew { nominal, value },
+                )
+            }
+            CheckedExpression::BoxDeref { nominal, value, .. } => {
+                let value = self.expression(value)?;
+                let nominal = IrNominalId(nominal.0);
+                let IrNominalKind::Box { referent } = self
+                    .nominals
+                    .get(nominal.index())
+                    .ok_or(LoweringFailure::InvalidCheckedProgram)?
+                    .kind
+                else {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                };
+                self.define(referent, IrOperation::BoxDeref { nominal, value })
+            }
             CheckedExpression::BorrowBuffer { root } => self.lower_buffer_borrow(root),
             CheckedExpression::BorrowStruct { binding, nominal } => {
                 self.lower_struct_borrow(*binding, IrNominalId(nominal.0))
+            }
+            CheckedExpression::BorrowBox { binding, nominal } => {
+                let value = self.binding_value(*binding)?;
+                if self.value_type(value)? != IrType::Nominal(IrNominalId(nominal.0)) {
+                    return Err(LoweringFailure::InvalidCheckedProgram);
+                }
+                Ok(value)
             }
             CheckedExpression::ReborrowStruct { binding, nominal } => {
                 self.lower_struct_borrow(*binding, IrNominalId(nominal.0))
@@ -866,6 +899,24 @@ impl<'program> IrBuilder<'program> {
                         .push(IrInstruction::Drop(drop));
                 }
                 Ok(value)
+            }
+            CheckedExpression::ProjectValue {
+                value,
+                nominal,
+                field,
+                ty,
+            } => {
+                let aggregate = self.expression(value)?;
+                let nominal = IrNominalId(nominal.0);
+                self.define(
+                    lower_type(*ty)?,
+                    IrOperation::ProjectStruct {
+                        aggregate,
+                        nominal,
+                        field: *field,
+                        consume_root: false,
+                    },
+                )
             }
         }
     }
@@ -1004,7 +1055,7 @@ impl<'program> IrBuilder<'program> {
                         .ok_or(LoweringFailure::InvalidCheckedProgram)?
                         .ty
                 }
-                IrNominalKind::Enum { .. } => {
+                IrNominalKind::Enum { .. } | IrNominalKind::Box { .. } => {
                     return Err(LoweringFailure::InvalidCheckedProgram);
                 }
             };
@@ -1045,7 +1096,7 @@ impl<'program> IrBuilder<'program> {
                     .ok_or(LoweringFailure::InvalidCheckedProgram)?
                     .ty
             }
-            IrNominalKind::Enum { .. } => {
+            IrNominalKind::Enum { .. } | IrNominalKind::Box { .. } => {
                 return Err(LoweringFailure::InvalidCheckedProgram);
             }
         };

@@ -1,5 +1,6 @@
 mod calls;
 mod flat_storage;
+mod places;
 
 use std::collections::HashMap;
 
@@ -607,77 +608,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
         }
-    }
-
-    fn check_dereferenced_place_use(
-        &self,
-        use_node: NodeId,
-        node: NodeId,
-        pbase: NodeId,
-        bindings: &HashMap<DeclarationId, LocalBinding>,
-        options: PlaceUseOptions,
-    ) -> Result<TypedExpression, CheckStop> {
-        let (declaration, local, borrow) =
-            self.resolve_dereference_holder(node, pbase, bindings)?;
-        let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
-        if !self.is_copy_type(ty)? {
-            if !options.explicit_move {
-                return self.issue_node(
-                    SemanticRule::Own1,
-                    use_node,
-                    SemanticIssueKind::BareAffineUse {
-                        mechanical_fix: "write `move p` for the affine place",
-                    },
-                );
-            }
-            return self.issue_node(
-                SemanticRule::Own5,
-                use_node,
-                SemanticIssueKind::BorrowConflict,
-            );
-        }
-        if options.explicit_move {
-            return self.issue_node(
-                SemanticRule::Own1,
-                use_node,
-                SemanticIssueKind::MoveOfCopy {
-                    mechanical_fix: "use the copy place without `move`",
-                },
-            );
-        }
-        let mut resolved = borrow.place;
-        resolved.fields.extend_from_slice(&fields);
-        self.check_loan_access(
-            bindings,
-            Some(declaration),
-            &resolved,
-            AccessKind::Read,
-            use_node,
-        )?;
-        let mut effects = EffectSet::NONE;
-        if let Some(region) = borrow.origin_region {
-            effects.add_read(region);
-        }
-        let expression = if fields.is_empty() {
-            CheckedExpression::Binding {
-                binding: local.binding,
-                ty,
-            }
-        } else {
-            CheckedExpression::Project {
-                binding: local.binding,
-                fields,
-                ty,
-                consume_root: false,
-                residual_drops: Vec::new(),
-            }
-        };
-        Ok(TypedExpression::owned_with_access(
-            expression,
-            effects,
-            resolved,
-            AccessKind::Read,
-        ))
     }
 
     fn check_dereferenced_set_target(

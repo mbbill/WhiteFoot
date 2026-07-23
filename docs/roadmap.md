@@ -158,14 +158,15 @@ detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
 This is not a completeness claim. Cyclic and region-bearing generic forms,
-generic `requires`, borrow referents outside buffers and acyclic structs,
-returned borrows, bound/result-carrying/grandchild reborrows, floats, boxes,
-arenas, slices, recursive nominal layouts, branch-dependent ownership/loan
-joins, projected array targets, and floating-point and remaining effect-table
-operations are explicit unsupported compiler capabilities rather than
-source-language rejections. Generic source contracts and source-contract
-bounds instead receive v0.16's specified FN-3 rejection; contract-member calls
-have no v0.16 grammar or semantic operation.
+generic `requires`, general borrow referents and borrowed affine match
+payloads, returned borrows, bound/result-carrying/grandchild reborrows, floats,
+affine moves out through owning indirection, arenas, slices, inline recursive
+nominal layouts, branch-dependent ownership/loan joins, projected array
+targets, and floating-point and remaining effect-table operations are explicit
+unsupported compiler capabilities rather than source-language rejections.
+Generic source contracts and source-contract bounds instead receive v0.16's
+specified FN-3 rejection; contract-member calls have no v0.16 grammar or
+semantic operation.
 Repeated exhaustive match arms also stop as
 unsupported because v0.16 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
@@ -295,7 +296,7 @@ copy state such as `deref(pool).count` through a usable unique holder. One
 resolved place path retains the borrowed root, field prefix, ultimate caller
 origin, loan checks, and exact EFF-2 reads/writes. The implementation does not
 move affine fields out of a borrow, return references, admit bound or
-result-carrying child reborrows, or add slices, boxes, or arenas.
+result-carrying child reborrows, or add slices or arenas.
 
 The owner-approved protected corrections to five inherited runnable
 conformance entries are applied. `pending-op9-buffer-new` and
@@ -835,13 +836,32 @@ program sources remain in `tests/programs/`; Cargo exercises them from the
 `compiler/tests/programs.rs` integration boundary, while private backend tests
 remain responsible only for lowering and emission invariants.
 
-The exact next work is Phase 9: run or extend one production-shaped dogfood
-target, observe the first real missing language or compiler capability, and
-select the smallest general implementation that removes that blocker. Do not
-preselect a speculative family merely because it remains in the specification.
-Cyclic generic calls, region-bearing generic arguments, generic `requires`,
-and generic `cvt` remain explicit unsupported capabilities unless that
-dogfood work selects and implements one of them generally.
+The first graph-shaped Phase 9 target is a naturally recursive binary tree,
+not an index-pool substitute. It selected the general `box<T>` owner path:
+structural box type formation, `box_new`, explicit dereference, shared
+borrowing, box payloads in recursive enums, finite pointer-based layout,
+heap allocation, and compiler-derived recursive cleanup now pass through the
+ordinary checked program, typed IR, LLVM, and public integration boundary.
+The tree builds seven nodes, traverses them recursively through shared box
+borrows, and releases the complete graph from one root drop. Allocation
+failure remains a non-language abort edge. Moving an affine referent out of a
+box remains an explicit unsupported capability because v0.16 does not define
+the resulting empty owner or allocation cleanup; this implementation does not
+invent one.
+
+Two inherited positive box cases now exercise implemented behavior but omit
+the `allocates(heap)` effect required by OP-1, so their protected sources and
+pending statuses need owner-approved reconciliation before activation. The
+borrowed inline affine-payload case remains pending and outside this box slice.
+
+After that reconciliation, the exact next work remains Phase 9: run or extend
+another production-shaped dogfood target, observe the first real missing
+language or compiler capability, and select the smallest general
+implementation that removes that blocker. Do not preselect a speculative
+family merely because it remains in the specification. Cyclic generic calls,
+region-bearing generic arguments, generic `requires`, and generic `cvt` remain
+explicit unsupported capabilities unless dogfood selects and implements one
+of them generally.
 
 ## Phase 9: dogfood and language iteration
 

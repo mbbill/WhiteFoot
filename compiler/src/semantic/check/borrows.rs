@@ -245,6 +245,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     nominal,
                 }
             }
+            CheckedType::Nominal(nominal)
+                if fields.is_empty()
+                    && matches!(self.nominal(nominal)?.kind, CheckedNominalKind::Box { .. }) =>
+            {
+                CheckedExpression::BorrowBox {
+                    binding: local.binding,
+                    nominal,
+                }
+            }
             _ => {
                 return self.unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, place_node);
             }

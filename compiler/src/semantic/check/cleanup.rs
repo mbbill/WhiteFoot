@@ -45,7 +45,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                                 pending.push((field.ty, child, false));
                             }
                         }
-                        CheckedNominalKind::Enum { .. } => drops.push((path, current)),
+                        CheckedNominalKind::Enum { .. } | CheckedNominalKind::Box { .. } => {
+                            drops.push((path, current));
+                        }
                     }
                 }
             }

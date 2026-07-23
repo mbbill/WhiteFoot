@@ -151,6 +151,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         node: NodeId,
         substitution: &GenericSubstitution,
     ) -> Result<(), CheckStop> {
+        if self.has_fixed(node, crate::FixedTerminal::Box)? {
+            let referent_node = self
+                .tree
+                .first_child_with(node, Production::Type)?
+                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            let referent = self.parse_type_with(referent_node, substitution)?;
+            self.intern_box_nominal(referent)?;
+            return Ok(());
+        }
         if self
             .tree
             .direct_token_with(node, TerminalPredicate::TypeIdentifier)?
@@ -625,6 +634,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             !instances.is_empty()
         });
         self.prelude_nominals
+            .retain(|_, id| (id.0 as usize) < checkpoint);
+        self.box_nominals
             .retain(|_, id| (id.0 as usize) < checkpoint);
         Ok(())
     }

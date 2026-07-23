@@ -82,6 +82,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if spelling == "buffer_new" {
             return self.check_buffer_new(node, function, bindings, loop_depth);
         }
+        if spelling == "box_new" {
+            return self.check_box_new(node, function, bindings, loop_depth);
+        }
         if spelling == "len" {
             return self.check_flat_length(node, function, bindings, loop_depth);
         }
@@ -247,6 +250,37 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 trap,
             },
             effects,
+        ))
+    }
+
+    fn check_box_new(
+        &self,
+        node: NodeId,
+        function: &FunctionSignature,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
+    ) -> Result<TypedExpression, CheckStop> {
+        let referent = self.operation_type_argument(node, "box_new", function)?;
+        let nominal = self
+            .box_nominals
+            .get(&referent)
+            .copied()
+            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+        let atoms = self.operation_atoms(node, 1)?;
+        let value = self.check_atom(function, atoms[0], bindings, loop_depth)?;
+        if value.expression.ty() != referent || value.mode != CheckedMode::Own {
+            return self.issue_node(
+                SemanticRule::Type5,
+                atoms[0],
+                SemanticIssueKind::TypeMismatch,
+            );
+        }
+        Ok(TypedExpression::owned(
+            CheckedExpression::BoxNew {
+                nominal,
+                value: Box::new(value.expression),
+            },
+            value.effects.union(EffectSet::ALLOCATES_HEAP),
         ))
     }
 

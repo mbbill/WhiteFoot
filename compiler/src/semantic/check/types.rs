@@ -46,6 +46,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             if matches!(
                                 self.nominal(nominal)?.kind,
                                 CheckedNominalKind::Struct { .. }
+                                    | CheckedNominalKind::Box { .. }
                             )
                     );
                 if !supported {
@@ -129,6 +130,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return Ok(CheckedType::Buffer {
                 element: self.checked_flat_element(element_type, element_node)?,
             });
+        }
+        if self.has_fixed(node, FixedTerminal::Box)? {
+            let referent_node = self
+                .tree
+                .first_child_with(node, Production::Type)?
+                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            let referent = self.parse_type_with(referent_node, substitution)?;
+            return self
+                .box_nominals
+                .get(&referent)
+                .copied()
+                .map(CheckedType::Nominal)
+                .ok_or(SemanticCompilerFailure::InvalidResolution.into());
         }
         if self
             .tree

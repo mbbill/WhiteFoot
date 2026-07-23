@@ -10,6 +10,7 @@ use super::super::super::model::{
     CheckedConstructor, CheckedEnumType, CheckedExpression, CheckedField, CheckedMatchArm,
     CheckedMatchBinder, CheckedMode, CheckedNominalKind, CheckedType,
 };
+use super::super::borrows::BorrowInfo;
 use super::super::{CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding};
 use super::{BreakState, ControlCounters, ControlScope, GiveContext};
 
@@ -102,7 +103,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut normal_states = Vec::new();
         let mut give_states = Vec::new();
         let mut break_states = Vec::new();
-        let mut effects = scrutinee.effects;
+        let mut effects = scrutinee.effects.clone();
         let mut all_paths_deliver = true;
         for (arm_node, variant) in arm_nodes.into_iter().zip(&resolved_variants) {
             let mut arm_bindings = base_bindings.clone();
@@ -112,6 +113,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 &mut arm_bindings,
                 counters.next_binding,
                 scope.loops.len(),
+                &scrutinee,
             )?;
             let statements = self.tree.children_with(arm_node, Production::Stmt)?;
             let checked = self.check_block(
@@ -251,7 +253,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         next_binding: &mut u32,
         loop_depth: usize,
+        scrutinee: &super::super::TypedExpression,
     ) -> Result<Vec<CheckedMatchBinder>, CheckStop> {
+        let mode = scrutinee.mode;
         let written =
             if let Some(list) = self.tree.first_child_with(arm, Production::FieldbindList)? {
                 self.tree.children_with(list, Production::Fieldbind)?
@@ -270,19 +274,47 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             {
                 return self.invalid_match_fields(variant, written);
             }
+            if mode != CheckedMode::Own {
+                let box_payload = matches!(
+                    field.ty,
+                    CheckedType::Nominal(id)
+                        if matches!(self.nominal(id)?.kind, CheckedNominalKind::Box { .. })
+                );
+                if matches!(mode, CheckedMode::Unique(_))
+                    && !box_payload
+                    && !self.is_copy_type(field.ty)?
+                {
+                    return self
+                        .unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, written);
+                }
+            }
             let declaration = self.declaration_at(written, DeclarationRole::MatchBinder)?;
             let binding = Self::allocate_binding(next_binding)?;
+            let borrow = if mode == CheckedMode::Own {
+                None
+            } else {
+                let parent = scrutinee
+                    .borrow
+                    .as_ref()
+                    .cloned()
+                    .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                let mut place = parent.place;
+                place.fields.push(
+                    u32::try_from(index).map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
+                );
+                Some(BorrowInfo { place, ..parent })
+            };
             if bindings
                 .insert(
                     declaration.id(),
                     LocalBinding {
                         binding,
                         declaration: declaration.id(),
-                        mode: CheckedMode::Own,
+                        mode,
                         ty: field.ty,
                         live: true,
                         loop_depth,
-                        borrow: None,
+                        borrow,
                     },
                 )
                 .is_some()
@@ -293,6 +325,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 binding,
                 field: u32::try_from(index)
                     .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
+                mode,
                 ty: field.ty,
             });
         }

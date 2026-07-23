@@ -173,6 +173,13 @@ impl EffectSet {
         allocates_arenas: Vec::new(),
         traps: true,
     };
+    const ALLOCATES_HEAP: Self = Self {
+        reads: Vec::new(),
+        writes: Vec::new(),
+        allocates_heap: true,
+        allocates_arenas: Vec::new(),
+        traps: false,
+    };
     const ALLOCATES_HEAP_AND_TRAPS: Self = Self {
         reads: Vec::new(),
         writes: Vec::new(),
@@ -234,6 +241,7 @@ struct Checker<'unit, 'classified, 'lexed, 'source> {
     nominal_nodes: Vec<Option<NodeId>>,
     nominal_states: Vec<u8>,
     source_nominal_instances: Vec<Option<(usize, GenericSubstitution)>>,
+    box_nominals: HashMap<CheckedType, NominalId>,
     prelude_nominals: HashMap<PreludeType, NominalId>,
     prelude_types: Vec<Option<PreludeType>>,
     nominal_templates: Vec<NominalTemplate>,
@@ -281,6 +289,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             nominal_nodes: Vec::new(),
             nominal_states: Vec::new(),
             source_nominal_instances: Vec::new(),
+            box_nominals: HashMap::new(),
             prelude_nominals: HashMap::new(),
             prelude_types: Vec::new(),
             nominal_templates: Vec::new(),

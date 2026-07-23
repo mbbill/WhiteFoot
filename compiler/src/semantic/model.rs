@@ -185,6 +185,7 @@ pub(crate) enum CheckedConstructor {
 pub(crate) enum CheckedNominalKind {
     Struct { fields: Vec<CheckedField> },
     Enum { variants: Vec<CheckedVariant> },
+    Box { referent: CheckedType },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -486,10 +487,23 @@ pub(crate) enum CheckedExpression {
         trap: TrapSite,
         target_domain: CheckedTargetDomainObligation,
     },
+    BoxNew {
+        nominal: NominalId,
+        value: Box<CheckedExpression>,
+    },
+    BoxDeref {
+        nominal: NominalId,
+        referent: CheckedType,
+        value: Box<CheckedExpression>,
+    },
     BorrowBuffer {
         root: CheckedBufferRoot,
     },
     BorrowStruct {
+        binding: BindingId,
+        nominal: NominalId,
+    },
+    BorrowBox {
         binding: BindingId,
         nominal: NominalId,
     },
@@ -513,6 +527,12 @@ pub(crate) enum CheckedExpression {
         consume_root: bool,
         residual_drops: Vec<CheckedProjectedDrop>,
     },
+    ProjectValue {
+        value: Box<CheckedExpression>,
+        nominal: NominalId,
+        field: u32,
+        ty: CheckedType,
+    },
 }
 
 impl CheckedExpression {
@@ -530,16 +550,19 @@ impl CheckedExpression {
             Self::BufferFill { element, .. } => CheckedType::Buffer { element: *element },
             Self::BufferLength { .. } => CheckedType::Integer(IntegerType::U64),
             Self::BufferIndex { root, .. } => root.element.ty(),
+            Self::BoxNew { nominal, .. } => CheckedType::Nominal(*nominal),
+            Self::BoxDeref { referent, .. } => *referent,
             Self::BorrowBuffer { root } => CheckedType::Buffer {
                 element: root.element,
             },
             Self::BorrowStruct { nominal, .. } | Self::ReborrowStruct { nominal, .. } => {
                 CheckedType::Nominal(*nominal)
             }
+            Self::BorrowBox { nominal, .. } => CheckedType::Nominal(*nominal),
             Self::ConstructStruct { nominal, .. } | Self::ConstructEnum { nominal, .. } => {
                 CheckedType::Nominal(*nominal)
             }
-            Self::Project { ty, .. } => *ty,
+            Self::Project { ty, .. } | Self::ProjectValue { ty, .. } => *ty,
         }
     }
 }
@@ -554,6 +577,7 @@ pub(crate) enum CheckedEnumType {
 pub(crate) struct CheckedMatchBinder {
     pub(crate) binding: BindingId,
     pub(crate) field: u32,
+    pub(crate) mode: CheckedMode,
     pub(crate) ty: CheckedType,
 }
 
