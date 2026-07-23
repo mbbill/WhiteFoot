@@ -1,6 +1,4 @@
-use crate::{
-    SemanticIssueKind, SemanticOutcome, SemanticRuleV0_14, UnsupportedSemanticFeatureV0_14,
-};
+use crate::{SemanticIssueKind, SemanticOutcome, SemanticRuleV0_14};
 
 use super::super::model::{
     CheckedExpression, CheckedFlatElement, CheckedSetTarget, CheckedStatement, CheckedType,
@@ -174,17 +172,20 @@ fn main() -> own unit allocates(heap), traps {
 }
 
 #[test]
-fn resource_bearing_enum_payloads_remain_explicitly_unsupported() {
+fn resource_bearing_enum_owners_have_one_variant_dependent_drop() {
     with_semantics(
-        b"enum MaybeBuffer {\n  Empty();\n  Full(value: buffer<u8>);\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
+        b"enum MaybeBuffer {\n  Empty();\n  Full(value: buffer<u8>);\n}\n\nfn abandon(value: own MaybeBuffer) -> own unit pure {\n  return unit;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n",
         |outcome| {
-            let SemanticOutcome::Unsupported { unsupported } = outcome else {
-                panic!("variant-dependent buffer cleanup must remain unsupported: {outcome:?}");
+            let SemanticOutcome::Complete(checked) = outcome else {
+                panic!("resource-bearing enum payload must check: {outcome:?}");
             };
-            assert_eq!(
-                unsupported.feature(),
-                UnsupportedSemanticFeatureV0_14::CompositeValues
-            );
+            let CheckedStatement::Return { drops, .. } = &checked.data.functions[0].body[0]
+            else {
+                panic!("abandon must end in return");
+            };
+            assert_eq!(drops.len(), 1);
+            assert!(drops[0].fields.is_empty());
+            assert_eq!(drops[0].ty, CheckedType::Nominal(NominalId(0)));
         },
     );
 }

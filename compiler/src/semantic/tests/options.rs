@@ -1,6 +1,6 @@
-use crate::{SemanticOutcome, UnsupportedSemanticFeatureV0_14};
+use crate::SemanticOutcome;
 
-use super::{assert_unsupported, with_semantics};
+use super::with_semantics;
 
 #[test]
 fn concrete_options_reuse_the_nominal_path_for_supported_payloads() {
@@ -55,9 +55,27 @@ fn main() -> own unit pure {
 }
 
 #[test]
-fn option_of_a_resource_bearing_payload_stays_explicitly_unsupported() {
-    assert_unsupported(
-        b"fn main() -> own unit pure {\n  let absent: own Option<buffer<u8>> = None();\n  return unit;\n}\n",
-        UnsupportedSemanticFeatureV0_14::CompositeValues,
-    );
+fn option_of_a_resource_bearing_payload_uses_variant_dependent_cleanup() {
+    let source = b"fn abandon(value: own Option<buffer<u8>>) -> own unit pure {\n  return unit;\n}\n\nfn main() -> own unit pure {\n  return unit;\n}\n";
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("Option<buffer<u8>> must check: {outcome:?}");
+        };
+        let nominal = checked
+            .data
+            .nominals
+            .iter()
+            .find(|nominal| nominal.name == "Option<buffer<u8>>")
+            .expect("concrete Option instance must be interned");
+        let super::super::model::CheckedStatement::Return { drops, .. } =
+            &checked.data.functions[0].body[0]
+        else {
+            panic!("abandon must end in return");
+        };
+        assert_eq!(drops.len(), 1);
+        assert_eq!(
+            drops[0].ty,
+            super::super::model::CheckedType::Nominal(nominal.id)
+        );
+    });
 }

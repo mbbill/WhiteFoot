@@ -96,8 +96,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .ok_or(SemanticCompilerFailure::InvalidResolution)?
                 .kind = kind;
         }
-        self.reject_recursive_nominal_layouts()?;
-        self.reject_resource_bearing_prelude_payloads()
+        self.reject_recursive_nominal_layouts()
     }
 
     fn parse_struct_fields(&self, node: NodeId) -> Result<Vec<CheckedField>, CheckStop> {
@@ -173,10 +172,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .first_child_with(field, ProductionV0_14::Type)?
                         .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                     let parsed = self.parse_type(ty)?;
-                    if self.type_contains_buffer(parsed)? {
-                        return self
-                            .unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, ty);
-                    }
                     fields.push(CheckedField {
                         name: field_name,
                         ty: parsed,
@@ -269,86 +264,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Unit | CheckedType::Bool | CheckedType::Integer(_) => true,
             CheckedType::Array { .. } | CheckedType::Buffer { .. } => false,
         })
-    }
-
-    pub(super) fn type_contains_buffer(&self, ty: CheckedType) -> Result<bool, CheckStop> {
-        let mut pending = vec![ty];
-        let mut visited = HashSet::new();
-        while let Some(current) = pending.pop() {
-            match current {
-                CheckedType::Buffer { .. } => return Ok(true),
-                CheckedType::Nominal(id) if visited.insert(id) => match &self.nominal(id)?.kind {
-                    CheckedNominalKind::Struct { fields } => {
-                        pending.extend(fields.iter().map(|field| field.ty));
-                    }
-                    CheckedNominalKind::Enum { variants } => {
-                        pending.extend(
-                            variants
-                                .iter()
-                                .flat_map(|variant| variant.fields.iter())
-                                .map(|field| field.ty),
-                        );
-                    }
-                },
-                CheckedType::Unit
-                | CheckedType::Bool
-                | CheckedType::Integer(_)
-                | CheckedType::Array { .. }
-                | CheckedType::Nominal(_) => {}
-            }
-        }
-        Ok(false)
-    }
-
-    fn reject_resource_bearing_prelude_payloads(&self) -> Result<(), CheckStop> {
-        for (index, nominal) in self.nominals.iter().enumerate() {
-            if self.nominal_nodes.get(index).copied().flatten().is_some() {
-                continue;
-            }
-            let CheckedNominalKind::Enum { variants } = &nominal.kind else {
-                continue;
-            };
-            for field in variants.iter().flat_map(|variant| &variant.fields) {
-                if !self.type_contains_buffer(field.ty)? {
-                    continue;
-                }
-                let node = self
-                    .resource_origin_node(field.ty)?
-                    .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
-            }
-        }
-        Ok(())
-    }
-
-    fn resource_origin_node(&self, ty: CheckedType) -> Result<Option<NodeId>, CheckStop> {
-        let mut pending = vec![ty];
-        let mut visited = HashSet::new();
-        while let Some(current) = pending.pop() {
-            let CheckedType::Nominal(id) = current else {
-                continue;
-            };
-            if !visited.insert(id) {
-                continue;
-            }
-            if let Some(node) = self.nominal_nodes.get(id.0 as usize).copied().flatten() {
-                return Ok(Some(node));
-            }
-            match &self.nominal(id)?.kind {
-                CheckedNominalKind::Struct { fields } => {
-                    pending.extend(fields.iter().map(|field| field.ty));
-                }
-                CheckedNominalKind::Enum { variants } => {
-                    pending.extend(
-                        variants
-                            .iter()
-                            .flat_map(|variant| variant.fields.iter())
-                            .map(|field| field.ty),
-                    );
-                }
-            }
-        }
-        Ok(None)
     }
 
     pub(super) fn prelude_type(&self, id: NominalId) -> Option<PreludeType> {

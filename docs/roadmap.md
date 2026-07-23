@@ -86,10 +86,13 @@ an affine field move records the untouched sibling subtrees to drop at the
 consuming projection, including nested paths. Struct fields may now contain
 buffers: the checker expands each whole or partial owner drop into exact
 reverse-order projected buffer drops before lowering, while resource-free
-nominal drops need no runtime action. Resource-bearing enum payloads remain
-explicitly unsupported because their cleanup is variant-dependent. Required
-checks remain explicit through lowering and emit the exact DIAG-3 record before
-abort.
+nominal drops need no runtime action. Source enums and concrete PRE-1
+`Option`/`Result` instances may also own buffers, directly or through nested
+payloads. Their checked cleanup remains one enum-owner drop; LLVM dispatches
+on the active tag and recursively drops only that variant's resource-bearing
+fields. A consuming match transfers its active payload to the arm binder
+instead, so the root is not dropped twice. Required checks remain explicit
+through lowering and emit the exact DIAG-3 record before abort.
 
 The v0.12 activation adds one general SET-1 path for the place families the
 compiler already represents: live own-mode scalar/tag-only-enum locals and
@@ -139,11 +142,10 @@ edge and exact trap record.
 
 This is not a completeness claim. Generics and contracts, borrow referents
 outside primitive buffers, returned borrows, child reborrows, floats, boxes,
-arenas, slices, resource-bearing nominal payloads, recursive nominal
-layouts, branch-dependent ownership/loan joins, projected array targets, and
-floating-point, remaining conversion, and remaining effect-table operations
-are explicit unsupported compiler capabilities rather than source-language
-rejections.
+arenas, slices, recursive nominal layouts, branch-dependent ownership/loan
+joins, projected array targets, and floating-point and remaining effect-table
+operations are explicit unsupported compiler capabilities rather than
+source-language rejections.
 Repeated exhaustive match arms also stop as
 unsupported because v0.14 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
@@ -245,24 +247,34 @@ program computes the standard `123456789` vector through checked buffer access
 and the same general `u8`-to-`u32` conversion path.
 
 Concrete PRE-1 `Option<T>` now reuses the ordinary nominal path for every
-resource-free payload type the compiler can already represent. Explicitly
+payload type the compiler can already represent. Explicitly
 written Option instances are interned structurally; `None` and `Some` use their
 declared variants and fields; and calls, returns, nested Options, construction,
 and exhaustive matches need no Option-specific IR or backend representation.
 The existing combined Result/Option program and a compiler-independent
 shared-borrow byte scanner execute both `Some(value: offset)` and `None()`
-edges. A context-free generic constructor still has no inferred instance, and
-an Option whose payload owns a buffer remains explicitly unsupported.
+edges. A context-free generic constructor still has no inferred instance.
 
-The next slice is variant-dependent ownership and cleanup for resource-bearing
-enum payloads, both source enums and concrete PRE-1 `Option`/`Result`
-instances. It is selected by a fallible fixed-size byte transform that returns
-`Result<buffer<u8>, DecodeError>` and exercises success transfer, error return,
-matching, and abandonment cleanup through one general enum path. The slice
-must derive cleanup before lowering, drop exactly the active variant's owned
-fields, transfer a matched payload without double-free, and keep fully
-initialized inactive LLVM slots. It does not introduce user destructors,
-source generics, replacement storage, or container growth.
+Variant-dependent cleanup for resource-bearing enum payloads is complete
+through the ordinary source-enum and concrete PRE-1 `Option`/`Result` path. A
+compiler-independent fixed-size byte transform returns
+`Result<buffer<u8>, DecodeError>` and executes success transfer, error cleanup,
+matching, and abandonment of both active variants. Enum construction still
+zero-initializes the whole inactive representation; cleanup switches on the
+active tag, drops its fields in reverse declaration order, and aborts
+defensively on an invalid tag. It introduces no user destructors, source
+generics, replacement storage, or container growth.
+
+The next slice extends the existing lexical buffer-borrow family to projected
+fields of borrowed acyclic structs. It is selected by the preserved
+structure-of-arrays binary-tree workload: helpers receive `&'r Pool` or
+`&uniq 'r Pool`, read and index projected buffer fields such as
+`deref(pool).left`, and update copy state such as `deref(pool).count` through a
+usable unique holder. One resolved place path must retain the borrowed root,
+field prefix, ultimate caller origin, loan checks, and exact EFF-2 reads/writes
+through semantic checking, checked IR, lowering, and execution. The slice does
+not move affine fields out of a borrow, return references, generalize child
+reborrows, or add slices, boxes, or arenas.
 
 Five inherited runnable conformance entries need protected-evidence correction
 before the compiler adapter can promote their current families. `pending-op9-buffer-new`
@@ -554,18 +566,22 @@ case or expectation that contradicts the specification is corrected through
 old test pass.
 
 The implemented nominal-data subset covers nongeneric own-mode acyclic structs
-and resource-free enums. It implements construction, nested projection,
+and enums, including resource-bearing variant payloads. It implements
+construction, nested projection,
 statement and value matching, `give`, exact GRAM-8/GRAM-10 declared-field
 diagnostics, TYPE-5/TYPE-6 typing, per-site ERR-2 exhaustiveness rejection with
 the missing variant list, OWN-1/OWN-13 copy-versus-affine consumption, explicit
 checked cleanup edges, and tag-only enum equality through the normal
 checked-program, typed-CFG, LLVM, and host-execution path. Struct fields may
 own buffers; their whole and residual cleanup is expanded structurally in
-reverse declaration order before lowering. Resource-bearing enum payloads
-remain unsupported. Independent positive and negative cases cover
-cross-function aggregate values, mixed-width and multi-field resource-free
-enum payloads, every Boolean operation, nested fields, ownership failures,
-wrong variants, missing arms, invalid field order, and nested buffer cleanup.
+reverse declaration order before lowering. Enum owners retain one
+variant-dependent drop before lowering; the backend dispatches on the active
+tag, recursively cleans only that variant's resource fields, and matched
+payload transfer remains single-owner. Independent positive and negative cases
+cover cross-function aggregate values, mixed-width and multi-field
+resource-free enum payloads, every Boolean operation, nested fields, ownership
+failures, wrong variants, missing arms, invalid field order, and nested buffer
+cleanup.
 
 The implemented SET-1 subset covers direct live own-mode copy locals, nested
 copy fields, direct local fixed-array indices, and direct or struct-projected
@@ -615,12 +631,13 @@ owner-only cleanup. Concrete FN-8 `requires` prologues execute before function
 bodies without creating assumptions, and the borrowed output-capacity
 experiment runs with every bounds check retained. Integer OP-6 conversion is
 complete for all signed/unsigned pairs, and the standard CRC32 vector executes
-through its general byte-to-word widening path. Concrete resource-free
-`Option<T>` also executes through the normal nominal path, and a borrowed byte
-scanner returns real offsets or absence without sentinel values.
-Variant-dependent resource-bearing enum cleanup is next because a fallible
-byte transform must transfer an owned output buffer on success without leaking
-or double-freeing either result arm.
+through its general byte-to-word widening path. Concrete `Option<T>` also
+executes through the normal nominal path, and a borrowed byte scanner returns
+real offsets or absence without sentinel values. Resource-bearing source enums
+and concrete Option/Result instances now use the same active-variant cleanup
+path. The next slice projects reads, checked buffer accesses, and copy-field
+writes through borrowed struct roots so the preserved structure-of-arrays
+binary-tree workload can run on the current compiler.
 
 ## Phase 9: dogfood and language iteration
 

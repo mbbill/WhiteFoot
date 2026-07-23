@@ -9,6 +9,7 @@ mod integer_extended;
 mod integer_negation;
 mod options;
 mod requires;
+mod resource_enums;
 
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};

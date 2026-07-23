@@ -6,6 +6,7 @@
 
 mod array;
 mod buffer;
+mod cleanup;
 mod conversion;
 mod integer;
 mod operations;
@@ -19,6 +20,7 @@ use crate::{
     IrNominalKind, IrOperation, IrProgram, IrTerminator, IrTrapSite, IrType, IrValueId,
 };
 use buffer::{buffer_bounds_continue_label, buffer_fill_done_label, buffer_index_continue_label};
+use cleanup::{drop_helper_symbol, emit_resource_drop_helpers, type_contains_buffer};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BackendFailure {
@@ -62,7 +64,9 @@ pub fn emit_llvm_v0_14(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, Ba
             .iter()
             .any(|block| matches!(block.terminator(), IrTerminator::Match { .. }))
     });
-    let has_buffers = program.functions().iter().any(IrFunction::contains_buffer);
+    let drop_helpers = emit_resource_drop_helpers(program)?;
+    let has_buffers =
+        !drop_helpers.is_empty() || program.functions().iter().any(IrFunction::contains_buffer);
 
     let mut text =
         String::from("; Whitefoot v0.14 conservative module\nsource_filename = \"whitefoot\"\n\n");
@@ -94,6 +98,7 @@ pub fn emit_llvm_v0_14(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, Ba
     } else if has_matches {
         text.push('\n');
     }
+    text.push_str(&drop_helpers);
     for intrinsic in intrinsics {
         match intrinsic {
             IntrinsicDeclaration::Overflow { name, ty } => {
@@ -664,7 +669,20 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 )
                 .map_err(|_| BackendFailure::TextEmission)?;
             }
-            IrType::Nominal(nominal) if !self.nominal(nominal)?.is_tag_only_enum() => {}
+            IrType::Nominal(nominal) if !self.nominal(nominal)?.is_tag_only_enum() => {
+                if matches!(self.nominal(nominal)?.kind(), IrNominalKind::Enum { .. })
+                    && type_contains_buffer(self.program, drop.ty())?
+                {
+                    writeln!(
+                        self.output,
+                        "  call void @{}({} {})",
+                        drop_helper_symbol(nominal),
+                        llvm_type(self.program, drop.ty())?,
+                        value_name(drop.value())
+                    )
+                    .map_err(|_| BackendFailure::TextEmission)?;
+                }
+            }
             _ => return Err(BackendFailure::InvalidIr),
         }
         writeln!(self.output, "  ; drop {}", value_name(drop.value()))

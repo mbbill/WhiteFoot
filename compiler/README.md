@@ -68,8 +68,11 @@ including construction, nested projection, statement/value matching, `give`,
 per-site exhaustiveness checking, whole-binding affine moves, and explicit
 reverse-order cleanup edges. Struct fields may own buffers; whole and partial
 owner cleanup expands to exact projected buffer frees, and consuming field
-projections skip only the transferred subtree. Resource-bearing enum payloads
-remain unsupported. SET-1 supports live own-mode copy locals and nested copy
+projections skip only the transferred subtree. Resource-bearing source enums
+and concrete `Option`/`Result` instances retain one checked owner drop; the
+backend switches on the active tag and recursively cleans only that variant's
+resource fields. A consuming match transfers the payload without also dropping
+the enum root. SET-1 supports live own-mode copy locals and nested copy
 fields, rejects affine replacement under STOR-1, and rechecks target liveness
 after the right-hand side. Semantic
 success produces the only lowering authority. Concrete fixed arrays support
@@ -104,11 +107,11 @@ cleanup implementation.
 
 Concrete PRE-1 `Option<T>` instances reuse the same checked nominal, typed IR,
 and LLVM representation as source enums and `Result<T, E>` for every currently
-supported resource-free payload. `None` and `Some` cross ordinary function,
-return, and match boundaries; nested Options are concrete nominal instances,
-not erased values. A shared-borrow byte scanner returns `Option<u64>` through
-this path. Resource-bearing Option and Result payloads remain unsupported until
-variant-dependent cleanup is represented before lowering.
+supported payload. `None` and `Some` cross ordinary function, return, and match
+boundaries; nested Options are concrete nominal instances, not erased values.
+A shared-borrow byte scanner returns `Option<u64>` through this path. A
+fallible byte transform exercises owned-buffer Result success, error, matching,
+and abandonment cleanup through the same representation.
 
 This first borrow family deliberately stops before scalar and nominal
 referents, returned borrows, statement-scoped child reborrows, borrow-producing
@@ -117,9 +120,11 @@ unsupported compiler capabilities; they are not accepted with incomplete loan
 checking. Unimplemented v0.14 families stop the same way rather than becoming
 source-language rejections. Whole-unit ERR-2 variant-addition edit-list
 enumeration and the full conformance adapter remain future work.
-Resource-bearing enum payloads, projected array roots, slices, and non-buffer
-borrow-backed SET-1 targets remain unsupported until their cleanup and place
-families exist; none of these gaps is implied complete by the current gate.
+Projected array roots, slices, and non-buffer borrow-backed SET-1 targets
+remain unsupported until their place families exist; none of these gaps is
+implied complete by the current gate. Projected fields of borrowed structs are
+the next selected slice because they unblock the structure-of-arrays
+binary-tree workload.
 
 Compile a source file through the normal path with:
 

@@ -245,15 +245,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         };
-        let ok_type = self.parse_type(ok)?;
-        let error_type = self.parse_type(error)?;
-        if matches!(
-            (ok_type, error_type),
-            (CheckedType::Buffer { .. }, _) | (_, CheckedType::Buffer { .. })
-        ) {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
-        }
-        Ok((ok_type, error_type))
+        Ok((self.parse_type(ok)?, self.parse_type(error)?))
     }
 
     pub(super) fn option_type_argument(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
@@ -279,11 +271,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         };
-        let value = self.parse_type(value)?;
-        if matches!(value, CheckedType::Buffer { .. }) {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
-        }
-        Ok(value)
+        self.parse_type(value)
     }
 
     pub(super) fn integer_type(&self, node: NodeId) -> Result<Option<IntegerType>, CheckStop> {
