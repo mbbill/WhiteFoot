@@ -1,12 +1,20 @@
-# Code generation and performance tests
+# Code generation regression corpus
 
-Performance is a project pillar, but this directory's current runner targets a
-retired compiler and is not an active gate. Its sources and manifests preserve
-useful hypotheses and negative controls until the LLVM backend exists. See
-`DORMANT.md` for the historical runner contract.
+Status: preserved future-facing corpus; not an active gate.
 
-The replacement belongs beside the real backend and must exercise unchanged
-Whitefoot source through the normal compiler path. It has four layers:
+This directory retains Whitefoot source cases, negative controls, and historical
+per-family expectation inventories that can become production-compiler codegen
+regressions as the relevant language capabilities arrive. The Rust compiler
+already has an LLVM backend, but it cannot yet compile these feature families
+and no current Rust harness consumes this corpus.
+
+The democ-bound Python runner, its top-level manifest and schema, and its runner
+tests are preserved under `archive/tests/codegen/`. They must not be restored as
+active tooling. The `cases.json` files beside source families are migration
+evidence, not current specification authority or active expected results.
+
+A future integration belongs beside the real backend and must exercise each
+selected source through the normal compiler path. It has four layers:
 
 1. executable correctness for lowered programs and runtime checks;
 2. facts-off tests proving that every required check remains;
@@ -15,12 +23,11 @@ Whitefoot source through the normal compiler path. It has four layers:
 4. runtime and code-shape measurements kept under `research/`, because noisy
    timing is experimental evidence rather than an every-commit invariant.
 
-Before the old runner moves to `archive/`, the new Rust harness must map each
-retained high-value case to one of those layers, run through the current
-compiler, and preserve the negative controls. Cases that encode retired
-compiler APIs or product-policy machinery may be archived with the runner;
-the underlying semantic and performance hypothesis must either be mapped or
-explicitly rejected with a recorded reason.
+Before promotion, reconcile each selected source with the active numbered
+specification, preserve its positive or negative-control purpose, and replace
+the historical expectation inventory with a small Rust-owned regression. A
+case leaves this holding corpus only after that mapping or after an explicit
+decision that its hypothesis is obsolete.
 
 Do not make this corpus an optimizer dispatch table. Production compilation
 must implement grammar and semantic rules, never case names, source hashes, or

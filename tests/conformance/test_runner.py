@@ -96,6 +96,19 @@ class ManifestValidationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "reject rule"):
                 runner.validate_manifest([case], [], directory, cases)
 
+    def test_expectation_fields_must_match_the_declared_kind(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            cases = self.make_repository(directory)
+            (cases / "sample.wf").write_text("")
+            case = self.case()
+            case["expect"] = {"kind": "accept", "run": {"exit": 0}}
+
+            with self.assertRaisesRegex(
+                ValueError, "accept expectation fields must be exactly"
+            ):
+                runner.validate_manifest([case], [], directory, cases)
+
 
 if __name__ == "__main__":
     unittest.main()

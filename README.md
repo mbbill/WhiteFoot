@@ -69,11 +69,11 @@ live next to what they check.
 | [docs/](docs/) | The plan of record ([roadmap](docs/roadmap.md)), project law ([constitution](docs/constitution.md)), writer forms ([patterns](docs/patterns.md)), and the design rationale ([why-whitefoot](docs/why-whitefoot.md)) |
 | [spec/](spec/) | The language: numbered kernel specifications (append-only) and the rule-derivation ledger under `spec/derivation/` |
 | [compiler/](compiler/README.md) | The safe-Rust compiler: frontend, resolver, first semantic/IR slice, LLVM backend, and `whitefootc` |
-| [tests/](tests/) | Correctness evidence: `conformance/` behavior corpus, `reference/` semantics oracle, `codegen/` optimization-proof corpus (dormant until optimizer work) |
+| [tests/](tests/) | Test evidence: the active compiler-independent `conformance/` behavior corpus and `reference/` semantics oracle, plus preserved `codegen/` source cases awaiting production-compiler integration |
 | [governance/](governance/) | The protected approval ledger, exact successor candidates, and the tracked spec-append-only hook |
 | [research/](research/) | Active language and compiler experiments |
 | [mcts_mem/](mcts_mem/) | The live design tree, consulted and maintained only through the `mcts-mem-use` skill |
-| [archive/](archive/) | Retired and superseded material, including the historical [decision log](archive/governance/decision-log.md); inert — no active source, build, test, or tool depends on it |
+| [archive/](archive/) | Retired and superseded material, including the historical [decision log](archive/governance/decision-log.md) and democ-era codegen harness; inert — no active source, build, test, or tool depends on it |
 
 ## Verification
 

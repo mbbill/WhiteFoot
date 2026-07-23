@@ -1,14 +1,17 @@
-# Dormant codegen-parity design
+# Archived democ codegen-parity harness
 
-Status: historical runner, active compiler-independent corpus.
+Status: archived historical runner; no active tool depends on it. Reusable
+source cases remain under `tests/codegen/` for later production-compiler
+integration.
 
 The 2026-07-20 toolchain reset retired the democ compiler that this harness
-invokes. The manifest, corpus, policy design, and frozen oracle digests remain
-preserved, but neither this harness nor the commands below are active gates.
-Phase 2 does not execute this corpus. A later, entrance-gated backend tranche
-must bind the permanent Rust compiler to it through a new harness adapter
-before promoting any of these checks. A missing democ path is not a compiler
-result.
+invokes. The runner, top-level manifest, schema, policy design, and frozen
+oracle digests remain preserved here, but neither this harness nor the commands
+below are active gates. The current Rust compiler has its own LLVM backend and
+executable backend tests; it does not consume this harness or the preserved
+source corpus. Any future optimizer regression must be ported to the current
+compiler path rather than reviving the democ adapter. A missing democ path is
+not a compiler result.
 
 The design answers a narrower question than a benchmark: did a compiler change
 silently lose a code-generation property that the project has already earned?

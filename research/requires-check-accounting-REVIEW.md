@@ -6,6 +6,12 @@ session). Verdict and required changes below; the draft is NOT rejected — its
 analysis is largely right — but four defaults must flip and the first slice
 must shrink before anything becomes normative.
 
+Repository status (2026-07-22): the implementation reviewed here and its
+codegen-parity gate were later retired. Reusable source cases remain under
+`tests/codegen/`, while the old runner is preserved under
+`archive/tests/codegen/`. References below to the existing gate and the old
+`make check` describe the historical toolchain, not the current repository.
+
 ## Verdict
 
 ACCEPT the analysis, REJECT the scope of the first slice. The draft's concept

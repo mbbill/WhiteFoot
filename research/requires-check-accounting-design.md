@@ -21,6 +21,12 @@ element address. Guard versioning, counterexample generation, domain records,
 backend proof credit, and retained-site approvals are not implemented; the
 manifest therefore requires `approvals: []`.
 
+Repository status (2026-07-22): that implementation and its democ-bound
+codegen-parity harness were retired. Reusable source cases remain under
+`tests/codegen/`; the old runner is under `archive/tests/codegen/`. The material
+below is preserved research, not current compiler capability or roadmap
+authority.
+
 This draft exists because PROOF-2 exposed two different failure modes that the
 prototype originally retained safely but did not explain or govern:
 
@@ -462,7 +468,8 @@ over-include control/data/call dependencies, but it must never omit one. No
 approval is accepted by the current implementation; `approvals` is fixed to an
 empty list until this identity and GATE-1 audit record exist.
 
-The historical codegen-parity gate, now retained under `tests/codegen/`, pins
+The historical codegen-parity gate, now retained under
+`archive/tests/codegen/`, pinned
 per-site proof counts for selected cases. This proposal generalizes that model
 from hand-enumerated regressions to canonical artifact accounting.
 

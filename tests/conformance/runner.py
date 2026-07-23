@@ -113,7 +113,12 @@ def validate_manifest(cases, annots, root=ROOT, cases_dir=CASES):
         errors.append("orphan case sources: " + " ".join(orphan_sources))
 
     valid_statuses = {"runnable", "pending", "xfail"}
-    valid_expectations = {"accept", "reject", "run", "trap"}
+    expectation_fields = {
+        "accept": {"kind"},
+        "reject": {"kind", "rule"},
+        "run": {"exit", "kind"},
+        "trap": {"kind"},
+    }
     for case in cases:
         case_id = case.get("id", "<missing-id>")
         case_rules = case.get("rules")
@@ -132,13 +137,18 @@ def validate_manifest(cases, annots, root=ROOT, cases_dir=CASES):
 
         expect = case.get("expect")
         kind = expect.get("kind") if isinstance(expect, dict) else None
-        if kind not in valid_expectations:
+        if kind not in expectation_fields:
             errors.append(f"{case_id}: invalid expectation {kind!r}")
+        elif set(expect) != expectation_fields[kind]:
+            fields = " ".join(sorted(expectation_fields[kind]))
+            errors.append(
+                f"{case_id}: {kind} expectation fields must be exactly: {fields}"
+            )
         elif kind == "reject":
             reject_rule = expect.get("rule")
             if reject_rule not in case_rules:
                 errors.append(f"{case_id}: reject rule must appear in case rules")
-        elif kind == "run" and not isinstance(expect.get("exit"), int):
+        elif kind == "run" and type(expect.get("exit")) is not int:
             errors.append(f"{case_id}: run expectation requires an integer exit")
 
         if not case.get("doc"):

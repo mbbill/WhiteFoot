@@ -77,3 +77,8 @@ specification or test change.
 - owner: approved in session
 - reason: Repair the repo-wide consistency findings without changing a released specification, an existing conformance verdict, or a runnable status. Correct stale conformance explanations and coverage annotations to the active v0.11 architecture, archive the unmanifested duplicate const fixture, replace nonexistent-tool claims with native checks, repair live documentation and design-memory drift, and prepare—but do not activate—the existing v0.12 candidate with current governance references.
 - evidence: owner instruction “I think we need to fix all the issues” following the complete repository consistency review
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Correct five malformed protected expectations whose `accept` kind caused their nested runtime result to be ignored. `op2-pos-sat-mode`, `const2-pos-array-lookup`, `own1-pos-tagonly-copy`, `type2-pos-buffer-tagonly`, and `type2-pos-twostate-enum-i1` now require the already-documented successful execution result (`run`, exit 0). Their sources, rule assignments, runnable statuses, and language behavior are unchanged. The manifest validator now rejects fields that do not belong to the declared expectation kind.
+- evidence: owner instruction “forget about 0.12. make sure everything else is good” following the consistency report that identified these exact five malformed expectations
