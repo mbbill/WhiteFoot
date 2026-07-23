@@ -25,21 +25,21 @@ pub(super) struct CheckedArrayPlace {
     length: u64,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct CheckedBufferPlace {
     root: CheckedBufferRoot,
     declaration: DeclarationId,
     element_type: CheckedType,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum CheckedIndexedPlace {
     Array(CheckedArrayPlace),
     Buffer(CheckedBufferPlace),
 }
 
 impl CheckedIndexedPlace {
-    const fn element_type(self) -> CheckedType {
+    const fn element_type(&self) -> CheckedType {
         match self {
             Self::Array(array) => array.element_type,
             Self::Buffer(buffer) => buffer.element_type,
@@ -428,13 +428,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         node: NodeId,
         bindings: &HashMap<DeclarationId, LocalBinding>,
     ) -> Result<CheckedIndexedPlace, CheckStop> {
-        if !self
-            .tree
-            .children_with(node, ProductionV0_14::Psuffix)?
-            .is_empty()
-        {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
-        }
         let pbase = self
             .tree
             .first_child_with(node, ProductionV0_14::Pbase)?
@@ -452,7 +445,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let ResolvedTarget::Source { declaration, class } = usage.target() else {
             return Err(SemanticCompilerFailure::InvalidResolution.into());
         };
-        let (root, declaration, ty) = match class {
+        let (root, binding, declaration, fields, ty) = match class {
             DeclarationClass::Value => {
                 let local = *bindings
                     .get(&declaration)
@@ -466,23 +459,44 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
+                let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
                 (
                     CheckedArrayRoot::Binding(local.binding),
+                    Some(local.binding),
                     Some(declaration),
-                    local.ty,
+                    fields,
+                    ty,
                 )
             }
             DeclarationClass::NamedConst => {
+                if !self
+                    .tree
+                    .children_with(node, ProductionV0_14::Psuffix)?
+                    .is_empty()
+                {
+                    return self
+                        .unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
+                }
                 let id = *self
                     .constants
                     .get(&declaration)
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-                (CheckedArrayRoot::Constant(id), None, self.constant(id)?.ty)
+                (
+                    CheckedArrayRoot::Constant(id),
+                    None,
+                    None,
+                    Vec::new(),
+                    self.constant(id)?.ty,
+                )
             }
             _ => return Err(SemanticCompilerFailure::InvalidResolution.into()),
         };
         match ty {
             CheckedType::Array { element, length } => {
+                if !fields.is_empty() {
+                    return self
+                        .unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
+                }
                 Ok(CheckedIndexedPlace::Array(CheckedArrayPlace {
                     root,
                     declaration,
@@ -492,14 +506,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }))
             }
             CheckedType::Buffer { element } => {
-                let Some(declaration) = declaration else {
-                    return Err(SemanticCompilerFailure::InvalidResolution.into());
-                };
-                let CheckedArrayRoot::Binding(binding) = root else {
+                let (Some(binding), Some(declaration)) = (binding, declaration) else {
                     return Err(SemanticCompilerFailure::InvalidResolution.into());
                 };
                 Ok(CheckedIndexedPlace::Buffer(CheckedBufferPlace {
-                    root: CheckedBufferRoot { binding, element },
+                    root: CheckedBufferRoot {
+                        binding,
+                        fields,
+                        element,
+                    },
                     declaration,
                     element_type: element.ty(),
                 }))

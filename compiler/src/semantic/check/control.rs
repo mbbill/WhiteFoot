@@ -450,16 +450,25 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &HashMap<DeclarationId, LocalBinding>,
         preserved: &HashSet<DeclarationId>,
     ) -> Result<Vec<CheckedDrop>, CheckStop> {
+        let mut live = bindings
+            .iter()
+            .filter_map(|(declaration, local)| {
+                (local.live && !preserved.contains(declaration)).then_some((*declaration, *local))
+            })
+            .collect::<Vec<_>>();
+        live.sort_by(|left, right| right.1.binding.0.cmp(&left.1.binding.0));
         let mut drops = Vec::new();
-        for (declaration, local) in bindings {
-            if local.live && !preserved.contains(declaration) && !self.is_copy_type(local.ty)? {
-                drops.push(CheckedDrop {
-                    binding: local.binding,
-                    ty: local.ty,
-                });
+        for (_, local) in live {
+            if !self.is_copy_type(local.ty)? {
+                for (fields, ty) in self.drop_paths(local.ty, Vec::new())? {
+                    drops.push(CheckedDrop {
+                        binding: local.binding,
+                        fields,
+                        ty,
+                    });
+                }
             }
         }
-        drops.sort_by(|left, right| right.binding.0.cmp(&left.binding.0));
         Ok(drops)
     }
 

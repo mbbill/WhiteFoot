@@ -687,9 +687,9 @@ impl<'program> IrBuilder<'program> {
                 value,
                 trap,
             } => self.lower_buffer_fill(*element, length, value, trap),
-            CheckedExpression::BufferLength { root } => self.lower_buffer_length(*root),
+            CheckedExpression::BufferLength { root } => self.lower_buffer_length(root),
             CheckedExpression::BufferIndex { root, offset, trap } => {
-                self.lower_buffer_index(*root, offset, trap)
+                self.lower_buffer_index(root, offset, trap)
             }
             CheckedExpression::ConstructStruct { nominal, fields } => {
                 let fields = fields
@@ -978,21 +978,25 @@ impl<'program> IrBuilder<'program> {
             .collect()
     }
 
-    fn lower_drops(&self, drops: &[CheckedDrop]) -> Result<Vec<IrDrop>, LoweringFailure> {
-        drops
-            .iter()
-            .map(|drop| {
-                let value = self
-                    .bindings
-                    .get(&drop.binding)
-                    .copied()
-                    .ok_or(LoweringFailure::InvalidCheckedProgram)?;
-                let ty = lower_type(drop.ty);
-                if self.value_type(value)? != ty {
-                    return Err(LoweringFailure::InvalidCheckedProgram);
-                }
-                Ok(IrDrop { value, ty })
-            })
-            .collect()
+    fn lower_drops(&mut self, drops: &[CheckedDrop]) -> Result<Vec<IrDrop>, LoweringFailure> {
+        let mut lowered = Vec::with_capacity(drops.len());
+        for drop in drops {
+            let root = self
+                .bindings
+                .get(&drop.binding)
+                .copied()
+                .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+            let value = if drop.fields.is_empty() {
+                root
+            } else {
+                self.project_struct_path(root, &drop.fields, false)?
+            };
+            let ty = lower_type(drop.ty);
+            if self.value_type(value)? != ty {
+                return Err(LoweringFailure::InvalidCheckedProgram);
+            }
+            lowered.push(IrDrop { value, ty });
+        }
+        Ok(lowered)
     }
 }

@@ -89,44 +89,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
 
-        let mut ty = local.ty;
-        let mut fields = Vec::new();
-        for suffix in self.tree.children_with(node, ProductionV0_14::Psuffix)? {
-            let name = self
-                .deferred_use_at(suffix, DeferredUseRole::ProjectedField)?
-                .spelling();
-            let CheckedType::Nominal(nominal_id) = ty else {
-                return self.issue_node(
-                    SemanticRuleV0_14::Type5,
-                    suffix,
-                    SemanticIssueKind::TypeMismatch,
-                );
-            };
-            let CheckedNominalKind::Struct {
-                fields: declared_fields,
-            } = &self.nominal(nominal_id)?.kind
-            else {
-                return self.issue_node(
-                    SemanticRuleV0_14::Type5,
-                    suffix,
-                    SemanticIssueKind::TypeMismatch,
-                );
-            };
-            let Some((index, field)) = declared_fields
-                .iter()
-                .enumerate()
-                .find(|(_, field)| field.name == name)
-            else {
-                return self.issue_node(
-                    SemanticRuleV0_14::Type5,
-                    suffix,
-                    SemanticIssueKind::TypeMismatch,
-                );
-            };
-            fields
-                .push(u32::try_from(index).map_err(|_| SemanticCompilerFailure::CounterOverflow)?);
-            ty = field.ty;
-        }
+        let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
 
         if !self.is_copy_type(ty)? {
             return self.issue_node(
@@ -174,6 +137,51 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 format!("buffer<{}>", self.checked_type_name(element.ty())?)
             }
         })
+    }
+
+    pub(super) fn resolve_struct_path(
+        &self,
+        node: NodeId,
+        mut ty: CheckedType,
+    ) -> Result<(Vec<u32>, CheckedType), CheckStop> {
+        let mut fields = Vec::new();
+        for suffix in self.tree.children_with(node, ProductionV0_14::Psuffix)? {
+            let name = self
+                .deferred_use_at(suffix, DeferredUseRole::ProjectedField)?
+                .spelling();
+            let CheckedType::Nominal(nominal_id) = ty else {
+                return self.issue_node(
+                    SemanticRuleV0_14::Type5,
+                    suffix,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            };
+            let CheckedNominalKind::Struct {
+                fields: declared_fields,
+            } = &self.nominal(nominal_id)?.kind
+            else {
+                return self.issue_node(
+                    SemanticRuleV0_14::Type5,
+                    suffix,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            };
+            let Some((index, field)) = declared_fields
+                .iter()
+                .enumerate()
+                .find(|(_, field)| field.name == name)
+            else {
+                return self.issue_node(
+                    SemanticRuleV0_14::Type5,
+                    suffix,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            };
+            fields
+                .push(u32::try_from(index).map_err(|_| SemanticCompilerFailure::CounterOverflow)?);
+            ty = field.ty;
+        }
+        Ok((fields, ty))
     }
 
     pub(super) fn check_expression(
@@ -342,60 +350,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
-                let mut ty = local.ty;
-                let mut fields = Vec::new();
-                let mut residual_drops = Vec::new();
-                for suffix in self.tree.children_with(node, ProductionV0_14::Psuffix)? {
-                    let name = self
-                        .deferred_use_at(suffix, DeferredUseRole::ProjectedField)?
-                        .spelling();
-                    let CheckedType::Nominal(nominal_id) = ty else {
-                        return self.issue_node(
-                            SemanticRuleV0_14::Type5,
-                            suffix,
-                            SemanticIssueKind::TypeMismatch,
-                        );
-                    };
-                    let CheckedNominalKind::Struct {
-                        fields: declared_fields,
-                    } = &self.nominal(nominal_id)?.kind
-                    else {
-                        return self.issue_node(
-                            SemanticRuleV0_14::Type5,
-                            suffix,
-                            SemanticIssueKind::TypeMismatch,
-                        );
-                    };
-                    let Some((index, field)) = declared_fields
-                        .iter()
-                        .enumerate()
-                        .find(|(_, field)| field.name == name)
-                    else {
-                        return self.issue_node(
-                            SemanticRuleV0_14::Type5,
-                            suffix,
-                            SemanticIssueKind::TypeMismatch,
-                        );
-                    };
-                    for (sibling_index, sibling) in declared_fields.iter().enumerate().rev() {
-                        if sibling_index != index && !self.is_copy_type(sibling.ty)? {
-                            let mut sibling_path = fields.clone();
-                            sibling_path.push(
-                                u32::try_from(sibling_index)
-                                    .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
-                            );
-                            residual_drops.push(CheckedProjectedDrop {
-                                fields: sibling_path,
-                                ty: sibling.ty,
-                            });
-                        }
-                    }
-                    fields.push(
-                        u32::try_from(index)
-                            .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
-                    );
-                    ty = field.ty;
-                }
+                let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
                 let copy = self.is_copy_type(ty)?;
                 if options.explicit_move && copy {
                     return self.issue_node(
@@ -427,6 +382,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
+                let residual_drops = if copy || fields.is_empty() {
+                    Vec::new()
+                } else {
+                    self.residual_drop_paths(local.ty, &fields)?
+                        .into_iter()
+                        .map(|(fields, ty)| CheckedProjectedDrop { fields, ty })
+                        .collect()
+                };
                 if !copy {
                     bindings
                         .get_mut(&declaration)
@@ -448,7 +411,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             fields,
                             ty,
                             consume_root: !copy,
-                            residual_drops: if copy { Vec::new() } else { residual_drops },
+                            residual_drops,
                         },
                         effects: EffectSet::NONE,
                     })

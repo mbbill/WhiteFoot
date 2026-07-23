@@ -1,0 +1,44 @@
+struct Columns {
+  left: buffer<u64>;
+  right: buffer<u64>;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  doc "Parallel runtime-length columns are filled, folded, and released through one struct owner.";
+  let left: own buffer<u64> = buffer_new<u64>(6_u64, 0_u64);
+  let right: own buffer<u64> = buffer_new<u64>(6_u64, 0_u64);
+  let columns: own Columns = Columns(left: move left, right: move right);
+  let length: own u64 = len<u64>(columns.left);
+  let cursor: own u64 = 0_u64;
+  loop @fill {
+    match ieq<u64>(cursor, length) {
+      True() => {
+        break @fill;
+      }
+      False() => {
+      }
+    }
+    set index<u64>(columns.left, cursor) = cursor;
+    let doubled: own u64 = imul.wrap<u64>(cursor, 2_u64);
+    set index<u64>(columns.right, cursor) = doubled;
+    set cursor = iadd.wrap<u64>(cursor, 1_u64);
+  }
+  set cursor = 0_u64;
+  let total: own u64 = 0_u64;
+  loop @fold {
+    match ieq<u64>(cursor, length) {
+      True() => {
+        break @fold;
+      }
+      False() => {
+      }
+    }
+    let left_value: own u64 = index<u64>(columns.left, cursor);
+    let right_value: own u64 = index<u64>(columns.right, cursor);
+    set total = iadd.wrap<u64>(total, left_value);
+    set total = iadd.wrap<u64>(total, right_value);
+    set cursor = iadd.wrap<u64>(cursor, 1_u64);
+  }
+  check ieq<u64>(total, 45_u64) else trap "struct-of-buffers checksum drift";
+  return unit;
+}

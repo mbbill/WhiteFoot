@@ -152,3 +152,137 @@ fn compiler_independent_mutable_buffer_checksum_executes() {
     assert!(output.stdout.is_empty());
     assert!(output.stderr.is_empty());
 }
+
+#[test]
+fn projected_buffer_target_is_formed_once_before_rhs() {
+    let source = br#"struct Columns {
+  left: buffer<u16>;
+  right: buffer<u16>;
+}
+
+fn replacement() -> own u16 pure {
+  return 9_u16;
+}
+
+fn update(columns: own Columns) -> own Columns traps {
+  set index<u16>(columns.left, 1_u64) = replacement();
+  return move columns;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let left: own buffer<u16> = buffer_new<u16>(2_u64, 0_u16);
+  let right: own buffer<u16> = buffer_new<u16>(2_u64, 0_u16);
+  let columns: own Columns = Columns(left: move left, right: move right);
+  let updated: own Columns = update(columns: move columns);
+  let value: own u16 = index<u16>(updated.left, 1_u64);
+  check ieq<u16>(value, 9_u16) else trap "projected store drift";
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    let update = emitted_function(&llvm, "update");
+    let projection = update
+        .find("extractvalue %wf.t0")
+        .expect("the buffer field must be projected once");
+    assert_eq!(update.matches("extractvalue %wf.t0").count(), 1);
+    let guard = update
+        .find("buffer.bounds.cont")
+        .expect("the projected target must retain OP-4");
+    let rhs = update
+        .find("call i16 @wf_replacement")
+        .expect("the RHS must execute once");
+    let store = update
+        .find("store i16")
+        .expect("the target must receive one store");
+    assert!(projection < guard && guard < rhs && rhs < store);
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn nested_struct_cleanup_frees_buffer_fields_in_reverse_order() {
+    let source = br#"struct Pair {
+  first: buffer<u8>;
+  second: buffer<u16>;
+}
+
+struct Owner {
+  prefix: buffer<u32>;
+  pair: Pair;
+  suffix: buffer<u64>;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let first: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let second: own buffer<u16> = buffer_new<u16>(1_u64, 0_u16);
+  let pair: own Pair = Pair(first: move first, second: move second);
+  let prefix: own buffer<u32> = buffer_new<u32>(1_u64, 0_u32);
+  let suffix: own buffer<u64> = buffer_new<u64>(1_u64, 0_u64);
+  let owner: own Owner = Owner(prefix: move prefix, pair: move pair, suffix: move suffix);
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    let main = emitted_function(&llvm, "main");
+    assert_eq!(main.matches("call void @free").count(), 4);
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn projected_buffer_move_frees_only_residual_siblings() {
+    let source = br#"struct Pair {
+  first: buffer<u8>;
+  second: buffer<u8>;
+}
+
+struct Owner {
+  prefix: buffer<u8>;
+  pair: Pair;
+  suffix: buffer<u8>;
+}
+
+fn take(owner: own Owner) -> own buffer<u8> pure {
+  return move owner.pair.first;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let first: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let second: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let pair: own Pair = Pair(first: move first, second: move second);
+  let prefix: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let suffix: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let owner: own Owner = Owner(prefix: move prefix, pair: move pair, suffix: move suffix);
+  let retained: own buffer<u8> = take(owner: move owner);
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    let take = emitted_function(&llvm, "take");
+    assert_eq!(take.matches("call void @free").count(), 3);
+    assert_eq!(
+        emitted_function(&llvm, "main")
+            .matches("call void @free")
+            .count(),
+        1
+    );
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn compiler_independent_struct_of_buffers_checksum_executes() {
+    let output = compile_and_run(&compile(include_bytes!(
+        "../../../../tests/conformance/cases/x-struct-of-buffers-checksum-run.wf"
+    )));
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}

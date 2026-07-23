@@ -317,9 +317,10 @@ pub(crate) enum CheckedArrayRoot {
     Constant(CheckedConstantId),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CheckedBufferRoot {
     pub(crate) binding: BindingId,
+    pub(crate) fields: Vec<u32>,
     pub(crate) element: CheckedFlatElement,
 }
 
@@ -440,9 +441,10 @@ pub(crate) struct CheckedMatchArm {
     pub(crate) fallthrough_drops: Vec<CheckedDrop>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CheckedDrop {
     pub(crate) binding: BindingId,
+    pub(crate) fields: Vec<u32>,
     pub(crate) ty: CheckedType,
 }
 
@@ -486,7 +488,7 @@ pub(crate) enum CheckedSetTarget {
 }
 
 impl CheckedSetTarget {
-    pub(crate) const fn binding(&self) -> BindingId {
+    pub(crate) fn binding(&self) -> BindingId {
         match self {
             Self::Place(target) => target.binding,
             Self::ArrayIndex(target) => target.binding,
@@ -494,7 +496,7 @@ impl CheckedSetTarget {
         }
     }
 
-    pub(crate) const fn ty(&self) -> CheckedType {
+    pub(crate) fn ty(&self) -> CheckedType {
         match self {
             Self::Place(target) => target.ty,
             Self::ArrayIndex(target) => target.element_type,

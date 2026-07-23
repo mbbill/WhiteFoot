@@ -63,10 +63,12 @@ trapping and checked modes, with no `nsw`/`nuw` promises. Nongeneric acyclic
 structs and enums flow through the same path,
 including construction, nested projection, statement/value matching, `give`,
 per-site exhaustiveness checking, whole-binding affine moves, and explicit
-reverse-order cleanup edges. Consuming field projections also retain the
-untouched affine sibling subtrees that must be dropped. SET-1 supports live
-own-mode copy locals and nested copy fields, rejects affine replacement under
-STOR-1, and rechecks target liveness after the right-hand side. Semantic
+reverse-order cleanup edges. Struct fields may own buffers; whole and partial
+owner cleanup expands to exact projected buffer frees, and consuming field
+projections skip only the transferred subtree. Resource-bearing enum payloads
+remain unsupported. SET-1 supports live own-mode copy locals and nested copy
+fields, rejects affine replacement under STOR-1, and rechecks target liveness
+after the right-hand side. Semantic
 success produces the only lowering authority. Concrete fixed arrays support
 decimal or earlier-integer lengths, complete `array_new` initialization,
 immutable static const tables, `len`, checked index reads, and target-before-RHS
@@ -75,13 +77,14 @@ source trap sites, checked set paths, and cleanup. Runtime-length non-floating
 primitive buffers use a `{data pointer, u64 length}` value, checked OP-9 byte-size
 multiplication before allocation, complete fill initialization, OP-4 reads and
 target-before-RHS writes, cross-function affine transfer, and compiler-derived
-`free` on normal owner exits;
+`free` on normal owner exits. Buffer fields retain exact projected roots
+through length, read, and write operations without re-evaluating source paths;
 the backend uses conservative LLVM without unearned overflow flags or check
 elision. Unimplemented v0.14 families stop as explicit unsupported compiler
 capabilities rather than source-language rejections. Whole-unit ERR-2
 variant-addition edit-list enumeration and the full conformance adapter remain
-future work. Resource-bearing nominal payloads, projected array/buffer roots,
-slices, and borrow-backed SET-1 targets remain explicit unsupported
+future work. Resource-bearing enum payloads, projected array roots, slices,
+and borrow-backed SET-1 targets remain explicit unsupported
 capabilities until their cleanup and place families exist; none of these gaps
 is implied complete by the current gate.
 

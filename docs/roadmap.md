@@ -83,9 +83,13 @@ affine moves. The same typed CFG and LLVM path handles cross-function
 aggregates, tag-only enums, and payload enums. Reverse-order affine cleanup is
 explicit on checked return, give, and match-fallthrough edges before lowering;
 an affine field move records the untouched sibling subtrees to drop at the
-consuming projection, including nested paths. Current resource-free nominal
-drops need no runtime action. Required checks
-remain explicit through lowering and emit the exact DIAG-3 record before abort.
+consuming projection, including nested paths. Struct fields may now contain
+buffers: the checker expands each whole or partial owner drop into exact
+reverse-order projected buffer drops before lowering, while resource-free
+nominal drops need no runtime action. Resource-bearing enum payloads remain
+explicitly unsupported because their cleanup is variant-dependent. Required
+checks remain explicit through lowering and emit the exact DIAG-3 record before
+abort.
 
 The v0.12 activation adds one general SET-1 path for the place families the
 compiler already represents: live own-mode scalar/tag-only-enum locals and
@@ -195,16 +199,24 @@ owner exit emits one `free`. The effect checker now tracks `allocates(heap)`
 and `traps` independently and checks both directions. A compiler-independent
 two-loop program allocates, fills, folds, and releases a buffer.
 
-The next implementation slice is resource-bearing nominal ownership, starting
-with a production-shaped struct-of-buffers owner. It must derive exact
-reverse-order nested buffer cleanup before accepting buffer fields, carry
-projected buffer roots through `len`, OP-4, and SET-1 without re-evaluating
-their paths, and execute a small two-column structure-of-arrays checksum.
-Payload-enum cleanup is included only if the same experiment needs it; slices,
-regions, and borrow-backed targets remain later capabilities. This order is
-selected because accepting buffer fields without executable nested cleanup
-would leak, while a struct-of-buffers is the smallest real data-layout
-experiment that needs the capability.
+Resource-bearing struct ownership now extends that path. A projected buffer
+root carries one binding plus its exact field path through `len`, OP-4, and
+SET-1; lowering projects it once before the offset, retained guard, and RHS.
+Whole and partial struct moves publish structural reverse-order cleanup,
+skipping exactly a transferred subtree. A compiler-independent two-column
+structure-of-arrays checksum executes through those paths and frees both
+columns.
+
+The next implementation slice is the first lexical buffer-borrowing family,
+selected to make the structure-of-arrays layout reusable across function
+boundaries without transferring ownership. It must implement the relevant
+OWN-3/4/5/7/10/12 and effect judgments generally for local and
+caller-supplied regions, carry shared and usable `&uniq` holders through
+explicit `deref`, and preserve projected OP-4 and target-before-RHS SET-1
+behavior. The end-to-end experiment is separate fill and fold helpers over two
+borrowed columns, including a non-overlap witness for distinct fields.
+Resource-bearing enum payloads, boxes, arenas, and general slices remain later
+unless that experiment exposes a direct dependency.
 
 Four inherited runnable conformance sources need protected-evidence correction
 before the compiler adapter can promote the buffer family. `pending-op9-buffer-new`
@@ -492,26 +504,30 @@ case or expectation that contradicts the specification is corrected through
 old test pass.
 
 The implemented nominal-data subset covers nongeneric own-mode acyclic structs
-and enums. It implements construction, nested projection, statement and value
-matching, `give`, exact GRAM-8/GRAM-10 declared-field diagnostics,
-TYPE-5/TYPE-6 typing, per-site ERR-2 exhaustiveness rejection with the missing
-variant list, OWN-1/OWN-13 copy-versus-affine consumption, explicit checked
-cleanup edges, and tag-only enum equality through the normal checked-program,
-typed-CFG, LLVM, and host-execution path. Independent positive and negative
-cases cover cross-function aggregate values, mixed-width and multi-field enum
-payloads, every Boolean operation, nested fields, ownership failures, wrong
-variants, missing arms, and invalid field order.
+and resource-free enums. It implements construction, nested projection,
+statement and value matching, `give`, exact GRAM-8/GRAM-10 declared-field
+diagnostics, TYPE-5/TYPE-6 typing, per-site ERR-2 exhaustiveness rejection with
+the missing variant list, OWN-1/OWN-13 copy-versus-affine consumption, explicit
+checked cleanup edges, and tag-only enum equality through the normal
+checked-program, typed-CFG, LLVM, and host-execution path. Struct fields may
+own buffers; their whole and residual cleanup is expanded structurally in
+reverse declaration order before lowering. Resource-bearing enum payloads
+remain unsupported. Independent positive and negative cases cover
+cross-function aggregate values, mixed-width and multi-field resource-free
+enum payloads, every Boolean operation, nested fields, ownership failures,
+wrong variants, missing arms, invalid field order, and nested buffer cleanup.
 
 The implemented SET-1 subset covers direct live own-mode copy locals, nested
-copy fields, and direct local fixed-array or buffer indices. One checked target
-record carries the root, evaluated offset, retained OP-4 check, and copy type
-across RHS checking; lowering forms the guarded index before the RHS and
-commits one store afterward. Constants cite CONST-2, affine final places cite
-STOR-1 with the required restructuring, type mismatch cites TYPE-5 at the RHS,
-and an RHS that moves the root cites OWN-1 at the later commit. Dereference,
-projected index, slice, box, arena, and loan-aware targets remain unsupported
-because their cleanup, storage, or borrow families are not implemented; they
-are not treated as invalid source.
+copy fields, direct local fixed-array indices, and direct or struct-projected
+buffer indices. One checked target record carries the root path, evaluated
+offset, retained OP-4 check, and copy type across RHS checking; lowering forms
+the projected root and guarded index once before the RHS and commits one store
+afterward. Constants cite CONST-2, affine final places cite STOR-1 with the
+required restructuring, type mismatch cites TYPE-5 at the RHS, and an RHS that
+moves the root cites OWN-1 at the later commit. Dereference, projected array
+index, slice, box, arena, and loan-aware targets remain unsupported because
+their cleanup, storage, or borrow families are not implemented; they are not
+treated as invalid source.
 
 This is not the complete ERR-2 toolchain contract: a whole-unit
 variant-addition query that enumerates every affected match site is still
@@ -538,12 +554,11 @@ guards both LLVM hazards before the partial instruction. All three `iabs`
 modes use one defined-edge unary path. All three `ineg` modes reuse the
 ordinary wrapping and overflow-detecting subtraction path.
 Direct fixed-array index reads, immutable const-table reads, direct-root
-indexed fixed-array SET-1, and direct-root non-floating primitive
-runtime-length buffers are
-implemented. Resource-bearing nominal cleanup and projected buffer roots are
-next so a struct-of-buffers program can use the storage safely. Slices and
-loan-aware SET-1 targets follow when their storage and borrow families become
-the experiment being unlocked.
+indexed fixed-array SET-1, and direct or struct-projected non-floating
+primitive runtime-length buffers are implemented. Resource-bearing struct
+cleanup supports nested and partial owners, and the structure-of-arrays
+experiment runs. Lexical buffer borrows and loan-aware projected SET-1 are next
+so reusable helpers can operate on that storage without taking ownership.
 
 ## Phase 9: dogfood and language iteration
 

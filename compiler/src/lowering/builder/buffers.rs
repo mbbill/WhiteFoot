@@ -36,7 +36,7 @@ impl IrBuilder<'_> {
 
     pub(super) fn lower_buffer_length(
         &mut self,
-        root: CheckedBufferRoot,
+        root: &CheckedBufferRoot,
     ) -> Result<IrValueId, LoweringFailure> {
         let buffer = self.buffer_root(root)?;
         self.define(
@@ -50,7 +50,7 @@ impl IrBuilder<'_> {
 
     pub(super) fn lower_buffer_index(
         &mut self,
-        root: CheckedBufferRoot,
+        root: &CheckedBufferRoot,
         offset: &CheckedExpression,
         trap: &TrapSite,
     ) -> Result<IrValueId, LoweringFailure> {
@@ -84,9 +84,7 @@ impl IrBuilder<'_> {
         value: &CheckedExpression,
     ) -> Result<IrValueId, LoweringFailure> {
         let element = lower_flat_element(target.root.element);
-        if self.value_type(root)? != (IrType::Buffer { element }) {
-            return Err(LoweringFailure::InvalidCheckedProgram);
-        }
+        let buffer = self.project_buffer_root(root, &target.root)?;
         let offset = self.expression(&target.offset)?;
         if self.value_type(offset)?
             != (IrType::Integer {
@@ -99,7 +97,7 @@ impl IrBuilder<'_> {
         let index = self.define(
             IrType::GuardedBufferIndex { element },
             IrOperation::BufferBoundsCheck {
-                buffer: root,
+                buffer,
                 offset,
                 trap: target.trap.clone().into(),
             },
@@ -111,19 +109,32 @@ impl IrBuilder<'_> {
         self.current_block_mut()?
             .instructions
             .push(IrInstruction::StoreBuffer {
-                buffer: root,
+                buffer,
                 index,
                 value,
             });
         Ok(root)
     }
 
-    fn buffer_root(&self, root: CheckedBufferRoot) -> Result<IrValueId, LoweringFailure> {
+    fn buffer_root(&mut self, root: &CheckedBufferRoot) -> Result<IrValueId, LoweringFailure> {
         let value = self
             .bindings
             .get(&root.binding)
             .copied()
             .ok_or(LoweringFailure::InvalidCheckedProgram)?;
+        self.project_buffer_root(value, root)
+    }
+
+    fn project_buffer_root(
+        &mut self,
+        root_value: IrValueId,
+        root: &CheckedBufferRoot,
+    ) -> Result<IrValueId, LoweringFailure> {
+        let value = if root.fields.is_empty() {
+            root_value
+        } else {
+            self.project_struct_path(root_value, &root.fields, false)?
+        };
         if self.value_type(value)?
             != (IrType::Buffer {
                 element: lower_flat_element(root.element),
