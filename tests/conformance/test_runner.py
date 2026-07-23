@@ -45,5 +45,57 @@ class ActiveSpecificationTests(unittest.TestCase):
                 runner.spec_rule_ids(directory)
 
 
+class ManifestValidationTests(unittest.TestCase):
+    def make_repository(self, directory: Path) -> Path:
+        spec = directory / "spec"
+        spec.mkdir()
+        (spec / "kernel-spec-v0.11.md").write_bytes(SPEC.read_bytes())
+        cases = directory / "cases"
+        cases.mkdir()
+        return cases
+
+    def case(self):
+        return {
+            "id": "sample",
+            "rules": ["PROG-2"],
+            "expect": {"kind": "accept"},
+            "status": "runnable",
+            "doc": "Sample structural case.",
+        }
+
+    def test_repository_manifest_and_sources_are_consistent(self):
+        cases, annotations = runner.load_manifest()
+        runner.validate_manifest(cases, annotations)
+
+    def test_paired_source_is_valid(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            cases = self.make_repository(directory)
+            (cases / "sample.wf").write_text("")
+
+            runner.validate_manifest([self.case()], [], directory, cases)
+
+    def test_orphan_source_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            cases = self.make_repository(directory)
+            (cases / "sample.wf").write_text("")
+            (cases / "orphan.wf").write_text("")
+
+            with self.assertRaisesRegex(ValueError, "orphan case sources"):
+                runner.validate_manifest([self.case()], [], directory, cases)
+
+    def test_reject_rule_must_be_declared_by_case(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            cases = self.make_repository(directory)
+            (cases / "sample.wf").write_text("")
+            case = self.case()
+            case["expect"] = {"kind": "reject", "rule": "TYPE-6"}
+
+            with self.assertRaisesRegex(ValueError, "reject rule"):
+                runner.validate_manifest([case], [], directory, cases)
+
+
 if __name__ == "__main__":
     unittest.main()

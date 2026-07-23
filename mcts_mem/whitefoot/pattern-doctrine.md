@@ -1,4 +1,4 @@
-- Design patterns are a closed, taught catalog (PATTERNS.md): the language forces a curated subset of architectures at program scale, exactly as it forces one loop form and one conditional at statement scale.
+- Design patterns are a closed, taught catalog (`docs/patterns.md`): the language forces a curated subset of architectures at program scale, exactly as it forces one loop form and one conditional at statement scale.
 - The catalog's acceptance test is two-fold: complete (every task is modelable inside the blessed patterns; a gap is a recorded finding) and efficient (each blessed pattern names the fact channel or machine property behind its speed).
 - Patterns are taught up front in the writer material; a writer discovering mid-design that a familiar architecture is unrepresentable is classified as a documentation defect, not a writer error.
 - The archived democ measurements connect command-buffer writes, structure-of-arrays pools, declared-law reductions, and Boolean dataflow to optimizer opportunities; the active compiler has not yet reimplemented those channels.

@@ -7,4 +7,4 @@
 
 ## Moves
 
-- 2026-07-19 replaced by [[tag-only-equality]]: direct nominal tag equality expresses the repeated identity test without the projected 6,952 source-level variant-pair arms required by the checker-closed v0.7 fallback (sourced)
+- 2026-07-19 (e28079a2) replaced by [[tag-only-equality]]: direct nominal tag equality expresses the repeated identity test without the projected 6,952 source-level variant-pair arms required by the checker-closed v0.7 fallback (sourced)

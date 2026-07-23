@@ -54,17 +54,17 @@ The proposed direction is:
 
 Already selected and not reopened here:
 
-- [FN-8](../../spec/kernel-spec-v0.6.md) is a checked callee-entry prologue. It
+- [FN-8](../spec/kernel-spec-v0.6.md) is a checked callee-entry prologue. It
   is not `assume`, and a false condition traps.
-- [OP-4](../../spec/kernel-spec-v0.6.md) retains bounds checks unless a
+- [OP-4](../spec/kernel-spec-v0.6.md) retains bounds checks unless a
   deterministic proof discharges them.
-- [OP-5](../../spec/kernel-spec-v0.6.md) never elides an explicit source
+- [OP-5](../spec/kernel-spec-v0.6.md) never elides an explicit source
   `check`.
-- [EFF-2](../../spec/kernel-spec-v0.6.md) remains syntactic: proof does not
+- [EFF-2](../spec/kernel-spec-v0.6.md) remains syntactic: proof does not
   silently remove `traps` from a function's declared row.
-- [ERR-4](../../spec/kernel-spec-v0.6.md) classifies expected input or
+- [ERR-4](../spec/kernel-spec-v0.6.md) classifies expected input or
   environment failure as a value (`Result`) and contract violation as a trap.
-- [DIAG-2/3](../../spec/kernel-spec-v0.6.md) require retained/eliminated checks,
+- [DIAG-2/3](../spec/kernel-spec-v0.6.md) require retained/eliminated checks,
   proofs, and check density to be visible in the canonical artifact/report
   family.
 
@@ -113,7 +113,7 @@ isolation:
   `proof_report` is an interim build-subgate input and does not yet satisfy the
   canonical DIAG-2 boundary.
 
-The [Constitution](../../CONSTITUTION.md) makes safety and cheat-proofness
+The [Constitution](../docs/constitution.md) makes safety and cheat-proofness
 floors. Performance pressure can create proof, guarded execution, or explicit
 project approval; it cannot create an unchecked access.
 
@@ -462,7 +462,7 @@ over-include control/data/call dependencies, but it must never omit one. No
 approval is accepted by the current implementation; `approvals` is fixed to an
 empty list until this identity and GATE-1 audit record exist.
 
-The existing [codegen-parity gate](../../CODEGEN-PARITY.md) already pins
+The historical codegen-parity gate, now retained under `tests/codegen/`, pins
 per-site proof counts for selected cases. This proposal generalizes that model
 from hand-enumerated regressions to canonical artifact accounting.
 

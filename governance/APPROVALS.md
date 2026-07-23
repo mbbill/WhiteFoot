@@ -1,7 +1,7 @@
 # Protected approval record
 
 This file contains the append-only approval record. It is not a workflow guide;
-the sole live governance procedure is [`README.md`](README.md). Entries through
+the sole live governance procedure is [`WORKFLOW.md`](../WORKFLOW.md). Entries through
 the hash-baseline era remain unchanged historical records, followed by the
 newer exact-artifact and protected-change approvals.
 
@@ -72,3 +72,8 @@ specification or test change.
 - owner: approved in session
 - reason: Remove the stale `KNOWN GAP` wording from the protected `xfail-own1-bare-affine-use` conformance source now that the compiler implements its existing OWN-1 rejection. The program, manifest verdict, rule assignment, and reference expectation are unchanged.
 - evidence: owner approval immediately following the nominal-data compiler slice at commit `58e9c43`
+
+## 2026-07-22 — approval
+- owner: approved in session
+- reason: Repair the repo-wide consistency findings without changing a released specification, an existing conformance verdict, or a runnable status. Correct stale conformance explanations and coverage annotations to the active v0.11 architecture, archive the unmanifested duplicate const fixture, replace nonexistent-tool claims with native checks, repair live documentation and design-memory drift, and prepare—but do not activate—the existing v0.12 candidate with current governance references.
+- evidence: owner instruction “I think we need to fix all the issues” following the complete repository consistency review

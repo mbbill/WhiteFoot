@@ -13,7 +13,7 @@
 
 ## Moves
 
-- 2026-07-19 replaced [[widen-integer-comparison]]: the dedicated enum-domain family preserves truthful one-domain naming, while widening integer comparison would make the integer prefix cover unrelated numeric and nominal domains and make existing invalid source the rule's design center (sourced)
-- 2026-07-19 replaced [[guarded-source-mapper]]: direct nominal tag equality removes the duplicated per-type ordinal convention and the external injectivity guard that v0.7 exhaustiveness cannot discharge (sourced)
-- 2026-07-19 replaced [[structural-pair-match]]: direct nominal tag equality expresses the repeated identity test without the projected 6,952 source-level variant-pair arms required by the checker-closed v0.7 fallback (sourced)
-- 2026-07-19 replaced [[enum-integer-conversion]]: direct nominal tag equality preserves representation freedom, while enum-to-integer conversion would expose tag representation, invite integer operations and ordering, and add a broader conversion proof surface (sourced)
+- 2026-07-19 (e28079a2) replaced [[widen-integer-comparison]]: the dedicated enum-domain family preserves truthful one-domain naming, while widening integer comparison would make the integer prefix cover unrelated numeric and nominal domains and make existing invalid source the rule's design center (sourced)
+- 2026-07-19 (e28079a2) replaced [[guarded-source-mapper]]: direct nominal tag equality removes the duplicated per-type ordinal convention and the external injectivity guard that v0.7 exhaustiveness cannot discharge (sourced)
+- 2026-07-19 (e28079a2) replaced [[structural-pair-match]]: direct nominal tag equality expresses the repeated identity test without the projected 6,952 source-level variant-pair arms required by the checker-closed v0.7 fallback (sourced)
+- 2026-07-19 (e28079a2) replaced [[enum-integer-conversion]]: direct nominal tag equality preserves representation freedom, while enum-to-integer conversion would expose tag representation, invite integer operations and ordering, and add a broader conversion proof surface (sourced)

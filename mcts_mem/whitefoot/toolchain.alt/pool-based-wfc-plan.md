@@ -7,4 +7,4 @@
 
 ## Moves
 
-- 2026-07-12 (e8c8eeb1) replaced by [[toolchain]]: fixed-capacity structure-of-arrays tapes with token and node counts bounded from source size let stage-0 democ bootstrap wfc without growable collections, pool, handle, or general generics — none of which stage 0 implements (sourced)
+- 2026-07-12 (e8c8eeb1) replaced by [[product-scale-checked-artifact-toolchain]]: fixed-capacity structure-of-arrays tapes with token and node counts bounded from source size let stage-0 democ bootstrap wfc without growable collections, pool, handle, or general generics — none of which stage 0 implements (sourced)

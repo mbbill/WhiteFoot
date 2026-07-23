@@ -13,4 +13,4 @@
 
 ## Moves
 
-- 2026-07-20 (75b768ba) replaced by [[../compiler-implementation]]: the self-host-first ladder coupled production semantic progress to repairing stage 0 and a nonconforming, incomplete compiler unit under a language without ordinary compiler-building collections or text; one safe-Rust production implementation preserves the specification-derived checked-artifact architecture while freezing both predecessors (sourced)
+- 2026-07-20 (75b768ba) replaced by [[permanent-artifact-compiler]]: the self-host-first ladder coupled production semantic progress to repairing stage 0 and a nonconforming, incomplete compiler unit under a language without ordinary compiler-building collections or text; one safe-Rust production implementation preserves the specification-derived checked-artifact architecture while freezing both predecessors (sourced)

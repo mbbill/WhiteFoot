@@ -30,7 +30,8 @@ ordinary compiler data. For a specification proposal, run the native verifier
 through this compiler:
 
 ```sh
-cargo run --bin whitefoot-grammar -- ../governance/spec-evolution/CANDIDATE.md
+cargo run --bin whitefoot-grammar -- \
+  ../governance/spec-evolution/kernel-spec-vN-candidate.md
 ```
 
 It compares the proposal's complete canonical-format, lexer, and grammar

@@ -256,15 +256,17 @@ ordinary repository Markdown, and do not invent a local replacement procedure.
 - `manifest.jsonl` maps each case to rule identifiers, its expected result, and
   its current execution status, and carries explicit coverage annotations for
   specification properties no source program can exercise;
-- `runner.py` validates active-spec identity, reports coverage, and owns the
-  explicit compiler-adapter slot; and
+- `runner.py` validates active-spec identity and corpus structure, reports
+  declared rule coverage, and owns the explicit compiler-adapter slot; and
 - `test_runner.py` tests that corpus plumbing and active-spec binding.
 
 An expectation is `accept`, exact-rule `reject`, `run` with an exit value, or
 `trap`. A compiler failure, timeout, crash, or missing capability is never a
 rejection verdict. Status describes execution availability only:
 
-- `runnable` means the current adapter must produce the expectation;
+- `runnable` means the case and expectation are complete and any adapter that
+  claims the required capability must produce the expectation; it does not by
+  itself claim that the current compiler has been run against the case;
 - `pending` means the compiler cannot yet execute the case; and
 - `xfail` preserves the correct expectation while exposing a known compiler
   mismatch; an unexpected match is `XPASS`.

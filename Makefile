@@ -1,7 +1,8 @@
 # Whitefoot gate — only what a research compiler needs: the compiler builds and
-# passes its tests, the behavior corpus and reference model agree, and the
-# numbered spec stays append-only. Everything else is guarded by the guidance in
-# AGENTS.md/CLAUDE.md, not by machinery. A green gate states only what it exercises.
+# passes its tests, the conformance corpus has valid structure and declared rule
+# coverage, the focused reference model passes, and the numbered spec stays
+# append-only. Everything else is guarded by AGENTS.md/CLAUDE.md. A green gate
+# states only what it exercises; the full corpus has no compiler adapter yet.
 
 PY := python3 -B
 

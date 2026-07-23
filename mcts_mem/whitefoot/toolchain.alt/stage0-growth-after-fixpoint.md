@@ -8,4 +8,4 @@
 
 ## Moves
 
-- 2026-07-17 replaced by [[toolchain]]: democ freezes after the facts-off fixpoint; wfc closes current v0.6, facts, and later production features; focused reference checkers supply independent semantic oracles. (sourced)
+- 2026-07-17 (fba3fcc0) replaced by [[product-scale-checked-artifact-toolchain]]: freeze democ after the facts-off fixpoint, close current v0.6 and facts in wfc, and use focused reference checkers for later semantic differentials; this avoids maintaining two growing production compilers while retaining an independent oracle (sourced)

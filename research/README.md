@@ -13,5 +13,7 @@ synthesis) moved to `../archive/research/`.
 - `notes/` — memos awaiting or recording owner decisions (e.g. the STOR-1
   pool ruling request).
 - The design drafts and hostile reviews that remain useful live at this
-  directory's root or under `investigations/`; completed or superseded research
-  lives under `../archive/research/`.
+  directory's root or under `investigations/`. `experiments/` also retains
+  reproducibility bundles; an old script inside such a bundle may name a retired
+  compiler and is historical evidence, not an active repository tool. Completed
+  or superseded design corpora live under `../archive/research/`.

@@ -673,11 +673,11 @@ this historical list.
 - Hostile review 1: [`HOSTILE_REVIEW_1.md`](HOSTILE_REVIEW_1.md)
 - Owner-advisor disposition: [`REVIEW_RESPONSE.md`](REVIEW_RESPONSE.md)
 - Separation of external sources and inferences: [`RESEARCH.md`](RESEARCH.md)
-- Current pattern doctrine: [`../../PATTERNS.md`](../../PATTERNS.md)
+- Current pattern doctrine: [`../../../docs/patterns.md`](../../../docs/patterns.md)
 - Copy-classification design record:
-  [`../../mcts_mem/whitefoot/ownership/copy-classification.md`](../../mcts_mem/whitefoot/ownership/copy-classification.md)
+  [`../../../mcts_mem/whitefoot/ownership/copy-classification.md`](../../../mcts_mem/whitefoot/ownership/copy-classification.md)
 - Current data-model direction:
-  [`../../mcts_mem/whitefoot/data-model.md`](../../mcts_mem/whitefoot/data-model.md)
+  [`../../../mcts_mem/whitefoot/data-model.md`](../../../mcts_mem/whitefoot/data-model.md)
 - LLVM `getelementptr`: <https://llvm.org/docs/LangRef.html#getelementptr-instruction>
 - LLVM aggregate code-shape guidance:
   <https://llvm.org/docs/Frontend/PerformanceTips.html#avoid-creating-values-of-aggregate-type>

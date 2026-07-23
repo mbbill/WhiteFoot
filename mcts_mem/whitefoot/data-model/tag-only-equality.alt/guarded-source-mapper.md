@@ -9,4 +9,4 @@
 
 ## Moves
 
-- 2026-07-19 replaced by [[tag-only-equality]]: direct nominal tag equality removes the duplicated per-type ordinal convention and the external injectivity guard that v0.7 exhaustiveness cannot discharge (sourced)
+- 2026-07-19 (e28079a2) replaced by [[tag-only-equality]]: direct nominal tag equality removes the duplicated per-type ordinal convention and the external injectivity guard that v0.7 exhaustiveness cannot discharge (sourced)

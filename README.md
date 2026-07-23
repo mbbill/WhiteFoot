@@ -43,19 +43,21 @@ ordered source bundle
   -> CanonicalSyntaxUnit
   -> direct v0.11 lexical name resolution
   -> ResolvedSyntaxUnit
-  -> scalar semantic checking
+  -> semantic and ownership checking
   -> private checked program
-  -> target-independent scalar IR
+  -> target-independent typed control-flow IR
   -> conservative LLVM
   -> host executable
 ```
 
-The executable slice currently covers scalar integer/unit values, `Bool`
-construction and checks, integer and unit constants, nongeneric own-mode
-functions, locals, direct named calls, returns, pure/traps effects, integer
-wrap/trap arithmetic, and comparisons. Other valid v0.11 families stop as
-explicit unsupported compiler capabilities; they are not reported as invalid
-Whitefoot. The next work expands one coherent semantic family end to end.
+The executable slice covers scalar integer/unit values, `Bool`, integer and unit
+constants, nongeneric own-mode functions, locals, direct named calls, returns,
+pure/traps effects, integer wrap/trap arithmetic and comparisons, Boolean
+operations, nominal tag equality, and nongeneric acyclic structs and enums.
+Nominal values use the same path for construction, nested projection,
+statement/value matching, `give`, whole-binding affine moves, explicit cleanup,
+and cross-function aggregate values. Other valid v0.11 families stop as explicit
+unsupported compiler capabilities; they are not reported as invalid Whitefoot.
 
 ## Repository layout
 
@@ -80,12 +82,12 @@ make install-hooks   # once: enable the spec append-only pre-commit hook
 make check           # the gate: compiler, conformance, reference, spec append-only
 ```
 
-The gate is deliberately small — the compiler builds and passes its tests, the
-behavior corpus and reference model agree, and the numbered spec stays
-append-only. Everything else (keeping conformance, tests, and other spec-derived
-material consistent with the newest spec) is guarded by the guidance in
-`AGENTS.md`, not by machinery. A green result states only what it exercises; it
-does not claim the language or compiler is complete.
+The gate is deliberately small: the compiler builds and passes its tests; the
+conformance corpus has valid active-spec identity, structure, rule coverage, and
+expectations; the focused reference model passes; and numbered specifications
+remain append-only. The complete conformance corpus is not yet executed against
+the compiler because its adapter is still Phase 8 work. A green result states
+only what the gate exercises and is not a completeness claim.
 
 ## License
 

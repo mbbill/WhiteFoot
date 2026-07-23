@@ -25,4 +25,4 @@
 
 ## Moves
 
-- 2026-07-22 replaced [[permanent-artifact-compiler]]: starting with a permanent checked-artifact architecture treated private research-compiler boundaries as product protocols and multiplied crates and gates before a resolver or backend existed; one mutable compiler crate better serves the next end-to-end capability (sourced)
+- 2026-07-22 (ed9e3db4) replaced [[permanent-artifact-compiler]]: starting with a permanent checked-artifact architecture treated private research-compiler boundaries as product protocols and multiplied crates and gates before a resolver or backend existed; one mutable compiler crate better serves the next end-to-end capability (sourced)

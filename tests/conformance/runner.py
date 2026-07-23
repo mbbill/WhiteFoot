@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """whitefoot conformance test system — spec-anchored, rule-keyed, toolchain-agnostic.
 
-Each case is a canonical `.wf` source (conformance/cases/<id>.wf) plus a manifest
-entry (conformance/manifest.jsonl) declaring the rule id(s) it exercises and the
-expected verdict. Cases are driven through a named toolchain adapter. No active
-adapter exists during the current grammar-evidence phase; coverage remains
-available and an attempted semantic run fails explicitly.
+Each case is a canonical `.wf` source (tests/conformance/cases/<id>.wf) plus a
+manifest entry (tests/conformance/manifest.jsonl) declaring the rule id(s) it
+exercises and the expected verdict. Cases are driven through a named toolchain
+adapter. No active adapter exists yet; identity, corpus structure, declared rule
+coverage, and expectations remain checkable, while a semantic run fails
+explicitly.
 
 Because it tests the LANGUAGE (source -> verdict), not a compiler's internals, this
 suite outlives compiler implementations.
@@ -92,6 +93,76 @@ def spec_rule_ids(root=ROOT):
     return set(re.findall(r"^\[([A-Z]+-\d+[a-z]?)\]", text, re.M)), spec.name
 
 
+def validate_manifest(cases, annots, root=ROOT, cases_dir=CASES):
+    """Reject malformed or stale corpus structure before reporting coverage."""
+    rules, _ = spec_rule_ids(root)
+    errors = []
+
+    ids = [case.get("id") for case in cases]
+    duplicate_ids = sorted({case_id for case_id in ids if ids.count(case_id) > 1})
+    if duplicate_ids:
+        errors.append("duplicate case ids: " + " ".join(duplicate_ids))
+
+    expected_sources = {f"{case_id}.wf" for case_id in ids if isinstance(case_id, str)}
+    actual_sources = {path.name for path in cases_dir.glob("*.wf")}
+    missing_sources = sorted(expected_sources - actual_sources)
+    orphan_sources = sorted(actual_sources - expected_sources)
+    if missing_sources:
+        errors.append("missing case sources: " + " ".join(missing_sources))
+    if orphan_sources:
+        errors.append("orphan case sources: " + " ".join(orphan_sources))
+
+    valid_statuses = {"runnable", "pending", "xfail"}
+    valid_expectations = {"accept", "reject", "run", "trap"}
+    for case in cases:
+        case_id = case.get("id", "<missing-id>")
+        case_rules = case.get("rules")
+        if not isinstance(case_rules, list) or not case_rules:
+            errors.append(f"{case_id}: rules must be a nonempty list")
+            case_rules = []
+        unknown = sorted(set(case_rules) - rules)
+        if unknown:
+            errors.append(f"{case_id}: unknown rules: {' '.join(unknown)}")
+
+        status = case.get("status", "runnable")
+        if status not in valid_statuses:
+            errors.append(f"{case_id}: invalid status {status!r}")
+        if status in {"pending", "xfail"} and not case.get("reason"):
+            errors.append(f"{case_id}: {status} case requires a reason")
+
+        expect = case.get("expect")
+        kind = expect.get("kind") if isinstance(expect, dict) else None
+        if kind not in valid_expectations:
+            errors.append(f"{case_id}: invalid expectation {kind!r}")
+        elif kind == "reject":
+            reject_rule = expect.get("rule")
+            if reject_rule not in case_rules:
+                errors.append(f"{case_id}: reject rule must appear in case rules")
+        elif kind == "run" and not isinstance(expect.get("exit"), int):
+            errors.append(f"{case_id}: run expectation requires an integer exit")
+
+        if not case.get("doc"):
+            errors.append(f"{case_id}: missing documentation")
+
+    annotation_rules = [annotation.get("rule") for annotation in annots]
+    duplicate_annotations = sorted(
+        {rule for rule in annotation_rules if annotation_rules.count(rule) > 1}
+    )
+    if duplicate_annotations:
+        errors.append("duplicate annotations: " + " ".join(duplicate_annotations))
+    for annotation in annots:
+        rule = annotation.get("rule", "<missing-rule>")
+        if rule not in rules:
+            errors.append(f"annotation {rule}: unknown rule")
+        if not annotation.get("covered_by"):
+            errors.append(f"annotation {rule}: missing covered_by")
+        if not annotation.get("reason"):
+            errors.append(f"annotation {rule}: missing reason")
+
+    if errors:
+        raise ValueError("invalid conformance manifest:\n  " + "\n  ".join(errors))
+
+
 def coverage(cases, annots):
     rules, spec_name = spec_rule_ids()
     tagged, pos, neg = set(), set(), set()
@@ -111,6 +182,11 @@ def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
     verbose = "-v" in sys.argv
     cases, annots = load_manifest()
+    try:
+        validate_manifest(cases, annots)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        raise SystemExit(1) from error
     fail = 0
     if cmd in ("run", "all"):
         if ADAPTER is None:
@@ -138,6 +214,8 @@ def main():
         print(f"coverage ({spec_name}): {len(covered)}/{len(rules)} rules covered "
               f"({len(by_case)} by case [+{len(pos)}/-{len(neg)}], {len(annotated)} by annotation); "
               f"{len(uncovered)} uncovered")
+        if uncovered:
+            fail += 1
         if verbose and uncovered:
             print("  uncovered: " + " ".join(uncovered))
     sys.exit(1 if fail else 0)

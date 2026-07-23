@@ -6,5 +6,5 @@
 
 ## Moves
 
-- 2026-07-21 (4ecc14d) replaced [[independent-production-verifier]]: a separately correct semantic verifier would duplicate the complete language while still needing producer-to-bytes consistency checks; one semantic kernel with mandatory artifact-only replay closes projection and codec defects without creating a second production compiler (sourced)
-- 2026-07-22 replaced by [[semantic-artifact-authority]]: mandatory same-kernel replay was product protocol machinery without an artifact consumer or independent correctness benefit; checked in-memory compiler state is sufficient until serialization has a real use. (sourced)
+- 2026-07-21 (4ecc14dd) replaced [[independent-production-verifier]]: a separately correct semantic verifier would duplicate the complete language while still needing producer-to-bytes consistency checks; one semantic kernel with mandatory artifact-only replay closes projection and codec defects without creating a second production compiler (sourced)
+- 2026-07-22 (ed9e3db4) replaced by [[semantic-artifact-authority]]: same-kernel serialization and replay added no independent semantic evidence and imposed a protocol before any real artifact consumer existed; direct checked in-memory state plus independent behavioral tests is the smallest correct route to execution (sourced)

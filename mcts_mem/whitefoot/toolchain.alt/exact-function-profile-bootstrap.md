@@ -11,4 +11,4 @@
 
 ## Moves
 
-- 2026-07-20 replaced by [[../toolchain]]: exact whole-function and subtree profiles tied production verdicts and emission to current source shapes and accumulated unsupported helper debt; production now uses one spec-derived compositional checker, one unit-bound elaborated artifact, and one generic lowerer, while facts-off checked operations retain their checks and slices remain delivery units only. (sourced)
+- 2026-07-20 (75b768ba) replaced by [[product-scale-checked-artifact-toolchain]]: exact whole-function and subtree profiles tied production verdicts and emission to current source shapes and accumulated unsupported helper debt; production now uses one spec-derived compositional checker, one unit-bound elaborated artifact, and one generic lowerer, while facts-off checked operations retain their checks and slices remain delivery units only. (sourced)

@@ -1,7 +1,7 @@
-- Every borrow's provenance was a singleton with no parent-child lineage: borrows bound once, never rebound at control-flow merges, and `set` through a reference wrote through it rather than retargeting it.
+- Every borrow's provenance was one immutable resolved root. Borrows bound once, never rebound at control-flow merges, and never formed a parent-child lineage.
 - Uniq borrows were affine: passing one to a callee consumed it; there was no implicit reborrow, no reborrow through a holder, and no result reborrow.
 - Exclusive access flowed through a call chain only by linear threading — the borrow or owned value passed in and came back out — or the code restructured.
-- Scattered deep writes used returned write intents so deep functions stayed read-only and one shallow function applied the intents under the single exclusive borrow (the command-buffer pattern, P1).
+- Scattered deep writes used returned write intents. Deep functions stayed read-only while one shallow function applied the intents under the single exclusive borrow (the command-buffer pattern, P1).
 
 ## Facts
 
@@ -11,4 +11,4 @@
 
 ## Moves
 
-- 2026-07-18 replaced by [[../no-reborrow]]: the self-hosting compiler needs ~1,062 statement-scoped through-holder reborrows (`&uniq 'local deref(holder)` passed as call arguments) that the strict form rejects, and the investigation showed keeping the rule forces the hot recursive analyzer core into an unblessed opaque owned-context shape that erodes the very no-alias facts the rule protects; v0.7 replaced it with a bounded, non-escaping, statement-scoped child reborrow (result-transfer and the harder forms deferred). (sourced)
+- 2026-07-18 (f9e0abbb) replaced by [[../no-reborrow]]: the ~1,062 statement-scoped through-holder sites made strict no-reborrow force the compiler into an unblessed owned-context shape, while the bounded non-escaping child form preserves the reviewed no-alias facts; result transfer and harder reborrow forms remain deferred (sourced)

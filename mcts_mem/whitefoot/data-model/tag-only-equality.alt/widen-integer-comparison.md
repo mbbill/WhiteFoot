@@ -7,4 +7,4 @@
 
 ## Moves
 
-- 2026-07-19 replaced by [[tag-only-equality]]: the dedicated enum-domain family preserves truthful one-domain naming, while widening integer comparison would make the integer prefix cover unrelated numeric and nominal domains and make existing invalid source the rule's design center (sourced)
+- 2026-07-19 (e28079a2) replaced by [[tag-only-equality]]: the dedicated enum-domain family preserves truthful one-domain naming, while widening integer comparison would make the integer prefix cover unrelated numeric and nominal domains and make existing invalid source the rule's design center (sourced)
