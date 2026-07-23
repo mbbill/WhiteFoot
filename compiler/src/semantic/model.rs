@@ -47,6 +47,11 @@ impl IntegerType {
     pub(crate) const fn signed(self) -> bool {
         matches!(self, Self::I8 | Self::I16 | Self::I32 | Self::I64)
     }
+
+    pub(crate) const fn converts_totally_to(self, destination: Self) -> bool {
+        self.width() < destination.width()
+            && (self.signed() == destination.signed() || (!self.signed() && destination.signed()))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -350,6 +355,12 @@ pub(crate) enum CheckedExpression {
         result: CheckedType,
         trap: Option<TrapSite>,
     },
+    IntegerConversion {
+        source: IntegerType,
+        destination: IntegerType,
+        value: Box<CheckedExpression>,
+        result: CheckedType,
+    },
     BooleanOperation {
         operation: CheckedBooleanOperation,
         arguments: Vec<CheckedExpression>,
@@ -414,7 +425,9 @@ impl CheckedExpression {
         match self {
             Self::Constant(value) => value.ty(),
             Self::Binding { ty, .. } | Self::UserCall { result: ty, .. } => *ty,
-            Self::IntegerOperation { result, .. } => *result,
+            Self::IntegerOperation { result, .. } | Self::IntegerConversion { result, .. } => {
+                *result
+            }
             Self::BooleanOperation { .. } | Self::EnumEquality { .. } => CheckedType::Bool,
             Self::ArrayFill { ty, .. } => *ty,
             Self::ArrayLength { .. } => CheckedType::Integer(IntegerType::U64),

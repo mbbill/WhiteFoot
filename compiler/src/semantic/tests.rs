@@ -5,6 +5,7 @@ mod borrows;
 mod buffers;
 mod checked_division;
 mod integer_absolute;
+mod integer_conversion;
 mod integer_extended;
 mod integer_negation;
 mod requires;

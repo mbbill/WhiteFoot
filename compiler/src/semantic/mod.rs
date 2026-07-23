@@ -57,6 +57,8 @@ pub enum SemanticRuleV0_14 {
     Stor1,
     /// Operation-table row selection.
     Op1,
+    /// Exact conversion-pair result classification.
+    Op6,
     /// Exact `own Bool` explicit-check condition.
     Op5,
     /// Function result, reachability, or completion.
@@ -107,6 +109,7 @@ impl SemanticRuleV0_14 {
             Self::Type7 => "TYPE-7",
             Self::Stor1 => "STOR-1",
             Self::Op1 => "OP-1",
+            Self::Op6 => "OP-6",
             Self::Op5 => "OP-5",
             Self::Fn1 => "FN-1",
             Self::Fn2 => "FN-2",

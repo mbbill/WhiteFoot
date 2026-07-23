@@ -403,6 +403,11 @@ pub enum IrOperation {
         arguments: Vec<IrValueId>,
         trap: Option<IrTrapSite>,
     },
+    IntegerConversion {
+        source_type: IrType,
+        destination_type: IrType,
+        value: IrValueId,
+    },
     Boolean {
         operation: IrBooleanOperation,
         arguments: Vec<IrValueId>,

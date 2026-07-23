@@ -1,3 +1,4 @@
+mod conversions;
 mod user;
 
 use std::collections::HashMap;
@@ -83,6 +84,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         if spelling == "len" {
             return self.check_flat_length(node, function, bindings, loop_depth);
+        }
+        if spelling == "cvt" {
+            return self.check_integer_conversion(node, function, bindings, loop_depth);
         }
         let operation = match spelling {
             "iadd.wrap" => CheckedIntegerOperation::AddWrap,

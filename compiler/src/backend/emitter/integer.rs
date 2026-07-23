@@ -750,7 +750,7 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         .map_err(|_| BackendFailure::TextEmission)
     }
 
-    fn checked_result_error_type(
+    pub(super) fn checked_result_error_type(
         &self,
         result_type: IrType,
         operand_type: IrType,

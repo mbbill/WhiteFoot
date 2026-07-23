@@ -53,7 +53,10 @@ absolute value and negation in all three modes, integer comparisons, Boolean
 operations, the remaining OP-8 integer family, and nominal tag equality.
 That integer family includes trapping division/remainder, bitwise operations,
 shifts, rotates, bit counts, byte swap, high multiply, saturating arithmetic,
-and min/max. Checked division and remainder guard
+and min/max. Every distinct integer-to-integer `cvt` pair uses one exact
+conversion path. The 18 value-preserving widening pairs return the destination
+directly; the other 38 pairs return `Result<Dst, NarrowError>` after an exact
+representability check, never a visible truncation. Checked division and remainder guard
 divisor zero and signed minimum/-1 before the partial LLVM instruction and
 produce the exact `Result<T, DivError>` variant. Absolute value uses
 defined-edge `llvm.abs` for every signed width: wrapping retains the minimum

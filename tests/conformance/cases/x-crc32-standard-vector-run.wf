@@ -1,0 +1,59 @@
+fn crc32(bytes: own buffer<u8>) -> own u32 traps {
+  let crc: own u32 = 4294967295_u32;
+  let offset: own u64 = 0_u64;
+  let length: own u64 = len<u8>(bytes);
+  loop @bytes {
+    let bytes_done: own Bool = ieq<u64>(offset, length);
+    match bytes_done {
+      True() => {
+        break @bytes;
+      }
+      False() => {
+        let byte: own u8 = index<u8>(bytes, offset);
+        let word: own u32 = cvt<u8, u32>(byte);
+        set crc = ixor<u32>(crc, word);
+        let bit: own u32 = 0_u32;
+        loop @bits {
+          let bits_done: own Bool = ieq<u32>(bit, 8_u32);
+          match bits_done {
+            True() => {
+              break @bits;
+            }
+            False() => {
+              let low_bit: own u32 = iand<u32>(crc, 1_u32);
+              let shifted: own u32 = ishr.wrap<u32>(crc, 1_u32);
+              let low_bit_set: own Bool = ieq<u32>(low_bit, 1_u32);
+              match low_bit_set {
+                True() => {
+                  set crc = ixor<u32>(shifted, 3988292384_u32);
+                }
+                False() => {
+                  set crc = shifted;
+                }
+              }
+              set bit = iadd.wrap<u32>(bit, 1_u32);
+            }
+          }
+        }
+        set offset = iadd.wrap<u64>(offset, 1_u64);
+      }
+    }
+  }
+  return ixor<u32>(crc, 4294967295_u32);
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let bytes: own buffer<u8> = buffer_new<u8>(9_u64, 0_u8);
+  set index<u8>(bytes, 0_u64) = 49_u8;
+  set index<u8>(bytes, 1_u64) = 50_u8;
+  set index<u8>(bytes, 2_u64) = 51_u8;
+  set index<u8>(bytes, 3_u64) = 52_u8;
+  set index<u8>(bytes, 4_u64) = 53_u8;
+  set index<u8>(bytes, 5_u64) = 54_u8;
+  set index<u8>(bytes, 6_u64) = 55_u8;
+  set index<u8>(bytes, 7_u64) = 56_u8;
+  set index<u8>(bytes, 8_u64) = 57_u8;
+  let checksum: own u32 = crc32(bytes: move bytes);
+  check ieq<u32>(checksum, 3421780262_u32) else trap "CRC32 vector";
+  return unit;
+}

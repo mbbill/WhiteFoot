@@ -6,6 +6,7 @@
 
 mod array;
 mod buffer;
+mod conversion;
 mod integer;
 mod operations;
 
@@ -445,6 +446,11 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 arguments,
                 trap.as_ref(),
             ),
+            IrOperation::IntegerConversion {
+                source_type,
+                destination_type,
+                value,
+            } => self.emit_integer_conversion(result, ty, *source_type, *destination_type, *value),
             IrOperation::Boolean {
                 operation,
                 arguments,

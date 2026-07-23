@@ -74,7 +74,7 @@ nongeneric own-mode functions, locals, direct named calls, explicit returns,
 pure/traps effects, wrapping and trapping add/subtract/multiply, integer
 division/remainder, negation, bitwise operations, shifts, rotates, bit counts,
 byte swap, high multiply, saturating arithmetic, min/max, integer comparisons,
-Boolean operations, and nominal tag equality.
+Boolean operations, exact integer conversion, and nominal tag equality.
 
 The first Phase 8 slice adds nongeneric own-mode acyclic structs and enums,
 construction, nested struct projection, statement and value matches, exact
@@ -141,8 +141,9 @@ This is not a completeness claim. Generics and contracts, borrow referents
 outside primitive buffers, returned borrows, child reborrows, floats, `Option`,
 boxes, arenas, slices, resource-bearing nominal payloads, recursive nominal
 layouts, branch-dependent ownership/loan joins, projected array targets, and
-floating-point, conversion, and remaining effect-table operations are explicit
-unsupported compiler capabilities rather than source-language rejections.
+floating-point, remaining conversion, and remaining effect-table operations
+are explicit unsupported compiler capabilities rather than source-language
+rejections.
 Repeated exhaustive match arms also stop as
 unsupported because v0.14 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
@@ -232,15 +233,26 @@ downstream check is elided. An independent output-capacity program reads a
 uniquely borrowed output length in the prologue, copies an owned input buffer
 through the normal checked loop, and executes successfully.
 
-The next implementation slice is the complete integer-to-integer OP-6 `cvt`
-family, selected by a CRC32 dogfood kernel rather than by one source spelling.
-Implement all distinct signed/unsigned width pairs through one exact conversion
-judgment: the spec-defined widening pairs return the destination directly and
-every other integer pair returns `Result<Dst, NarrowError>` without truncation.
-Lower every checked pair without LLVM poison, execute exact success and failure
-edges across all widths/sign combinations, then run a standard CRC32
-`123456789` vector whose byte-to-word widening uses that same general path.
-Float conversions remain later with the float family.
+The complete integer-to-integer OP-6 `cvt` family is implemented through one
+pair judgment and one checked-IR operation. All 56 distinct ordered pairs use
+that path: the 18 spec-defined widening pairs return the destination directly,
+and the other 38 construct `Result<Dst, NarrowError>` after an exact signed
+range judgment. LLVM uses only defined extension, truncation, comparison, and
+fully initialized aggregate operations; a truncated candidate is never exposed
+on an error edge. An exhaustive host matrix executes one representable and one
+unrepresentable edge for every checked pair. A compiler-independent CRC32
+program computes the standard `123456789` vector through checked buffer access
+and the same general `u8`-to-`u32` conversion path.
+
+The next slice is concrete PRE-1 `Option<T>` for every resource-free payload
+type the compiler can already represent. It is selected by a byte-scanner
+dogfood program that returns the first matching offset as `Some(value: u64)` or
+`None()`, then crosses function and match boundaries through the ordinary
+nominal path. This extends the existing generic-prelude instantiation mechanism
+by one declared nominal family; it does not add source generics, infer a
+constructor type from a context-free match scrutinee, or pretend that
+resource-bearing enum payload cleanup is solved. Those forms remain explicit
+unsupported capabilities.
 
 Five inherited runnable conformance entries need protected-evidence correction
 before the compiler adapter can promote their current families. `pending-op9-buffer-new`
@@ -592,8 +604,10 @@ helpers, with exact loan expiry, call-region substitution, effects, checks, and
 owner-only cleanup. Concrete FN-8 `requires` prologues execute before function
 bodies without creating assumptions, and the borrowed output-capacity
 experiment runs with every bounds check retained. Integer OP-6 conversion is
-next because a real byte-oriented CRC32 dogfood kernel needs general
-value-preserving byte-to-word widening.
+complete for all signed/unsigned pairs, and the standard CRC32 vector executes
+through its general byte-to-word widening path. Concrete resource-free
+`Option<T>` is next because a byte scanner needs to return either a real offset
+or absence without sentinel values.
 
 ## Phase 9: dogfood and language iteration
 
