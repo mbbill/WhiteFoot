@@ -289,12 +289,18 @@ programs execute through the normal compiler path.
 The active v0.14 specification still names an undefined array “frame limit,”
 so the compiler does not invent one. Exact candidate
 `governance/spec-evolution/kernel-spec-v0.15-candidate.md`, SHA-256
-`50cdbe4196718f4cd66616e437a97c410943eeaa6168b32696ed3e64fda1d1a7`,
+`3c924095b2c21f123b7137556f72dbe87275838682c1965e6caf399dd24d13bd`,
 is awaiting owner approval. It removes the ineffective language-level numeric
-cap and adds a general checked target-layout boundary: unrepresentable target
-objects stop as non-language target failures, while storage class, effects,
-runtime checks, and `array_new` purity remain unchanged. Until exact approval,
-v0.14 remains authoritative and no v0.15 compiler behavior is active.
+cap and adds a general checked target-layout boundary over the ordinary
+facts-off materialization set and every complete compiler-generated target
+object. The checked program carries abstract runtime allocation and address
+obligations; target lowering must discharge each one or retain an exact
+non-continuing guard, without narrowing or optimizer dependence.
+Unrepresentable static target objects and failed dynamic target-domain guards
+remain non-language failures: they add no source rejection, language trap, or
+effect, while storage class and `array_new` purity remain unchanged. Until
+exact approval, v0.14 remains authoritative and no v0.15 compiler behavior is
+active.
 
 ## Authority and specification changes
 
