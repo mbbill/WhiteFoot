@@ -856,13 +856,24 @@ the ordinary compiler path. Their successful-run expectations and rule
 assignments are unchanged. The borrowed inline affine-payload case remains
 pending and outside this box slice.
 
-The exact next work remains Phase 9: run or extend another production-shaped
-dogfood target, observe the first real missing language or compiler capability,
-and select the smallest general implementation that removes that blocker. Do
-not preselect a speculative family merely because it remains in the
-specification. Cyclic generic calls, region-bearing generic arguments, generic
-`requires`, and generic `cvt` remain explicit unsupported capabilities unless
-dogfood selects and implements one of them generally.
+The sustained-workload Phase 9 target is a complete SHA-256 compression of the
+standard `abc` block, repeated 1,024 times. It builds and mutates the 64-word
+message schedule, performs all 64 compression rounds with rotates, shifts,
+Boolean bit operations, wrapping arithmetic, constant-table reads, and checked
+runtime indexing, and verifies the accumulated known result. It executes
+through the public compiler boundary without exposing a new capability gap,
+which is evidence that the existing integer, array, loop, call, and SET-1 paths
+compose under sustained use rather than a reason to add SHA-specific compiler
+machinery.
+
+The exact next work remains Phase 9: select another production-shaped dogfood
+target in a real-world domain not exercised by the current programs, observe
+its first real missing language or compiler capability, and implement the
+smallest general semantic family that removes that blocker. Do not preselect a
+speculative family merely because it remains in the specification. Cyclic
+generic calls, region-bearing generic arguments, generic `requires`, and
+generic `cvt` remain explicit unsupported capabilities unless dogfood selects
+and implements one of them generally.
 
 ## Phase 9: dogfood and language iteration
 

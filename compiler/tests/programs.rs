@@ -2,6 +2,7 @@
 
 mod programs {
     mod generics;
+    mod hashing;
     mod heap;
     mod raw_deflate;
     mod support;
