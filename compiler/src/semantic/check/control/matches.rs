@@ -9,7 +9,7 @@ use crate::{
 
 use super::super::super::model::{
     CheckedConstructor, CheckedEnumType, CheckedExpression, CheckedField, CheckedMatchArm,
-    CheckedMatchBinder, CheckedNominalKind, CheckedType,
+    CheckedMatchBinder, CheckedMode, CheckedNominalKind, CheckedType,
 };
 use super::super::{CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding};
 use super::{BreakState, ControlCounters, ControlScope, GiveContext};
@@ -288,9 +288,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     declaration.id(),
                     LocalBinding {
                         binding,
+                        declaration: declaration.id(),
+                        mode: CheckedMode::Own,
                         ty: field.ty,
                         live: true,
                         loop_depth,
+                        borrow: None,
                     },
                 )
                 .is_some()
@@ -349,7 +352,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             *bindings
                 .get_mut(key)
-                .ok_or(SemanticCompilerFailure::InvalidResolution)? = *expected;
+                .ok_or(SemanticCompilerFailure::InvalidResolution)? = expected.clone();
         }
         Ok(())
     }

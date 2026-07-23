@@ -370,6 +370,20 @@ impl<'program> IrBuilder<'program> {
                         drops,
                     })?;
                 }
+                CheckedStatement::Region {
+                    body,
+                    fallthrough_drops,
+                } => {
+                    self.lower_statements(body, give_target.clone())?;
+                    if self.current.is_some() {
+                        let drops = self.lower_drops(fallthrough_drops)?;
+                        for drop in drops {
+                            self.current_block_mut()?
+                                .instructions
+                                .push(IrInstruction::Drop(drop));
+                        }
+                    }
+                }
                 CheckedStatement::Match {
                     scrutinee,
                     enum_type,
@@ -691,6 +705,7 @@ impl<'program> IrBuilder<'program> {
             CheckedExpression::BufferIndex { root, offset, trap } => {
                 self.lower_buffer_index(root, offset, trap)
             }
+            CheckedExpression::BorrowBuffer { root } => self.lower_buffer_borrow(root),
             CheckedExpression::ConstructStruct { nominal, fields } => {
                 let fields = fields
                     .iter()

@@ -7,7 +7,8 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedType, CheckedValue, IntegerType,
+    CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedMode, CheckedType, CheckedValue,
+    IntegerType,
 };
 use super::{CheckStop, Checker, EffectSet, ParameterSignature, PreludeType};
 
@@ -29,39 +30,39 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, ProductionV0_14::Mode)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            self.require_own_mode(mode)?;
+            let mode = self.parse_mode(mode)?;
             let ty_node = self
                 .tree
                 .first_child_with(node, ProductionV0_14::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            let ty = self.parse_type(ty_node)?;
+            if mode != CheckedMode::Own && !matches!(ty, CheckedType::Buffer { .. }) {
+                return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, node);
+            }
             parameters.push(ParameterSignature {
                 declaration: declaration.id(),
                 name: declaration.spelling().to_owned(),
-                ty: self.parse_type(ty_node)?,
+                mode,
+                ty,
             });
         }
         Ok(parameters)
     }
 
-    pub(super) fn parse_rtype(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
+    pub(super) fn parse_rtype(
+        &self,
+        node: NodeId,
+    ) -> Result<(CheckedMode, CheckedType), CheckStop> {
         let mode = self
             .tree
             .first_child_with(node, ProductionV0_14::Mode)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        self.require_own_mode(mode)?;
+        let mode = self.parse_mode(mode)?;
         let ty = self
             .tree
             .first_child_with(node, ProductionV0_14::Type)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        self.parse_type(ty)
-    }
-
-    pub(super) fn require_own_mode(&self, node: NodeId) -> Result<(), CheckStop> {
-        if self.has_fixed(node, FixedTerminalV0_14::Own)? {
-            Ok(())
-        } else {
-            self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, node)
-        }
+        Ok((mode, self.parse_type(ty)?))
     }
 
     pub(super) fn parse_type(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
@@ -272,22 +273,27 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let effects = self.tree.children_with(node, ProductionV0_14::Effect)?;
         let mut previous = None;
         let mut declared = EffectSet::NONE;
-        let mut unsupported = None;
         for effect in effects {
-            let (ordinal, feature) = if self.has_fixed(effect, FixedTerminalV0_14::Reads)? {
-                (0, Some(UnsupportedSemanticFeatureV0_14::EffectFamily))
+            let ordinal = if self.has_fixed(effect, FixedTerminalV0_14::Reads)? {
+                for region in self.effect_regions(effect)? {
+                    declared.add_read(region);
+                }
+                0
             } else if self.has_fixed(effect, FixedTerminalV0_14::Writes)? {
-                (1, Some(UnsupportedSemanticFeatureV0_14::EffectFamily))
+                for region in self.effect_regions(effect)? {
+                    declared.add_write(region);
+                }
+                1
             } else if self.has_fixed(effect, FixedTerminalV0_14::Allocates)? {
                 let heap = self.tree.direct_spelling(effect)? == b"allocates(heap)";
                 declared.allocates_heap |= heap;
-                (
-                    2,
-                    (!heap).then_some(UnsupportedSemanticFeatureV0_14::EffectFamily),
-                )
+                if !heap {
+                    return self.unsupported(UnsupportedSemanticFeatureV0_14::EffectFamily, effect);
+                }
+                2
             } else if self.has_fixed(effect, FixedTerminalV0_14::Traps)? {
                 declared.traps = true;
-                (3, None)
+                3
             } else {
                 return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
             };
@@ -299,14 +305,30 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 );
             }
             previous = Some(ordinal);
-            if feature.is_some() && unsupported.is_none() {
-                unsupported = Some(effect);
-            }
-        }
-        if let Some(effect) = unsupported {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::EffectFamily, effect);
         }
         Ok(declared)
+    }
+
+    fn effect_regions(&self, node: NodeId) -> Result<Vec<crate::DeclarationId>, CheckStop> {
+        let path = self.tree.path(node)?;
+        let mut uses = self
+            .resolved
+            .lexical_uses()
+            .iter()
+            .filter(|usage| {
+                usage.role() == LexicalUseRole::EffectRegion && usage.origin().node() == path
+            })
+            .collect::<Vec<_>>();
+        uses.sort_by_key(|usage| usage.origin().role_ordinal());
+        uses.into_iter()
+            .map(|usage| match usage.target() {
+                ResolvedTarget::Source {
+                    declaration,
+                    class: DeclarationClass::Region,
+                } => Ok(declaration),
+                _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
+            })
+            .collect()
     }
 
     pub(super) fn parse_const_expression(&self, node: NodeId) -> Result<u64, CheckStop> {

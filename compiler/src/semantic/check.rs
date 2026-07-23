@@ -1,3 +1,4 @@
+mod borrows;
 mod cleanup;
 mod control;
 mod expressions;
@@ -15,17 +16,19 @@ use crate::{
 };
 
 use super::model::{
-    BindingId, CheckedConstant, CheckedConstantId, CheckedExpression, CheckedFunction,
+    BindingId, CheckedConstant, CheckedConstantId, CheckedExpression, CheckedFunction, CheckedMode,
     CheckedNominal, CheckedParameter, CheckedProgramData, CheckedType, FunctionId, NominalId,
 };
 use super::tree::TreeView;
 use super::{CheckStop, CheckedProgram};
+use borrows::BorrowInfo;
 use control::{ControlCounters, ControlScope};
 
 #[derive(Clone)]
 struct ParameterSignature {
     declaration: DeclarationId,
     name: String,
+    mode: CheckedMode,
     ty: CheckedType,
 }
 
@@ -35,18 +38,23 @@ struct FunctionSignature {
     declaration: DeclarationId,
     node: NodeId,
     name: String,
+    region_parameters: Vec<DeclarationId>,
     parameters: Vec<ParameterSignature>,
+    result_mode: CheckedMode,
     result: CheckedType,
     effects_node: NodeId,
     declared_effects: EffectSet,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct LocalBinding {
     binding: BindingId,
+    declaration: DeclarationId,
+    mode: CheckedMode,
     ty: CheckedType,
     live: bool,
     loop_depth: usize,
+    borrow: Option<BorrowInfo>,
 }
 
 #[derive(Clone, Copy)]
@@ -57,33 +65,75 @@ enum Constructor {
 
 struct TypedExpression {
     expression: CheckedExpression,
+    mode: CheckedMode,
+    borrow: Option<BorrowInfo>,
+    holder: Option<DeclarationId>,
     effects: EffectSet,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+impl TypedExpression {
+    fn owned(expression: CheckedExpression, effects: EffectSet) -> Self {
+        Self {
+            expression,
+            mode: CheckedMode::Own,
+            borrow: None,
+            holder: None,
+            effects,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct EffectSet {
+    reads: Vec<DeclarationId>,
+    writes: Vec<DeclarationId>,
     allocates_heap: bool,
     traps: bool,
 }
 
 impl EffectSet {
     const NONE: Self = Self {
+        reads: Vec::new(),
+        writes: Vec::new(),
         allocates_heap: false,
         traps: false,
     };
     const TRAPS: Self = Self {
+        reads: Vec::new(),
+        writes: Vec::new(),
         allocates_heap: false,
         traps: true,
     };
     const ALLOCATES_HEAP_AND_TRAPS: Self = Self {
+        reads: Vec::new(),
+        writes: Vec::new(),
         allocates_heap: true,
         traps: true,
     };
 
-    const fn union(self, other: Self) -> Self {
-        Self {
-            allocates_heap: self.allocates_heap || other.allocates_heap,
-            traps: self.traps || other.traps,
+    fn union(mut self, other: Self) -> Self {
+        for region in other.reads {
+            self.add_read(region);
+        }
+        for region in other.writes {
+            self.add_write(region);
+        }
+        self.allocates_heap |= other.allocates_heap;
+        self.traps |= other.traps;
+        self
+    }
+
+    fn add_read(&mut self, region: DeclarationId) {
+        if !self.reads.contains(&region) {
+            self.reads.push(region);
+            self.reads.sort_unstable();
+        }
+    }
+
+    fn add_write(&mut self, region: DeclarationId) {
+        if !self.writes.contains(&region) {
+            self.writes.push(region);
+            self.writes.sort_unstable();
         }
     }
 }
@@ -213,13 +263,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             {
                 return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, generics);
             }
-            if let Some(regions) = self
-                .tree
-                .first_child_with(node, ProductionV0_14::RegionParams)?
-            {
-                return self
-                    .unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, regions);
-            }
             if let Some(requires) = self
                 .tree
                 .first_child_with(node, ProductionV0_14::RequiresBlock)?
@@ -234,12 +277,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 u32::try_from(self.signatures.len())
                     .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
             );
+            let region_parameters = self.parse_region_parameters(node)?;
             let parameters = self.parse_parameters(node)?;
             let rtype = self
                 .tree
                 .first_child_with(node, ProductionV0_14::Rtype)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let result = self.parse_rtype(rtype)?;
+            let (result_mode, result) = self.parse_rtype(rtype)?;
+            if result_mode != CheckedMode::Own {
+                return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, rtype);
+            }
             let effects = self
                 .tree
                 .first_child_with(node, ProductionV0_14::Effects)?
@@ -251,7 +298,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 declaration: declaration_id,
                 node,
                 name,
+                region_parameters,
                 parameters,
+                result_mode,
                 result,
                 effects_node: effects,
                 declared_effects,
@@ -401,14 +450,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 parameter.declaration,
                 LocalBinding {
                     binding,
+                    declaration: parameter.declaration,
+                    mode: parameter.mode,
                     ty: parameter.ty,
                     live: true,
                     loop_depth: 0,
+                    borrow: self.parameter_borrow(parameter),
                 },
             );
             parameters.push(CheckedParameter {
                 name: parameter.name.clone(),
                 binding,
+                mode: parameter.mode,
                 ty: parameter.ty,
             });
         }
@@ -452,6 +505,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             declaration: signature.declaration,
             name: signature.name.clone(),
             parameters,
+            result_mode: signature.result_mode,
             result: signature.result,
             declared_traps: signature.declared_effects.traps,
             declared_allocates_heap: signature.declared_effects.allocates_heap,

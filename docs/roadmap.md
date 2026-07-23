@@ -137,12 +137,12 @@ trapping and checked negation reuse defined signed-subtraction overflow
 detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
-This is not a completeness claim. Generics and contracts, regions and borrows,
-floats, `Option`, boxes, arenas, slices, resource-bearing nominal payloads,
-recursive nominal layouts, branch-dependent ownership joins, projected and
-borrow-backed SET-1 targets, and floating-point, conversion, and remaining
-effect-table operations are explicit unsupported compiler capabilities rather
-than source-language rejections.
+This is not a completeness claim. Generics and contracts, borrow referents
+outside primitive buffers, returned borrows, child reborrows, floats, `Option`,
+boxes, arenas, slices, resource-bearing nominal payloads, recursive nominal
+layouts, branch-dependent ownership/loan joins, projected array targets, and
+floating-point, conversion, and remaining effect-table operations are explicit
+unsupported compiler capabilities rather than source-language rejections.
 Repeated exhaustive match arms also stop as
 unsupported because v0.14 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
@@ -207,16 +207,30 @@ skipping exactly a transferred subtree. A compiler-independent two-column
 structure-of-arrays checksum executes through those paths and frees both
 columns.
 
-The next implementation slice is the first lexical buffer-borrowing family,
-selected to make the structure-of-arrays layout reusable across function
-boundaries without transferring ownership. It must implement the relevant
-OWN-3/4/5/7/10/12 and effect judgments generally for local and
-caller-supplied regions, carry shared and usable `&uniq` holders through
-explicit `deref`, and preserve projected OP-4 and target-before-RHS SET-1
-behavior. The end-to-end experiment is separate fill and fold helpers over two
-borrowed columns, including a non-overlap witness for distinct fields.
-Resource-bearing enum payloads, boxes, arenas, and general slices remain later
-unless that experiment exposes a direct dependency.
+The first lexical buffer-borrowing slice is complete. Region parameters and
+local region blocks use resolved declaration identities; borrow holders retain
+their mode, resolved owner/field path, and ultimate caller origin; OWN-5/7
+checks prefix overlap; OWN-10 prevents local owners from escaping into caller
+regions; OWN-12 substitutes explicit call regions and checks overlapping
+arguments; and EFF-2 projects callee reads/writes back through the actual
+storage origin. Shared and usable `&uniq` buffer holders reach `len`, OP-4, and
+SET-1 only through explicit `deref`. The backend passes the existing buffer
+descriptor by value and never frees a borrow. A compiler-independent
+structure-of-arrays program uniquely fills two distinct borrowed columns, then
+shared-borrows and folds them, while the sole owner frees both columns. Forms
+that need returned-reference provenance, child reborrows, or branch-dependent
+loan joins remain explicit unsupported capability stops.
+
+The next implementation slice is concrete FN-8 `requires` prologues. This is
+next because the existing output-capacity lockstep experiment already combines
+borrowed output buffers, owned input buffers, loops, checked SET-1, and a
+capacity precondition. Implement the exact restricted prologue through the
+normal semantic, checked-statement, lowering, and LLVM paths, then run one
+independent harness derived from that experiment. Do not add proof-based check
+elision in the same slice: first establish that the required check executes at
+callee entry and that ordinary callers rely only on the signature. Boxes,
+arenas, general slices, and resource-bearing enum payloads remain later unless
+this experiment exposes a direct dependency.
 
 Four inherited runnable conformance sources need protected-evidence correction
 before the compiler adapter can promote the buffer family. `pending-op9-buffer-new`
@@ -519,15 +533,17 @@ wrong variants, missing arms, invalid field order, and nested buffer cleanup.
 
 The implemented SET-1 subset covers direct live own-mode copy locals, nested
 copy fields, direct local fixed-array indices, and direct or struct-projected
-buffer indices. One checked target record carries the root path, evaluated
-offset, retained OP-4 check, and copy type across RHS checking; lowering forms
-the projected root and guarded index once before the RHS and commits one store
-afterward. Constants cite CONST-2, affine final places cite STOR-1 with the
-required restructuring, type mismatch cites TYPE-5 at the RHS, and an RHS that
-moves the root cites OWN-1 at the later commit. Dereference, projected array
-index, slice, box, arena, and loan-aware targets remain unsupported because
-their cleanup, storage, or borrow families are not implemented; they are not
-treated as invalid source.
+buffer indices. Buffer indices may also be reached through a live usable
+`&uniq` holder with explicit `deref`; the target keeps resolved provenance,
+checks live loans, attributes the commit to the ultimate caller region, and
+still forms its bounds guard before the RHS. One checked target record carries
+the root path, evaluated offset, retained OP-4 check, and copy type across RHS
+checking; lowering forms the projected root and guarded index once before the
+RHS and commits one store afterward. Constants cite CONST-2, affine final
+places cite STOR-1 with the required restructuring, type mismatch cites TYPE-5
+at the RHS, and an RHS that moves the root cites OWN-1 at the later commit.
+Projected array indices, slices, boxes, arenas, and non-buffer dereference
+targets remain unsupported; they are not treated as invalid source.
 
 This is not the complete ERR-2 toolchain contract: a whole-unit
 variant-addition query that enumerates every affected match site is still
@@ -556,9 +572,12 @@ ordinary wrapping and overflow-detecting subtraction path.
 Direct fixed-array index reads, immutable const-table reads, direct-root
 indexed fixed-array SET-1, and direct or struct-projected non-floating
 primitive runtime-length buffers are implemented. Resource-bearing struct
-cleanup supports nested and partial owners, and the structure-of-arrays
-experiment runs. Lexical buffer borrows and loan-aware projected SET-1 are next
-so reusable helpers can operate on that storage without taking ownership.
+cleanup supports nested and partial owners. The structure-of-arrays experiment
+now runs through separate uniquely borrowed fill and shared-borrowed fold
+helpers, with exact loan expiry, call-region substitution, effects, checks, and
+owner-only cleanup. Concrete FN-8 `requires` prologues are next so the borrowed
+output-capacity experiment can execute before proof-driven check elimination
+is considered.
 
 ## Phase 9: dogfood and language iteration
 

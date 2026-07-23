@@ -7,6 +7,13 @@ pub(crate) struct FunctionId(pub(crate) u32);
 pub(crate) struct BindingId(pub(crate) u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) enum CheckedMode {
+    Own,
+    Shared(DeclarationId),
+    Unique(DeclarationId),
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct CheckedLoopId(pub(crate) u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -381,6 +388,9 @@ pub(crate) enum CheckedExpression {
         offset: Box<CheckedExpression>,
         trap: TrapSite,
     },
+    BorrowBuffer {
+        root: CheckedBufferRoot,
+    },
     ConstructStruct {
         nominal: NominalId,
         fields: Vec<CheckedExpression>,
@@ -412,6 +422,9 @@ impl CheckedExpression {
             Self::BufferFill { element, .. } => CheckedType::Buffer { element: *element },
             Self::BufferLength { .. } => CheckedType::Integer(IntegerType::U64),
             Self::BufferIndex { root, .. } => root.element.ty(),
+            Self::BorrowBuffer { root } => CheckedType::Buffer {
+                element: root.element,
+            },
             Self::ConstructStruct { nominal, .. } | Self::ConstructEnum { nominal, .. } => {
                 CheckedType::Nominal(*nominal)
             }
@@ -568,12 +581,17 @@ pub(crate) enum CheckedStatement {
         target: CheckedLoopId,
         drops: Vec<CheckedDrop>,
     },
+    Region {
+        body: Vec<CheckedStatement>,
+        fallthrough_drops: Vec<CheckedDrop>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct CheckedParameter {
     pub(crate) name: String,
     pub(crate) binding: BindingId,
+    pub(crate) mode: CheckedMode,
     pub(crate) ty: CheckedType,
 }
 
@@ -583,6 +601,7 @@ pub(crate) struct CheckedFunction {
     pub(crate) declaration: DeclarationId,
     pub(crate) name: String,
     pub(crate) parameters: Vec<CheckedParameter>,
+    pub(crate) result_mode: CheckedMode,
     pub(crate) result: CheckedType,
     pub(crate) declared_traps: bool,
     pub(crate) declared_allocates_heap: bool,

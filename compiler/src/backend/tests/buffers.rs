@@ -154,6 +154,28 @@ fn compiler_independent_mutable_buffer_checksum_executes() {
 }
 
 #[test]
+fn borrowed_columns_cross_helpers_without_transferring_ownership() {
+    let llvm = compile(include_bytes!(
+        "../../../../tests/conformance/cases/x-buffer-borrowed-columns-run.wf"
+    ));
+    let fill = emitted_function(&llvm, "fill");
+    let fold = emitted_function(&llvm, "fold");
+    let main = emitted_function(&llvm, "main");
+    assert!(fill.contains("store i64"));
+    assert!(fold.contains("load i64"));
+    assert!(!fill.contains("call void @free"));
+    assert!(!fold.contains("call void @free"));
+    assert_eq!(main.matches("call void @free").count(), 2);
+    assert!(main.contains("call i8 @wf_fill"));
+    assert!(main.contains("call i64 @wf_fold"));
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn projected_buffer_target_is_formed_once_before_rhs() {
     let source = br#"struct Columns {
   left: buffer<u16>;

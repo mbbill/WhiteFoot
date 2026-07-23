@@ -12,9 +12,10 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedExpression, CheckedNominalKind, CheckedProjectedDrop, CheckedSetTarget, CheckedType,
-    CheckedValue, CheckedWritablePlace, IntegerType,
+    CheckedExpression, CheckedMode, CheckedNominalKind, CheckedProjectedDrop, CheckedSetTarget,
+    CheckedType, CheckedValue, CheckedWritablePlace, IntegerType,
 };
+use super::borrows::{AccessKind, ResolvedPlace};
 use super::{
     CheckStop, Checker, Constructor, EffectSet, FunctionSignature, LocalBinding, TypedExpression,
 };
@@ -39,7 +40,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         node: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
-    ) -> Result<(DeclarationId, CheckedSetTarget, bool), CheckStop> {
+    ) -> Result<(DeclarationId, CheckedSetTarget, EffectSet), CheckStop> {
         let pbase = self
             .tree
             .first_child_with(node, ProductionV0_14::Pbase)?
@@ -76,8 +77,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
 
-        let local = *bindings
+        let local = bindings
             .get(&declaration)
+            .cloned()
             .ok_or(SemanticCompilerFailure::InvalidResolution)?;
         if !local.live {
             return self.issue_node(
@@ -90,6 +92,31 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
 
         let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
+        if local.mode != CheckedMode::Own {
+            return self.issue_node(
+                SemanticRuleV0_14::Set1,
+                node,
+                SemanticIssueKind::InvalidSetTarget {
+                    root_class: match local.mode {
+                        CheckedMode::Shared(_) => "shared borrow",
+                        CheckedMode::Unique(_) => "unique borrow holder",
+                        CheckedMode::Own => "owned value",
+                    }
+                    .to_owned(),
+                    required_classes: "live own storage or a live usable &uniq referent",
+                },
+            );
+        }
+        self.check_loan_access(
+            bindings,
+            None,
+            &ResolvedPlace {
+                root: declaration,
+                fields: fields.clone(),
+            },
+            AccessKind::Write,
+            node,
+        )?;
 
         if !self.is_copy_type(ty)? {
             return self.issue_node(
@@ -110,7 +137,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 fields,
                 ty,
             }),
-            false,
+            EffectSet::NONE,
         ))
     }
 
@@ -280,12 +307,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .direct_token_with(node, TerminalPredicateV0_14::Literal)?
         {
-            return Ok(TypedExpression {
-                expression: CheckedExpression::Constant(
+            return Ok(TypedExpression::owned(
+                CheckedExpression::Constant(
                     self.parse_literal(node, self.tree.token_bytes(literal)?)?,
                 ),
-                effects: EffectSet::NONE,
-            });
+                EffectSet::NONE,
+            ));
         }
         if let Some(place) = self.tree.first_child_with(node, ProductionV0_14::Place)? {
             let value = self.check_place_use(
@@ -305,7 +332,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::BorrowExpr)?
         {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, borrow);
+            return self.check_buffer_borrow(borrow, function, bindings, loop_depth);
         }
         let _ = function;
         Err(SemanticCompilerFailure::InvalidCanonicalTree.into())
@@ -338,8 +365,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         match class {
             DeclarationClass::Value => {
-                let local = *bindings
+                let local = bindings
                     .get(&declaration)
+                    .cloned()
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?;
                 if !local.live {
                     return self.issue_node(
@@ -349,6 +377,59 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             mechanical_fix: "introduce a new `let` binding before reuse",
                         },
                     );
+                }
+                if local.mode != CheckedMode::Own {
+                    if !self
+                        .tree
+                        .children_with(node, ProductionV0_14::Psuffix)?
+                        .is_empty()
+                    {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Type7,
+                            use_node,
+                            SemanticIssueKind::MissingDereference {
+                                mechanical_fix: "write `deref(holder)`",
+                            },
+                        );
+                    }
+                    let copy = matches!(local.mode, CheckedMode::Shared(_));
+                    if options.explicit_move && copy {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Own1,
+                            use_node,
+                            SemanticIssueKind::MoveOfCopy {
+                                mechanical_fix: "use the copy place without `move`",
+                            },
+                        );
+                    }
+                    if !copy
+                        && !options.explicit_move
+                        && matches!(options.context, PlaceUseContext::Ordinary)
+                    {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Own1,
+                            use_node,
+                            SemanticIssueKind::BareAffineUse {
+                                mechanical_fix: "write `move p` for the affine place",
+                            },
+                        );
+                    }
+                    if !copy {
+                        bindings
+                            .get_mut(&declaration)
+                            .ok_or(SemanticCompilerFailure::InvalidResolution)?
+                            .live = false;
+                    }
+                    return Ok(TypedExpression {
+                        expression: CheckedExpression::Binding {
+                            binding: local.binding,
+                            ty: local.ty,
+                        },
+                        mode: local.mode,
+                        borrow: local.borrow,
+                        holder: Some(declaration),
+                        effects: EffectSet::NONE,
+                    });
                 }
                 let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
                 let copy = self.is_copy_type(ty)?;
@@ -382,6 +463,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
+                self.check_loan_access(
+                    bindings,
+                    None,
+                    &ResolvedPlace {
+                        root: declaration,
+                        fields: fields.clone(),
+                    },
+                    if copy {
+                        AccessKind::Read
+                    } else {
+                        AccessKind::Move
+                    },
+                    use_node,
+                )?;
                 let residual_drops = if copy || fields.is_empty() {
                     Vec::new()
                 } else {
@@ -397,24 +492,24 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .live = false;
                 }
                 if fields.is_empty() {
-                    Ok(TypedExpression {
-                        expression: CheckedExpression::Binding {
+                    Ok(TypedExpression::owned(
+                        CheckedExpression::Binding {
                             binding: local.binding,
                             ty,
                         },
-                        effects: EffectSet::NONE,
-                    })
+                        EffectSet::NONE,
+                    ))
                 } else {
-                    Ok(TypedExpression {
-                        expression: CheckedExpression::Project {
+                    Ok(TypedExpression::owned(
+                        CheckedExpression::Project {
                             binding: local.binding,
                             fields,
                             ty,
                             consume_root: !copy,
                             residual_drops,
                         },
-                        effects: EffectSet::NONE,
-                    })
+                        EffectSet::NONE,
+                    ))
                 }
             }
             DeclarationClass::NamedConst => {
@@ -453,10 +548,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
-                Ok(TypedExpression {
-                    expression: CheckedExpression::Constant(constant.value.clone()),
-                    effects: EffectSet::NONE,
-                })
+                Ok(TypedExpression::owned(
+                    CheckedExpression::Constant(constant.value.clone()),
+                    EffectSet::NONE,
+                ))
             }
             _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
         }
@@ -507,10 +602,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     },
                 );
             }
-            return Ok(TypedExpression {
-                expression: CheckedExpression::Constant(value),
-                effects: EffectSet::NONE,
-            });
+            return Ok(TypedExpression::owned(
+                CheckedExpression::Constant(value),
+                EffectSet::NONE,
+            ));
         }
         let constructor = match usage.target() {
             ResolvedTarget::Source { declaration, .. } => *self
@@ -625,6 +720,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 );
             }
+            if value.mode != CheckedMode::Own {
+                return self.issue_node(
+                    SemanticRuleV0_14::Type7,
+                    atom,
+                    SemanticIssueKind::MissingDereference {
+                        mechanical_fix: "write `deref(holder)`",
+                    },
+                );
+            }
             effects = effects.union(value.effects);
             fields.push(value.expression);
         }
@@ -636,9 +740,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 fields,
             },
         };
-        Ok(TypedExpression {
-            expression,
-            effects,
-        })
+        Ok(TypedExpression::owned(expression, effects))
     }
 }

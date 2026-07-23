@@ -5,7 +5,9 @@ use crate::{
     DeclarationId, ProductionV0_14, SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_14,
 };
 
-use super::super::super::model::{BindingId, CheckedStatement, CheckedType, PropagationContext};
+use super::super::super::model::{
+    BindingId, CheckedMode, CheckedStatement, CheckedType, PropagationContext,
+};
 use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding, PreludeType};
 use super::{ControlScope, StatementResult};
 
@@ -64,9 +66,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 declaration,
                 LocalBinding {
                     binding,
+                    declaration,
+                    mode: CheckedMode::Own,
                     ty: expected,
                     live: true,
                     loop_depth: scope.loops.len(),
+                    borrow: None,
                 },
             )
             .is_some()

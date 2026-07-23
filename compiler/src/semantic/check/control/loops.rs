@@ -147,3 +147,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(id)
     }
 }
+
+impl BreakState {
+    pub(super) fn retain_bindings(&mut self, preserved: &HashSet<DeclarationId>) {
+        self.bindings
+            .retain(|declaration, _| preserved.contains(declaration));
+    }
+}

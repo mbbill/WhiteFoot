@@ -74,19 +74,32 @@ decimal or earlier-integer lengths, complete `array_new` initialization,
 immutable static const tables, `len`, checked index reads, and target-before-RHS
 checked indexed writes for direct local roots. The IR retains required checks,
 source trap sites, checked set paths, and cleanup. Runtime-length non-floating
-primitive buffers use a `{data pointer, u64 length}` value, checked OP-9 byte-size
-multiplication before allocation, complete fill initialization, OP-4 reads and
-target-before-RHS writes, cross-function affine transfer, and compiler-derived
-`free` on normal owner exits. Buffer fields retain exact projected roots
-through length, read, and write operations without re-evaluating source paths;
-the backend uses conservative LLVM without unearned overflow flags or check
-elision. Unimplemented v0.14 families stop as explicit unsupported compiler
-capabilities rather than source-language rejections. Whole-unit ERR-2
-variant-addition edit-list enumeration and the full conformance adapter remain
-future work. Resource-bearing enum payloads, projected array roots, slices,
-and borrow-backed SET-1 targets remain explicit unsupported
-capabilities until their cleanup and place families exist; none of these gaps
-is implied complete by the current gate.
+primitive buffers use a `{data pointer, u64 length}` value, checked OP-9
+byte-size multiplication before allocation, complete fill initialization,
+OP-4 reads and target-before-RHS writes, cross-function affine transfer, and
+compiler-derived `free` on normal owner exits. Buffer fields retain exact
+projected roots through length, read, and write operations without
+re-evaluating source paths.
+
+The first lexical borrow family adds caller region parameters, local region
+blocks, shared and unique buffer holders, explicit `deref`, resolved
+field-prefix overlap, and ultimate-origin `reads`/`writes` effects. Borrowed
+buffer descriptors cross ordinary calls by value, but only the original owner
+is cleaned up. Distinct struct fields can therefore be uniquely passed to a
+fill helper and then shared with a fold helper without transferring either
+allocation. The backend remains conservative LLVM without unearned overflow
+flags or check elision.
+
+This first borrow family deliberately stops before scalar and nominal
+referents, returned borrows, statement-scoped child reborrows, borrow-producing
+branch joins, boxes, arenas, and slices. Those forms remain explicit
+unsupported compiler capabilities; they are not accepted with incomplete loan
+checking. Unimplemented v0.14 families stop the same way rather than becoming
+source-language rejections. Whole-unit ERR-2 variant-addition edit-list
+enumeration and the full conformance adapter remain future work.
+Resource-bearing enum payloads, projected array roots, slices, and non-buffer
+borrow-backed SET-1 targets remain unsupported until their cleanup and place
+families exist; none of these gaps is implied complete by the current gate.
 
 Compile a source file through the normal path with:
 

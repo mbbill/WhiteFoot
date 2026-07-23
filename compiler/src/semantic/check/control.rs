@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::super::model::{
-    BindingId, CheckedDrop, CheckedLoopId, CheckedStatement, CheckedType, TrapSite,
+    BindingId, CheckedDrop, CheckedLoopId, CheckedMode, CheckedStatement, CheckedType, TrapSite,
 };
 use super::{CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding};
 use loops::{BreakState, LoopContext};
@@ -152,6 +152,22 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         kind: SemanticIssueKind::ReturnMismatch,
                     }));
                 }
+                if value.mode != function.result_mode {
+                    if value.mode != CheckedMode::Own && function.result_mode == CheckedMode::Own {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Type7,
+                            expression_node,
+                            SemanticIssueKind::MissingDereference {
+                                mechanical_fix: "write `deref(holder)`",
+                            },
+                        );
+                    }
+                    return self.issue_node(
+                        SemanticRuleV0_14::Fn1,
+                        node,
+                        SemanticIssueKind::ReturnMismatch,
+                    );
+                }
                 Ok(StatementResult {
                     statement: CheckedStatement::Return {
                         value: value.expression,
@@ -172,7 +188,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
                 let condition =
                     self.check_expression(function, expression_node, bindings, scope.loops.len())?;
-                if condition.expression.ty() != CheckedType::Bool {
+                if condition.expression.ty() != CheckedType::Bool
+                    || condition.mode != CheckedMode::Own
+                {
                     return Err(CheckStop::Issue(SemanticIssue {
                         rule: SemanticRuleV0_14::Op5,
                         location: SemanticLocation::SourceNode(
@@ -263,7 +281,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
 
                 // SET-1 fixes this order: form and check the target first, then
                 // evaluate the RHS, then re-establish target writability.
-                let (declaration, target, target_exhibits_traps) =
+                let (declaration, target, target_effects) =
                     self.check_set_target(function, target_node, bindings, scope.loops.len())?;
                 let value = self.check_expression_with_expected(
                     function,
@@ -297,17 +315,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         target,
                         value: value.expression,
                     },
-                    value.effects.union(if target_exhibits_traps {
-                        EffectSet::TRAPS
-                    } else {
-                        EffectSet::NONE
-                    }),
+                    value.effects.union(target_effects),
                 ))
             }
             ProductionV0_14::LoopStmt => self.check_loop(function, node, bindings, counters, scope),
             ProductionV0_14::BreakStmt => self.check_break(node, bindings, scope),
             ProductionV0_14::RegionStmt => {
-                self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, node)
+                self.check_region(function, node, bindings, counters, scope)
             }
             _ => Err(SemanticCompilerFailure::InvalidCanonicalTree.into()),
         }
@@ -325,7 +339,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::Mode)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        self.require_own_mode(mode)?;
+        let mode = self.parse_mode(mode)?;
         let ty_node = self
             .tree
             .first_child_with(node, ProductionV0_14::Type)?
@@ -339,6 +353,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::ValueMatch)?
         {
+            if mode != CheckedMode::Own {
+                return self.unsupported(
+                    UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
+                    value_match,
+                );
+            }
             let matched = self.check_match(
                 function,
                 value_match,
@@ -360,9 +380,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         declaration_id,
                         LocalBinding {
                             binding,
+                            declaration: declaration_id,
+                            mode,
                             ty: expected,
                             live: true,
                             loop_depth: scope.loops.len(),
+                            borrow: None,
                         },
                     )
                     .is_some()
@@ -390,6 +413,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::PropagateLetRhs)?
         {
+            if mode != CheckedMode::Own {
+                return self.unsupported(
+                    UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
+                    propagate,
+                );
+            }
             return self.check_propagate_let(
                 function,
                 propagate,
@@ -422,14 +451,30 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         }
+        if matches!(mode, CheckedMode::Unique(_)) && value.holder.is_some() {
+            return self.unsupported(
+                UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
+                expression_node,
+            );
+        }
+        if !self.borrow_holder_scope_supported(declaration_id, mode)? {
+            return self.unsupported(
+                UnsupportedSemanticFeatureV0_14::RegionsAndBorrows,
+                expression_node,
+            );
+        }
+        let borrow = self.borrow_for_destination(mode, &value, node)?;
         if bindings
             .insert(
                 declaration_id,
                 LocalBinding {
                     binding,
+                    declaration: declaration_id,
+                    mode,
                     ty: expected,
                     live: true,
                     loop_depth: scope.loops.len(),
+                    borrow,
                 },
             )
             .is_some()
@@ -445,6 +490,46 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         ))
     }
 
+    fn check_region(
+        &self,
+        function: &FunctionSignature,
+        node: NodeId,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        counters: &mut ControlCounters<'_>,
+        scope: ControlScope<'_>,
+    ) -> Result<StatementResult, CheckStop> {
+        let _region = self.declaration_at(node, DeclarationRole::LocalRegion)?;
+        let base_keys = bindings.keys().copied().collect::<HashSet<_>>();
+        let statements = self.tree.children_with(node, ProductionV0_14::Stmt)?;
+        let mut checked = self.check_block(function, &statements, bindings, counters, scope)?;
+        let fallthrough_drops = if checked.can_continue {
+            self.live_affine_drops(bindings, &base_keys)?
+        } else {
+            Vec::new()
+        };
+        if checked.can_continue {
+            bindings.retain(|declaration, _| base_keys.contains(declaration));
+        }
+        for state in &mut checked.give_states {
+            state.retain(|declaration, _| base_keys.contains(declaration));
+        }
+        for state in &mut checked.break_states {
+            state.retain_bindings(&base_keys);
+        }
+        Ok(StatementResult {
+            statement: CheckedStatement::Region {
+                body: checked.statements,
+                fallthrough_drops,
+            },
+            can_continue: checked.can_continue,
+            effects: checked.effects,
+            all_paths_deliver: checked.all_paths_deliver,
+            direct_give: false,
+            give_states: checked.give_states,
+            break_states: checked.break_states,
+        })
+    }
+
     fn live_affine_drops(
         &self,
         bindings: &HashMap<DeclarationId, LocalBinding>,
@@ -453,7 +538,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut live = bindings
             .iter()
             .filter_map(|(declaration, local)| {
-                (local.live && !preserved.contains(declaration)).then_some((*declaration, *local))
+                (local.live && local.mode == CheckedMode::Own && !preserved.contains(declaration))
+                    .then_some((*declaration, local.clone()))
             })
             .collect::<Vec<_>>();
         live.sort_by(|left, right| right.1.binding.0.cmp(&left.1.binding.0));

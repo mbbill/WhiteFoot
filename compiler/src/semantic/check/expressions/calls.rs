@@ -1,3 +1,5 @@
+mod user;
+
 use std::collections::HashMap;
 
 use crate::syntax::NodeId;
@@ -7,8 +9,8 @@ use crate::{
 };
 
 use super::super::super::model::{
-    CheckedBooleanOperation, CheckedExpression, CheckedIntegerOperation, CheckedNominalKind,
-    CheckedType, TrapSite,
+    CheckedBooleanOperation, CheckedExpression, CheckedIntegerOperation, CheckedMode,
+    CheckedNominalKind, CheckedType, TrapSite,
 };
 use super::super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, PreludeType, TypedExpression,
@@ -49,80 +51,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
         }
-    }
-
-    fn check_user_call(
-        &self,
-        node: NodeId,
-        declaration: DeclarationId,
-        function: &FunctionSignature,
-        bindings: &mut HashMap<DeclarationId, LocalBinding>,
-        loop_depth: usize,
-    ) -> Result<TypedExpression, CheckStop> {
-        if let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, targs);
-        }
-        let target = *self
-            .functions_by_declaration
-            .get(&declaration)
-            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-        let signature = self
-            .signatures
-            .get(target.0 as usize)
-            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-        let fields = if let Some(list) = self
-            .tree
-            .first_child_with(node, ProductionV0_14::FieldinitList)?
-        {
-            self.tree.children_with(list, ProductionV0_14::Fieldinit)?
-        } else {
-            Vec::new()
-        };
-        if self
-            .tree
-            .first_child_with(node, ProductionV0_14::AtomList)?
-            .is_some()
-            || fields.len() != signature.parameters.len()
-        {
-            return self.issue_node(
-                SemanticRuleV0_14::Gram11,
-                node,
-                Self::invalid_named_arguments(signature),
-            );
-        }
-        let mut arguments = Vec::with_capacity(fields.len());
-        let mut effects = signature.declared_effects;
-        for (field, parameter) in fields.into_iter().zip(&signature.parameters) {
-            if self.identifier(field)? != parameter.name {
-                return self.issue_node(
-                    SemanticRuleV0_14::Gram11,
-                    field,
-                    Self::invalid_named_arguments(signature),
-                );
-            }
-            let atom = self
-                .tree
-                .first_child_with(field, ProductionV0_14::Atom)?
-                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let argument = self.check_atom(function, atom, bindings, loop_depth)?;
-            if argument.expression.ty() != parameter.ty {
-                return self.issue_node(
-                    SemanticRuleV0_14::Type5,
-                    atom,
-                    SemanticIssueKind::TypeMismatch,
-                );
-            }
-            effects = effects.union(argument.effects);
-            arguments.push(argument.expression);
-        }
-        Ok(TypedExpression {
-            expression: CheckedExpression::UserCall {
-                function: target,
-                arguments,
-                result: signature.result,
-            },
-            effects,
-        })
     }
 
     fn check_operation(
@@ -272,7 +200,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         for (index, atom) in atoms.into_iter().enumerate() {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
-            if Some(argument.expression.ty()) != operation.argument_type(operand_type, index) {
+            if Some(argument.expression.ty()) != operation.argument_type(operand_type, index)
+                || argument.mode != CheckedMode::Own
+            {
                 return self.issue_node(
                     SemanticRuleV0_14::Type5,
                     atom,
@@ -330,8 +260,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .scalar_result_type(operand_type)
                 .ok_or(SemanticCompilerFailure::InvalidResolution)?
         };
-        Ok(TypedExpression {
-            expression: CheckedExpression::IntegerOperation {
+        Ok(TypedExpression::owned(
+            CheckedExpression::IntegerOperation {
                 operation,
                 operand_type,
                 arguments,
@@ -339,7 +269,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 trap,
             },
             effects,
-        })
+        ))
     }
 
     fn check_boolean_operation(
@@ -370,7 +300,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut effects = EffectSet::NONE;
         for atom in atoms {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
-            if argument.expression.ty() != CheckedType::Bool {
+            if argument.expression.ty() != CheckedType::Bool || argument.mode != CheckedMode::Own {
                 return self.issue_node(
                     SemanticRuleV0_14::Type5,
                     atom,
@@ -380,13 +310,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
-        Ok(TypedExpression {
-            expression: CheckedExpression::BooleanOperation {
+        Ok(TypedExpression::owned(
+            CheckedExpression::BooleanOperation {
                 operation,
                 arguments,
             },
             effects,
-        })
+        ))
     }
 
     fn check_enum_equality(
@@ -419,7 +349,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut effects = EffectSet::NONE;
         for atom in atoms {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
-            if argument.expression.ty() != operand_type {
+            if argument.expression.ty() != operand_type || argument.mode != CheckedMode::Own {
                 return self.issue_node(
                     SemanticRuleV0_14::Type5,
                     atom,
@@ -429,14 +359,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
-        Ok(TypedExpression {
-            expression: CheckedExpression::EnumEquality {
+        Ok(TypedExpression::owned(
+            CheckedExpression::EnumEquality {
                 equal,
                 operand_type,
                 arguments,
             },
             effects,
-        })
+        ))
     }
 
     pub(in crate::semantic::check) fn operation_type_argument(

@@ -41,8 +41,18 @@ pub enum SemanticRuleV0_14 {
     Set1,
     /// Copy-versus-affine use spelling.
     Own1,
+    /// Borrow liveness and region ordering.
+    Own4,
+    /// Live-loan access and exclusivity.
+    Own5,
+    /// Borrow storage duration.
+    Own10,
     /// Loop-local region and move restrictions.
     Own11,
+    /// Region substitution and call-boundary loan checks.
+    Own12,
+    /// Explicit dereference of a borrow holder.
+    Type7,
     /// Storage-class and affine replacement restrictions.
     Stor1,
     /// Operation-table row selection.
@@ -87,7 +97,12 @@ impl SemanticRuleV0_14 {
             Self::Type5 => "TYPE-5",
             Self::Set1 => "SET-1",
             Self::Own1 => "OWN-1",
+            Self::Own4 => "OWN-4",
+            Self::Own5 => "OWN-5",
+            Self::Own10 => "OWN-10",
             Self::Own11 => "OWN-11",
+            Self::Own12 => "OWN-12",
+            Self::Type7 => "TYPE-7",
             Self::Stor1 => "STOR-1",
             Self::Op1 => "OP-1",
             Self::Op5 => "OP-5",
@@ -154,6 +169,15 @@ pub enum SemanticIssueKind {
     /// A binding was used after ownership had already been consumed.
     UseAfterMove {
         /// Exact restructuring required by OWN-1.
+        mechanical_fix: &'static str,
+    },
+    /// A borrow was stored or passed into a region it cannot outlive.
+    InvalidBorrowLifetime,
+    /// A read, write, move, or new borrow conflicts with a live loan.
+    BorrowConflict,
+    /// A borrow holder was used without the required explicit dereference.
+    MissingDereference {
+        /// Exact mechanical repair selected by TYPE-7.
         mechanical_fix: &'static str,
     },
     /// A loop attempted to consume an affine binding declared outside it.
@@ -264,7 +288,7 @@ pub enum UnsupportedSemanticFeatureV0_14 {
     Generics,
     /// Nongeneric PRE-1 enum types and constructors outside Bool.
     PreludeNominalValues,
-    /// Borrow modes, region parameters, or local regions.
+    /// A borrow form outside the implemented lexical buffer-borrow family.
     RegionsAndBorrows,
     /// Composite types or values outside the implemented nominal-data family.
     CompositeValues,
@@ -282,7 +306,7 @@ pub enum UnsupportedSemanticFeatureV0_14 {
     DuplicateMatchArm,
     /// An OP-1 family outside the implemented scalar and nominal-tag families.
     OperationFamily,
-    /// A region read/write or arena-allocation effect not yet implemented.
+    /// An effect outside implemented region reads/writes and heap allocation.
     EffectFamily,
 }
 

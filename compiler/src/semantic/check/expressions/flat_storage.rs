@@ -1,3 +1,5 @@
+mod borrowed;
+
 use std::collections::HashMap;
 
 use crate::syntax::NodeId;
@@ -9,8 +11,10 @@ use crate::{
 
 use super::super::super::model::{
     CheckedArrayRoot, CheckedArraySetTarget, CheckedBufferRoot, CheckedBufferSetTarget,
-    CheckedExpression, CheckedFlatElement, CheckedSetTarget, CheckedType, IntegerType, TrapSite,
+    CheckedExpression, CheckedFlatElement, CheckedMode, CheckedSetTarget, CheckedType, IntegerType,
+    TrapSite,
 };
+use super::super::borrows::{AccessKind, BorrowKind, ResolvedPlace};
 use super::super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, TypedExpression,
 };
@@ -30,6 +34,10 @@ struct CheckedBufferPlace {
     root: CheckedBufferRoot,
     declaration: DeclarationId,
     element_type: CheckedType,
+    holder: Option<DeclarationId>,
+    resolved: ResolvedPlace,
+    origin_region: Option<DeclarationId>,
+    borrow_kind: Option<BorrowKind>,
 }
 
 #[derive(Clone)]
@@ -122,20 +130,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let length = self.parse_const_expression(length_node)?;
         let atoms = self.operation_atoms(node, 1)?;
         let value = self.check_atom(function, atoms[0], bindings, loop_depth)?;
-        if value.expression.ty() != element_type {
+        if value.expression.ty() != element_type || value.mode != CheckedMode::Own {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 atoms[0],
                 SemanticIssueKind::TypeMismatch,
             );
         }
-        Ok(TypedExpression {
-            expression: CheckedExpression::ArrayFill {
+        Ok(TypedExpression::owned(
+            CheckedExpression::ArrayFill {
                 ty: CheckedType::Array { element, length },
                 value: Box::new(value.expression),
             },
-            effects: value.effects,
-        })
+            value.effects,
+        ))
     }
 
     pub(in crate::semantic::check) fn check_buffer_new(
@@ -159,7 +167,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         let atoms = self.operation_atoms(node, 2)?;
         let length = self.check_atom(function, atoms[0], bindings, loop_depth)?;
-        if length.expression.ty() != CheckedType::Integer(IntegerType::U64) {
+        if length.expression.ty() != CheckedType::Integer(IntegerType::U64)
+            || length.mode != CheckedMode::Own
+        {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 atoms[0],
@@ -167,15 +177,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
         let value = self.check_atom(function, atoms[1], bindings, loop_depth)?;
-        if value.expression.ty() != element_type {
+        if value.expression.ty() != element_type || value.mode != CheckedMode::Own {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 atoms[1],
                 SemanticIssueKind::TypeMismatch,
             );
         }
-        Ok(TypedExpression {
-            expression: CheckedExpression::BufferFill {
+        Ok(TypedExpression::owned(
+            CheckedExpression::BufferFill {
                 element,
                 length: Box::new(length.expression),
                 value: Box::new(value.expression),
@@ -186,11 +196,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     node_path: self.tree.path(node)?.clone(),
                 },
             },
-            effects: length
+            length
                 .effects
                 .union(value.effects)
                 .union(EffectSet::ALLOCATES_HEAP_AND_TRAPS),
-        })
+        ))
     }
 
     pub(in crate::semantic::check) fn check_flat_length(
@@ -210,8 +220,21 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         }
-        Ok(TypedExpression {
-            expression: match place {
+        let mut effects = EffectSet::NONE;
+        if let CheckedIndexedPlace::Buffer(buffer) = &place {
+            self.check_loan_access(
+                bindings,
+                buffer.holder,
+                &buffer.resolved,
+                AccessKind::Read,
+                atoms[0],
+            )?;
+            if let Some(region) = buffer.origin_region {
+                effects.add_read(region);
+            }
+        }
+        Ok(TypedExpression::owned(
+            match place {
                 CheckedIndexedPlace::Array(array) => CheckedExpression::ArrayLength {
                     root: array.root,
                     length: array.length,
@@ -220,8 +243,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     CheckedExpression::BufferLength { root: buffer.root }
                 }
             },
-            effects: EffectSet::NONE,
-        })
+            effects,
+        ))
     }
 
     pub(super) fn check_index_use(
@@ -270,12 +293,23 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         }
+        if let CheckedIndexedPlace::Buffer(buffer) = &indexed {
+            self.check_loan_access(
+                bindings,
+                buffer.holder,
+                &buffer.resolved,
+                AccessKind::Read,
+                pbase,
+            )?;
+        }
         let offset = self
             .tree
             .first_child_with(pbase, ProductionV0_14::Atom)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let offset = self.check_atom(function, offset, bindings, options.loop_depth)?;
-        if offset.expression.ty() != CheckedType::Integer(IntegerType::U64) {
+        if offset.expression.ty() != CheckedType::Integer(IntegerType::U64)
+            || offset.mode != CheckedMode::Own
+        {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 pbase,
@@ -288,6 +322,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             function: function.name.clone(),
             node_path: self.tree.path(pbase)?.clone(),
         };
+        let mut effects = offset.effects.union(EffectSet::TRAPS);
         let expression = match indexed {
             CheckedIndexedPlace::Array(array) => CheckedExpression::ArrayIndex {
                 root: array.root,
@@ -296,16 +331,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 offset: Box::new(offset.expression),
                 trap,
             },
-            CheckedIndexedPlace::Buffer(buffer) => CheckedExpression::BufferIndex {
-                root: buffer.root,
-                offset: Box::new(offset.expression),
-                trap,
-            },
+            CheckedIndexedPlace::Buffer(buffer) => {
+                if let Some(region) = buffer.origin_region {
+                    effects.add_read(region);
+                }
+                CheckedExpression::BufferIndex {
+                    root: buffer.root,
+                    offset: Box::new(offset.expression),
+                    trap,
+                }
+            }
         };
-        Ok(TypedExpression {
-            expression,
-            effects: offset.effects.union(EffectSet::TRAPS),
-        })
+        Ok(TypedExpression::owned(expression, effects))
     }
 
     pub(in crate::semantic::check) fn check_indexed_set_target(
@@ -315,7 +352,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         pbase: NodeId,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
-    ) -> Result<(DeclarationId, CheckedSetTarget, bool), CheckStop> {
+    ) -> Result<(DeclarationId, CheckedSetTarget, EffectSet), CheckStop> {
         if !self
             .tree
             .children_with(node, ProductionV0_14::Psuffix)?
@@ -344,12 +381,33 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         }
+        if let CheckedIndexedPlace::Buffer(buffer) = &indexed {
+            if buffer.borrow_kind == Some(BorrowKind::Shared) {
+                return self.issue_node(
+                    SemanticRuleV0_14::Set1,
+                    node,
+                    SemanticIssueKind::InvalidSetTarget {
+                        root_class: "shared borrow".to_owned(),
+                        required_classes: "live own storage or a live usable &uniq referent",
+                    },
+                );
+            }
+            self.check_loan_access(
+                bindings,
+                buffer.holder,
+                &buffer.resolved,
+                AccessKind::Write,
+                node,
+            )?;
+        }
         let offset_node = self
             .tree
             .first_child_with(pbase, ProductionV0_14::Atom)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let offset = self.check_atom(function, offset_node, bindings, loop_depth)?;
-        if offset.expression.ty() != CheckedType::Integer(IntegerType::U64) {
+        if offset.expression.ty() != CheckedType::Integer(IntegerType::U64)
+            || offset.mode != CheckedMode::Own
+        {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 pbase,
@@ -362,6 +420,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             function: function.name.clone(),
             node_path: self.tree.path(pbase)?.clone(),
         };
+        let mut effects = offset.effects.union(EffectSet::TRAPS);
         let (declaration, target) = match indexed {
             CheckedIndexedPlace::Array(array) => {
                 let Some(declaration) = array.declaration else {
@@ -386,16 +445,21 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     })),
                 )
             }
-            CheckedIndexedPlace::Buffer(buffer) => (
-                buffer.declaration,
-                CheckedSetTarget::BufferIndex(Box::new(CheckedBufferSetTarget {
-                    root: buffer.root,
-                    offset: offset.expression,
-                    trap,
-                })),
-            ),
+            CheckedIndexedPlace::Buffer(buffer) => {
+                if let Some(region) = buffer.origin_region {
+                    effects.add_write(region);
+                }
+                (
+                    buffer.declaration,
+                    CheckedSetTarget::BufferIndex(Box::new(CheckedBufferSetTarget {
+                        root: buffer.root,
+                        offset: offset.expression,
+                        trap,
+                    })),
+                )
+            }
         };
-        Ok((declaration, target, true))
+        Ok((declaration, target, effects))
     }
 
     fn check_indexed_atom_place(
@@ -433,7 +497,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .first_child_with(node, ProductionV0_14::Pbase)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         if self.has_fixed(pbase, FixedTerminalV0_14::Deref)? {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, pbase);
+            return self.check_dereferenced_buffer_place(node, pbase, bindings);
         }
         if self.has_fixed(pbase, FixedTerminalV0_14::Index)? {
             return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, pbase);
@@ -447,8 +511,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         let (root, binding, declaration, fields, ty) = match class {
             DeclarationClass::Value => {
-                let local = *bindings
+                let local = bindings
                     .get(&declaration)
+                    .cloned()
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?;
                 if !local.live {
                     return self.issue_node(
@@ -460,6 +525,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     );
                 }
                 let (fields, ty) = self.resolve_struct_path(node, local.ty)?;
+                if local.mode != CheckedMode::Own {
+                    return self.issue_node(
+                        SemanticRuleV0_14::Type7,
+                        node,
+                        SemanticIssueKind::MissingDereference {
+                            mechanical_fix: "write `deref(holder)`",
+                        },
+                    );
+                }
                 (
                     CheckedArrayRoot::Binding(local.binding),
                     Some(local.binding),
@@ -509,6 +583,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 let (Some(binding), Some(declaration)) = (binding, declaration) else {
                     return Err(SemanticCompilerFailure::InvalidResolution.into());
                 };
+                let resolved_fields = fields.clone();
                 Ok(CheckedIndexedPlace::Buffer(CheckedBufferPlace {
                     root: CheckedBufferRoot {
                         binding,
@@ -517,6 +592,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     },
                     declaration,
                     element_type: element.ty(),
+                    holder: None,
+                    resolved: ResolvedPlace {
+                        root: declaration,
+                        fields: resolved_fields,
+                    },
+                    origin_region: None,
+                    borrow_kind: None,
                 }))
             }
             _ => self.issue_node(
