@@ -13,13 +13,13 @@ use crate::{
 use super::super::model::{
     BindingId, CheckedDrop, CheckedLoopId, CheckedStatement, CheckedType, TrapSite,
 };
-use super::{CheckStop, Checker, FunctionSignature, LocalBinding};
+use super::{CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding};
 use loops::{BreakState, LoopContext};
 
 pub(super) struct BlockResult {
     pub(super) statements: Vec<CheckedStatement>,
     pub(super) can_continue: bool,
-    pub(super) exhibits_traps: bool,
+    pub(super) effects: EffectSet,
     all_paths_deliver: bool,
     give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
     break_states: Vec<BreakState>,
@@ -28,7 +28,7 @@ pub(super) struct BlockResult {
 struct StatementResult {
     statement: CheckedStatement,
     can_continue: bool,
-    exhibits_traps: bool,
+    effects: EffectSet,
     all_paths_deliver: bool,
     direct_give: bool,
     give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
@@ -63,7 +63,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<BlockResult, CheckStop> {
         let mut statements = Vec::with_capacity(statement_wrappers.len());
         let mut can_continue = true;
-        let mut exhibits_traps = false;
+        let mut effects = EffectSet::NONE;
         let mut all_paths_deliver = false;
         let mut direct_give = false;
         let mut give_states = Vec::new();
@@ -87,7 +87,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             let checked = self.check_statement(function, statement, bindings, counters, scope)?;
             can_continue = checked.can_continue;
-            exhibits_traps |= checked.exhibits_traps;
+            effects = effects.union(checked.effects);
             all_paths_deliver = checked.all_paths_deliver;
             direct_give = checked.direct_give;
             give_states.extend(checked.give_states);
@@ -100,7 +100,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(BlockResult {
             statements,
             can_continue,
-            exhibits_traps,
+            effects,
             all_paths_deliver,
             give_states,
             break_states,
@@ -128,7 +128,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 } else {
                     CheckedStatement::DropExpression(value.expression)
                 };
-                Ok(Self::continuing_statement(statement, value.exhibits_traps))
+                Ok(Self::continuing_statement(statement, value.effects))
             }
             ProductionV0_14::ReturnStmt => {
                 let expression_node = self
@@ -158,7 +158,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         drops: self.live_affine_drops(bindings, &HashSet::new())?,
                     },
                     can_continue: false,
-                    exhibits_traps: value.exhibits_traps,
+                    effects: value.effects,
                     all_paths_deliver: true,
                     direct_give: false,
                     give_states: Vec::new(),
@@ -192,7 +192,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             node_path: self.tree.path(node)?.clone(),
                         },
                     },
-                    true,
+                    condition.effects.union(EffectSet::TRAPS),
                 ))
             }
             ProductionV0_14::MatchStmt => {
@@ -205,7 +205,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         continues: matched.can_continue,
                     },
                     can_continue: matched.can_continue,
-                    exhibits_traps: matched.exhibits_traps,
+                    effects: matched.effects,
                     all_paths_deliver: matched.all_paths_deliver,
                     direct_give: false,
                     give_states: matched.give_states,
@@ -244,7 +244,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         drops: self.live_affine_drops(bindings, &context.preserved)?,
                     },
                     can_continue: false,
-                    exhibits_traps: value.exhibits_traps,
+                    effects: value.effects,
                     all_paths_deliver: true,
                     direct_give: true,
                     give_states: vec![bindings.clone()],
@@ -297,7 +297,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         target,
                         value: value.expression,
                     },
-                    target_exhibits_traps || value.exhibits_traps,
+                    value.effects.union(if target_exhibits_traps {
+                        EffectSet::TRAPS
+                    } else {
+                        EffectSet::NONE
+                    }),
                 ))
             }
             ProductionV0_14::LoopStmt => self.check_loop(function, node, bindings, counters, scope),
@@ -375,7 +379,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     continues: matched.can_continue,
                 },
                 can_continue: matched.can_continue,
-                exhibits_traps: matched.exhibits_traps,
+                effects: matched.effects,
                 all_paths_deliver: !matched.can_continue,
                 direct_give: false,
                 give_states: Vec::new(),
@@ -437,7 +441,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 binding,
                 value: value.expression,
             },
-            value.exhibits_traps,
+            value.effects,
         ))
     }
 
@@ -467,11 +471,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(binding)
     }
 
-    fn continuing_statement(statement: CheckedStatement, exhibits_traps: bool) -> StatementResult {
+    fn continuing_statement(statement: CheckedStatement, effects: EffectSet) -> StatementResult {
         StatementResult {
             statement,
             can_continue: true,
-            exhibits_traps,
+            effects,
             all_paths_deliver: false,
             direct_give: false,
             give_states: Vec::new(),

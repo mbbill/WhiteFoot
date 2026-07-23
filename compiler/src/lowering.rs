@@ -6,7 +6,7 @@
 //! judgment.
 
 use crate::semantic::{
-    CheckedArrayElement, CheckedBooleanOperation, CheckedEnumType, CheckedIntegerOperation,
+    CheckedBooleanOperation, CheckedEnumType, CheckedFlatElement, CheckedIntegerOperation,
     CheckedProgram, CheckedType, TrapSite,
 };
 
@@ -73,14 +73,14 @@ impl IrConstantId {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum IrArrayElement {
+pub enum IrFlatElement {
     Unit,
     Bool,
     Integer { width: u8, signed: bool },
     TagOnlyNominal(IrNominalId),
 }
 
-impl IrArrayElement {
+impl IrFlatElement {
     pub const fn ty(self) -> IrType {
         match self {
             Self::Unit => IrType::Unit,
@@ -95,31 +95,23 @@ impl IrArrayElement {
 pub enum IrType {
     Unit,
     Bool,
-    Integer {
-        width: u8,
-        signed: bool,
-    },
+    Integer { width: u8, signed: bool },
     Nominal(IrNominalId),
-    Array {
-        element: IrArrayElement,
-        length: u64,
-    },
-    GuardedArrayIndex {
-        length: u64,
-    },
+    Array { element: IrFlatElement, length: u64 },
+    Buffer { element: IrFlatElement },
+    GuardedArrayIndex { length: u64 },
+    GuardedBufferIndex { element: IrFlatElement },
 }
 
-const fn lower_array_element(value: CheckedArrayElement) -> IrArrayElement {
+const fn lower_flat_element(value: CheckedFlatElement) -> IrFlatElement {
     match value {
-        CheckedArrayElement::Unit => IrArrayElement::Unit,
-        CheckedArrayElement::Bool => IrArrayElement::Bool,
-        CheckedArrayElement::Integer(integer) => IrArrayElement::Integer {
+        CheckedFlatElement::Unit => IrFlatElement::Unit,
+        CheckedFlatElement::Bool => IrFlatElement::Bool,
+        CheckedFlatElement::Integer(integer) => IrFlatElement::Integer {
             width: integer.width(),
             signed: integer.signed(),
         },
-        CheckedArrayElement::TagOnlyNominal(id) => {
-            IrArrayElement::TagOnlyNominal(IrNominalId(id.0))
-        }
+        CheckedFlatElement::TagOnlyNominal(id) => IrFlatElement::TagOnlyNominal(IrNominalId(id.0)),
     }
 }
 
@@ -133,8 +125,11 @@ fn lower_type(value: CheckedType) -> IrType {
         },
         CheckedType::Nominal(id) => IrType::Nominal(IrNominalId(id.0)),
         CheckedType::Array { element, length } => IrType::Array {
-            element: lower_array_element(element),
+            element: lower_flat_element(element),
             length,
+        },
+        CheckedType::Buffer { element } => IrType::Buffer {
+            element: lower_flat_element(element),
         },
     }
 }
@@ -434,6 +429,24 @@ pub enum IrOperation {
         index: IrValueId,
         value: IrValueId,
     },
+    BufferFill {
+        length: IrValueId,
+        value: IrValueId,
+        trap: IrTrapSite,
+    },
+    BufferLength {
+        buffer: IrValueId,
+    },
+    BufferIndex {
+        buffer: IrValueId,
+        offset: IrValueId,
+        trap: IrTrapSite,
+    },
+    BufferBoundsCheck {
+        buffer: IrValueId,
+        offset: IrValueId,
+        trap: IrTrapSite,
+    },
     ConstructStruct {
         nominal: IrNominalId,
         fields: Vec<IrValueId>,
@@ -473,6 +486,11 @@ pub enum IrInstruction {
     Check {
         condition: IrValueId,
         trap: IrTrapSite,
+    },
+    StoreBuffer {
+        buffer: IrValueId,
+        index: IrValueId,
+        value: IrValueId,
     },
     Drop(IrDrop),
 }
@@ -572,6 +590,12 @@ impl IrFunction {
 
     pub fn blocks(&self) -> &[IrBlock] {
         &self.blocks
+    }
+
+    pub(crate) fn contains_buffer(&self) -> bool {
+        self.values
+            .iter()
+            .any(|ty| matches!(ty, IrType::Buffer { .. }))
     }
 
     pub(crate) fn value_type(&self, value: IrValueId) -> Option<IrType> {

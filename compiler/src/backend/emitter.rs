@@ -5,6 +5,7 @@
 //! representations, and keeps a defensive abort edge for enum discriminants.
 
 mod array;
+mod buffer;
 mod integer;
 mod operations;
 
@@ -16,6 +17,7 @@ use crate::{
     IrFunction, IrGlobalValue, IrInstruction, IrIntegerOperation, IrNominal, IrNominalId,
     IrNominalKind, IrOperation, IrProgram, IrTerminator, IrTrapSite, IrType, IrValueId,
 };
+use buffer::{buffer_bounds_continue_label, buffer_fill_done_label, buffer_index_continue_label};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BackendFailure {
@@ -59,10 +61,10 @@ pub fn emit_llvm_v0_14(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, Ba
             .iter()
             .any(|block| matches!(block.terminator(), IrTerminator::Match { .. }))
     });
+    let has_buffers = program.functions().iter().any(IrFunction::contains_buffer);
 
-    let mut text = String::from(
-        "; Whitefoot v0.14 conservative nominal-data module\nsource_filename = \"whitefoot\"\n\n",
-    );
+    let mut text =
+        String::from("; Whitefoot v0.14 conservative module\nsource_filename = \"whitefoot\"\n\n");
     emit_nominal_declarations(&mut text, program)?;
     emit_global_constants(&mut text, program)?;
     for (index, bytes) in traps.iter().enumerate() {
@@ -78,8 +80,11 @@ pub fn emit_llvm_v0_14(program: &IrProgram<'_, '_, '_>) -> Result<LlvmModule, Ba
         text.push('\n');
         text.push_str("declare i64 @write(i32, ptr, i64)\n");
     }
-    if !traps.is_empty() || has_matches {
+    if !traps.is_empty() || has_matches || has_buffers {
         text.push_str("declare void @abort() noreturn\n");
+    }
+    if has_buffers {
+        text.push_str("declare ptr @malloc(i64)\ndeclare void @free(ptr)\n");
     }
     if !traps.is_empty() {
         text.push_str(
@@ -399,6 +404,11 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 )
                 .map_err(|_| BackendFailure::TextEmission)
             }
+            IrInstruction::StoreBuffer {
+                buffer,
+                index,
+                value,
+            } => self.emit_buffer_store(*buffer, *index, *value),
             IrInstruction::Drop(drop) => self.emit_drop(*drop),
         }
     }
@@ -456,6 +466,22 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
                 index,
                 value,
             } => self.emit_array_insertion(result, ty, *aggregate, *index, *value),
+            IrOperation::BufferFill {
+                length,
+                value,
+                trap,
+            } => self.emit_buffer_fill(result, ty, *length, *value, trap),
+            IrOperation::BufferLength { buffer } => self.emit_buffer_length(result, ty, *buffer),
+            IrOperation::BufferIndex {
+                buffer,
+                offset,
+                trap,
+            } => self.emit_buffer_index(result, ty, *buffer, *offset, trap),
+            IrOperation::BufferBoundsCheck {
+                buffer,
+                offset,
+                trap,
+            } => self.emit_buffer_bounds_check(result, ty, *buffer, *offset, trap),
             IrOperation::ConstructStruct { nominal, fields } => {
                 self.emit_struct(result, ty, *nominal, fields)
             }
@@ -622,6 +648,16 @@ impl<'program, 'state> FunctionEmitter<'program, 'state> {
         }
         match drop.ty() {
             IrType::Array { .. } => {}
+            IrType::Buffer { .. } => {
+                let pointer = self.next_temporary()?;
+                writeln!(
+                    self.output,
+                    "  %{pointer} = extractvalue {} {}, 0\n  call void @free(ptr %{pointer})",
+                    llvm_type(self.program, drop.ty())?,
+                    value_name(drop.value())
+                )
+                .map_err(|_| BackendFailure::TextEmission)?;
+            }
             IrType::Nominal(nominal) if !self.nominal(nominal)?.is_tag_only_enum() => {}
             _ => return Err(BackendFailure::InvalidIr),
         }
@@ -659,7 +695,9 @@ fn llvm_type(program: &IrProgram<'_, '_, '_>, ty: IrType) -> Result<String, Back
             "[{length} x {}]",
             llvm_type(program, element.ty())?
         )),
+        IrType::Buffer { .. } => Ok("{ ptr, i64 }".to_owned()),
         IrType::GuardedArrayIndex { .. } => Ok("i64".to_owned()),
+        IrType::GuardedBufferIndex { .. } => Ok("i64".to_owned()),
         IrType::Nominal(id) => {
             let nominal = program.nominal(id).ok_or(BackendFailure::InvalidIr)?;
             if nominal.is_tag_only_enum() {
@@ -769,6 +807,21 @@ fn block_exit_label(block_id: IrBlockId, block: &IrBlock) -> String {
                 operation: IrOperation::ArrayBoundsCheck { .. },
                 ..
             } => label = array_bounds_continue_label(*result),
+            IrInstruction::Define {
+                result,
+                operation: IrOperation::BufferFill { .. },
+                ..
+            } => label = buffer_fill_done_label(*result),
+            IrInstruction::Define {
+                result,
+                operation: IrOperation::BufferIndex { .. },
+                ..
+            } => label = buffer_index_continue_label(*result),
+            IrInstruction::Define {
+                result,
+                operation: IrOperation::BufferBoundsCheck { .. },
+                ..
+            } => label = buffer_bounds_continue_label(*result),
             _ => {}
         }
     }

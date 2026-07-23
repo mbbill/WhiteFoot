@@ -7,7 +7,7 @@ use crate::{
 };
 
 use super::super::super::model::{CheckedLoopId, CheckedStatement};
-use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding};
+use super::super::{CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding};
 use super::{ControlCounters, ControlScope, StatementResult};
 
 #[derive(Clone)]
@@ -91,7 +91,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             // FN-1 conservatively gives every loop a normal successor; the
             // executable path reaches it only through a checked break edge.
             can_continue: true,
-            exhibits_traps: checked.exhibits_traps,
+            effects: checked.effects,
             all_paths_deliver: false,
             direct_give: false,
             give_states: checked.give_states,
@@ -128,7 +128,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 drops: self.live_affine_drops(bindings, &target.preserved)?,
             },
             can_continue: false,
-            exhibits_traps: false,
+            effects: EffectSet::NONE,
             all_paths_deliver,
             direct_give: false,
             give_states: Vec::new(),

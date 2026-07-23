@@ -1,7 +1,7 @@
 use crate::{SemanticIssueKind, SemanticOutcome, SemanticRuleV0_14};
 
 use super::super::model::{
-    CheckedArrayElement, CheckedArrayRoot, CheckedExpression, CheckedSetTarget, CheckedStatement,
+    CheckedArrayRoot, CheckedExpression, CheckedFlatElement, CheckedSetTarget, CheckedStatement,
     CheckedType, CheckedValue, IntegerType,
 };
 use super::{assert_rule, with_semantics};
@@ -31,7 +31,7 @@ fn main() -> own unit traps {
         assert_eq!(
             checked.data.constants[1].ty,
             CheckedType::Array {
-                element: CheckedArrayElement::Integer(IntegerType::U8),
+                element: CheckedFlatElement::Integer(IntegerType::U8),
                 length: 4,
             }
         );
@@ -46,7 +46,7 @@ fn main() -> own unit traps {
             CheckedStatement::Let {
                 value: CheckedExpression::ArrayFill {
                     ty: CheckedType::Array {
-                        element: CheckedArrayElement::Integer(IntegerType::I32),
+                        element: CheckedFlatElement::Integer(IntegerType::I32),
                         length: 4,
                     },
                     ..
@@ -153,7 +153,7 @@ fn main() -> own unit pure {
         assert_eq!(
             fields[0].ty,
             CheckedType::Array {
-                element: CheckedArrayElement::TagOnlyNominal(checked.data.nominals[0].id),
+                element: CheckedFlatElement::TagOnlyNominal(checked.data.nominals[0].id),
                 length: 2,
             }
         );
@@ -189,7 +189,7 @@ fn indexed_set_retains_its_pre_rhs_guard_and_copy_target() {
         assert_eq!(
             target.array_type,
             CheckedType::Array {
-                element: CheckedArrayElement::Integer(IntegerType::U8),
+                element: CheckedFlatElement::Integer(IntegerType::U8),
                 length: 2,
             }
         );

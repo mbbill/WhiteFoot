@@ -87,7 +87,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     node_path: self.tree.path(propagate)?.clone(),
                 },
             },
-            value.exhibits_traps,
+            value.effects,
         ))
     }
 

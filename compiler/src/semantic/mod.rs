@@ -17,11 +17,11 @@ use crate::{BundleSourceExtent, NodePath, ResolvedSyntaxUnit, SyntaxCoordinate};
 pub use check::check_semantics_v0_14;
 
 pub(crate) use model::{
-    BindingId, CheckedArrayElement, CheckedArrayRoot, CheckedBooleanOperation, CheckedDrop,
-    CheckedEnumType, CheckedExpression, CheckedFunction, CheckedIntegerOperation, CheckedLoopId,
-    CheckedMatchArm, CheckedNominalKind, CheckedProgramData, CheckedProjectedDrop,
-    CheckedSetTarget, CheckedStatement, CheckedType, CheckedValue, NominalId, PropagationContext,
-    TrapSite,
+    BindingId, CheckedArrayRoot, CheckedBooleanOperation, CheckedBufferRoot,
+    CheckedBufferSetTarget, CheckedDrop, CheckedEnumType, CheckedExpression, CheckedFlatElement,
+    CheckedFunction, CheckedIntegerOperation, CheckedLoopId, CheckedMatchArm, CheckedNominalKind,
+    CheckedProgramData, CheckedProjectedDrop, CheckedSetTarget, CheckedStatement, CheckedType,
+    CheckedValue, NominalId, PropagationContext, TrapSite,
 };
 
 /// Numbered rule owning one post-resolution semantic rejection.
@@ -282,7 +282,7 @@ pub enum UnsupportedSemanticFeatureV0_14 {
     DuplicateMatchArm,
     /// An OP-1 family outside the implemented scalar and nominal-tag families.
     OperationFamily,
-    /// An effect other than `pure` or `traps`.
+    /// A region read/write or arena-allocation effect not yet implemented.
     EffectFamily,
 }
 

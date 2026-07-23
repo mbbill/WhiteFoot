@@ -43,14 +43,14 @@ impl IntegerType {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum CheckedArrayElement {
+pub(crate) enum CheckedFlatElement {
     Unit,
     Bool,
     Integer(IntegerType),
     TagOnlyNominal(NominalId),
 }
 
-impl CheckedArrayElement {
+impl CheckedFlatElement {
     pub(crate) const fn ty(self) -> CheckedType {
         match self {
             Self::Unit => CheckedType::Unit,
@@ -68,8 +68,11 @@ pub(crate) enum CheckedType {
     Integer(IntegerType),
     Nominal(NominalId),
     Array {
-        element: CheckedArrayElement,
+        element: CheckedFlatElement,
         length: u64,
+    },
+    Buffer {
+        element: CheckedFlatElement,
     },
 }
 
@@ -314,6 +317,12 @@ pub(crate) enum CheckedArrayRoot {
     Constant(CheckedConstantId),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedBufferRoot {
+    pub(crate) binding: BindingId,
+    pub(crate) element: CheckedFlatElement,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CheckedExpression {
     Constant(CheckedValue),
@@ -357,6 +366,20 @@ pub(crate) enum CheckedExpression {
         offset: Box<CheckedExpression>,
         trap: TrapSite,
     },
+    BufferFill {
+        element: CheckedFlatElement,
+        length: Box<CheckedExpression>,
+        value: Box<CheckedExpression>,
+        trap: TrapSite,
+    },
+    BufferLength {
+        root: CheckedBufferRoot,
+    },
+    BufferIndex {
+        root: CheckedBufferRoot,
+        offset: Box<CheckedExpression>,
+        trap: TrapSite,
+    },
     ConstructStruct {
         nominal: NominalId,
         fields: Vec<CheckedExpression>,
@@ -385,6 +408,9 @@ impl CheckedExpression {
             Self::ArrayFill { ty, .. } => *ty,
             Self::ArrayLength { .. } => CheckedType::Integer(IntegerType::U64),
             Self::ArrayIndex { element_type, .. } => *element_type,
+            Self::BufferFill { element, .. } => CheckedType::Buffer { element: *element },
+            Self::BufferLength { .. } => CheckedType::Integer(IntegerType::U64),
+            Self::BufferIndex { root, .. } => root.element.ty(),
             Self::ConstructStruct { nominal, .. } | Self::ConstructEnum { nominal, .. } => {
                 CheckedType::Nominal(*nominal)
             }
@@ -446,9 +472,17 @@ pub(crate) struct CheckedArraySetTarget {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CheckedBufferSetTarget {
+    pub(crate) root: CheckedBufferRoot,
+    pub(crate) offset: CheckedExpression,
+    pub(crate) trap: TrapSite,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CheckedSetTarget {
     Place(CheckedWritablePlace),
     ArrayIndex(Box<CheckedArraySetTarget>),
+    BufferIndex(Box<CheckedBufferSetTarget>),
 }
 
 impl CheckedSetTarget {
@@ -456,6 +490,7 @@ impl CheckedSetTarget {
         match self {
             Self::Place(target) => target.binding,
             Self::ArrayIndex(target) => target.binding,
+            Self::BufferIndex(target) => target.root.binding,
         }
     }
 
@@ -463,6 +498,7 @@ impl CheckedSetTarget {
         match self {
             Self::Place(target) => target.ty,
             Self::ArrayIndex(target) => target.element_type,
+            Self::BufferIndex(target) => target.root.element.ty(),
         }
     }
 }
@@ -547,6 +583,7 @@ pub(crate) struct CheckedFunction {
     pub(crate) parameters: Vec<CheckedParameter>,
     pub(crate) result: CheckedType,
     pub(crate) declared_traps: bool,
+    pub(crate) declared_allocates_heap: bool,
     pub(crate) body: Vec<CheckedStatement>,
 }
 

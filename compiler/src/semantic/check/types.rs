@@ -7,9 +7,9 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedArrayElement, CheckedConstant, CheckedConstantId, CheckedType, CheckedValue, IntegerType,
+    CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedType, CheckedValue, IntegerType,
 };
-use super::{CheckStop, Checker, ParameterSignature, PreludeType};
+use super::{CheckStop, Checker, EffectSet, ParameterSignature, PreludeType};
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
     pub(super) fn parse_parameters(
@@ -101,10 +101,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .first_child_with(node, ProductionV0_14::Const)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
             let element_type = self.parse_type(element_node)?;
-            let element = self.checked_array_element(element_type, element_node)?;
+            let element = self.checked_flat_element(element_type, element_node)?;
             return Ok(CheckedType::Array {
                 element,
                 length: self.parse_const_expression(length_node)?,
+            });
+        }
+        if self.has_fixed(node, FixedTerminalV0_14::Buffer)? {
+            let element_node = self
+                .tree
+                .first_child_with(node, ProductionV0_14::Type)?
+                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            let element_type = self.parse_type(element_node)?;
+            return Ok(CheckedType::Buffer {
+                element: self.checked_flat_element(element_type, element_node)?,
             });
         }
         if self
@@ -225,7 +235,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         };
-        Ok((self.parse_type(ok)?, self.parse_type(error)?))
+        let ok_type = self.parse_type(ok)?;
+        let error_type = self.parse_type(error)?;
+        if matches!(
+            (ok_type, error_type),
+            (CheckedType::Buffer { .. }, _) | (_, CheckedType::Buffer { .. })
+        ) {
+            return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node);
+        }
+        Ok((ok_type, error_type))
     }
 
     pub(super) fn integer_type(&self, node: NodeId) -> Result<Option<IntegerType>, CheckStop> {
@@ -247,13 +265,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(None)
     }
 
-    pub(super) fn parse_effects(&self, node: NodeId) -> Result<bool, CheckStop> {
+    pub(super) fn parse_effects(&self, node: NodeId) -> Result<EffectSet, CheckStop> {
         if self.has_fixed(node, FixedTerminalV0_14::Pure)? {
-            return Ok(false);
+            return Ok(EffectSet::NONE);
         }
         let effects = self.tree.children_with(node, ProductionV0_14::Effect)?;
         let mut previous = None;
-        let mut has_traps = false;
+        let mut declared = EffectSet::NONE;
         let mut unsupported = None;
         for effect in effects {
             let (ordinal, feature) = if self.has_fixed(effect, FixedTerminalV0_14::Reads)? {
@@ -261,9 +279,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             } else if self.has_fixed(effect, FixedTerminalV0_14::Writes)? {
                 (1, Some(UnsupportedSemanticFeatureV0_14::EffectFamily))
             } else if self.has_fixed(effect, FixedTerminalV0_14::Allocates)? {
-                (2, Some(UnsupportedSemanticFeatureV0_14::EffectFamily))
+                let heap = self.tree.direct_spelling(effect)? == b"allocates(heap)";
+                declared.allocates_heap |= heap;
+                (
+                    2,
+                    (!heap).then_some(UnsupportedSemanticFeatureV0_14::EffectFamily),
+                )
             } else if self.has_fixed(effect, FixedTerminalV0_14::Traps)? {
-                has_traps = true;
+                declared.traps = true;
                 (3, None)
             } else {
                 return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
@@ -283,7 +306,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if let Some(effect) = unsupported {
             return self.unsupported(UnsupportedSemanticFeatureV0_14::EffectFamily, effect);
         }
-        Ok(has_traps)
+        Ok(declared)
     }
 
     pub(super) fn parse_const_expression(&self, node: NodeId) -> Result<u64, CheckStop> {
@@ -447,10 +470,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Array { element, .. } => {
                 matches!(
                     element,
-                    CheckedArrayElement::Unit | CheckedArrayElement::Integer(_)
+                    CheckedFlatElement::Unit | CheckedFlatElement::Integer(_)
                 )
             }
             CheckedType::Bool | CheckedType::Nominal(_) => false,
+            CheckedType::Buffer { .. } => false,
         };
         if eligible {
             Ok(ty)
@@ -463,23 +487,25 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
     }
 
-    fn checked_array_element(
+    fn checked_flat_element(
         &self,
         ty: CheckedType,
         node: NodeId,
-    ) -> Result<CheckedArrayElement, CheckStop> {
+    ) -> Result<CheckedFlatElement, CheckStop> {
         match ty {
-            CheckedType::Unit => Ok(CheckedArrayElement::Unit),
-            CheckedType::Bool => Ok(CheckedArrayElement::Bool),
-            CheckedType::Integer(ty) => Ok(CheckedArrayElement::Integer(ty)),
+            CheckedType::Unit => Ok(CheckedFlatElement::Unit),
+            CheckedType::Bool => Ok(CheckedFlatElement::Bool),
+            CheckedType::Integer(ty) => Ok(CheckedFlatElement::Integer(ty)),
             CheckedType::Nominal(id) if self.nominal(id)?.is_copy() => {
-                Ok(CheckedArrayElement::TagOnlyNominal(id))
+                Ok(CheckedFlatElement::TagOnlyNominal(id))
             }
-            CheckedType::Nominal(_) | CheckedType::Array { .. } => self.issue_node(
-                SemanticRuleV0_14::Type2,
-                node,
-                SemanticIssueKind::TypeMismatch,
-            ),
+            CheckedType::Nominal(_) | CheckedType::Array { .. } | CheckedType::Buffer { .. } => {
+                self.issue_node(
+                    SemanticRuleV0_14::Type2,
+                    node,
+                    SemanticIssueKind::TypeMismatch,
+                )
+            }
         }
     }
 

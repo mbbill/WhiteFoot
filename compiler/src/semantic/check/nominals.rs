@@ -118,10 +118,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(field, ProductionV0_14::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            fields.push(CheckedField {
-                name,
-                ty: self.parse_type(ty)?,
-            });
+            let parsed = self.parse_type(ty)?;
+            if matches!(parsed, CheckedType::Buffer { .. }) {
+                return self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, ty);
+            }
+            fields.push(CheckedField { name, ty: parsed });
         }
         Ok(fields)
     }
@@ -173,9 +174,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .tree
                         .first_child_with(field, ProductionV0_14::Type)?
                         .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+                    let parsed = self.parse_type(ty)?;
+                    if matches!(parsed, CheckedType::Buffer { .. }) {
+                        return self
+                            .unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, ty);
+                    }
                     fields.push(CheckedField {
                         name: field_name,
-                        ty: self.parse_type(ty)?,
+                        ty: parsed,
                     });
                 }
             }
@@ -263,7 +269,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(match ty {
             CheckedType::Nominal(id) => self.nominal(id)?.is_copy(),
             CheckedType::Unit | CheckedType::Bool | CheckedType::Integer(_) => true,
-            CheckedType::Array { .. } => false,
+            CheckedType::Array { .. } | CheckedType::Buffer { .. } => false,
         })
     }
 

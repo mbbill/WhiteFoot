@@ -37,7 +37,7 @@ struct FunctionSignature {
     parameters: Vec<ParameterSignature>,
     result: CheckedType,
     effects_node: NodeId,
-    declared_traps: bool,
+    declared_effects: EffectSet,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,7 +56,35 @@ enum Constructor {
 
 struct TypedExpression {
     expression: CheckedExpression,
-    exhibits_traps: bool,
+    effects: EffectSet,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct EffectSet {
+    allocates_heap: bool,
+    traps: bool,
+}
+
+impl EffectSet {
+    const NONE: Self = Self {
+        allocates_heap: false,
+        traps: false,
+    };
+    const TRAPS: Self = Self {
+        allocates_heap: false,
+        traps: true,
+    };
+    const ALLOCATES_HEAP_AND_TRAPS: Self = Self {
+        allocates_heap: true,
+        traps: true,
+    };
+
+    const fn union(self, other: Self) -> Self {
+        Self {
+            allocates_heap: self.allocates_heap || other.allocates_heap,
+            traps: self.traps || other.traps,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -215,7 +243,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, ProductionV0_14::Effects)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let declared_traps = self.parse_effects(effects)?;
+            let declared_effects = self.parse_effects(effects)?;
             self.functions_by_declaration.insert(declaration_id, id);
             self.signatures.push(FunctionSignature {
                 id,
@@ -225,7 +253,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 parameters,
                 result,
                 effects_node: effects,
-                declared_traps,
+                declared_effects,
             });
         }
         Ok(())
@@ -411,7 +439,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 kind: SemanticIssueKind::FunctionFallthrough,
             }));
         }
-        if checked.exhibits_traps != signature.declared_traps {
+        if checked.effects != signature.declared_effects {
             return self.issue_node(
                 SemanticRuleV0_14::Eff2,
                 signature.effects_node,
@@ -424,7 +452,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             name: signature.name.clone(),
             parameters,
             result: signature.result,
-            declared_traps: signature.declared_traps,
+            declared_traps: signature.declared_effects.traps,
+            declared_allocates_heap: signature.declared_effects.allocates_heap,
             body: checked.statements,
         })
     }

@@ -8,10 +8,12 @@ use crate::{
 };
 
 use super::super::super::model::{
-    CheckedArrayElement, CheckedArrayRoot, CheckedArraySetTarget, CheckedExpression,
-    CheckedSetTarget, CheckedType, IntegerType, TrapSite,
+    CheckedArrayRoot, CheckedArraySetTarget, CheckedBufferRoot, CheckedBufferSetTarget,
+    CheckedExpression, CheckedFlatElement, CheckedSetTarget, CheckedType, IntegerType, TrapSite,
 };
-use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding, TypedExpression};
+use super::super::{
+    CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, TypedExpression,
+};
 use super::PlaceUseOptions;
 
 #[derive(Clone, Copy)]
@@ -21,6 +23,28 @@ pub(super) struct CheckedArrayPlace {
     array_type: CheckedType,
     element_type: CheckedType,
     length: u64,
+}
+
+#[derive(Clone, Copy)]
+struct CheckedBufferPlace {
+    root: CheckedBufferRoot,
+    declaration: DeclarationId,
+    element_type: CheckedType,
+}
+
+#[derive(Clone, Copy)]
+enum CheckedIndexedPlace {
+    Array(CheckedArrayPlace),
+    Buffer(CheckedBufferPlace),
+}
+
+impl CheckedIndexedPlace {
+    const fn element_type(self) -> CheckedType {
+        match self {
+            Self::Array(array) => array.element_type,
+            Self::Buffer(buffer) => buffer.element_type,
+        }
+    }
 }
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
@@ -75,8 +99,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             })?;
         let element_type = self.parse_type(element_node)?;
         let element = match element_type {
-            CheckedType::Unit => CheckedArrayElement::Unit,
-            CheckedType::Integer(ty) => CheckedArrayElement::Integer(ty),
+            CheckedType::Unit => CheckedFlatElement::Unit,
+            CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
             _ => {
                 return self.issue_node(
                     SemanticRuleV0_14::Op1,
@@ -110,11 +134,66 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 ty: CheckedType::Array { element, length },
                 value: Box::new(value.expression),
             },
-            exhibits_traps: value.exhibits_traps,
+            effects: value.effects,
         })
     }
 
-    pub(in crate::semantic::check) fn check_array_length(
+    pub(in crate::semantic::check) fn check_buffer_new(
+        &self,
+        node: NodeId,
+        function: &FunctionSignature,
+        bindings: &mut HashMap<DeclarationId, LocalBinding>,
+        loop_depth: usize,
+    ) -> Result<TypedExpression, CheckStop> {
+        let element_type = self.operation_type_argument(node, "buffer_new")?;
+        let element = match element_type {
+            CheckedType::Unit => CheckedFlatElement::Unit,
+            CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
+            _ => {
+                return self.issue_node(
+                    SemanticRuleV0_14::Op1,
+                    node,
+                    SemanticIssueKind::InvalidOperation,
+                );
+            }
+        };
+        let atoms = self.operation_atoms(node, 2)?;
+        let length = self.check_atom(function, atoms[0], bindings, loop_depth)?;
+        if length.expression.ty() != CheckedType::Integer(IntegerType::U64) {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                atoms[0],
+                SemanticIssueKind::TypeMismatch,
+            );
+        }
+        let value = self.check_atom(function, atoms[1], bindings, loop_depth)?;
+        if value.expression.ty() != element_type {
+            return self.issue_node(
+                SemanticRuleV0_14::Type5,
+                atoms[1],
+                SemanticIssueKind::TypeMismatch,
+            );
+        }
+        Ok(TypedExpression {
+            expression: CheckedExpression::BufferFill {
+                element,
+                length: Box::new(length.expression),
+                value: Box::new(value.expression),
+                trap: TrapSite {
+                    rule_id: "OP-9",
+                    message: String::new(),
+                    function: function.name.clone(),
+                    node_path: self.tree.path(node)?.clone(),
+                },
+            },
+            effects: length
+                .effects
+                .union(value.effects)
+                .union(EffectSet::ALLOCATES_HEAP_AND_TRAPS),
+        })
+    }
+
+    pub(in crate::semantic::check) fn check_flat_length(
         &self,
         node: NodeId,
         _function: &FunctionSignature,
@@ -123,8 +202,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     ) -> Result<TypedExpression, CheckStop> {
         let element_type = self.operation_type_argument(node, "len")?;
         let atoms = self.operation_atoms(node, 1)?;
-        let array = self.check_array_atom_place(atoms[0], bindings)?;
-        if array.element_type != element_type {
+        let place = self.check_indexed_atom_place(atoms[0], bindings)?;
+        if place.element_type() != element_type {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 atoms[0],
@@ -132,11 +211,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
         Ok(TypedExpression {
-            expression: CheckedExpression::ArrayLength {
-                root: array.root,
-                length: array.length,
+            expression: match place {
+                CheckedIndexedPlace::Array(array) => CheckedExpression::ArrayLength {
+                    root: array.root,
+                    length: array.length,
+                },
+                CheckedIndexedPlace::Buffer(buffer) => {
+                    CheckedExpression::BufferLength { root: buffer.root }
+                }
             },
-            exhibits_traps: false,
+            effects: EffectSet::NONE,
         })
     }
 
@@ -178,8 +262,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(pbase, ProductionV0_14::Place)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let array = self.check_array_place(base, bindings)?;
-        if selected != array.element_type {
+        let indexed = self.check_indexed_place(base, bindings)?;
+        if selected != indexed.element_type() {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 pbase,
@@ -198,24 +282,33 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         }
-        Ok(TypedExpression {
-            expression: CheckedExpression::ArrayIndex {
+        let trap = TrapSite {
+            rule_id: "OP-4",
+            message: String::new(),
+            function: function.name.clone(),
+            node_path: self.tree.path(pbase)?.clone(),
+        };
+        let expression = match indexed {
+            CheckedIndexedPlace::Array(array) => CheckedExpression::ArrayIndex {
                 root: array.root,
                 element_type: array.element_type,
                 length: array.length,
                 offset: Box::new(offset.expression),
-                trap: TrapSite {
-                    rule_id: "OP-4",
-                    message: String::new(),
-                    function: function.name.clone(),
-                    node_path: self.tree.path(pbase)?.clone(),
-                },
+                trap,
             },
-            exhibits_traps: true,
+            CheckedIndexedPlace::Buffer(buffer) => CheckedExpression::BufferIndex {
+                root: buffer.root,
+                offset: Box::new(offset.expression),
+                trap,
+            },
+        };
+        Ok(TypedExpression {
+            expression,
+            effects: offset.effects.union(EffectSet::TRAPS),
         })
     }
 
-    pub(in crate::semantic::check) fn check_array_set_target(
+    pub(in crate::semantic::check) fn check_indexed_set_target(
         &self,
         function: &FunctionSignature,
         node: NodeId,
@@ -243,18 +336,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(pbase, ProductionV0_14::Place)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let array = self.check_array_place(base, bindings)?;
-        let Some(declaration) = array.declaration else {
-            return self.issue_node(
-                SemanticRuleV0_14::Const2,
-                node,
-                SemanticIssueKind::ImmutableSetTarget,
-            );
-        };
-        let CheckedArrayRoot::Binding(binding) = array.root else {
-            return Err(SemanticCompilerFailure::InvalidResolution.into());
-        };
-        if selected != array.element_type {
+        let indexed = self.check_indexed_place(base, bindings)?;
+        if selected != indexed.element_type() {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 pbase,
@@ -273,30 +356,53 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         }
-        Ok((
-            declaration,
-            CheckedSetTarget::ArrayIndex(Box::new(CheckedArraySetTarget {
-                binding,
-                array_type: array.array_type,
-                element_type: array.element_type,
-                length: array.length,
-                offset: offset.expression,
-                trap: TrapSite {
-                    rule_id: "OP-4",
-                    message: String::new(),
-                    function: function.name.clone(),
-                    node_path: self.tree.path(pbase)?.clone(),
-                },
-            })),
-            true,
-        ))
+        let trap = TrapSite {
+            rule_id: "OP-4",
+            message: String::new(),
+            function: function.name.clone(),
+            node_path: self.tree.path(pbase)?.clone(),
+        };
+        let (declaration, target) = match indexed {
+            CheckedIndexedPlace::Array(array) => {
+                let Some(declaration) = array.declaration else {
+                    return self.issue_node(
+                        SemanticRuleV0_14::Const2,
+                        node,
+                        SemanticIssueKind::ImmutableSetTarget,
+                    );
+                };
+                let CheckedArrayRoot::Binding(binding) = array.root else {
+                    return Err(SemanticCompilerFailure::InvalidResolution.into());
+                };
+                (
+                    declaration,
+                    CheckedSetTarget::ArrayIndex(Box::new(CheckedArraySetTarget {
+                        binding,
+                        array_type: array.array_type,
+                        element_type: array.element_type,
+                        length: array.length,
+                        offset: offset.expression,
+                        trap,
+                    })),
+                )
+            }
+            CheckedIndexedPlace::Buffer(buffer) => (
+                buffer.declaration,
+                CheckedSetTarget::BufferIndex(Box::new(CheckedBufferSetTarget {
+                    root: buffer.root,
+                    offset: offset.expression,
+                    trap,
+                })),
+            ),
+        };
+        Ok((declaration, target, true))
     }
 
-    fn check_array_atom_place(
+    fn check_indexed_atom_place(
         &self,
         node: NodeId,
         bindings: &HashMap<DeclarationId, LocalBinding>,
-    ) -> Result<CheckedArrayPlace, CheckStop> {
+    ) -> Result<CheckedIndexedPlace, CheckStop> {
         if self.has_fixed(node, FixedTerminalV0_14::Move)? {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
@@ -314,14 +420,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 )
             })?;
-        self.check_array_place(place, bindings)
+        self.check_indexed_place(place, bindings)
     }
 
-    pub(super) fn check_array_place(
+    fn check_indexed_place(
         &self,
         node: NodeId,
         bindings: &HashMap<DeclarationId, LocalBinding>,
-    ) -> Result<CheckedArrayPlace, CheckStop> {
+    ) -> Result<CheckedIndexedPlace, CheckStop> {
         if !self
             .tree
             .children_with(node, ProductionV0_14::Psuffix)?
@@ -375,19 +481,34 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             _ => return Err(SemanticCompilerFailure::InvalidResolution.into()),
         };
-        let CheckedType::Array { element, length } = ty else {
-            return self.issue_node(
+        match ty {
+            CheckedType::Array { element, length } => {
+                Ok(CheckedIndexedPlace::Array(CheckedArrayPlace {
+                    root,
+                    declaration,
+                    array_type: ty,
+                    element_type: element.ty(),
+                    length,
+                }))
+            }
+            CheckedType::Buffer { element } => {
+                let Some(declaration) = declaration else {
+                    return Err(SemanticCompilerFailure::InvalidResolution.into());
+                };
+                let CheckedArrayRoot::Binding(binding) = root else {
+                    return Err(SemanticCompilerFailure::InvalidResolution.into());
+                };
+                Ok(CheckedIndexedPlace::Buffer(CheckedBufferPlace {
+                    root: CheckedBufferRoot { binding, element },
+                    declaration,
+                    element_type: element.ty(),
+                }))
+            }
+            _ => self.issue_node(
                 SemanticRuleV0_14::Type5,
                 node,
                 SemanticIssueKind::TypeMismatch,
-            );
-        };
-        Ok(CheckedArrayPlace {
-            root,
-            declaration,
-            array_type: ty,
-            element_type: element.ty(),
-            length,
-        })
+            ),
+        }
     }
 }

@@ -11,7 +11,7 @@ use super::super::super::model::{
     CheckedConstructor, CheckedEnumType, CheckedExpression, CheckedField, CheckedMatchArm,
     CheckedMatchBinder, CheckedNominalKind, CheckedType,
 };
-use super::super::{CheckStop, Checker, FunctionSignature, LocalBinding};
+use super::super::{CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding};
 use super::{BreakState, ControlCounters, ControlScope, GiveContext};
 
 #[derive(Clone)]
@@ -33,7 +33,7 @@ pub(super) struct MatchResult {
     pub(super) arms: Vec<CheckedMatchArm>,
     pub(super) can_continue: bool,
     pub(super) all_paths_deliver: bool,
-    pub(super) exhibits_traps: bool,
+    pub(super) effects: EffectSet,
     pub(super) give_states: Vec<HashMap<DeclarationId, LocalBinding>>,
     pub(super) break_states: Vec<BreakState>,
 }
@@ -103,7 +103,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let mut normal_states = Vec::new();
         let mut give_states = Vec::new();
         let mut break_states = Vec::new();
-        let mut exhibits_traps = scrutinee.exhibits_traps;
+        let mut effects = scrutinee.effects;
         let mut all_paths_deliver = true;
         for (arm_node, variant) in arm_nodes.into_iter().zip(&resolved_variants) {
             let mut arm_bindings = base_bindings.clone();
@@ -131,7 +131,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 normal_states.push(arm_bindings);
             }
             all_paths_deliver &= !checked.can_continue && checked.all_paths_deliver;
-            exhibits_traps |= checked.exhibits_traps;
+            effects = effects.union(checked.effects);
             give_states.extend(checked.give_states);
             break_states.extend(checked.break_states);
             arms.push(CheckedMatchArm {
@@ -163,7 +163,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 !normal_states.is_empty()
             },
             all_paths_deliver,
-            exhibits_traps,
+            effects,
             give_states: if value_match { Vec::new() } else { give_states },
             break_states,
         })

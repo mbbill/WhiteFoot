@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+mod buffers;
 mod loops;
 mod results;
 
@@ -680,6 +681,16 @@ impl<'program> IrBuilder<'program> {
                     },
                 )
             }
+            CheckedExpression::BufferFill {
+                element,
+                length,
+                value,
+                trap,
+            } => self.lower_buffer_fill(*element, length, value, trap),
+            CheckedExpression::BufferLength { root } => self.lower_buffer_length(*root),
+            CheckedExpression::BufferIndex { root, offset, trap } => {
+                self.lower_buffer_index(*root, offset, trap)
+            }
             CheckedExpression::ConstructStruct { nominal, fields } => {
                 let fields = fields
                     .iter()
@@ -829,6 +840,7 @@ impl<'program> IrBuilder<'program> {
                     },
                 )?
             }
+            CheckedSetTarget::BufferIndex(target) => self.lower_buffer_set(root, target, value)?,
         };
         if self.bindings.insert(binding, replacement) != Some(root) {
             return Err(LoweringFailure::InvalidCheckedProgram);

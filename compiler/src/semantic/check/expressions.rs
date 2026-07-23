@@ -1,5 +1,5 @@
-mod arrays;
 mod calls;
+mod flat_storage;
 
 use std::collections::HashMap;
 
@@ -15,7 +15,9 @@ use super::super::model::{
     CheckedExpression, CheckedNominalKind, CheckedProjectedDrop, CheckedSetTarget, CheckedType,
     CheckedValue, CheckedWritablePlace, IntegerType,
 };
-use super::{CheckStop, Checker, Constructor, FunctionSignature, LocalBinding, TypedExpression};
+use super::{
+    CheckStop, Checker, Constructor, EffectSet, FunctionSignature, LocalBinding, TypedExpression,
+};
 
 #[derive(Clone, Copy)]
 enum PlaceUseContext {
@@ -46,7 +48,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, pbase);
         }
         if self.has_fixed(pbase, FixedTerminalV0_14::Index)? {
-            return self.check_array_set_target(function, node, pbase, bindings, loop_depth);
+            return self.check_indexed_set_target(function, node, pbase, bindings, loop_depth);
         }
         if !self.tree.children(pbase)?.is_empty() {
             return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
@@ -168,6 +170,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Array { element, length } => {
                 format!("array<{}, {length}>", self.checked_type_name(element.ty())?)
             }
+            CheckedType::Buffer { element } => {
+                format!("buffer<{}>", self.checked_type_name(element.ty())?)
+            }
         })
     }
 
@@ -271,7 +276,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 expression: CheckedExpression::Constant(
                     self.parse_literal(node, self.tree.token_bytes(literal)?)?,
                 ),
-                exhibits_traps: false,
+                effects: EffectSet::NONE,
             });
         }
         if let Some(place) = self.tree.first_child_with(node, ProductionV0_14::Place)? {
@@ -434,7 +439,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             binding: local.binding,
                             ty,
                         },
-                        exhibits_traps: false,
+                        effects: EffectSet::NONE,
                     })
                 } else {
                     Ok(TypedExpression {
@@ -445,7 +450,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             consume_root: !copy,
                             residual_drops: if copy { Vec::new() } else { residual_drops },
                         },
-                        exhibits_traps: false,
+                        effects: EffectSet::NONE,
                     })
                 }
             }
@@ -473,7 +478,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .copied()
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?;
                 let constant = self.constant(constant)?;
-                if matches!(constant.ty, CheckedType::Array { .. }) {
+                if matches!(
+                    constant.ty,
+                    CheckedType::Array { .. } | CheckedType::Buffer { .. }
+                ) {
                     return self.issue_node(
                         SemanticRuleV0_14::Own1,
                         use_node,
@@ -484,7 +492,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
                 Ok(TypedExpression {
                     expression: CheckedExpression::Constant(constant.value.clone()),
-                    exhibits_traps: false,
+                    effects: EffectSet::NONE,
                 })
             }
             _ => Err(SemanticCompilerFailure::InvalidResolution.into()),
@@ -538,7 +546,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
             return Ok(TypedExpression {
                 expression: CheckedExpression::Constant(value),
-                exhibits_traps: false,
+                effects: EffectSet::NONE,
             });
         }
         let constructor = match usage.target() {
@@ -626,7 +634,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
         let mut fields = Vec::with_capacity(written_fields.len());
-        let mut exhibits_traps = false;
+        let mut effects = EffectSet::NONE;
         for (written, declared) in written_fields.into_iter().zip(&declared_fields) {
             if self
                 .deferred_use_at(written, DeferredUseRole::FieldInitializer)?
@@ -654,7 +662,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 );
             }
-            exhibits_traps |= value.exhibits_traps;
+            effects = effects.union(value.effects);
             fields.push(value.expression);
         }
         let expression = match constructor {
@@ -667,7 +675,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         Ok(TypedExpression {
             expression,
-            exhibits_traps,
+            effects,
         })
     }
 }

@@ -134,9 +134,9 @@ detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
 This is not a completeness claim. Generics and contracts, regions and borrows,
-floats, `Option`, allocations and heap containers, recursive nominal layouts,
-branch-dependent ownership joins, index- and borrow-backed SET-1 targets,
-and floating-point, conversion, allocation, storage-backed, and remaining
+floats, `Option`, boxes, arenas, slices, resource-bearing nominal payloads,
+recursive nominal layouts, branch-dependent ownership joins, projected and
+borrow-backed SET-1 targets, and floating-point, conversion, and remaining
 effect-table operations are explicit unsupported compiler capabilities rather
 than source-language rejections.
 Repeated exhaustive match arms also stop as
@@ -185,14 +185,35 @@ the right-hand side. A failing target never evaluates the right-hand side.
 A compiler-independent two-loop program fills and folds a mutable array through
 that path.
 
-The next implementation slice is the complete primitive `buffer<T>` value
-family: `buffer_new`, `len`, checked reads and indexed SET-1, explicit
-`allocates(heap), traps` effects, OP-9 allocation-size overflow, and one
-compiler-derived free on every normal owner exit. This is the smallest
-runtime-sized storage experiment and directly extends the completed fixed-array
-block path without introducing regions, slices, or borrow provenance.
-Projected array roots, slices, and borrow-backed targets remain explicit later
-capabilities.
+Direct own-root runtime-length non-floating primitive buffers now run through
+the normal compiler path. `buffer_new` computes `n * sizeof(T)` with retained u64 overflow
+before allocation, aborts on allocator failure as a TCB edge, fills every
+element, and produces the specified `{data pointer, u64 length}` owner.
+`len`, OP-4 reads, and target-before-RHS indexed SET-1 use the runtime length;
+buffers cross function boundaries as affine values; and every normal checked
+owner exit emits one `free`. The effect checker now tracks `allocates(heap)`
+and `traps` independently and checks both directions. A compiler-independent
+two-loop program allocates, fills, folds, and releases a buffer.
+
+The next implementation slice is resource-bearing nominal ownership, starting
+with a production-shaped struct-of-buffers owner. It must derive exact
+reverse-order nested buffer cleanup before accepting buffer fields, carry
+projected buffer roots through `len`, OP-4, and SET-1 without re-evaluating
+their paths, and execute a small two-column structure-of-arrays checksum.
+Payload-enum cleanup is included only if the same experiment needs it; slices,
+regions, and borrow-backed targets remain later capabilities. This order is
+selected because accepting buffer fields without executable nested cleanup
+would leak, while a struct-of-buffers is the smallest real data-layout
+experiment that needs the capability.
+
+Four inherited runnable conformance sources need protected-evidence correction
+before the compiler adapter can promote the buffer family. `pending-op9-buffer-new`
+and `op4-trap-index-oob` allocate but omit `allocates(heap)` from their function
+rows. `type2-pos-buffer-tagonly` and `own1-pos-match-projected-copy` construct
+`buffer<Bool>` even though TYPE-2 admits that type while the OP-1
+`buffer_new` row remains primitive-only. The compiler follows the active
+specification and none of those protected sources, verdicts, or statuses has
+been changed; exact owner approval under `WORKFLOW.md` is required first.
 The specification's array frame-limit value is still not defined; the compiler
 does not invent one, and full all-N completeness remains blocked on that owner
 rule rather than on ordinary representable arrays.
@@ -481,15 +502,16 @@ cases cover cross-function aggregate values, mixed-width and multi-field enum
 payloads, every Boolean operation, nested fields, ownership failures, wrong
 variants, missing arms, and invalid field order.
 
-The implemented SET-1 subset covers direct live own-mode copy locals and nested
-copy fields. One checked writable-place record carries the root and path across
-RHS checking; lowering uses the existing binding map and one struct-insertion
-operation rather than a second mutation pipeline. Constants cite CONST-2,
-affine final places cite STOR-1 with the required restructuring, type mismatch
-cites TYPE-5 at the RHS, and an RHS that moves the root cites OWN-1 at the later
-commit. Dereference, index, slice, buffer, box, arena, and loan-aware targets
-remain unsupported because their underlying type/storage/borrow families are
-not implemented; they are not treated as invalid source.
+The implemented SET-1 subset covers direct live own-mode copy locals, nested
+copy fields, and direct local fixed-array or buffer indices. One checked target
+record carries the root, evaluated offset, retained OP-4 check, and copy type
+across RHS checking; lowering forms the guarded index before the RHS and
+commits one store afterward. Constants cite CONST-2, affine final places cite
+STOR-1 with the required restructuring, type mismatch cites TYPE-5 at the RHS,
+and an RHS that moves the root cites OWN-1 at the later commit. Dereference,
+projected index, slice, box, arena, and loan-aware targets remain unsupported
+because their cleanup, storage, or borrow families are not implemented; they
+are not treated as invalid source.
 
 This is not the complete ERR-2 toolchain contract: a whole-unit
 variant-addition query that enumerates every affected match site is still
@@ -515,10 +537,13 @@ division/remainder now produces `Result<T, DivError>` through this path and
 guards both LLVM hazards before the partial instruction. All three `iabs`
 modes use one defined-edge unary path. All three `ineg` modes reuse the
 ordinary wrapping and overflow-detecting subtraction path.
-Direct fixed-array index reads, immutable const-table reads, and direct-root
-indexed fixed-array SET-1 are implemented. Primitive runtime-length buffers are
-next; slices, projected index roots, and loan-aware SET-1 targets follow when
-their storage and borrow families become the experiment being unlocked.
+Direct fixed-array index reads, immutable const-table reads, direct-root
+indexed fixed-array SET-1, and direct-root non-floating primitive
+runtime-length buffers are
+implemented. Resource-bearing nominal cleanup and projected buffer roots are
+next so a struct-of-buffers program can use the storage safely. Slices and
+loan-aware SET-1 targets follow when their storage and borrow families become
+the experiment being unlocked.
 
 ## Phase 9: dogfood and language iteration
 

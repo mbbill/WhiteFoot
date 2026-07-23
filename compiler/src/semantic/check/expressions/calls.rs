@@ -11,7 +11,7 @@ use super::super::super::model::{
     CheckedType, TrapSite,
 };
 use super::super::{
-    CheckStop, Checker, FunctionSignature, LocalBinding, PreludeType, TypedExpression,
+    CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, PreludeType, TypedExpression,
 };
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
@@ -91,7 +91,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         }
         let mut arguments = Vec::with_capacity(fields.len());
-        let mut exhibits_traps = signature.declared_traps;
+        let mut effects = signature.declared_effects;
         for (field, parameter) in fields.into_iter().zip(&signature.parameters) {
             if self.identifier(field)? != parameter.name {
                 return self.issue_node(
@@ -112,7 +112,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 );
             }
-            exhibits_traps |= argument.exhibits_traps;
+            effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
         Ok(TypedExpression {
@@ -121,7 +121,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 arguments,
                 result: signature.result,
             },
-            exhibits_traps,
+            effects,
         })
     }
 
@@ -150,8 +150,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if spelling == "array_new" {
             return self.check_array_new(node, function, bindings, loop_depth);
         }
+        if spelling == "buffer_new" {
+            return self.check_buffer_new(node, function, bindings, loop_depth);
+        }
         if spelling == "len" {
-            return self.check_array_length(node, function, bindings, loop_depth);
+            return self.check_flat_length(node, function, bindings, loop_depth);
         }
         let operation = match spelling {
             "iadd.wrap" => CheckedIntegerOperation::AddWrap,
@@ -262,7 +265,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let operand_count = operation.operand_count();
         let atoms = self.operation_atoms(node, operand_count)?;
         let mut arguments = Vec::with_capacity(operand_count);
-        let mut exhibits_traps = operation.traps();
+        let mut effects = if operation.traps() {
+            EffectSet::TRAPS
+        } else {
+            EffectSet::NONE
+        };
         for (index, atom) in atoms.into_iter().enumerate() {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if Some(argument.expression.ty()) != operation.argument_type(operand_type, index) {
@@ -272,7 +279,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 );
             }
-            exhibits_traps |= argument.exhibits_traps;
+            effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
         let trap = if operation.traps() {
@@ -331,7 +338,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 result,
                 trap,
             },
-            exhibits_traps,
+            effects,
         })
     }
 
@@ -360,7 +367,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let expected = usize::from(operation != CheckedBooleanOperation::Not) + 1;
         let atoms = self.operation_atoms(node, expected)?;
         let mut arguments = Vec::with_capacity(atoms.len());
-        let mut exhibits_traps = false;
+        let mut effects = EffectSet::NONE;
         for atom in atoms {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if argument.expression.ty() != CheckedType::Bool {
@@ -370,7 +377,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 );
             }
-            exhibits_traps |= argument.exhibits_traps;
+            effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
         Ok(TypedExpression {
@@ -378,7 +385,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 operation,
                 arguments,
             },
-            exhibits_traps,
+            effects,
         })
     }
 
@@ -409,7 +416,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         let atoms = self.operation_atoms(node, 2)?;
         let mut arguments = Vec::with_capacity(2);
-        let mut exhibits_traps = false;
+        let mut effects = EffectSet::NONE;
         for atom in atoms {
             let argument = self.check_atom(function, atom, bindings, loop_depth)?;
             if argument.expression.ty() != operand_type {
@@ -419,7 +426,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::TypeMismatch,
                 );
             }
-            exhibits_traps |= argument.exhibits_traps;
+            effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
         Ok(TypedExpression {
@@ -428,7 +435,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 operand_type,
                 arguments,
             },
-            exhibits_traps,
+            effects,
         })
     }
 
