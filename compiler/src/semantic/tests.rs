@@ -4,6 +4,7 @@ mod arrays;
 mod borrows;
 mod buffers;
 mod checked_division;
+mod generics;
 mod integer_absolute;
 mod integer_conversion;
 mod integer_extended;

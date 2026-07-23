@@ -261,8 +261,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     pub(super) fn is_copy_type(&self, ty: CheckedType) -> Result<bool, CheckStop> {
         Ok(match ty {
             CheckedType::Nominal(id) => self.nominal(id)?.is_copy(),
-            CheckedType::Unit | CheckedType::Bool | CheckedType::Integer(_) => true,
-            CheckedType::Array { .. } | CheckedType::Buffer { .. } => false,
+            CheckedType::Unit
+            | CheckedType::Bool
+            | CheckedType::Integer(_)
+            | CheckedType::GenericInt(_) => true,
+            CheckedType::Generic(_) | CheckedType::Array { .. } | CheckedType::Buffer { .. } => {
+                false
+            }
         })
     }
 

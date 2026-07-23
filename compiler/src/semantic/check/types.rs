@@ -7,15 +7,17 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedMode, CheckedNominalKind,
-    CheckedType, CheckedValue, IntegerType,
+    CheckedConst, CheckedConstant, CheckedConstantId, CheckedFlatElement, CheckedMode,
+    CheckedNominalKind, CheckedType, CheckedValue, IntegerType,
 };
+use super::generics::GenericSubstitution;
 use super::{CheckStop, Checker, EffectSet, ParameterSignature, PreludeType};
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
-    pub(super) fn parse_parameters(
+    pub(super) fn parse_parameters_with(
         &self,
         function: NodeId,
+        substitution: &GenericSubstitution,
     ) -> Result<Vec<ParameterSignature>, CheckStop> {
         let Some(list) = self
             .tree
@@ -35,7 +37,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, ProductionV0_14::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let ty = self.parse_type(ty_node)?;
+            let ty = self.parse_type_with(ty_node, substitution)?;
             if mode != CheckedMode::Own {
                 let supported = matches!(ty, CheckedType::Buffer { .. })
                     || matches!(
@@ -61,9 +63,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(parameters)
     }
 
-    pub(super) fn parse_rtype(
+    pub(super) fn parse_rtype_with(
         &self,
         node: NodeId,
+        substitution: &GenericSubstitution,
     ) -> Result<(CheckedMode, CheckedType), CheckStop> {
         let mode = self
             .tree
@@ -74,10 +77,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::Type)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        Ok((mode, self.parse_type(ty)?))
+        Ok((mode, self.parse_type_with(ty, substitution)?))
     }
 
     pub(super) fn parse_type(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
+        self.parse_type_with(node, &GenericSubstitution::default())
+    }
+
+    pub(super) fn parse_type_with(
+        &self,
+        node: NodeId,
+        substitution: &GenericSubstitution,
+    ) -> Result<CheckedType, CheckStop> {
         let targs = self.tree.first_child_with(node, ProductionV0_14::Targs)?;
         if let Some(ty) = self.integer_type(node)? {
             if targs.is_some() {
@@ -113,11 +124,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, ProductionV0_14::Const)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let element_type = self.parse_type(element_node)?;
+            let element_type = self.parse_type_with(element_node, substitution)?;
             let element = self.checked_flat_element(element_type, element_node)?;
             return Ok(CheckedType::Array {
                 element,
-                length: self.parse_const_expression(length_node)?,
+                length: self.parse_const_expression_with(length_node, substitution)?,
             });
         }
         if self.has_fixed(node, FixedTerminalV0_14::Buffer)? {
@@ -125,7 +136,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, ProductionV0_14::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let element_type = self.parse_type(element_node)?;
+            let element_type = self.parse_type_with(element_node, substitution)?;
             return Ok(CheckedType::Buffer {
                 element: self.checked_flat_element(element_type, element_node)?,
             });
@@ -148,7 +159,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     return Ok(CheckedType::Bool);
                 }
                 ResolvedTarget::Prelude(id) if id == PreludeDeclarationId::new(3) => {
-                    let value = self.option_type_argument(node)?;
+                    let value = self.option_type_argument_with(node, substitution)?;
                     return self
                         .prelude_nominals
                         .get(&PreludeType::Option(value))
@@ -157,7 +168,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .ok_or(SemanticCompilerFailure::InvalidResolution.into());
                 }
                 ResolvedTarget::Prelude(id) if id == PreludeDeclarationId::new(8) => {
-                    let (ok, error) = self.result_type_arguments(node)?;
+                    let (ok, error) = self.result_type_arguments_with(node, substitution)?;
                     return self
                         .prelude_nominals
                         .get(&PreludeType::Result(ok, error))
@@ -203,6 +214,22 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             }
                         });
                 }
+                ResolvedTarget::Source {
+                    declaration,
+                    class: DeclarationClass::GenericType,
+                } => {
+                    if targs.is_some() {
+                        return self.issue_node(
+                            SemanticRuleV0_14::Type5,
+                            node,
+                            SemanticIssueKind::TypeMismatch,
+                        );
+                    }
+                    let Some(ty) = substitution.type_argument(declaration) else {
+                        return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, node);
+                    };
+                    return Ok(ty);
+                }
                 _ => {}
             }
         }
@@ -227,6 +254,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     pub(super) fn result_type_arguments(
         &self,
         node: NodeId,
+    ) -> Result<(CheckedType, CheckedType), CheckStop> {
+        self.result_type_arguments_with(node, &GenericSubstitution::default())
+    }
+
+    pub(super) fn result_type_arguments_with(
+        &self,
+        node: NodeId,
+        substitution: &GenericSubstitution,
     ) -> Result<(CheckedType, CheckedType), CheckStop> {
         let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? else {
             return self.issue_node(
@@ -257,10 +292,21 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         };
-        Ok((self.parse_type(ok)?, self.parse_type(error)?))
+        Ok((
+            self.parse_type_with(ok, substitution)?,
+            self.parse_type_with(error, substitution)?,
+        ))
     }
 
     pub(super) fn option_type_argument(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
+        self.option_type_argument_with(node, &GenericSubstitution::default())
+    }
+
+    pub(super) fn option_type_argument_with(
+        &self,
+        node: NodeId,
+        substitution: &GenericSubstitution,
+    ) -> Result<CheckedType, CheckStop> {
         let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? else {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
@@ -283,7 +329,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 SemanticIssueKind::TypeMismatch,
             );
         };
-        self.parse_type(value)
+        self.parse_type_with(value, substitution)
     }
 
     pub(super) fn integer_type(&self, node: NodeId) -> Result<Option<IntegerType>, CheckStop> {
@@ -370,7 +416,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .collect()
     }
 
-    pub(super) fn parse_const_expression(&self, node: NodeId) -> Result<u64, CheckStop> {
+    pub(super) fn parse_const_expression_with(
+        &self,
+        node: NodeId,
+        substitution: &GenericSubstitution,
+    ) -> Result<CheckedConst, CheckStop> {
         if let Some(digits) = self
             .tree
             .direct_token_with(node, TerminalPredicateV0_14::Digits)?
@@ -378,6 +428,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return std::str::from_utf8(self.tree.token_bytes(digits)?)
                 .ok()
                 .and_then(|digits| digits.parse::<u64>().ok())
+                .map(CheckedConst::Value)
                 .ok_or_else(|| {
                     self.issue_value(
                         SemanticRuleV0_14::Const1,
@@ -392,17 +443,29 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .is_some()
         {
             let usage = self.use_at(node, LexicalUseRole::Const)?;
-            let ResolvedTarget::Source {
-                declaration,
-                class: DeclarationClass::NamedConst,
-            } = usage.target()
-            else {
-                return self.issue_node(
-                    SemanticRuleV0_14::Const1,
-                    node,
-                    SemanticIssueKind::InvalidConstValue,
-                );
+            let (declaration, named) = match usage.target() {
+                ResolvedTarget::Source {
+                    declaration,
+                    class: DeclarationClass::NamedConst,
+                } => (declaration, true),
+                ResolvedTarget::Source {
+                    declaration,
+                    class: DeclarationClass::ConstGeneric,
+                } => (declaration, false),
+                _ => {
+                    return self.issue_node(
+                        SemanticRuleV0_14::Const1,
+                        node,
+                        SemanticIssueKind::InvalidConstValue,
+                    );
+                }
             };
+            if !named {
+                let Some(value) = substitution.const_argument(declaration) else {
+                    return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, node);
+                };
+                return Ok(value);
+            }
             let constant = self.constant(
                 *self
                     .constants
@@ -423,7 +486,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::InvalidConstValue,
                 );
             }
-            return Ok(*bits);
+            return Ok(CheckedConst::Value(*bits));
         }
         Err(SemanticCompilerFailure::InvalidCanonicalTree.into())
     }
@@ -485,6 +548,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return Err(SemanticCompilerFailure::InvalidCanonicalTree.into());
         }
         let entries = self.tree.children_with(node, ProductionV0_14::Cvalue)?;
+        let Some(length) = length.value() else {
+            return Err(SemanticCompilerFailure::InvalidResolution.into());
+        };
         if u64::try_from(entries.len()).ok() != Some(length) {
             return self.issue_node(
                 SemanticRuleV0_14::Const2,
@@ -534,7 +600,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     CheckedFlatElement::Unit | CheckedFlatElement::Integer(_)
                 )
             }
-            CheckedType::Bool | CheckedType::Nominal(_) => false,
+            CheckedType::Bool
+            | CheckedType::Generic(_)
+            | CheckedType::GenericInt(_)
+            | CheckedType::Nominal(_) => false,
             CheckedType::Buffer { .. } => false,
         };
         if eligible {
@@ -557,16 +626,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedType::Unit => Ok(CheckedFlatElement::Unit),
             CheckedType::Bool => Ok(CheckedFlatElement::Bool),
             CheckedType::Integer(ty) => Ok(CheckedFlatElement::Integer(ty)),
+            CheckedType::GenericInt(declaration) => Ok(CheckedFlatElement::GenericInt(declaration)),
             CheckedType::Nominal(id) if self.nominal(id)?.is_copy() => {
                 Ok(CheckedFlatElement::TagOnlyNominal(id))
             }
-            CheckedType::Nominal(_) | CheckedType::Array { .. } | CheckedType::Buffer { .. } => {
-                self.issue_node(
-                    SemanticRuleV0_14::Type2,
-                    node,
-                    SemanticIssueKind::TypeMismatch,
-                )
-            }
+            CheckedType::Generic(_)
+            | CheckedType::Nominal(_)
+            | CheckedType::Array { .. }
+            | CheckedType::Buffer { .. } => self.issue_node(
+                SemanticRuleV0_14::Type2,
+                node,
+                SemanticIssueKind::TypeMismatch,
+            ),
         }
     }
 

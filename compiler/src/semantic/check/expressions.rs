@@ -12,8 +12,8 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedExpression, CheckedMode, CheckedNominalKind, CheckedProjectedDrop, CheckedSetTarget,
-    CheckedType, CheckedValue, CheckedWritablePlace, IntegerType,
+    CheckedConst, CheckedExpression, CheckedMode, CheckedNominalKind, CheckedProjectedDrop,
+    CheckedSetTarget, CheckedType, CheckedValue, CheckedWritablePlace, IntegerType,
 };
 use super::borrows::{AccessKind, ResolvedPlace};
 use super::{
@@ -156,8 +156,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 IntegerType::U64 => "u64",
             }
             .to_owned(),
+            CheckedType::Generic(declaration) => {
+                format!("<type-parameter:{}>", declaration.index())
+            }
+            CheckedType::GenericInt(declaration) => {
+                format!("<Int-parameter:{}>", declaration.index())
+            }
             CheckedType::Nominal(id) => self.nominal(id)?.name.clone(),
             CheckedType::Array { element, length } => {
+                let length = match length {
+                    CheckedConst::Value(value) => value.to_string(),
+                    CheckedConst::Parameter(declaration) => {
+                        format!("<const-parameter:{}>", declaration.index())
+                    }
+                };
                 format!("array<{}, {length}>", self.checked_type_name(element.ty())?)
             }
             CheckedType::Buffer { element } => {

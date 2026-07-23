@@ -116,6 +116,27 @@ impl<'unit, 'classified, 'lexed, 'source> TreeView<'unit, 'classified, 'lexed, '
         Ok(None)
     }
 
+    pub(super) fn descendants_with(
+        &self,
+        node: NodeId,
+        production: ProductionV0_14,
+    ) -> Result<Vec<NodeId>, SemanticCompilerFailure> {
+        let mut matches = Vec::new();
+        let mut pending = self
+            .children(node)?
+            .iter()
+            .rev()
+            .copied()
+            .collect::<Vec<_>>();
+        while let Some(candidate) = pending.pop() {
+            if self.production(candidate)? == production {
+                matches.push(candidate);
+            }
+            pending.extend(self.children(candidate)?.iter().rev().copied());
+        }
+        Ok(matches)
+    }
+
     pub(super) fn path(&self, node: NodeId) -> Result<&NodePath, SemanticCompilerFailure> {
         self.paths
             .get(node.index())

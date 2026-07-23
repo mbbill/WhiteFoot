@@ -17,7 +17,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 continue;
             }
             match current {
-                CheckedType::Unit | CheckedType::Bool | CheckedType::Integer(_) => {}
+                CheckedType::Unit
+                | CheckedType::Bool
+                | CheckedType::Integer(_)
+                | CheckedType::GenericInt(_)
+                | CheckedType::Generic(_) => {}
                 CheckedType::Array { .. } | CheckedType::Buffer { .. } => {
                     drops.push((path, current));
                 }
@@ -68,13 +72,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 CheckedType::Unit
                 | CheckedType::Bool
                 | CheckedType::Integer(_)
+                | CheckedType::GenericInt(_)
+                | CheckedType::Generic(_)
                 | CheckedType::Array { .. }
                 | CheckedType::Buffer { .. }
                     if selected =>
                 {
                     return Err(SemanticCompilerFailure::InvalidResolution.into());
                 }
-                CheckedType::Unit | CheckedType::Bool | CheckedType::Integer(_) => {}
+                CheckedType::Unit
+                | CheckedType::Bool
+                | CheckedType::Integer(_)
+                | CheckedType::GenericInt(_)
+                | CheckedType::Generic(_) => {}
                 CheckedType::Array { .. } | CheckedType::Buffer { .. } => {
                     drops.push((path, current));
                 }

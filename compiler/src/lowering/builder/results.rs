@@ -54,7 +54,7 @@ impl IrBuilder<'_> {
         self.current = Some(error_block);
         self.bindings = base_bindings.clone();
         let error = self.define(
-            lower_type(error_type),
+            lower_type(error_type)?,
             IrOperation::ProjectVariant {
                 aggregate: scrutinee,
                 nominal: result_nominal,
@@ -79,7 +79,7 @@ impl IrBuilder<'_> {
         self.current = Some(ok_block);
         self.bindings = base_bindings;
         let value = self.define(
-            lower_type(ok_type),
+            lower_type(ok_type)?,
             IrOperation::ProjectVariant {
                 aggregate: scrutinee,
                 nominal: result_nominal,

@@ -68,6 +68,8 @@ pub enum SemanticRuleV0_14 {
     Fn1,
     /// Explicit generic-instantiation argument presence.
     Fn2,
+    /// Generic bounds and source-contract conformance.
+    Fn3,
     /// Closed-program `main` contract.
     Fn7,
     /// Restricted executable function-entry requirement prologue.
@@ -117,6 +119,7 @@ impl SemanticRuleV0_14 {
             Self::Op5 => "OP-5",
             Self::Fn1 => "FN-1",
             Self::Fn2 => "FN-2",
+            Self::Fn3 => "FN-3",
             Self::Fn7 => "FN-7",
             Self::Fn8 => "FN-8",
             Self::Gram11 => "GRAM-11",

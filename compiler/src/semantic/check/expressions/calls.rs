@@ -180,13 +180,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::InvalidOperation,
                 )
             })?;
-        let Some(operand_type) = self.integer_type(type_node)? else {
-            return self.issue_node(
-                SemanticRuleV0_14::Op1,
-                node,
-                SemanticIssueKind::InvalidOperation,
-            );
-        };
+        let operand_type = self.parse_type_with(type_node, &function.substitution)?;
         if !operation.accepts_operand_type(operand_type) {
             return self.issue_node(
                 SemanticRuleV0_14::Op1,
@@ -255,8 +249,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 _ => None,
             };
         let result = if let Some(error) = checked_error {
+            if matches!(operand_type, CheckedType::GenericInt(_)) {
+                return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, node);
+            }
             CheckedType::Nominal(self.prelude_nominal(PreludeType::Result(
-                CheckedType::Integer(operand_type),
+                operand_type,
                 CheckedType::Nominal(self.prelude_nominal(error)?),
             ))?)
         } else {
@@ -291,7 +288,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             "bnot" => CheckedBooleanOperation::Not,
             _ => return Err(SemanticCompilerFailure::InvalidResolution.into()),
         };
-        if self.operation_type_argument(node, spelling)? != CheckedType::Bool {
+        if self.operation_type_argument(node, spelling, function)? != CheckedType::Bool {
             return self.issue_node(
                 SemanticRuleV0_14::Op1,
                 node,
@@ -331,7 +328,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
-        let operand_type = self.operation_type_argument(node, if equal { "eeq" } else { "ene" })?;
+        let operand_type =
+            self.operation_type_argument(node, if equal { "eeq" } else { "ene" }, function)?;
         let tag_only = match operand_type {
             CheckedType::Bool => true,
             CheckedType::Nominal(id) => matches!(
@@ -377,6 +375,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         &self,
         node: NodeId,
         spelling: &str,
+        function: &FunctionSignature,
     ) -> Result<CheckedType, CheckStop> {
         if self
             .tree
@@ -420,7 +419,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::InvalidOperation,
                 )
             })?;
-        self.parse_type(ty)
+        self.parse_type_with(ty, &function.substitution)
     }
 
     fn invalid_named_arguments(signature: &FunctionSignature) -> SemanticIssueKind {

@@ -11,8 +11,8 @@ use crate::{
 
 use super::super::super::model::{
     CheckedArrayRoot, CheckedArraySetTarget, CheckedBufferRoot, CheckedBufferSetTarget,
-    CheckedExpression, CheckedFlatElement, CheckedMode, CheckedSetTarget, CheckedType, IntegerType,
-    TrapSite,
+    CheckedConst, CheckedExpression, CheckedFlatElement, CheckedMode, CheckedSetTarget,
+    CheckedType, IntegerType, TrapSite,
 };
 use super::super::borrows::{AccessKind, BorrowKind, ResolvedPlace};
 use super::super::{
@@ -26,7 +26,7 @@ pub(super) struct CheckedArrayPlace {
     declaration: Option<DeclarationId>,
     array_type: CheckedType,
     element_type: CheckedType,
-    length: u64,
+    length: CheckedConst,
 }
 
 #[derive(Clone)]
@@ -105,7 +105,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::InvalidOperation,
                 )
             })?;
-        let element_type = self.parse_type(element_node)?;
+        let element_type = self.parse_type_with(element_node, &function.substitution)?;
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
@@ -127,7 +127,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     SemanticIssueKind::InvalidOperation,
                 )
             })?;
-        let length = self.parse_const_expression(length_node)?;
+        let length = self.parse_const_expression_with(length_node, &function.substitution)?;
         let atoms = self.operation_atoms(node, 1)?;
         let value = self.check_atom(function, atoms[0], bindings, loop_depth)?;
         if value.expression.ty() != element_type || value.mode != CheckedMode::Own {
@@ -153,7 +153,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
-        let element_type = self.operation_type_argument(node, "buffer_new")?;
+        let element_type = self.operation_type_argument(node, "buffer_new", function)?;
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
@@ -206,11 +206,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     pub(in crate::semantic::check) fn check_flat_length(
         &self,
         node: NodeId,
-        _function: &FunctionSignature,
+        function: &FunctionSignature,
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         _loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
-        let element_type = self.operation_type_argument(node, "len")?;
+        let element_type = self.operation_type_argument(node, "len", function)?;
         let atoms = self.operation_atoms(node, 1)?;
         let place = self.check_indexed_atom_place(atoms[0], bindings)?;
         if place.element_type() != element_type {
@@ -280,7 +280,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(pbase, ProductionV0_14::Type)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let selected = self.parse_type(selected)?;
+        let selected = self.parse_type_with(selected, &function.substitution)?;
         let base = self
             .tree
             .first_child_with(pbase, ProductionV0_14::Place)?
@@ -393,7 +393,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(pbase, ProductionV0_14::Type)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let selected = self.parse_type(selected_node)?;
+        let selected = self.parse_type_with(selected_node, &function.substitution)?;
         let base = self
             .tree
             .first_child_with(pbase, ProductionV0_14::Place)?

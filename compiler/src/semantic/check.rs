@@ -2,6 +2,7 @@ mod borrows;
 mod cleanup;
 mod control;
 mod expressions;
+mod generics;
 mod nominals;
 mod requires;
 mod support;
@@ -25,6 +26,7 @@ use super::{CheckStop, CheckedProgram};
 use borrows::BorrowInfo;
 use borrows::{AccessKind, ResolvedPlace};
 use control::{ControlCounters, ControlScope};
+use generics::{GenericParameter, GenericSubstitution};
 
 #[derive(Clone)]
 struct ParameterSignature {
@@ -40,12 +42,22 @@ struct FunctionSignature {
     declaration: DeclarationId,
     node: NodeId,
     name: String,
+    symbol: String,
     region_parameters: Vec<DeclarationId>,
     parameters: Vec<ParameterSignature>,
     result_mode: CheckedMode,
     result: CheckedType,
     effects_node: NodeId,
     declared_effects: EffectSet,
+    substitution: GenericSubstitution,
+}
+
+#[derive(Clone)]
+struct FunctionTemplate {
+    declaration: DeclarationId,
+    node: NodeId,
+    name: String,
+    generic_parameters: Vec<GenericParameter>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -183,7 +195,9 @@ struct Checker<'unit, 'classified, 'lexed, 'source> {
     nominals_by_declaration: HashMap<DeclarationId, NominalId>,
     constructors_by_declaration: HashMap<DeclarationId, Constructor>,
     signatures: Vec<FunctionSignature>,
-    functions_by_declaration: HashMap<DeclarationId, FunctionId>,
+    function_templates: Vec<FunctionTemplate>,
+    templates_by_declaration: HashMap<DeclarationId, usize>,
+    functions_by_declaration: HashMap<DeclarationId, Vec<FunctionId>>,
     constants: HashMap<DeclarationId, CheckedConstantId>,
     checked_constants: Vec<CheckedConstant>,
 }
@@ -222,6 +236,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             nominals_by_declaration: HashMap::new(),
             constructors_by_declaration: HashMap::new(),
             signatures: Vec::new(),
+            function_templates: Vec::new(),
+            templates_by_declaration: HashMap::new(),
             functions_by_declaration: HashMap::new(),
             constants: HashMap::new(),
             checked_constants: Vec::new(),
@@ -279,54 +295,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
     }
 
     fn collect_function_signatures(&mut self, items: &[NodeId]) -> Result<(), CheckStop> {
-        for node in items.iter().copied().filter(|node| {
-            self.tree
-                .production(*node)
-                .is_ok_and(|production| production == ProductionV0_14::FnDecl)
-        }) {
-            if let Some(generics) = self
-                .tree
-                .first_child_with(node, ProductionV0_14::Generics)?
-            {
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, generics);
-            }
-            let declaration = self.declaration_at(node, DeclarationRole::Function)?;
-            let declaration_id = declaration.id();
-            let name = declaration.spelling().to_owned();
-            let id = FunctionId(
-                u32::try_from(self.signatures.len())
-                    .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
-            );
-            let region_parameters = self.parse_region_parameters(node)?;
-            let parameters = self.parse_parameters(node)?;
-            let rtype = self
-                .tree
-                .first_child_with(node, ProductionV0_14::Rtype)?
-                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let (result_mode, result) = self.parse_rtype(rtype)?;
-            if result_mode != CheckedMode::Own {
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::RegionsAndBorrows, rtype);
-            }
-            let effects = self
-                .tree
-                .first_child_with(node, ProductionV0_14::Effects)?
-                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-            let declared_effects = self.parse_effects(effects)?;
-            self.functions_by_declaration.insert(declaration_id, id);
-            self.signatures.push(FunctionSignature {
-                id,
-                declaration: declaration_id,
-                node,
-                name,
-                region_parameters,
-                parameters,
-                result_mode,
-                result,
-                effects_node: effects,
-                declared_effects,
-            });
-        }
-        Ok(())
+        self.collect_function_templates(items)?;
+        self.collect_concrete_function_signatures()
     }
 
     fn collect_constants(&mut self, items: &[NodeId]) -> Result<(), CheckStop> {
@@ -457,6 +427,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .signatures
             .get(index)
             .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+        self.check_function_signature(signature)
+    }
+
+    fn check_function_signature(
+        &self,
+        signature: &FunctionSignature,
+    ) -> Result<CheckedFunction, CheckStop> {
         let mut bindings = HashMap::new();
         let mut parameters = Vec::with_capacity(signature.parameters.len());
         let mut next_binding = 0_u32;
@@ -540,6 +517,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             id: signature.id,
             declaration: signature.declaration,
             name: signature.name.clone(),
+            symbol: signature.symbol.clone(),
             parameters,
             result_mode: signature.result_mode,
             result: signature.result,

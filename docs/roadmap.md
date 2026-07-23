@@ -762,6 +762,21 @@ generics by source-text expansion, inferred arguments, function or corpus
 allowlists, backend substitution, or an instance worklist that runs before the
 finite template-call graph has ruled out unsupported cycles.
 
+The function half of this milestone is now in place. Type, `Int`-bounded, and
+integer-typed const parameters have distinct kinded terms; const identifiers
+remain symbolic through template calls and become u64 values only in concrete
+instances. Template-call cycles stop before closure, acyclic nested calls are
+checked before reachability, and the deterministic concrete worklist rechecks
+every reachable function instance through the ordinary semantic path. Each
+instance has one collision-free internal symbol while diagnostics retain the
+source function name. The independent `generic_instances.wf` program executes
+multiple `Int` types and forwarded array sizes through LLVM. `Int` templates
+use one symbolic bound term rather than enumerating the eight concrete types.
+Generic source nominal instance/member tables are the next work; until those
+exist, checked-result operations whose result needs a symbolic prelude nominal
+and source-generic struct/enum uses remain explicit generic unsupported
+capabilities, so Phase 8 is not complete.
+
 ## Phase 9: dogfood and language iteration
 
 Continuously use production-shaped but manageable projects to reveal missing

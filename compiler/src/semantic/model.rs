@@ -23,6 +23,25 @@ pub(crate) struct NominalId(pub(crate) u32);
 pub(crate) struct CheckedConstantId(pub(crate) u32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) enum CheckedConst {
+    Value(u64),
+    Parameter(DeclarationId),
+}
+
+impl CheckedConst {
+    pub(crate) const fn value(self) -> Option<u64> {
+        match self {
+            Self::Value(value) => Some(value),
+            Self::Parameter(_) => None,
+        }
+    }
+
+    pub(crate) const fn is_concrete(self) -> bool {
+        matches!(self, Self::Value(_))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum IntegerType {
     I8,
     I16,
@@ -59,6 +78,7 @@ pub(crate) enum CheckedFlatElement {
     Unit,
     Bool,
     Integer(IntegerType),
+    GenericInt(DeclarationId),
     TagOnlyNominal(NominalId),
 }
 
@@ -68,6 +88,7 @@ impl CheckedFlatElement {
             Self::Unit => CheckedType::Unit,
             Self::Bool => CheckedType::Bool,
             Self::Integer(ty) => CheckedType::Integer(ty),
+            Self::GenericInt(declaration) => CheckedType::GenericInt(declaration),
             Self::TagOnlyNominal(id) => CheckedType::Nominal(id),
         }
     }
@@ -78,14 +99,28 @@ pub(crate) enum CheckedType {
     Unit,
     Bool,
     Integer(IntegerType),
+    Generic(DeclarationId),
+    GenericInt(DeclarationId),
     Nominal(NominalId),
     Array {
         element: CheckedFlatElement,
-        length: u64,
+        length: CheckedConst,
     },
     Buffer {
         element: CheckedFlatElement,
     },
+}
+
+impl CheckedType {
+    pub(crate) const fn is_concrete(self) -> bool {
+        match self {
+            Self::Generic(_) | Self::GenericInt(_) => false,
+            Self::Array { length, .. } => length.is_concrete(),
+            Self::Unit | Self::Bool | Self::Integer(_) | Self::Nominal(_) | Self::Buffer { .. } => {
+                true
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -254,22 +289,36 @@ impl CheckedIntegerOperation {
         }
     }
 
-    pub(crate) const fn accepts_operand_type(self, operand: IntegerType) -> bool {
-        match self {
-            Self::AbsoluteWrap
-            | Self::AbsoluteTrap
-            | Self::AbsoluteChecked
-            | Self::NegateWrap
-            | Self::NegateTrap
-            | Self::NegateChecked => operand.signed(),
-            Self::ByteSwap => operand.width() >= 16,
-            _ => true,
+    pub(crate) const fn accepts_operand_type(self, operand: CheckedType) -> bool {
+        match (self, operand) {
+            (
+                Self::AbsoluteWrap
+                | Self::AbsoluteTrap
+                | Self::AbsoluteChecked
+                | Self::NegateWrap
+                | Self::NegateTrap
+                | Self::NegateChecked,
+                CheckedType::Integer(operand),
+            ) => operand.signed(),
+            (Self::ByteSwap, CheckedType::Integer(operand)) => operand.width() >= 16,
+            (
+                Self::AbsoluteWrap
+                | Self::AbsoluteTrap
+                | Self::AbsoluteChecked
+                | Self::NegateWrap
+                | Self::NegateTrap
+                | Self::NegateChecked
+                | Self::ByteSwap,
+                CheckedType::GenericInt(_),
+            ) => false,
+            (_, CheckedType::Integer(_) | CheckedType::GenericInt(_)) => true,
+            _ => false,
         }
     }
 
     pub(crate) const fn argument_type(
         self,
-        operand: IntegerType,
+        operand: CheckedType,
         index: usize,
     ) -> Option<CheckedType> {
         if index >= self.operand_count() {
@@ -288,11 +337,11 @@ impl CheckedIntegerOperation {
         {
             Some(CheckedType::Integer(IntegerType::U32))
         } else {
-            Some(CheckedType::Integer(operand))
+            Some(operand)
         }
     }
 
-    pub(crate) const fn scalar_result_type(self, operand: IntegerType) -> Option<CheckedType> {
+    pub(crate) const fn scalar_result_type(self, operand: CheckedType) -> Option<CheckedType> {
         match self {
             Self::AddChecked
             | Self::SubtractChecked
@@ -310,7 +359,7 @@ impl CheckedIntegerOperation {
             | Self::LessEqual
             | Self::Greater
             | Self::GreaterEqual => Some(CheckedType::Bool),
-            _ => Some(CheckedType::Integer(operand)),
+            _ => Some(operand),
         }
     }
 }
@@ -350,7 +399,7 @@ pub(crate) enum CheckedExpression {
     },
     IntegerOperation {
         operation: CheckedIntegerOperation,
-        operand_type: IntegerType,
+        operand_type: CheckedType,
         arguments: Vec<CheckedExpression>,
         result: CheckedType,
         trap: Option<TrapSite>,
@@ -376,12 +425,12 @@ pub(crate) enum CheckedExpression {
     },
     ArrayLength {
         root: CheckedArrayRoot,
-        length: u64,
+        length: CheckedConst,
     },
     ArrayIndex {
         root: CheckedArrayRoot,
         element_type: CheckedType,
-        length: u64,
+        length: CheckedConst,
         offset: Box<CheckedExpression>,
         trap: TrapSite,
     },
@@ -505,7 +554,7 @@ pub(crate) struct CheckedArraySetTarget {
     pub(crate) binding: BindingId,
     pub(crate) array_type: CheckedType,
     pub(crate) element_type: CheckedType,
-    pub(crate) length: u64,
+    pub(crate) length: CheckedConst,
     pub(crate) offset: CheckedExpression,
     pub(crate) trap: TrapSite,
 }
@@ -624,6 +673,7 @@ pub(crate) struct CheckedFunction {
     pub(crate) id: FunctionId,
     pub(crate) declaration: DeclarationId,
     pub(crate) name: String,
+    pub(crate) symbol: String,
     pub(crate) parameters: Vec<CheckedParameter>,
     pub(crate) result_mode: CheckedMode,
     pub(crate) result: CheckedType,

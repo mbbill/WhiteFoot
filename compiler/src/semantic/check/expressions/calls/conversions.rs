@@ -62,7 +62,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         SemanticIssueKind::InvalidOperation,
                     )
                 })?;
-            let CheckedType::Integer(integer) = self.parse_type(type_node)? else {
+            let CheckedType::Integer(integer) =
+                self.parse_type_with(type_node, &function.substitution)?
+            else {
                 return self.issue_node(
                     SemanticRuleV0_14::Op1,
                     node,

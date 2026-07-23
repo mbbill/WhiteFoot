@@ -344,7 +344,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .tree
             .first_child_with(node, ProductionV0_14::Type)?
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
-        let expected = self.parse_type(ty_node)?;
+        let expected = self.parse_type_with(ty_node, &function.substitution)?;
         let declaration = self.declaration_at(node, DeclarationRole::Let)?;
         let declaration_id = declaration.id();
         let binding = Self::allocate_binding(counters.next_binding)?;

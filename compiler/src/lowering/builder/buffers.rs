@@ -19,7 +19,7 @@ impl IrBuilder<'_> {
         value: &CheckedExpression,
         trap: &TrapSite,
     ) -> Result<IrValueId, LoweringFailure> {
-        let element = lower_flat_element(element);
+        let element = lower_flat_element(element)?;
         let length = self.expression(length)?;
         let value = self.expression(value)?;
         if self.value_type(length)?
@@ -90,7 +90,7 @@ impl IrBuilder<'_> {
         target: &CheckedBufferSetTarget,
         value: &CheckedExpression,
     ) -> Result<IrValueId, LoweringFailure> {
-        let element = lower_flat_element(target.root.element);
+        let element = lower_flat_element(target.root.element)?;
         let buffer = self.project_buffer_root(root, &target.root)?;
         let offset = self.expression(&target.offset)?;
         if self.value_type(offset)?
@@ -140,7 +140,7 @@ impl IrBuilder<'_> {
         };
         if self.value_type(value)?
             != (IrType::Buffer {
-                element: lower_flat_element(root.element),
+                element: lower_flat_element(root.element)?,
             })
         {
             return Err(LoweringFailure::InvalidCheckedProgram);

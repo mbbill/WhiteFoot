@@ -104,35 +104,43 @@ pub enum IrType {
     GuardedBufferIndex { element: IrFlatElement },
 }
 
-const fn lower_flat_element(value: CheckedFlatElement) -> IrFlatElement {
-    match value {
+const fn lower_flat_element(value: CheckedFlatElement) -> Result<IrFlatElement, LoweringFailure> {
+    Ok(match value {
         CheckedFlatElement::Unit => IrFlatElement::Unit,
         CheckedFlatElement::Bool => IrFlatElement::Bool,
         CheckedFlatElement::Integer(integer) => IrFlatElement::Integer {
             width: integer.width(),
             signed: integer.signed(),
         },
+        CheckedFlatElement::GenericInt(_) => {
+            return Err(LoweringFailure::InvalidCheckedProgram);
+        }
         CheckedFlatElement::TagOnlyNominal(id) => IrFlatElement::TagOnlyNominal(IrNominalId(id.0)),
-    }
+    })
 }
 
-fn lower_type(value: CheckedType) -> IrType {
-    match value {
+fn lower_type(value: CheckedType) -> Result<IrType, LoweringFailure> {
+    Ok(match value {
         CheckedType::Unit => IrType::Unit,
         CheckedType::Bool => IrType::Bool,
         CheckedType::Integer(integer) => IrType::Integer {
             width: integer.width(),
             signed: integer.signed(),
         },
+        CheckedType::Generic(_) | CheckedType::GenericInt(_) => {
+            return Err(LoweringFailure::InvalidCheckedProgram);
+        }
         CheckedType::Nominal(id) => IrType::Nominal(IrNominalId(id.0)),
         CheckedType::Array { element, length } => IrType::Array {
-            element: lower_flat_element(element),
-            length,
+            element: lower_flat_element(element)?,
+            length: length
+                .value()
+                .ok_or(LoweringFailure::InvalidCheckedProgram)?,
         },
         CheckedType::Buffer { element } => IrType::Buffer {
-            element: lower_flat_element(element),
+            element: lower_flat_element(element)?,
         },
-    }
+    })
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

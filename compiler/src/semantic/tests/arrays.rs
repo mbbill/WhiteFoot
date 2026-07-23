@@ -1,8 +1,8 @@
 use crate::{SemanticIssueKind, SemanticOutcome, SemanticRuleV0_14};
 
 use super::super::model::{
-    CheckedArrayRoot, CheckedExpression, CheckedFlatElement, CheckedSetTarget, CheckedStatement,
-    CheckedType, CheckedValue, IntegerType,
+    CheckedArrayRoot, CheckedConst, CheckedExpression, CheckedFlatElement, CheckedSetTarget,
+    CheckedStatement, CheckedType, CheckedValue, IntegerType,
 };
 use super::{assert_rule, with_semantics};
 
@@ -32,7 +32,7 @@ fn main() -> own unit traps {
             checked.data.constants[1].ty,
             CheckedType::Array {
                 element: CheckedFlatElement::Integer(IntegerType::U8),
-                length: 4,
+                length: CheckedConst::Value(4),
             }
         );
         let CheckedValue::Array { elements, .. } = &checked.data.constants[1].value else {
@@ -47,7 +47,7 @@ fn main() -> own unit traps {
                 value: CheckedExpression::ArrayFill {
                     ty: CheckedType::Array {
                         element: CheckedFlatElement::Integer(IntegerType::I32),
-                        length: 4,
+                        length: CheckedConst::Value(4),
                     },
                     ..
                 },
@@ -57,7 +57,10 @@ fn main() -> own unit traps {
         assert!(matches!(
             &body[1],
             CheckedStatement::Let {
-                value: CheckedExpression::ArrayLength { length: 4, .. },
+                value: CheckedExpression::ArrayLength {
+                    length: CheckedConst::Value(4),
+                    ..
+                },
                 ..
             }
         ));
@@ -66,7 +69,7 @@ fn main() -> own unit traps {
             CheckedStatement::Let {
                 value: CheckedExpression::ArrayIndex {
                     root: CheckedArrayRoot::Binding(_),
-                    length: 4,
+                    length: CheckedConst::Value(4),
                     trap,
                     ..
                 },
@@ -78,7 +81,7 @@ fn main() -> own unit traps {
             CheckedStatement::Let {
                 value: CheckedExpression::ArrayIndex {
                     root: CheckedArrayRoot::Constant(_),
-                    length: 4,
+                    length: CheckedConst::Value(4),
                     trap,
                     ..
                 },
@@ -154,7 +157,7 @@ fn main() -> own unit pure {
             fields[0].ty,
             CheckedType::Array {
                 element: CheckedFlatElement::TagOnlyNominal(checked.data.nominals[0].id),
-                length: 2,
+                length: CheckedConst::Value(2),
             }
         );
     });
@@ -190,11 +193,11 @@ fn indexed_set_retains_its_pre_rhs_guard_and_copy_target() {
             target.array_type,
             CheckedType::Array {
                 element: CheckedFlatElement::Integer(IntegerType::U8),
-                length: 2,
+                length: CheckedConst::Value(2),
             }
         );
         assert_eq!(target.element_type, CheckedType::Integer(IntegerType::U8));
-        assert_eq!(target.length, 2);
+        assert_eq!(target.length, CheckedConst::Value(2));
         assert_eq!(target.offset.ty(), CheckedType::Integer(IntegerType::U64));
         assert_eq!(target.trap.rule_id, "OP-4");
     });

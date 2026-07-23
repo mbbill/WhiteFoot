@@ -21,10 +21,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
-        let target = *self
-            .functions_by_declaration
-            .get(&declaration)
-            .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+        let target = self.concrete_function_for_call(node, declaration, &function.substitution)?;
         let signature = self
             .signatures
             .get(target.0 as usize)
@@ -158,7 +155,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         };
         let arguments = self.tree.children_with(targs, ProductionV0_14::Targ)?;
-        if arguments.len() != signature.region_parameters.len() {
+        let generic_count = signature.substitution.len();
+        let expected = generic_count
+            .checked_add(signature.region_parameters.len())
+            .ok_or(SemanticCompilerFailure::CounterOverflow)?;
+        if arguments.len() != expected {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 node,
@@ -167,6 +168,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         arguments
             .into_iter()
+            .skip(generic_count)
             .map(|argument| {
                 let usage = self.use_at(argument, LexicalUseRole::TypeArgumentRegion)?;
                 match usage.target() {
