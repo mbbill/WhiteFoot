@@ -1,5 +1,72 @@
 const fixed_phrase_expected: array<u8, 17> = [104_u8, 101_u8, 108_u8, 108_u8, 111_u8, 32_u8, 104_u8, 101_u8, 108_u8, 108_u8, 111_u8, 32_u8, 104_u8, 101_u8, 108_u8, 108_u8, 111_u8];
 
+const dynamic_input_bytes: array<u8, 72> = [13_u8, 202_u8, 91_u8, 2_u8, 128_u8, 32_u8, 8_u8, 4_u8, 64_u8, 158_u8, 139_u8, 152_u8, 160_u8, 213_u8, 253_u8, 239_u8, 90_u8, 243_u8, 61_u8, 103_u8, 19_u8, 173_u8, 28_u8, 26_u8, 17_u8, 236_u8, 150_u8, 207_u8, 134_u8, 11_u8, 145_u8, 171_u8, 21_u8, 32_u8, 164_u8, 140_u8, 119_u8, 112_u8, 93_u8, 217_u8, 243_u8, 178_u8, 251_u8, 240_u8, 76_u8, 135_u8, 55_u8, 150_u8, 85_u8, 121_u8, 116_u8, 186_u8, 104_u8, 114_u8, 75_u8, 235_u8, 73_u8, 96_u8, 132_u8, 10_u8, 118_u8, 208_u8, 159_u8, 101_u8, 210_u8, 80_u8, 41_u8, 198_u8, 18_u8, 41_u8, 203_u8, 15_u8];
+
+const dynamic_match_input_bytes: array<u8, 82> = [237_u8, 205_u8, 217_u8, 17_u8, 195_u8, 32_u8, 12_u8, 5_u8, 64_u8, 157_u8, 79_u8, 8_u8, 35_u8, 129_u8, 147_u8, 254_u8, 123_u8, 181_u8, 75_u8, 72_u8, 1_u8, 249_u8, 223_u8, 153_u8, 61_u8, 155_u8, 104_u8, 229_u8, 208_u8, 136_u8, 96_u8, 183_u8, 252_u8, 108_u8, 184_u8, 16_u8, 185_u8, 90_u8, 1_u8, 66_u8, 202_u8, 248_u8, 14_u8, 174_u8, 43_u8, 123_u8, 94_u8, 118_u8, 31_u8, 158_u8, 233_u8, 240_u8, 198_u8, 178_u8, 42_u8, 143_u8, 78_u8, 23_u8, 77_u8, 110_u8, 105_u8, 61_u8, 9_u8, 140_u8, 80_u8, 193_u8, 14_u8, 122_u8, 177_u8, 76_u8, 26_u8, 42_u8, 197_u8, 88_u8, 34_u8, 101_u8, 121_u8, 254_u8, 199_u8, 207_u8, 199_u8, 3_u8];
+
+const mixed_block_input_bytes: array<u8, 78> = [12_u8, 202_u8, 91_u8, 2_u8, 128_u8, 32_u8, 8_u8, 4_u8, 64_u8, 158_u8, 139_u8, 152_u8, 160_u8, 213_u8, 253_u8, 239_u8, 90_u8, 243_u8, 61_u8, 103_u8, 19_u8, 173_u8, 28_u8, 26_u8, 17_u8, 236_u8, 150_u8, 207_u8, 134_u8, 11_u8, 145_u8, 171_u8, 21_u8, 32_u8, 164_u8, 140_u8, 119_u8, 112_u8, 93_u8, 217_u8, 243_u8, 178_u8, 251_u8, 240_u8, 76_u8, 135_u8, 55_u8, 150_u8, 85_u8, 121_u8, 116_u8, 186_u8, 104_u8, 114_u8, 75_u8, 235_u8, 73_u8, 96_u8, 132_u8, 10_u8, 118_u8, 208_u8, 159_u8, 101_u8, 210_u8, 80_u8, 41_u8, 198_u8, 18_u8, 41_u8, 203_u8, 111_u8, 25_u8, 169_u8, 57_u8, 57_u8, 249_u8, 0_u8];
+
+const literal_only_dynamic_input_bytes: array<u8, 13> = [5_u8, 192_u8, 129_u8, 8_u8, 0_u8, 0_u8, 0_u8, 0_u8, 32_u8, 182_u8, 253_u8, 165_u8, 78_u8];
+
+const dynamic_expected_bytes: array<u8, 100> = [16_u8, 15_u8, 0_u8, 0_u8, 12_u8, 9_u8, 8_u8, 3_u8, 7_u8, 7_u8, 7_u8, 1_u8, 5_u8, 4_u8, 9_u8, 18_u8, 15_u8, 6_u8, 5_u8, 2_u8, 0_u8, 0_u8, 5_u8, 3_u8, 4_u8, 13_u8, 6_u8, 6_u8, 2_u8, 0_u8, 3_u8, 1_u8, 6_u8, 19_u8, 8_u8, 1_u8, 13_u8, 11_u8, 9_u8, 14_u8, 10_u8, 11_u8, 4_u8, 17_u8, 16_u8, 1_u8, 10_u8, 9_u8, 5_u8, 6_u8, 5_u8, 14_u8, 6_u8, 12_u8, 4_u8, 13_u8, 13_u8, 5_u8, 7_u8, 14_u8, 9_u8, 5_u8, 2_u8, 3_u8, 9_u8, 1_u8, 14_u8, 2_u8, 14_u8, 3_u8, 16_u8, 9_u8, 6_u8, 6_u8, 8_u8, 7_u8, 3_u8, 2_u8, 6_u8, 15_u8, 7_u8, 0_u8, 11_u8, 9_u8, 14_u8, 2_u8, 10_u8, 0_u8, 8_u8, 3_u8, 2_u8, 13_u8, 1_u8, 6_u8, 12_u8, 2_u8, 2_u8, 13_u8, 4_u8, 9_u8];
+
+fn make_dynamic_input() -> own buffer<u8> allocates(heap), traps {
+  let input: own buffer<u8> = buffer_new<u8>(72_u64, 0_u8);
+  let index_value: own u64 = 0_u64;
+  loop @fill_dynamic_source {
+    let done: own Bool = ieq<u64>(index_value, 72_u64);
+    match done {
+      True() => {
+        break @fill_dynamic_source;
+      }
+      False() => {
+        let byte: own u8 = index<u8>(dynamic_input_bytes, index_value);
+        set index<u8>(input, index_value) = byte;
+        set index_value = iadd.wrap<u64>(index_value, 1_u64);
+      }
+    }
+  }
+  return move input;
+}
+
+fn make_dynamic_match_input() -> own buffer<u8> allocates(heap), traps {
+  let input: own buffer<u8> = buffer_new<u8>(82_u64, 0_u8);
+  let index_value: own u64 = 0_u64;
+  loop @fill_dynamic_match_source {
+    let done: own Bool = ieq<u64>(index_value, 82_u64);
+    match done {
+      True() => {
+        break @fill_dynamic_match_source;
+      }
+      False() => {
+        let byte: own u8 = index<u8>(dynamic_match_input_bytes, index_value);
+        set index<u8>(input, index_value) = byte;
+        set index_value = iadd.wrap<u64>(index_value, 1_u64);
+      }
+    }
+  }
+  return move input;
+}
+
+fn make_literal_only_dynamic_input() -> own buffer<u8> allocates(heap), traps {
+  let input: own buffer<u8> = buffer_new<u8>(13_u64, 0_u8);
+  let index_value: own u64 = 0_u64;
+  loop @fill_literal_only_dynamic_source {
+    let done: own Bool = ieq<u64>(index_value, 13_u64);
+    match done {
+      True() => {
+        break @fill_literal_only_dynamic_source;
+      }
+      False() => {
+        let byte: own u8 = index<u8>(literal_only_dynamic_input_bytes, index_value);
+        set index<u8>(input, index_value) = byte;
+        set index_value = iadd.wrap<u64>(index_value, 1_u64);
+      }
+    }
+  }
+  return move input;
+}
+
 fn error_code(error: own InflateError) -> own u8 pure {
   match error {
     Truncated() => {
@@ -8,17 +75,20 @@ fn error_code(error: own InflateError) -> own u8 pure {
     InvalidStoredLength() => {
       return 2_u8;
     }
-    InvalidHuffmanCode() => {
+    InvalidHuffmanTree() => {
       return 3_u8;
     }
-    InvalidDistance() => {
+    InvalidHuffmanCode() => {
       return 4_u8;
     }
-    OutputFull() => {
+    InvalidDistance() => {
       return 5_u8;
     }
-    UnsupportedBlockType() => {
+    InvalidBlockType() => {
       return 6_u8;
+    }
+    OutputFull() => {
+      return 7_u8;
     }
   }
 }
@@ -89,10 +159,13 @@ fn main() -> own unit allocates(heap), traps {
           InvalidHuffmanCode() => {
             check False() else trap "invalid length became Huffman error";
           }
+          InvalidHuffmanTree() => {
+            check False() else trap "invalid length became Huffman tree";
+          }
           InvalidDistance() => {
             check False() else trap "invalid length became distance error";
           }
-          UnsupportedBlockType() => {
+          InvalidBlockType() => {
             check False() else trap "invalid length became block type";
           }
         }
@@ -126,10 +199,13 @@ fn main() -> own unit allocates(heap), traps {
           InvalidHuffmanCode() => {
             check False() else trap "truncation became Huffman error";
           }
+          InvalidHuffmanTree() => {
+            check False() else trap "truncation became Huffman tree";
+          }
           InvalidDistance() => {
             check False() else trap "truncation became distance error";
           }
-          UnsupportedBlockType() => {
+          InvalidBlockType() => {
             check False() else trap "truncation became block type";
           }
         }
@@ -166,10 +242,13 @@ fn main() -> own unit allocates(heap), traps {
           InvalidHuffmanCode() => {
             check False() else trap "output full became Huffman error";
           }
+          InvalidHuffmanTree() => {
+            check False() else trap "output full became Huffman tree";
+          }
           InvalidDistance() => {
             check False() else trap "output full became distance error";
           }
-          UnsupportedBlockType() => {
+          InvalidBlockType() => {
             check False() else trap "output full became block type";
           }
         }
@@ -278,6 +357,214 @@ fn main() -> own unit allocates(heap), traps {
       }
     }
   }
+  let dynamic_input: own buffer<u8> = make_dynamic_input();
+  let dynamic_output: own buffer<u8> = buffer_new<u8>(100_u64, 0_u8);
+  region 'dynamic_region {
+    let dynamic_result: own Result<u64, InflateError> = inflate<'dynamic_region>(out: &uniq 'dynamic_region dynamic_output, input: move dynamic_input);
+    match move dynamic_result {
+      Ok(value: dynamic_length) => {
+        check ieq<u64>(dynamic_length, 100_u64) else trap "dynamic output length";
+      }
+      Err(error: dynamic_error) => {
+        check False() else trap "dynamic stream rejected";
+      }
+    }
+  }
+  let dynamic_output_index: own u64 = 0_u64;
+  loop @check_dynamic_output {
+    let dynamic_output_done: own Bool = ieq<u64>(dynamic_output_index, 100_u64);
+    match dynamic_output_done {
+      True() => {
+        break @check_dynamic_output;
+      }
+      False() => {
+        let dynamic_actual: own u8 = index<u8>(dynamic_output, dynamic_output_index);
+        let dynamic_wanted: own u8 = index<u8>(dynamic_expected_bytes, dynamic_output_index);
+        check ieq<u8>(dynamic_actual, dynamic_wanted) else trap "dynamic output byte";
+        set dynamic_output_index = iadd.wrap<u64>(dynamic_output_index, 1_u64);
+      }
+    }
+  }
+  let literal_only_input: own buffer<u8> = make_literal_only_dynamic_input();
+  let literal_only_output: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  region 'literal_only_region {
+    let literal_only_result: own Result<u64, InflateError> = inflate<'literal_only_region>(out: &uniq 'literal_only_region literal_only_output, input: move literal_only_input);
+    match move literal_only_result {
+      Ok(value: literal_only_length) => {
+        check ieq<u64>(literal_only_length, 1_u64) else trap "literal-only dynamic output length";
+      }
+      Err(error: literal_only_error) => {
+        check False() else trap "literal-only dynamic stream rejected";
+      }
+    }
+  }
+  let literal_only_byte: own u8 = index<u8>(literal_only_output, 0_u64);
+  check ieq<u8>(literal_only_byte, 65_u8) else trap "literal-only dynamic output byte";
+  let dynamic_match_input: own buffer<u8> = make_dynamic_match_input();
+  let dynamic_match_output: own buffer<u8> = buffer_new<u8>(400_u64, 0_u8);
+  region 'dynamic_match_region {
+    let dynamic_match_result: own Result<u64, InflateError> = inflate<'dynamic_match_region>(out: &uniq 'dynamic_match_region dynamic_match_output, input: move dynamic_match_input);
+    match move dynamic_match_result {
+      Ok(value: dynamic_match_length) => {
+        check ieq<u64>(dynamic_match_length, 400_u64) else trap "dynamic match output length";
+      }
+      Err(error: dynamic_match_error) => {
+        check False() else trap "dynamic match stream rejected";
+      }
+    }
+  }
+  let dynamic_match_repeat: own u64 = 0_u64;
+  loop @check_dynamic_match_repeats {
+    let all_repeats_checked: own Bool = ieq<u64>(dynamic_match_repeat, 4_u64);
+    match all_repeats_checked {
+      True() => {
+        break @check_dynamic_match_repeats;
+      }
+      False() => {
+        let dynamic_match_base: own u64 = imul.wrap<u64>(dynamic_match_repeat, 100_u64);
+        let dynamic_match_index: own u64 = 0_u64;
+        loop @check_dynamic_match_chunk {
+          let chunk_checked: own Bool = ieq<u64>(dynamic_match_index, 100_u64);
+          match chunk_checked {
+            True() => {
+              break @check_dynamic_match_chunk;
+            }
+            False() => {
+              let output_index: own u64 = iadd.wrap<u64>(dynamic_match_base, dynamic_match_index);
+              let dynamic_match_actual: own u8 = index<u8>(dynamic_match_output, output_index);
+              let dynamic_match_wanted: own u8 = index<u8>(dynamic_expected_bytes, dynamic_match_index);
+              check ieq<u8>(dynamic_match_actual, dynamic_match_wanted) else trap "dynamic match output byte";
+              set dynamic_match_index = iadd.wrap<u64>(dynamic_match_index, 1_u64);
+            }
+          }
+        }
+        set dynamic_match_repeat = iadd.wrap<u64>(dynamic_match_repeat, 1_u64);
+      }
+    }
+  }
+  let mixed_block_input: own buffer<u8> = buffer_new<u8>(78_u64, 0_u8);
+  let mixed_block_input_index: own u64 = 0_u64;
+  loop @fill_mixed_block_input {
+    let mixed_block_input_done: own Bool = ieq<u64>(mixed_block_input_index, 78_u64);
+    match mixed_block_input_done {
+      True() => {
+        break @fill_mixed_block_input;
+      }
+      False() => {
+        let mixed_block_input_byte: own u8 = index<u8>(mixed_block_input_bytes, mixed_block_input_index);
+        set index<u8>(mixed_block_input, mixed_block_input_index) = mixed_block_input_byte;
+        set mixed_block_input_index = iadd.wrap<u64>(mixed_block_input_index, 1_u64);
+      }
+    }
+  }
+  let mixed_block_output: own buffer<u8> = buffer_new<u8>(105_u64, 0_u8);
+  region 'mixed_block_region {
+    let mixed_block_result: own Result<u64, InflateError> = inflate<'mixed_block_region>(out: &uniq 'mixed_block_region mixed_block_output, input: move mixed_block_input);
+    match move mixed_block_result {
+      Ok(value: mixed_block_length) => {
+        check ieq<u64>(mixed_block_length, 105_u64) else trap "mixed block output length";
+      }
+      Err(error: mixed_block_error) => {
+        check False() else trap "mixed block stream rejected";
+      }
+    }
+  }
+  let mixed_block_index: own u64 = 0_u64;
+  loop @check_mixed_block_prefix {
+    let mixed_block_prefix_done: own Bool = ieq<u64>(mixed_block_index, 100_u64);
+    match mixed_block_prefix_done {
+      True() => {
+        break @check_mixed_block_prefix;
+      }
+      False() => {
+        let mixed_block_actual: own u8 = index<u8>(mixed_block_output, mixed_block_index);
+        let mixed_block_wanted: own u8 = index<u8>(dynamic_expected_bytes, mixed_block_index);
+        check ieq<u8>(mixed_block_actual, mixed_block_wanted) else trap "mixed block prefix byte";
+        set mixed_block_index = iadd.wrap<u64>(mixed_block_index, 1_u64);
+      }
+    }
+  }
+  let mixed_block_h: own u8 = index<u8>(mixed_block_output, 100_u64);
+  let mixed_block_e: own u8 = index<u8>(mixed_block_output, 101_u64);
+  let mixed_block_l0: own u8 = index<u8>(mixed_block_output, 102_u64);
+  let mixed_block_l1: own u8 = index<u8>(mixed_block_output, 103_u64);
+  let mixed_block_o: own u8 = index<u8>(mixed_block_output, 104_u64);
+  check ieq<u8>(mixed_block_h, 104_u8) else trap "mixed block suffix h";
+  check ieq<u8>(mixed_block_e, 101_u8) else trap "mixed block suffix e";
+  check ieq<u8>(mixed_block_l0, 108_u8) else trap "mixed block suffix first l";
+  check ieq<u8>(mixed_block_l1, 108_u8) else trap "mixed block suffix second l";
+  check ieq<u8>(mixed_block_o, 111_u8) else trap "mixed block suffix o";
+  let invalid_tree_input: own buffer<u8> = buffer_new<u8>(4_u64, 0_u8);
+  set index<u8>(invalid_tree_input, 0_u64) = 5_u8;
+  let invalid_tree_output: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  region 'invalid_tree_region {
+    let invalid_tree_result: own Result<u64, InflateError> = inflate<'invalid_tree_region>(out: &uniq 'invalid_tree_region invalid_tree_output, input: move invalid_tree_input);
+    match move invalid_tree_result {
+      Ok(value: invalid_tree_length) => {
+        check False() else trap "invalid dynamic tree accepted";
+      }
+      Err(error: invalid_tree_error) => {
+        let invalid_tree_code: own u8 = error_code(error: invalid_tree_error);
+        check ieq<u8>(invalid_tree_code, 3_u8) else trap "invalid dynamic tree misclassified";
+      }
+    }
+  }
+  let dynamic_truncated_input: own buffer<u8> = buffer_new<u8>(10_u64, 0_u8);
+  let dynamic_truncated_index: own u64 = 0_u64;
+  loop @fill_dynamic_truncated {
+    let dynamic_truncated_filled: own Bool = ieq<u64>(dynamic_truncated_index, 10_u64);
+    match dynamic_truncated_filled {
+      True() => {
+        break @fill_dynamic_truncated;
+      }
+      False() => {
+        let dynamic_truncated_byte: own u8 = index<u8>(dynamic_input_bytes, dynamic_truncated_index);
+        set index<u8>(dynamic_truncated_input, dynamic_truncated_index) = dynamic_truncated_byte;
+        set dynamic_truncated_index = iadd.wrap<u64>(dynamic_truncated_index, 1_u64);
+      }
+    }
+  }
+  let dynamic_truncated_output: own buffer<u8> = buffer_new<u8>(100_u64, 0_u8);
+  region 'dynamic_truncated_region {
+    let dynamic_truncated_result: own Result<u64, InflateError> = inflate<'dynamic_truncated_region>(out: &uniq 'dynamic_truncated_region dynamic_truncated_output, input: move dynamic_truncated_input);
+    match move dynamic_truncated_result {
+      Ok(value: dynamic_truncated_length) => {
+        check False() else trap "truncated dynamic stream accepted";
+      }
+      Err(error: dynamic_truncated_error) => {
+        let dynamic_truncated_code: own u8 = error_code(error: dynamic_truncated_error);
+        check ieq<u8>(dynamic_truncated_code, 1_u8) else trap "truncated dynamic stream misclassified";
+      }
+    }
+  }
+  let dynamic_full_input: own buffer<u8> = make_dynamic_input();
+  let dynamic_full_output: own buffer<u8> = buffer_new<u8>(99_u64, 0_u8);
+  region 'dynamic_full_region {
+    let dynamic_full_result: own Result<u64, InflateError> = inflate<'dynamic_full_region>(out: &uniq 'dynamic_full_region dynamic_full_output, input: move dynamic_full_input);
+    match move dynamic_full_result {
+      Ok(value: dynamic_full_length) => {
+        check False() else trap "undersized dynamic output accepted";
+      }
+      Err(error: dynamic_full_error) => {
+        let dynamic_full_code: own u8 = error_code(error: dynamic_full_error);
+        check ieq<u8>(dynamic_full_code, 7_u8) else trap "dynamic output shortage misclassified";
+      }
+    }
+  }
+  let reserved_block_input: own buffer<u8> = buffer_new<u8>(1_u64, 7_u8);
+  let reserved_block_output: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  region 'reserved_block_region {
+    let reserved_block_result: own Result<u64, InflateError> = inflate<'reserved_block_region>(out: &uniq 'reserved_block_region reserved_block_output, input: move reserved_block_input);
+    match move reserved_block_result {
+      Ok(value: reserved_block_length) => {
+        check False() else trap "reserved block type accepted";
+      }
+      Err(error: reserved_block_error) => {
+        let reserved_block_code: own u8 = error_code(error: reserved_block_error);
+        check ieq<u8>(reserved_block_code, 6_u8) else trap "reserved block type misclassified";
+      }
+    }
+  }
   let fixed_truncated_input: own buffer<u8> = buffer_new<u8>(1_u64, 203_u8);
   let fixed_truncated_output: own buffer<u8> = buffer_new<u8>(5_u64, 0_u8);
   region 'fixed_truncated_region {
@@ -304,7 +591,7 @@ fn main() -> own unit allocates(heap), traps {
       }
       Err(error: invalid_huffman_error) => {
         let invalid_huffman_code: own u8 = error_code(error: invalid_huffman_error);
-        check ieq<u8>(invalid_huffman_code, 3_u8) else trap "reserved fixed symbol misclassified";
+        check ieq<u8>(invalid_huffman_code, 4_u8) else trap "reserved fixed symbol misclassified";
       }
     }
   }
@@ -320,7 +607,7 @@ fn main() -> own unit allocates(heap), traps {
       }
       Err(error: invalid_distance_error) => {
         let invalid_distance_code: own u8 = error_code(error: invalid_distance_error);
-        check ieq<u8>(invalid_distance_code, 4_u8) else trap "distance before history misclassified";
+        check ieq<u8>(invalid_distance_code, 5_u8) else trap "distance before history misclassified";
       }
     }
   }
@@ -341,7 +628,7 @@ fn main() -> own unit allocates(heap), traps {
       }
       Err(error: fixed_full_error) => {
         let fixed_full_code: own u8 = error_code(error: fixed_full_error);
-        check ieq<u8>(fixed_full_code, 5_u8) else trap "fixed output shortage misclassified";
+        check ieq<u8>(fixed_full_code, 7_u8) else trap "fixed output shortage misclassified";
       }
     }
   }

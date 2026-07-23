@@ -707,15 +707,60 @@ expression checking; malformed and identity conversions still reach their
 normal source judgments. A focused regression covers the unannotated shape,
 and the decoder executes it through checked IR, lowering, and LLVM.
 
-The next decoder milestone is dynamic Huffman: read and validate the
-code-length alphabet, expand repeat codes into bounded literal/length and
-distance lengths, build runtime canonical decode tables, and feed symbols into
-the existing checked payload path. It must distinguish malformed trees,
-truncation, reserved block types, invalid distances, and output shortage as
-ordinary data failures. Implement only a general compiler capability that this
-complete-decoder path actually exposes. This selection does not authorize CLI
-or streaming-wrapper infrastructure, benchmark reconstruction, archived
-target-specific optimizer prototypes, or proof-based check removal.
+The dynamic-Huffman milestone completes the one-shot raw decoder. It reads the
+code-length alphabet, expands all three bounded repeat forms, validates and
+builds canonical runtime tables, and sends literals and length/distance pairs
+through the same checked payload path as fixed blocks. Complete trees,
+one-symbol one-bit trees, and RFC 1951's literal-only one-entry zero-length
+distance alphabet have explicit representations; oversubscribed, otherwise
+incomplete, missing-end, reserved-code, and distance-without-history cases are
+ordinary data failures. Executable independent vectors cover literal streams,
+dynamic length/distance matches, a nonfinal dynamic block followed by a fixed
+block, the literal-only distance edge, malformed trees, truncation, reserved
+block types, and output shortage. Every table, input, history, and output
+access keeps its OP-4 check, and all allocated tables follow the existing
+resource-bearing Result cleanup path. No new source semantic capability was
+needed; the only compiler correction makes the LLVM test helper select an
+actual function definition rather than an earlier call with the same symbol.
+
+The next Phase 8 target is the source-generic monomorphization core. It is the
+next language capability because reusable Whitefoot libraries require explicit
+type and const abstraction, while duplicating a concrete helper per type or
+size would repeat the rejected corpus-shaped route. This first milestone has
+the following closed scope:
+
+1. It implements TYPE-2/3/5/6, CONST-1, FN-1/2, and PROG-2 for explicitly
+   instantiated acyclic source-generic structs, enums, and functions, including
+   unbounded type parameters, PRE-1 `Int` bounds, and forwarded const
+   parameters. Existing ownership, effects, storage, and operation judgments
+   are applied again after complete substitution; they are not approximated by
+   the template checker.
+2. Its input is the resolved generic declarations and explicit kinded
+   type/const arguments. Its output is a deterministic finite set of concrete
+   nominal and function instances that the existing checked-program and
+   lowering path can consume.
+3. It accepts only well-kinded, fully explicit, concretely valid reachable
+   instances and all zero-monomorphization functions. It reports actual
+   numbered-rule violations normally. Cyclic generic calls, region-bearing
+   generic arguments, source contracts/conformances/laws, and generic
+   `requires` remain explicit unsupported capabilities in this milestone; no
+   interpretation of their unresolved rules is introduced.
+4. The immediate downstream consumer needs complete normalized substitutions,
+   concrete signatures and nominal member tables, source-ordered typed call
+   records, and one stable concrete symbol per semantic instance. It does not
+   need serialized identities, cross-instance body sharing, or an alternate
+   generic IR.
+5. Independent tests must cover one declaration instantiated at multiple
+   concrete types and const sizes, nested instance discovery, forwarding across
+   source records, wrong kind/arity, a concretely invalid body, deterministic
+   closure order, and a generic call cycle that stops before instance
+   enumeration rather than expanding.
+
+Template checking precedes instance discovery; every admitted instance is then
+rechecked through the one semantic path before lowering. Do not implement
+generics by source-text expansion, inferred arguments, function or corpus
+allowlists, backend substitution, or an instance worklist that runs before the
+finite template-call graph has ruled out unsupported cycles.
 
 ## Phase 9: dogfood and language iteration
 

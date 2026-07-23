@@ -1,0 +1,301 @@
+struct HuffmanTable {
+  counts: buffer<u64>;
+  symbols: buffer<u64>;
+  max_bits: u32;
+  used_symbols: u64;
+}
+
+const code_length_order: array<u8, 19> = [16_u8, 17_u8, 18_u8, 0_u8, 8_u8, 7_u8, 9_u8, 6_u8, 10_u8, 5_u8, 11_u8, 4_u8, 12_u8, 3_u8, 13_u8, 2_u8, 14_u8, 1_u8, 15_u8];
+
+fn decode_length ['s, 'i](state: &uniq 's InflateState, input: &'i buffer<u8>, symbol: own u64) -> own Result<u64, InflateError> reads('s 'i), writes('s), traps {
+  let before_lengths: own Bool = ilt<u64>(symbol, 257_u64);
+  let after_lengths: own Bool = ige<u64>(symbol, 286_u64);
+  let invalid_symbol: own Bool = bor<Bool>(before_lengths, after_lengths);
+  match invalid_symbol {
+    True() => {
+      let error: own InflateError = InvalidHuffmanCode();
+      return Err(error: error);
+    }
+    False() => {
+    }
+  }
+  let length_index: own u64 = isub.wrap<u64>(symbol, 257_u64);
+  let length_base_word: own u16 = index<u16>(length_bases, length_index);
+  let length_base: own u64 = cvt<u16, u64>(length_base_word);
+  let length_extra_byte: own u8 = index<u8>(length_extras, length_index);
+  let length_extra_count: own u32 = cvt<u8, u32>(length_extra_byte);
+  let length_extra: own u64 = 0_u64;
+  region 'length_extra_call {
+    match read_bits<'length_extra_call, 'length_extra_call>(state: &uniq 'length_extra_call deref(state), input: &'length_extra_call deref(input), count: length_extra_count) {
+      Ok(value: extra) => {
+        set length_extra = extra;
+      }
+      Err(error: length_error) => {
+        return Err(error: length_error);
+      }
+    }
+  }
+  let copy_length: own u64 = iadd.wrap<u64>(length_base, length_extra);
+  return Ok(value: copy_length);
+}
+
+fn copy_distance ['s, 'i, 'o](state: &uniq 's InflateState, input: &'i buffer<u8>, out: &uniq 'o buffer<u8>, copy_length: own u64, distance_symbol: own u64) -> own Result<unit, InflateError> reads('s 'i 'o), writes('s 'o), traps {
+  let invalid_distance_symbol: own Bool = ige<u64>(distance_symbol, 30_u64);
+  match invalid_distance_symbol {
+    True() => {
+      let error: own InflateError = InvalidDistance();
+      return Err(error: error);
+    }
+    False() => {
+    }
+  }
+  let distance_base_word: own u16 = index<u16>(distance_bases, distance_symbol);
+  let distance_base: own u64 = cvt<u16, u64>(distance_base_word);
+  let distance_extra_byte: own u8 = index<u8>(distance_extras, distance_symbol);
+  let distance_extra_count: own u32 = cvt<u8, u32>(distance_extra_byte);
+  let distance_extra: own u64 = 0_u64;
+  region 'distance_extra_call {
+    match read_bits<'distance_extra_call, 'distance_extra_call>(state: &uniq 'distance_extra_call deref(state), input: &'distance_extra_call deref(input), count: distance_extra_count) {
+      Ok(value: extra) => {
+        set distance_extra = extra;
+      }
+      Err(error: distance_error) => {
+        return Err(error: distance_error);
+      }
+    }
+  }
+  let distance: own u64 = iadd.wrap<u64>(distance_base, distance_extra);
+  let before_history: own Bool = ilt<u64>(deref(state).output_offset, distance);
+  match before_history {
+    True() => {
+      let error: own InflateError = InvalidDistance();
+      return Err(error: error);
+    }
+    False() => {
+    }
+  }
+  let copied: own u64 = 0_u64;
+  loop @copy_match {
+    let copy_done: own Bool = ieq<u64>(copied, copy_length);
+    match copy_done {
+      True() => {
+        break @copy_match;
+      }
+      False() => {
+        let source_index: own u64 = isub.wrap<u64>(deref(state).output_offset, distance);
+        let byte: own u8 = index<u8>(deref(out), source_index);
+        region 'match_emit {
+          match emit_byte<'match_emit, 'match_emit>(state: &uniq 'match_emit deref(state), out: &uniq 'match_emit deref(out), value: byte) {
+            Ok(value: emitted) => {
+            }
+            Err(error: emit_error) => {
+              return Err(error: emit_error);
+            }
+          }
+        }
+        set copied = iadd.wrap<u64>(copied, 1_u64);
+      }
+    }
+  }
+  return Ok(value: unit);
+}
+
+fn build_huffman_table(lengths: own buffer<u8>, symbol_count: own u64, max_bits: own u32, allow_single: own Bool, allow_empty: own Bool) -> own Result<HuffmanTable, InflateError> allocates(heap), traps {
+  let count_slots_word: own u64 = cvt<u32, u64>(max_bits);
+  let count_slots: own u64 = iadd.wrap<u64>(count_slots_word, 1_u64);
+  let counts: own buffer<u64> = buffer_new<u64>(count_slots, 0_u64);
+  let symbols: own buffer<u64> = buffer_new<u64>(symbol_count, 0_u64);
+  let symbol: own u64 = 0_u64;
+  let nonzero: own u64 = 0_u64;
+  let sole_length: own u32 = 0_u32;
+  loop @count_lengths {
+    let counted: own Bool = ieq<u64>(symbol, symbol_count);
+    match counted {
+      True() => {
+        break @count_lengths;
+      }
+      False() => {
+        let length_byte: own u8 = index<u8>(lengths, symbol);
+        let length: own u32 = cvt<u8, u32>(length_byte);
+        let too_long: own Bool = igt<u32>(length, max_bits);
+        match too_long {
+          True() => {
+            let error: own InflateError = InvalidHuffmanTree();
+            return Err(error: error);
+          }
+          False() => {
+          }
+        }
+        let present: own Bool = igt<u32>(length, 0_u32);
+        match present {
+          True() => {
+            let count_index: own u64 = cvt<u32, u64>(length);
+            let previous_count: own u64 = index<u64>(counts, count_index);
+            set index<u64>(counts, count_index) = iadd.wrap<u64>(previous_count, 1_u64);
+            set nonzero = iadd.wrap<u64>(nonzero, 1_u64);
+            set sole_length = length;
+          }
+          False() => {
+          }
+        }
+        set symbol = iadd.wrap<u64>(symbol, 1_u64);
+      }
+    }
+  }
+  let left: own u64 = 1_u64;
+  let length: own u32 = 1_u32;
+  loop @validate_lengths {
+    let validation_done: own Bool = igt<u32>(length, max_bits);
+    match validation_done {
+      True() => {
+        break @validate_lengths;
+      }
+      False() => {
+        set left = ishl.wrap<u64>(left, 1_u32);
+        let count_index: own u64 = cvt<u32, u64>(length);
+        let count: own u64 = index<u64>(counts, count_index);
+        let oversubscribed: own Bool = igt<u64>(count, left);
+        match oversubscribed {
+          True() => {
+            let error: own InflateError = InvalidHuffmanTree();
+            return Err(error: error);
+          }
+          False() => {
+          }
+        }
+        set left = isub.wrap<u64>(left, count);
+        set length = iadd.wrap<u32>(length, 1_u32);
+      }
+    }
+  }
+  let incomplete: own Bool = igt<u64>(left, 0_u64);
+  match incomplete {
+    True() => {
+      let one_symbol: own Bool = ieq<u64>(nonzero, 1_u64);
+      let one_bit: own Bool = ieq<u32>(sole_length, 1_u32);
+      let permitted_single: own Bool = band<Bool>(allow_single, one_symbol);
+      let permitted_one_bit: own Bool = band<Bool>(permitted_single, one_bit);
+      let no_symbols: own Bool = ieq<u64>(nonzero, 0_u64);
+      let one_declared_symbol: own Bool = ieq<u64>(symbol_count, 1_u64);
+      let permitted_empty_tree: own Bool = band<Bool>(allow_empty, no_symbols);
+      let permitted_empty: own Bool = band<Bool>(permitted_empty_tree, one_declared_symbol);
+      let permitted_incomplete: own Bool = bor<Bool>(permitted_one_bit, permitted_empty);
+      match permitted_incomplete {
+        True() => {
+        }
+        False() => {
+          let error: own InflateError = InvalidHuffmanTree();
+          return Err(error: error);
+        }
+      }
+    }
+    False() => {
+    }
+  }
+  let offsets: own buffer<u64> = buffer_new<u64>(count_slots, 0_u64);
+  let offset: own u64 = 0_u64;
+  set length = 1_u32;
+  loop @build_offsets {
+    let offsets_done: own Bool = igt<u32>(length, max_bits);
+    match offsets_done {
+      True() => {
+        break @build_offsets;
+      }
+      False() => {
+        let count_index: own u64 = cvt<u32, u64>(length);
+        set index<u64>(offsets, count_index) = offset;
+        let count: own u64 = index<u64>(counts, count_index);
+        set offset = iadd.wrap<u64>(offset, count);
+        set length = iadd.wrap<u32>(length, 1_u32);
+      }
+    }
+  }
+  set symbol = 0_u64;
+  loop @order_symbols {
+    let ordered: own Bool = ieq<u64>(symbol, symbol_count);
+    match ordered {
+      True() => {
+        break @order_symbols;
+      }
+      False() => {
+        let length_byte: own u8 = index<u8>(lengths, symbol);
+        let symbol_length: own u32 = cvt<u8, u32>(length_byte);
+        let present: own Bool = igt<u32>(symbol_length, 0_u32);
+        match present {
+          True() => {
+            let count_index: own u64 = cvt<u32, u64>(symbol_length);
+            let destination: own u64 = index<u64>(offsets, count_index);
+            set index<u64>(symbols, destination) = symbol;
+            set index<u64>(offsets, count_index) = iadd.wrap<u64>(destination, 1_u64);
+          }
+          False() => {
+          }
+        }
+        set symbol = iadd.wrap<u64>(symbol, 1_u64);
+      }
+    }
+  }
+  let table: own HuffmanTable = HuffmanTable(counts: move counts, symbols: move symbols, max_bits: max_bits, used_symbols: nonzero);
+  return Ok(value: move table);
+}
+
+fn decode_table_symbol ['s, 'i, 't](state: &uniq 's InflateState, input: &'i buffer<u8>, table: &'t HuffmanTable) -> own Result<u64, InflateError> reads('s 'i 't), writes('s), traps {
+  let empty: own Bool = ieq<u64>(deref(table).used_symbols, 0_u64);
+  match empty {
+    True() => {
+      let error: own InflateError = InvalidHuffmanCode();
+      return Err(error: error);
+    }
+    False() => {
+    }
+  }
+  let code: own u64 = 0_u64;
+  let first: own u64 = 0_u64;
+  let symbol_index: own u64 = 0_u64;
+  let bit_length: own u32 = 1_u32;
+  let decoded: own u64 = 0_u64;
+  loop @table_code_lengths {
+    let bit: own u64 = 0_u64;
+    region 'table_bit_call {
+      match read_bits<'table_bit_call, 'table_bit_call>(state: &uniq 'table_bit_call deref(state), input: &'table_bit_call deref(input), count: 1_u32) {
+        Ok(value: read_bit) => {
+          set bit = read_bit;
+        }
+        Err(error: read_error) => {
+          return Err(error: read_error);
+        }
+      }
+    }
+    set code = ior<u64>(code, bit);
+    let count_index: own u64 = cvt<u32, u64>(bit_length);
+    let count: own u64 = index<u64>(deref(table).counts, count_index);
+    let first_after_count: own u64 = iadd.wrap<u64>(first, count);
+    let at_or_after_first: own Bool = ige<u64>(code, first);
+    let before_end: own Bool = ilt<u64>(code, first_after_count);
+    let found: own Bool = band<Bool>(at_or_after_first, before_end);
+    match found {
+      True() => {
+        let offset: own u64 = isub.wrap<u64>(code, first);
+        let ordered: own u64 = iadd.wrap<u64>(symbol_index, offset);
+        set decoded = index<u64>(deref(table).symbols, ordered);
+        break @table_code_lengths;
+      }
+      False() => {
+      }
+    }
+    set symbol_index = iadd.wrap<u64>(symbol_index, count);
+    set first = ishl.wrap<u64>(first_after_count, 1_u32);
+    set code = ishl.wrap<u64>(code, 1_u32);
+    let last_length: own Bool = ieq<u32>(bit_length, deref(table).max_bits);
+    match last_length {
+      True() => {
+        let error: own InflateError = InvalidHuffmanCode();
+        return Err(error: error);
+      }
+      False() => {
+      }
+    }
+    set bit_length = iadd.wrap<u32>(bit_length, 1_u32);
+  }
+  return Ok(value: decoded);
+}

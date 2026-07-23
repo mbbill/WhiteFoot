@@ -1,10 +1,11 @@
 enum InflateError {
   Truncated();
   InvalidStoredLength();
+  InvalidHuffmanTree();
   InvalidHuffmanCode();
   InvalidDistance();
+  InvalidBlockType();
   OutputFull();
-  UnsupportedBlockType();
 }
 
 struct InflateState {
@@ -210,32 +211,17 @@ fn decode_fixed ['s, 'i, 'o](state: &uniq 's InflateState, input: &'i buffer<u8>
             break @fixed_codes;
           }
           False() => {
-            let invalid_length_symbol: own Bool = ige<u64>(symbol, 286_u64);
-            match invalid_length_symbol {
-              True() => {
-                let error: own InflateError = InvalidHuffmanCode();
-                return Err(error: error);
-              }
-              False() => {
-              }
-            }
-            let length_index: own u64 = isub.wrap<u64>(symbol, 257_u64);
-            let length_base_word: own u16 = index<u16>(length_bases, length_index);
-            let length_base: own u64 = cvt<u16, u64>(length_base_word);
-            let length_extra_byte: own u8 = index<u8>(length_extras, length_index);
-            let length_extra_count: own u32 = cvt<u8, u32>(length_extra_byte);
-            let length_extra: own u64 = 0_u64;
-            region 'length_extra_call {
-              match read_bits<'length_extra_call, 'length_extra_call>(state: &uniq 'length_extra_call deref(state), input: &'length_extra_call deref(input), count: length_extra_count) {
-                Ok(value: extra) => {
-                  set length_extra = extra;
+            let copy_length: own u64 = 0_u64;
+            region 'fixed_length_call {
+              match decode_length<'fixed_length_call, 'fixed_length_call>(state: &uniq 'fixed_length_call deref(state), input: &'fixed_length_call deref(input), symbol: symbol) {
+                Ok(value: decoded_length) => {
+                  set copy_length = decoded_length;
                 }
                 Err(error: length_error) => {
                   return Err(error: length_error);
                 }
               }
             }
-            let copy_length: own u64 = iadd.wrap<u64>(length_base, length_extra);
             let distance_symbol: own u64 = 0_u64;
             region 'distance_symbol_call {
               match read_bits<'distance_symbol_call, 'distance_symbol_call>(state: &uniq 'distance_symbol_call deref(state), input: &'distance_symbol_call deref(input), count: 5_u32) {
@@ -247,60 +233,12 @@ fn decode_fixed ['s, 'i, 'o](state: &uniq 's InflateState, input: &'i buffer<u8>
                 }
               }
             }
-            let invalid_distance_symbol: own Bool = ige<u64>(distance_symbol, 30_u64);
-            match invalid_distance_symbol {
-              True() => {
-                let error: own InflateError = InvalidDistance();
-                return Err(error: error);
-              }
-              False() => {
-              }
-            }
-            let distance_base_word: own u16 = index<u16>(distance_bases, distance_symbol);
-            let distance_base: own u64 = cvt<u16, u64>(distance_base_word);
-            let distance_extra_byte: own u8 = index<u8>(distance_extras, distance_symbol);
-            let distance_extra_count: own u32 = cvt<u8, u32>(distance_extra_byte);
-            let distance_extra: own u64 = 0_u64;
-            region 'distance_extra_call {
-              match read_bits<'distance_extra_call, 'distance_extra_call>(state: &uniq 'distance_extra_call deref(state), input: &'distance_extra_call deref(input), count: distance_extra_count) {
-                Ok(value: extra) => {
-                  set distance_extra = extra;
+            region 'fixed_copy_call {
+              match copy_distance<'fixed_copy_call, 'fixed_copy_call, 'fixed_copy_call>(state: &uniq 'fixed_copy_call deref(state), input: &'fixed_copy_call deref(input), out: &uniq 'fixed_copy_call deref(out), copy_length: copy_length, distance_symbol: distance_symbol) {
+                Ok(value: copied) => {
                 }
-                Err(error: distance_error) => {
-                  return Err(error: distance_error);
-                }
-              }
-            }
-            let distance: own u64 = iadd.wrap<u64>(distance_base, distance_extra);
-            let before_history: own Bool = ilt<u64>(deref(state).output_offset, distance);
-            match before_history {
-              True() => {
-                let error: own InflateError = InvalidDistance();
-                return Err(error: error);
-              }
-              False() => {
-              }
-            }
-            let copied: own u64 = 0_u64;
-            loop @copy_match {
-              let copy_done: own Bool = ieq<u64>(copied, copy_length);
-              match copy_done {
-                True() => {
-                  break @copy_match;
-                }
-                False() => {
-                  let source_index: own u64 = isub.wrap<u64>(deref(state).output_offset, distance);
-                  let byte: own u8 = index<u8>(deref(out), source_index);
-                  region 'match_emit {
-                    match emit_byte<'match_emit, 'match_emit>(state: &uniq 'match_emit deref(state), out: &uniq 'match_emit deref(out), value: byte) {
-                      Ok(value: emitted) => {
-                      }
-                      Err(error: emit_error) => {
-                        return Err(error: emit_error);
-                      }
-                    }
-                  }
-                  set copied = iadd.wrap<u64>(copied, 1_u64);
+                Err(error: copy_error) => {
+                  return Err(error: copy_error);
                 }
               }
             }
@@ -312,7 +250,7 @@ fn decode_fixed ['s, 'i, 'o](state: &uniq 's InflateState, input: &'i buffer<u8>
   return Ok(value: unit);
 }
 
-fn inflate ['r](out: &uniq 'r buffer<u8>, input: own buffer<u8>) -> own Result<u64, InflateError> reads('r), writes('r), traps {
+fn inflate ['r](out: &uniq 'r buffer<u8>, input: own buffer<u8>) -> own Result<u64, InflateError> reads('r), writes('r), allocates(heap), traps {
   let input_length: own u64 = len<u8>(input);
   let output_length: own u64 = len<u8>(deref(out));
   let state: own InflateState = InflateState(input_offset: 0_u64, output_offset: 0_u64, hold: 0_u64, bits: 0_u32);
@@ -442,8 +380,24 @@ fn inflate ['r](out: &uniq 'r buffer<u8>, input: own buffer<u8>) -> own Result<u
             }
           }
           False() => {
-            let error: own InflateError = UnsupportedBlockType();
-            return Err(error: error);
+            let dynamic_block: own Bool = ieq<u64>(block_type, 2_u64);
+            match dynamic_block {
+              True() => {
+                region 'dynamic_call {
+                  match decode_dynamic<'dynamic_call, 'dynamic_call, 'dynamic_call>(state: &uniq 'dynamic_call state, input: &'dynamic_call input, out: &uniq 'dynamic_call deref(out)) {
+                    Ok(value: decoded) => {
+                    }
+                    Err(error: decode_error) => {
+                      return Err(error: decode_error);
+                    }
+                  }
+                }
+              }
+              False() => {
+                let error: own InflateError = InvalidBlockType();
+                return Err(error: error);
+              }
+            }
           }
         }
       }

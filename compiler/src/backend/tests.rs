@@ -154,12 +154,17 @@ fn compile_and_run(llvm: &str) -> Output {
 
 fn emitted_function<'module>(module: &'module str, name: &str) -> &'module str {
     let symbol = format!(" @wf_{name}(");
-    let symbol_start = module
-        .find(&symbol)
+    let function_start = module
+        .match_indices(&symbol)
+        .find_map(|(symbol_start, _)| {
+            let line_start = module[..symbol_start]
+                .rfind('\n')
+                .map_or(0, |newline| newline + 1);
+            module[line_start..symbol_start]
+                .starts_with("define internal")
+                .then_some(line_start)
+        })
         .unwrap_or_else(|| panic!("missing emitted function {name}"));
-    let function_start = module[..symbol_start]
-        .rfind("define internal")
-        .expect("source function must have an internal definition");
     let function_end = module[function_start..]
         .find("\n}\n\n")
         .map(|offset| function_start + offset + 3)
