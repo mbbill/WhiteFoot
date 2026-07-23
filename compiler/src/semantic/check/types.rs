@@ -200,19 +200,23 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     declaration,
                     class: DeclarationClass::NominalType,
                 } => {
-                    return self
-                        .nominals_by_declaration
+                    let template_index = *self
+                        .nominal_templates_by_declaration
                         .get(&declaration)
-                        .copied()
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    let template = self
+                        .nominal_templates
+                        .get(template_index)
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    let instance = self.nominal_generic_substitution(
+                        node,
+                        &template.generic_parameters,
+                        substitution,
+                    )?;
+                    return self
+                        .source_nominal_instance(declaration, &instance)
                         .map(CheckedType::Nominal)
-                        .ok_or(SemanticCompilerFailure::InvalidResolution.into())
-                        .and_then(|ty| {
-                            if let Some(targs) = targs {
-                                self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, targs)
-                            } else {
-                                Ok(ty)
-                            }
-                        });
+                        .ok_or(SemanticCompilerFailure::InvalidResolution.into());
                 }
                 ResolvedTarget::Source {
                     declaration,
@@ -234,28 +238,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             }
         }
         self.unsupported(UnsupportedSemanticFeatureV0_14::CompositeValues, node)
-    }
-
-    pub(super) fn prelude_type_ordinal(&self, node: NodeId) -> Result<Option<u8>, CheckStop> {
-        if self
-            .tree
-            .direct_token_with(node, TerminalPredicateV0_14::TypeIdentifier)?
-            .is_none()
-        {
-            return Ok(None);
-        }
-        let usage = self.use_at(node, LexicalUseRole::Type)?;
-        Ok(match usage.target() {
-            ResolvedTarget::Prelude(id) => Some(id.ordinal()),
-            _ => None,
-        })
-    }
-
-    pub(super) fn result_type_arguments(
-        &self,
-        node: NodeId,
-    ) -> Result<(CheckedType, CheckedType), CheckStop> {
-        self.result_type_arguments_with(node, &GenericSubstitution::default())
     }
 
     pub(super) fn result_type_arguments_with(
@@ -296,10 +278,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             self.parse_type_with(ok, substitution)?,
             self.parse_type_with(error, substitution)?,
         ))
-    }
-
-    pub(super) fn option_type_argument(&self, node: NodeId) -> Result<CheckedType, CheckStop> {
-        self.option_type_argument_with(node, &GenericSubstitution::default())
     }
 
     pub(super) fn option_type_argument_with(

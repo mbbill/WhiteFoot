@@ -109,6 +109,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
+            CheckedType::GenericInt(declaration) => CheckedFlatElement::GenericInt(declaration),
             _ => {
                 return self.issue_node(
                     SemanticRuleV0_14::Op1,
@@ -157,6 +158,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
             CheckedType::Integer(ty) => CheckedFlatElement::Integer(ty),
+            CheckedType::GenericInt(declaration) => CheckedFlatElement::GenericInt(declaration),
             _ => {
                 return self.issue_node(
                     SemanticRuleV0_14::Op1,

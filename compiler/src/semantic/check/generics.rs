@@ -268,6 +268,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             u32::try_from(self.signatures.len())
                 .map_err(|_| SemanticCompilerFailure::CounterOverflow)?,
         );
+        self.ensure_nominals_in_node(template.node, &substitution)?;
         let signature = self.build_function_signature(&template, substitution, id)?;
         self.functions_by_declaration
             .entry(template.declaration)
@@ -323,50 +324,15 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if !self.signatures.is_empty() || !self.functions_by_declaration.is_empty() {
             return Err(SemanticCompilerFailure::InvalidResolution.into());
         }
+        let nominal_checkpoint = self.nominal_checkpoint();
         for template_index in 0..self.function_templates.len() {
             let template = self
                 .function_templates
                 .get(template_index)
                 .cloned()
                 .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-            let mut substitutions = vec![GenericSubstitution::default()];
-            for parameter in &template.generic_parameters {
-                match *parameter {
-                    GenericParameter::Type {
-                        declaration,
-                        bound: GenericBound::Int,
-                    } => {
-                        for substitution in &mut substitutions {
-                            substitution.bindings.push((
-                                declaration,
-                                GenericArgument::Type(CheckedType::GenericInt(declaration)),
-                            ));
-                        }
-                    }
-                    GenericParameter::Type {
-                        bound: GenericBound::Unbounded,
-                        declaration,
-                    } => {
-                        for substitution in &mut substitutions {
-                            substitution.bindings.push((
-                                declaration,
-                                GenericArgument::Type(CheckedType::Generic(declaration)),
-                            ));
-                        }
-                    }
-                    GenericParameter::Const { declaration } => {
-                        for substitution in &mut substitutions {
-                            substitution.bindings.push((
-                                declaration,
-                                GenericArgument::Const(CheckedConst::Parameter(declaration)),
-                            ));
-                        }
-                    }
-                }
-            }
-            for substitution in substitutions {
-                self.instantiate_function_signature(template_index, substitution)?;
-            }
+            let substitution = self.symbolic_generic_substitution(&template.generic_parameters)?;
+            self.instantiate_function_signature(template_index, substitution)?;
         }
         self.discover_called_function_signatures(false)?;
         for index in 0..self.signatures.len() {
@@ -376,7 +342,35 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         self.signatures.clear();
         self.functions_by_declaration.clear();
+        self.restore_nominal_checkpoint(nominal_checkpoint)?;
         Ok(())
+    }
+
+    pub(super) fn symbolic_generic_substitution(
+        &self,
+        parameters: &[GenericParameter],
+    ) -> Result<GenericSubstitution, CheckStop> {
+        let bindings = parameters
+            .iter()
+            .copied()
+            .map(|parameter| {
+                let argument = match parameter {
+                    GenericParameter::Type {
+                        declaration,
+                        bound: GenericBound::Int,
+                    } => GenericArgument::Type(CheckedType::GenericInt(declaration)),
+                    GenericParameter::Type {
+                        declaration,
+                        bound: GenericBound::Unbounded,
+                    } => GenericArgument::Type(CheckedType::Generic(declaration)),
+                    GenericParameter::Const { declaration } => {
+                        GenericArgument::Const(CheckedConst::Parameter(declaration))
+                    }
+                };
+                (parameter.declaration(), argument)
+            })
+            .collect();
+        GenericSubstitution::from_bindings(bindings).map_err(CheckStop::Compiler)
     }
 
     fn reject_generic_call_cycles(&self) -> Result<(), CheckStop> {
@@ -500,7 +494,38 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         template: &FunctionTemplate,
         caller: &GenericSubstitution,
     ) -> Result<GenericSubstitution, CheckStop> {
-        if template.generic_parameters.is_empty() {
+        self.generic_substitution(node, &template.generic_parameters, caller, true)
+    }
+
+    pub(super) fn nominal_generic_substitution(
+        &self,
+        node: NodeId,
+        parameters: &[GenericParameter],
+        caller: &GenericSubstitution,
+    ) -> Result<GenericSubstitution, CheckStop> {
+        self.generic_substitution(node, parameters, caller, false)
+    }
+
+    fn generic_substitution(
+        &self,
+        node: NodeId,
+        parameters: &[GenericParameter],
+        caller: &GenericSubstitution,
+        allow_trailing_regions: bool,
+    ) -> Result<GenericSubstitution, CheckStop> {
+        if parameters.is_empty() {
+            if !allow_trailing_regions
+                && self
+                    .tree
+                    .first_child_with(node, ProductionV0_14::Targs)?
+                    .is_some()
+            {
+                return self.issue_node(
+                    SemanticRuleV0_14::Type5,
+                    node,
+                    SemanticIssueKind::TypeMismatch,
+                );
+            }
             return Ok(GenericSubstitution::default());
         }
         let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? else {
@@ -511,15 +536,17 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             );
         };
         let arguments = self.tree.children_with(targs, ProductionV0_14::Targ)?;
-        if arguments.len() < template.generic_parameters.len() {
+        if (allow_trailing_regions && arguments.len() < parameters.len())
+            || (!allow_trailing_regions && arguments.len() != parameters.len())
+        {
             return self.issue_node(
                 SemanticRuleV0_14::Type5,
                 node,
                 SemanticIssueKind::TypeMismatch,
             );
         }
-        let mut bindings = Vec::with_capacity(template.generic_parameters.len());
-        for (parameter, argument) in template.generic_parameters.iter().copied().zip(arguments) {
+        let mut bindings = Vec::with_capacity(parameters.len());
+        for (parameter, argument) in parameters.iter().copied().zip(arguments) {
             let value = match parameter {
                 GenericParameter::Type { bound, .. } => {
                     let Some(ty) = self

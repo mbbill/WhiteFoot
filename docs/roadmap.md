@@ -140,9 +140,10 @@ trapping and checked negation reuse defined signed-subtraction overflow
 detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
-This is not a completeness claim. Generics and contracts, borrow referents
-outside buffers and acyclic structs, returned borrows, bound/result-carrying/
-grandchild reborrows, floats, boxes, arenas, slices, recursive nominal layouts,
+This is not a completeness claim. Cyclic and region-bearing generic forms,
+generic contracts/conformances/laws and `requires`, borrow referents outside
+buffers and acyclic structs, returned borrows, bound/result-carrying/grandchild
+reborrows, floats, boxes, arenas, slices, recursive nominal layouts,
 branch-dependent ownership/loan joins, projected array targets, and
 floating-point and remaining effect-table operations are explicit unsupported
 compiler capabilities rather than source-language rejections.
@@ -766,20 +767,34 @@ generics by source-text expansion, inferred arguments, function or corpus
 allowlists, backend substitution, or an instance worklist that runs before the
 finite template-call graph has ruled out unsupported cycles.
 
-The function half of this milestone is now in place. Type, `Int`-bounded, and
+This bounded source-generic milestone is now in place. Type, `Int`-bounded, and
 integer-typed const parameters have distinct kinded terms; const identifiers
 remain symbolic through template calls and become u64 values only in concrete
-instances. Template-call cycles stop before closure, acyclic nested calls are
-checked before reachability, and the deterministic concrete worklist rechecks
-every reachable function instance through the ordinary semantic path. Each
+instances. Source-generic struct and enum templates receive symbolic member
+coverage, then each reachable kind-correct substitution gets one concrete
+nominal identity and fully substituted member table. Symbolic and concrete
+`Option`/`Result` instances, checked integer results, and generic arrays and
+buffers use those same tables rather than a backend substitution path.
+
+Template-call cycles stop before closure, acyclic nested calls are checked
+before reachability, and the deterministic concrete worklist rechecks every
+reachable function instance through the ordinary semantic path. Each function
 instance has one collision-free internal symbol while diagnostics retain the
-source function name. The independent `generic_instances.wf` program executes
-multiple `Int` types and forwarded array sizes through LLVM. `Int` templates
-use one symbolic bound term rather than enumerating the eight concrete types.
-Generic source nominal instance/member tables are the next work; until those
-exist, checked-result operations whose result needs a symbolic prelude nominal
-and source-generic struct/enum uses remain explicit generic unsupported
-capabilities, so Phase 8 is not complete.
+source declaration name. Independent semantic and executable tests cover
+multiple concrete type and const instances, nested nominal discovery,
+cross-record forwarding, exact kind/arity failures, constructor-only
+diagnostics, a symbolically valid body that fails its concrete OWN-1 recheck,
+deterministic closure, and a generic call cycle that stops before instance
+enumeration. `generic_instances.wf` and `generic_nominals.wf` execute the
+ordinary checked-IR and LLVM path.
+
+Cyclic generic calls, region-bearing generic arguments, source
+contracts/conformances/laws, generic `requires`, and generic `cvt` remain
+explicit unsupported capabilities under the milestone boundary rather than
+source rejections. Phase 8 is not complete. The immediate governance gate is
+owner review of the exact v0.15 target-layout candidate above; it must be
+approved and activated before compiler implementation can claim its new
+STOR-6 behavior.
 
 ## Phase 9: dogfood and language iteration
 

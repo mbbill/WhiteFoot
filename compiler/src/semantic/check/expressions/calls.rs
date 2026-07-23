@@ -249,9 +249,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 _ => None,
             };
         let result = if let Some(error) = checked_error {
-            if matches!(operand_type, CheckedType::GenericInt(_)) {
-                return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, node);
-            }
             CheckedType::Nominal(self.prelude_nominal(PreludeType::Result(
                 operand_type,
                 CheckedType::Nominal(self.prelude_nominal(error)?),

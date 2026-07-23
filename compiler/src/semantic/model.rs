@@ -115,10 +115,9 @@ impl CheckedType {
     pub(crate) const fn is_concrete(self) -> bool {
         match self {
             Self::Generic(_) | Self::GenericInt(_) => false,
-            Self::Array { length, .. } => length.is_concrete(),
-            Self::Unit | Self::Bool | Self::Integer(_) | Self::Nominal(_) | Self::Buffer { .. } => {
-                true
-            }
+            Self::Array { element, length } => element.ty().is_concrete() && length.is_concrete(),
+            Self::Buffer { element } => element.ty().is_concrete(),
+            Self::Unit | Self::Bool | Self::Integer(_) | Self::Nominal(_) => true,
         }
     }
 }

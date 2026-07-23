@@ -757,9 +757,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         loop_depth: usize,
         expected: Option<CheckedType>,
     ) -> Result<TypedExpression, CheckStop> {
-        if let Some(targs) = self.tree.first_child_with(node, ProductionV0_14::Targs)? {
-            return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, targs);
-        }
         let usage = self.use_at(node, LexicalUseRole::Construct)?;
         let constructor_name = usage.spelling().to_owned();
         if let ResolvedTarget::Prelude(id) = usage.target()
@@ -790,10 +787,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             ));
         }
         let constructor = match usage.target() {
-            ResolvedTarget::Source { declaration, .. } => *self
-                .constructors_by_declaration
-                .get(&declaration)
-                .ok_or(SemanticCompilerFailure::InvalidResolution)?,
+            ResolvedTarget::Source { declaration, .. } => {
+                self.source_constructor(node, declaration, &function.substitution)?
+            }
             ResolvedTarget::Prelude(id) => match id.ordinal() {
                 5 | 6 => {
                     let Some(CheckedType::Nominal(nominal)) = expected else {

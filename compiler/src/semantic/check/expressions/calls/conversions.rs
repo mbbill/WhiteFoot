@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::syntax::NodeId;
 use crate::{
     DeclarationId, ProductionV0_14, SemanticCompilerFailure, SemanticIssueKind, SemanticRuleV0_14,
+    UnsupportedSemanticFeatureV0_14,
 };
 
 use super::super::super::super::model::{CheckedExpression, CheckedMode, CheckedType};
@@ -62,14 +63,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         SemanticIssueKind::InvalidOperation,
                     )
                 })?;
-            let CheckedType::Integer(integer) =
-                self.parse_type_with(type_node, &function.substitution)?
-            else {
-                return self.issue_node(
-                    SemanticRuleV0_14::Op1,
-                    node,
-                    SemanticIssueKind::InvalidOperation,
-                );
+            let integer = match self.parse_type_with(type_node, &function.substitution)? {
+                CheckedType::Integer(integer) => integer,
+                CheckedType::GenericInt(_) => {
+                    return self.unsupported(UnsupportedSemanticFeatureV0_14::Generics, type_node);
+                }
+                _ => {
+                    return self.issue_node(
+                        SemanticRuleV0_14::Op1,
+                        node,
+                        SemanticIssueKind::InvalidOperation,
+                    );
+                }
             };
             types.push(integer);
         }

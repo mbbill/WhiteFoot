@@ -3,6 +3,7 @@ mod cleanup;
 mod control;
 mod expressions;
 mod generics;
+mod nominal_instances;
 mod nominals;
 mod requires;
 mod support;
@@ -58,6 +59,27 @@ struct FunctionTemplate {
     node: NodeId,
     name: String,
     generic_parameters: Vec<GenericParameter>,
+}
+
+#[derive(Clone)]
+struct NominalTemplate {
+    declaration: DeclarationId,
+    node: NodeId,
+    name: String,
+    role: DeclarationRole,
+    generic_parameters: Vec<GenericParameter>,
+}
+
+#[derive(Clone)]
+struct NominalInstance {
+    id: NominalId,
+    substitution: GenericSubstitution,
+}
+
+#[derive(Clone, Copy)]
+enum ConstructorTemplate {
+    Struct { template: usize },
+    Enum { template: usize, variant: u32 },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -190,10 +212,14 @@ struct Checker<'unit, 'classified, 'lexed, 'source> {
     tree: TreeView<'unit, 'classified, 'lexed, 'source>,
     nominals: Vec<CheckedNominal>,
     nominal_nodes: Vec<Option<NodeId>>,
+    nominal_states: Vec<u8>,
+    source_nominal_instances: Vec<Option<(usize, GenericSubstitution)>>,
     prelude_nominals: HashMap<PreludeType, NominalId>,
     prelude_types: Vec<Option<PreludeType>>,
-    nominals_by_declaration: HashMap<DeclarationId, NominalId>,
-    constructors_by_declaration: HashMap<DeclarationId, Constructor>,
+    nominal_templates: Vec<NominalTemplate>,
+    nominal_templates_by_declaration: HashMap<DeclarationId, usize>,
+    nominals_by_declaration: HashMap<DeclarationId, Vec<NominalInstance>>,
+    constructor_templates_by_declaration: HashMap<DeclarationId, ConstructorTemplate>,
     signatures: Vec<FunctionSignature>,
     function_templates: Vec<FunctionTemplate>,
     templates_by_declaration: HashMap<DeclarationId, usize>,
@@ -231,10 +257,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             tree: TreeView::new(resolved)?,
             nominals: Vec::new(),
             nominal_nodes: Vec::new(),
+            nominal_states: Vec::new(),
+            source_nominal_instances: Vec::new(),
             prelude_nominals: HashMap::new(),
             prelude_types: Vec::new(),
+            nominal_templates: Vec::new(),
+            nominal_templates_by_declaration: HashMap::new(),
             nominals_by_declaration: HashMap::new(),
-            constructors_by_declaration: HashMap::new(),
+            constructor_templates_by_declaration: HashMap::new(),
             signatures: Vec::new(),
             function_templates: Vec::new(),
             templates_by_declaration: HashMap::new(),
