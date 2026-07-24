@@ -173,6 +173,49 @@ First experiment: emit receipts for one bounds-proof family. Break each
 premise in turn and require the check to return, the receipt row to disappear,
 and the program to retain correct checked behavior.
 
+## Narrow semantic domains and automatic niches
+
+AI-written code should choose the narrowest honest type that contains every
+legitimate value. It should not default to a broad integer for convenience, and
+it should not manually reserve a sentinel value. Existing narrow integer types
+already help when the domain fits them. A future language experiment could add
+compiler-checked refined integers for domains such as “nonzero `u64`” or
+“`u64` from zero through `2^63 - 1`.” Any syntax used to express those domains
+would be a separate language decision; these examples describe semantics only.
+
+The compiler would make the refinement invariant unforgeable. Construction and
+conversion would require either a runtime check or a proof, and arithmetic
+would preserve the refined type only when its result remains in the declared
+domain. The layout pass could then derive invalid bit patterns automatically
+and use them as enum niches:
+
+- `Option<nonzero u64>` could encode `None` as zero and every nonzero bit
+  pattern as `Some`.
+- `Option<u64 constrained below 2^63>` could use the high bit to distinguish
+  `None`.
+- An unconstrained `Option<u64>` still cannot fit in one `u64`; all `2^64` bit
+  patterns are valid payloads, so reserving one would lose a legitimate value.
+
+There is no universally best physical layout. A standalone value, a packed
+record, and a collection with a separate presence bitmap may need different
+representations. The semantic type supplies the valid-value set; the compiler
+chooses and measures the context-appropriate representation without changing
+that set.
+
+The writer guidance should be: choose the narrowest type that contains every
+legitimate value, but never invent a bound from a practical assumption. For
+example, an offset remains `u64` unless its specification or enclosing type
+actually establishes a smaller range. A compiler diagnostic could suggest a
+narrower domain when a declared contract or proof supports it, but the compiler
+must not silently narrow program semantics.
+
+The first experiment should use a real bounded identifier or offset domain and
+compare an ordinary `Option<u64>` with a refined representation for size, ABI,
+code generation, and measured throughput. Boundary tests must show that every
+valid value round-trips and every invalid construction is rejected. Stop if
+maintaining the refinement costs more complexity or runtime work than the
+measured layout benefit justifies.
+
 ## Common admission questions
 
 Before an owner promotes one of these ideas, its experiment should answer:
