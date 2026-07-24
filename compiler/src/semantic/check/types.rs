@@ -41,6 +41,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             let ty = self.parse_type_with(ty_node, substitution)?;
             if mode != CheckedMode::Own {
                 let supported = matches!(ty, CheckedType::Buffer { .. })
+                    || matches!(ty, CheckedType::Slice { .. })
                     || matches!(
                         ty,
                         CheckedType::Nominal(nominal)
@@ -114,6 +115,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, Production::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            self.reject_region_bearing_storage_type(element_node, substitution)?;
             let length_node = self
                 .tree
                 .first_child_with(node, Production::Const)?
@@ -130,10 +132,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, Production::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            self.reject_region_bearing_storage_type(element_node, substitution)?;
             let element_type = self.parse_type_with(element_node, substitution)?;
             return Ok(CheckedType::Buffer {
                 element: self.checked_flat_element(element_type, element_node)?,
             });
+        }
+        if self.has_fixed(node, FixedTerminal::Arena)? {
+            let content_node = self
+                .tree
+                .first_child_with(node, Production::Type)?
+                .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            self.reject_region_bearing_storage_type(content_node, substitution)?;
+            return self.unsupported(UnsupportedSemanticFeature::CompositeValues, node);
         }
         if self.has_fixed(node, FixedTerminal::Slice)? {
             let usage = self.use_at(node, LexicalUseRole::TypeRegion)?;
@@ -159,11 +170,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, Production::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            self.reject_region_bearing_storage_type(referent_node, substitution)?;
             let referent = self.parse_type_with(referent_node, substitution)?;
-            if matches!(referent, CheckedType::Slice { .. }) {
-                return self
-                    .unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, referent_node);
-            }
             return self
                 .box_nominals
                 .get(&referent)
@@ -270,6 +278,77 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         self.unsupported(UnsupportedSemanticFeature::CompositeValues, node)
     }
 
+    pub(super) fn reject_region_bearing_generic_argument(
+        &self,
+        argument: NodeId,
+        substitution: &GenericSubstitution,
+    ) -> Result<(), CheckStop> {
+        if self.type_node_is_region_bearing_with(argument, substitution)? {
+            return self.issue_node(
+                SemanticRule::Fn2,
+                argument,
+                SemanticIssueKind::RegionBearingGenericArgument {
+                    mechanical_fix:
+                        "make the slice or arena a direct written parameter or result instead of a generic argument",
+                },
+            );
+        }
+        Ok(())
+    }
+
+    pub(super) fn reject_region_bearing_storage_type(
+        &self,
+        ty: NodeId,
+        substitution: &GenericSubstitution,
+    ) -> Result<(), CheckStop> {
+        if self.type_node_is_region_bearing_with(ty, substitution)? {
+            return self.issue_node(
+                SemanticRule::Stor5,
+                ty,
+                SemanticIssueKind::RegionBearingStorage {
+                    mechanical_fix:
+                        "keep the slice or arena as a direct local, parameter, or result; do not store it inside another value",
+                },
+            );
+        }
+        Ok(())
+    }
+
+    fn type_node_is_region_bearing_with(
+        &self,
+        node: NodeId,
+        substitution: &GenericSubstitution,
+    ) -> Result<bool, CheckStop> {
+        if self.has_fixed(node, FixedTerminal::Slice)?
+            || self.has_fixed(node, FixedTerminal::Arena)?
+        {
+            return Ok(true);
+        }
+        if self
+            .tree
+            .direct_token_with(node, TerminalPredicate::TypeIdentifier)?
+            .is_some()
+        {
+            let usage = self.use_at(node, LexicalUseRole::Type)?;
+            if let ResolvedTarget::Source {
+                declaration,
+                class: DeclarationClass::GenericType,
+            } = usage.target()
+                && substitution
+                    .type_argument(declaration)
+                    .is_some_and(|ty| matches!(ty, CheckedType::Slice { .. }))
+            {
+                return Ok(true);
+            }
+        }
+        for child in self.tree.children_with(node, Production::Type)? {
+            if self.type_node_is_region_bearing_with(child, substitution)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     pub(super) fn result_type_arguments_with(
         &self,
         node: NodeId,
@@ -282,6 +361,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let [ok, error] = arguments.as_slice() else {
             return self.issue_node(SemanticRule::Type5, node, SemanticIssueKind::TypeMismatch);
         };
+        self.reject_region_bearing_generic_argument(*ok, substitution)?;
+        self.reject_region_bearing_generic_argument(*error, substitution)?;
         let Some(ok) = self.tree.first_child_with(*ok, Production::Type)? else {
             return self.issue_node(SemanticRule::Type5, node, SemanticIssueKind::TypeMismatch);
         };
@@ -290,9 +371,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         let ok = self.parse_type_with(ok, substitution)?;
         let error = self.parse_type_with(error, substitution)?;
-        if matches!(ok, CheckedType::Slice { .. }) || matches!(error, CheckedType::Slice { .. }) {
-            return self.unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, node);
-        }
         Ok((ok, error))
     }
 
@@ -308,13 +386,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         let [value] = arguments.as_slice() else {
             return self.issue_node(SemanticRule::Type5, node, SemanticIssueKind::TypeMismatch);
         };
+        self.reject_region_bearing_generic_argument(*value, substitution)?;
         let Some(value) = self.tree.first_child_with(*value, Production::Type)? else {
             return self.issue_node(SemanticRule::Type5, node, SemanticIssueKind::TypeMismatch);
         };
         let value = self.parse_type_with(value, substitution)?;
-        if matches!(value, CheckedType::Slice { .. }) {
-            return self.unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, node);
-        }
         Ok(value)
     }
 

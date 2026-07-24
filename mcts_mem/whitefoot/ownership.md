@@ -1,7 +1,7 @@
 - Ownership is a deliberately simplified affine calculus: single owner per value, explicit `move` in ordinary consuming expressions, structurally declared consumption in the closed match and Result-propagation contexts, whole-binding death on any partial move, reinitialization only via a new binding.
 - Regions are lexical and named; every borrow is written with its mode and region — there is no inference of modes, regions, or lifetimes anywhere in the language.
 - Two borrow modes exist beside ownership: shared and exclusive; exclusivity is judged over resolved places, and content reached through any borrow can never be moved.
-- Overlap is conservative: struct fields are disjoint by prefix; two indexed places are disjoint only when both indices are unequal literals; slices over the same root always overlap (OWN-7).
+- Overlap is conservative: struct fields are disjoint by prefix; two indexed places are disjoint only when both indices are unequal literals; two fully substituted direct slices overlap when any pair of their finite resolved-place origins overlaps. An immutable-const origin needs no write conflict, while a formal-slice origin never proves disjointness before call substitution (OWN-7).
 - `set` overwrites only a writable copy-typed final place. Affine replacement remains absent: constructing a fresh owner under a new `let` is required until take/replace, failure, overlap, and old-value disposition have one selected semantics.
 - The checker rejects when unsure: a sound-but-unprovable program is rejected with a diagnostic naming the rule and a restructuring, never accepted on trust.
 
@@ -34,6 +34,7 @@
 - 2026-07-20 specification gap: TYPE-7 permits moving an affine referent out through an owning `box` or `arena` dereference, while STOR-3 specifies derived drops and releases without defining what happens to the now-empty backing allocation or owning container. Drop elaboration must remain open at that boundary rather than infer destruction or leakage. (code)
 - 2026-07-22 owner-approved specification: v0.12 selects copy-only SET-1 replacement because it creates no temporary ownership hole and requires no destruction of the previous copy; affine replacement remains blocked on exact failure, overlap, and old-storage disposition semantics. (sourced)
 - 2026-07-22 owner-approved specification: v0.13 makes a direct bare affine own-rooted Result place a consuming `propagate` operand, matching OWN-13's structural consumption while retaining explicit `move`; ordinary affine place uses still require `move`, and whole-root death and later-use rejection are unchanged. (sourced)
+- 2026-07-23 owner-approved specification: v0.17 gives every direct slice one finite static possible-origin set while each runtime descriptor still points to one actual origin. `slice_of` creates a singleton, movement preserves the complete set, and alias/effect judgments quantify over all members; under the deliberately unchanged named-region liveness, moving or returning the descriptor does not shorten its shared claim. (sourced)
 
 ## Moves
 

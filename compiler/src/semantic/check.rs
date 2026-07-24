@@ -22,12 +22,12 @@ use crate::{
 use super::model::{
     BindingId, CheckedConstant, CheckedConstantId, CheckedContract, CheckedExpression,
     CheckedFunction, CheckedMode, CheckedNominal, CheckedParameter, CheckedProgramData,
-    CheckedType, FunctionId, NominalId,
+    CheckedSliceOrigin, CheckedType, FunctionId, NominalId,
 };
 use super::tree::TreeView;
 use super::{CheckStop, CheckedProgram};
 use borrows::{AccessKind, ResolvedPlace};
-use borrows::{BorrowInfo, SliceInfo};
+use borrows::{BorrowInfo, SliceInfo, SliceLoan};
 use control::{ControlCounters, ControlScope};
 use generics::{GenericParameter, GenericSubstitution};
 
@@ -50,9 +50,32 @@ struct FunctionSignature {
     parameters: Vec<ParameterSignature>,
     result_mode: CheckedMode,
     result: CheckedType,
+    slice_return_ceiling: Vec<CheckedSliceOrigin>,
     effects_node: NodeId,
     declared_effects: EffectSet,
     substitution: GenericSubstitution,
+}
+
+fn derive_slice_return_ceiling(
+    parameters: &[ParameterSignature],
+    result_mode: CheckedMode,
+    result: CheckedType,
+) -> Vec<CheckedSliceOrigin> {
+    let (CheckedMode::Own, CheckedType::Slice { region, element }) = (result_mode, result) else {
+        return Vec::new();
+    };
+    let mut ceiling = vec![CheckedSliceOrigin::ImmutableConst];
+    for parameter in parameters {
+        if parameter.mode == CheckedMode::Own
+            && parameter.ty == (CheckedType::Slice { region, element })
+        {
+            ceiling.push(CheckedSliceOrigin::FormalSlice {
+                parameter: parameter.declaration,
+                region,
+            });
+        }
+    }
+    ceiling
 }
 
 struct ContractInfo {
@@ -99,6 +122,35 @@ struct LocalBinding {
     loop_depth: usize,
     borrow: Option<BorrowInfo>,
     slice: Option<SliceInfo>,
+    // Source-owned claims outlive any one slice descriptor and end only with
+    // their named data region.
+    slice_loans: Vec<SliceLoan>,
+}
+
+impl LocalBinding {
+    fn push_slice_loan(&mut self, loan: SliceLoan) {
+        if !self.slice_loans.contains(&loan) {
+            self.slice_loans.push(loan);
+        }
+    }
+
+    fn end_slice_region(&mut self, region: DeclarationId) {
+        self.slice_loans.retain(|loan| loan.region != region);
+    }
+
+    fn same_except_slice_loans(&self, other: &Self) -> bool {
+        let mut left = self.clone();
+        let mut right = other.clone();
+        left.slice_loans.clear();
+        right.slice_loans.clear();
+        left == right
+    }
+
+    fn merge_slice_loans_from(&mut self, other: &Self) {
+        for loan in &other.slice_loans {
+            self.push_slice_loan(loan.clone());
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -514,6 +566,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     loop_depth: 0,
                     borrow: self.parameter_borrow(parameter),
                     slice: self.parameter_slice(parameter),
+                    slice_loans: Vec::new(),
                 },
             );
             parameters.push(CheckedParameter {
@@ -521,6 +574,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 binding,
                 mode: parameter.mode,
                 ty: parameter.ty,
+                slice_origins: self
+                    .parameter_slice(parameter)
+                    .map(|slice| slice.origins)
+                    .unwrap_or_default(),
             });
         }
 
@@ -580,6 +637,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             parameters,
             result_mode: signature.result_mode,
             result: signature.result,
+            slice_return_ceiling: signature.slice_return_ceiling.clone(),
             declared_traps: signature.declared_effects.traps,
             declared_allocates_heap: signature.declared_effects.allocates_heap,
             requires: requires

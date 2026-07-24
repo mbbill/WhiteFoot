@@ -14,7 +14,10 @@ use super::super::model::{
     CheckedValue, ConformanceId, ContractId, IntegerType,
 };
 use super::generics::GenericSubstitution;
-use super::{CheckStop, Checker, ContractInfo, EffectSet, FunctionSignature, ParameterSignature};
+use super::{
+    CheckStop, Checker, ContractInfo, EffectSet, FunctionSignature, ParameterSignature,
+    derive_slice_return_ceiling,
+};
 
 pub(super) struct ContractMemberInfo {
     pub(super) name: String,
@@ -22,6 +25,7 @@ pub(super) struct ContractMemberInfo {
     pub(super) parameters: Vec<ParameterSignature>,
     pub(super) result_mode: CheckedMode,
     pub(super) result: CheckedType,
+    pub(super) slice_return_ceiling: Vec<super::super::model::CheckedSliceOrigin>,
     pub(super) effects: EffectSet,
 }
 
@@ -87,6 +91,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .collect(),
                     result_mode: member.result_mode,
                     result: member.result,
+                    slice_return_ceiling: member.slice_return_ceiling.clone(),
                     effects: checked_effects(&member.effects),
                 });
                 members.push(member);
@@ -135,6 +140,16 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let (result_mode, result) =
             self.parse_rtype_with(rtype, &GenericSubstitution::default())?;
+        if result_mode != CheckedMode::Own && matches!(result, CheckedType::Slice { .. }) {
+            return self.issue_node(
+                SemanticRule::Fn1,
+                rtype,
+                SemanticIssueKind::BorrowedSliceResult {
+                    mechanical_fix: "return the direct own slice descriptor under its data region; do not return a borrow of a slice descriptor",
+                },
+            );
+        }
+        let slice_return_ceiling = derive_slice_return_ceiling(&parameters, result_mode, result);
         let effects_node = self
             .tree
             .first_child_with(node, Production::Effects)?
@@ -146,6 +161,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             parameters,
             result_mode,
             result,
+            slice_return_ceiling,
             effects,
         })
     }
@@ -691,10 +707,12 @@ fn discharge_domain(
         CheckedExpression::Binding {
             binding: first_binding,
             ty: first_type,
+            ..
         },
         CheckedExpression::Binding {
             binding: second_binding,
             ty: second_type,
+            ..
         },
     ] = arguments.as_slice()
     else {

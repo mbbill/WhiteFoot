@@ -7,7 +7,8 @@ use crate::{
 };
 
 use super::super::model::{
-    CheckedBufferRoot, CheckedExpression, CheckedMode, CheckedNominalKind, CheckedType,
+    CheckedBufferRoot, CheckedExpression, CheckedMode, CheckedNominalKind, CheckedSliceOrigin,
+    CheckedType,
 };
 use super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, ParameterSignature,
@@ -37,8 +38,15 @@ pub(super) struct BorrowInfo {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct SliceInfo {
     pub(super) region: DeclarationId,
+    pub(super) origins: Vec<CheckedSliceOrigin>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct SliceLoan {
+    /// The named data region, which—not a descriptor binding—owns this claim.
+    pub(super) region: DeclarationId,
+    /// The exact source place protected for the complete named region.
     pub(super) place: ResolvedPlace,
-    pub(super) origin_region: Option<DeclarationId>,
 }
 
 #[derive(Clone, Copy)]
@@ -56,6 +64,51 @@ impl BorrowInfo {
             BorrowKind::Shared => CheckedMode::Shared(self.region),
             BorrowKind::Unique => CheckedMode::Unique(self.region),
         }
+    }
+}
+
+impl SliceInfo {
+    pub(super) fn source_places(&self) -> Vec<(ResolvedPlace, Option<DeclarationId>)> {
+        self.origins
+            .iter()
+            .filter_map(|origin| match origin {
+                CheckedSliceOrigin::SourcePlace {
+                    root,
+                    fields,
+                    origin_region,
+                } => Some((
+                    ResolvedPlace {
+                        root: *root,
+                        fields: fields.clone(),
+                    },
+                    *origin_region,
+                )),
+                CheckedSliceOrigin::ImmutableConst | CheckedSliceOrigin::FormalSlice { .. } => None,
+            })
+            .collect()
+    }
+
+    pub(super) fn effect_regions(&self) -> Vec<DeclarationId> {
+        let mut regions = Vec::new();
+        for origin in &self.origins {
+            let region = match origin {
+                CheckedSliceOrigin::SourcePlace { origin_region, .. } => *origin_region,
+                CheckedSliceOrigin::FormalSlice { region, .. } => Some(*region),
+                CheckedSliceOrigin::ImmutableConst => None,
+            };
+            if let Some(region) = region
+                && !regions.contains(&region)
+            {
+                regions.push(region);
+            }
+        }
+        regions
+    }
+}
+
+pub(super) fn push_slice_origin(origins: &mut Vec<CheckedSliceOrigin>, origin: CheckedSliceOrigin) {
+    if !origins.contains(&origin) {
+        origins.push(origin);
     }
 }
 
@@ -129,11 +182,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         };
         Some(SliceInfo {
             region,
-            place: ResolvedPlace {
-                root: parameter.declaration,
-                fields: Vec::new(),
-            },
-            origin_region: Some(region),
+            origins: vec![CheckedSliceOrigin::FormalSlice {
+                parameter: parameter.declaration,
+                region,
+            }],
         })
     }
 
@@ -246,6 +298,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             place,
             origin_region: None,
         };
+        let slice = local.slice.clone();
         let expression = match ty {
             CheckedType::Buffer { element } => CheckedExpression::BorrowBuffer {
                 root: CheckedBufferRoot {
@@ -275,6 +328,14 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     nominal,
                 }
             }
+            CheckedType::Slice { .. } if fields.is_empty() => CheckedExpression::Binding {
+                binding: local.binding,
+                ty,
+                slice_origins: slice
+                    .as_ref()
+                    .map(|slice| slice.origins.clone())
+                    .unwrap_or_default(),
+            },
             _ => {
                 return self.unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, place_node);
             }
@@ -283,7 +344,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             expression,
             mode: borrow.mode(),
             borrow: Some(borrow),
-            slice: None,
+            slice,
             holder: None,
             effects: EffectSet::NONE,
             accesses: Vec::new(),
@@ -627,18 +688,19 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     );
                 }
             }
-            if let Some(slice) = &local.slice
-                && places_overlap(&slice.place, place)
-                && matches!(
-                    access,
-                    AccessKind::Write | AccessKind::Move | AccessKind::UniqueBorrow
-                )
-            {
-                return self.issue_node(
-                    SemanticRule::Own5,
-                    node,
-                    SemanticIssueKind::BorrowConflict,
-                );
+            for loan in &local.slice_loans {
+                if places_overlap(&loan.place, place)
+                    && matches!(
+                        access,
+                        AccessKind::Write | AccessKind::Move | AccessKind::UniqueBorrow
+                    )
+                {
+                    return self.issue_node(
+                        SemanticRule::Own5,
+                        node,
+                        SemanticIssueKind::BorrowConflict,
+                    );
+                }
             }
         }
         Ok(())

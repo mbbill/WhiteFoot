@@ -357,6 +357,30 @@ fn main() -> own unit pure {
             };
         },
     );
+
+    assert_rule(
+        br#"struct Owner {
+  source: buffer<u8>;
+  sibling: buffer<u8>;
+}
+
+fn consume ['r](source: &'r buffer<u8>, sibling: own buffer<u8>) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit allocates(heap), traps {
+  let source: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let sibling: own buffer<u8> = buffer_new<u8>(1_u64, 0_u8);
+  let owner: own Owner = Owner(source: move source, sibling: move sibling);
+  region 'r {
+    consume<'r>(source: &'r owner.source, sibling: move owner.sibling);
+  }
+  return unit;
+}
+"#,
+        SemanticRule::Own12,
+        SemanticIssueKind::BorrowConflict,
+    );
 }
 
 #[test]

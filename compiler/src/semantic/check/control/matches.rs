@@ -316,6 +316,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         loop_depth,
                         borrow,
                         slice: None,
+                        slice_loans: Vec::new(),
                     },
                 )
                 .is_some()
@@ -363,19 +364,22 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             return Ok(());
         };
         for key in base_keys {
-            let expected = first
+            let mut joined = first
                 .get(key)
+                .cloned()
                 .ok_or(SemanticCompilerFailure::InvalidResolution)?;
-            if states
-                .iter()
-                .skip(1)
-                .any(|state| state.get(key) != Some(expected))
-            {
-                return self.unsupported(UnsupportedSemanticFeature::OwnershipJoin, node);
+            for state in states.iter().skip(1) {
+                let candidate = state
+                    .get(key)
+                    .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                if !joined.same_except_slice_loans(candidate) {
+                    return self.unsupported(UnsupportedSemanticFeature::OwnershipJoin, node);
+                }
+                joined.merge_slice_loans_from(candidate);
             }
             *bindings
                 .get_mut(key)
-                .ok_or(SemanticCompilerFailure::InvalidResolution)? = expected.clone();
+                .ok_or(SemanticCompilerFailure::InvalidResolution)? = joined;
         }
         Ok(())
     }

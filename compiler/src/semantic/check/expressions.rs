@@ -518,14 +518,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             .ok_or(SemanticCompilerFailure::InvalidResolution)?
                             .live = false;
                     }
+                    let slice = local.slice;
+                    let slice_origins = slice
+                        .as_ref()
+                        .map(|slice| slice.origins.clone())
+                        .unwrap_or_default();
                     return Ok(TypedExpression {
                         expression: CheckedExpression::Binding {
                             binding: local.binding,
                             ty: local.ty,
+                            slice_origins,
                         },
                         mode: local.mode,
                         borrow: local.borrow,
-                        slice: None,
+                        slice,
                         holder: Some(declaration),
                         effects: EffectSet::NONE,
                         accesses: Vec::new(),
@@ -563,18 +569,24 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         },
                     );
                 }
+                // OWN-1 makes an affine projection consume its whole root.
+                // Its residual cleanup destroys every unselected resource
+                // field, so the loan access is the root rather than only the
+                // selected projection.
+                let access_fields = if copy { fields.clone() } else { Vec::new() };
+                let access_kind = if copy {
+                    AccessKind::Read
+                } else {
+                    AccessKind::Move
+                };
                 self.check_loan_access(
                     bindings,
                     None,
                     &ResolvedPlace {
                         root: declaration,
-                        fields: fields.clone(),
+                        fields: access_fields.clone(),
                     },
-                    if copy {
-                        AccessKind::Read
-                    } else {
-                        AccessKind::Move
-                    },
+                    access_kind,
                     use_node,
                 )?;
                 let residual_drops = if copy || fields.is_empty() {
@@ -593,24 +605,25 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
                 let access = ResolvedPlace {
                     root: declaration,
-                    fields: fields.clone(),
-                };
-                let access_kind = if copy {
-                    AccessKind::Read
-                } else {
-                    AccessKind::Move
+                    fields: access_fields,
                 };
                 if fields.is_empty() {
+                    let slice = local.slice;
+                    let slice_origins = slice
+                        .as_ref()
+                        .map(|slice| slice.origins.clone())
+                        .unwrap_or_default();
                     let mut expression = TypedExpression::owned_with_access(
                         CheckedExpression::Binding {
                             binding: local.binding,
                             ty,
+                            slice_origins,
                         },
                         EffectSet::NONE,
                         access,
                         access_kind,
                     );
-                    expression.slice = local.slice;
+                    expression.slice = slice;
                     Ok(expression)
                 } else {
                     Ok(TypedExpression::owned_with_access(

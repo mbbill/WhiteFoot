@@ -1,0 +1,8 @@
+fn invalid ['data, 'storage](value: own slice<'data, u8>) -> own unit allocates(arena 'storage) {
+  arena_new<'storage, slice<'data, u8>>(move value);
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}

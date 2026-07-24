@@ -602,7 +602,7 @@ impl<'program> IrBuilder<'program> {
 
     fn expression(&mut self, expression: &CheckedExpression) -> Result<IrValueId, LoweringFailure> {
         match expression {
-            CheckedExpression::Binding { binding, ty } => {
+            CheckedExpression::Binding { binding, ty, .. } => {
                 let value = self
                     .bindings
                     .get(binding)
@@ -634,6 +634,7 @@ impl<'program> IrBuilder<'program> {
                 function,
                 arguments,
                 result,
+                ..
             } => {
                 let arguments = arguments
                     .iter()

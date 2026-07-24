@@ -1,0 +1,7 @@
+contract BorrowedSliceResult {
+  fn borrowed ['descriptor, 'data](value: &uniq 'descriptor slice<'data, u8>) -> &uniq 'descriptor slice<'data, u8> pure;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}

@@ -24,7 +24,7 @@ ordered source bundle
 ```
 
 The frontend targets the exact bytes of
-`../spec/kernel-spec-v0.16.md`. `cargo run --bin whitefoot-spec` checks that
+`../spec/kernel-spec-v0.17.md`. `cargo run --bin whitefoot-spec` checks that
 those bytes are the approved candidate and that the terminal and grammar data
 name the same specification identity. The committed grammar tables are
 ordinary compiler data. The exact specification identity is versioned data;
@@ -121,7 +121,8 @@ before the body. Callers do not prove it, and it is never turned into
 program exercises this path through the ordinary loop, buffer, effect, and
 cleanup implementation.
 
-The v0.16 static contract family is checked before checked-program publication.
+The v0.17 compiler retains the static contract family introduced in v0.16 and
+checks it before checked-program publication.
 A nongeneric source contract contributes its source-ordered unique member
 signatures and laws. Each source conformance has one exact concrete subject,
 one coherent source-contract key, and exactly one declared-order binding for
@@ -136,7 +137,7 @@ That evidence is deliberately non-executable. Lowering reads the same ordinary
 checked functions and operations as before, ignores the contract metadata, and
 creates no contract object, dictionary, vtable, indirect call, runtime check,
 ABI component, or optimizer fact. A bound function is emitted only through its
-normal direct function path. v0.16 has no contract-member call operation, and
+normal direct function path. v0.17 has no contract-member call operation, and
 generic source contracts and source-contract generic bounds receive their
 specified FN-3 rejections rather than becoming unsupported compiler features.
 
@@ -151,15 +152,23 @@ and abandonment cleanup through the same representation.
 The implemented borrow family covers buffer owners, whole acyclic struct
 owners, copy-field projection, caller-visible read/write effects, and
 statement-scoped shared or mode-compatible unique child reborrows around one
-call. It deliberately stops before returned borrows, borrow-producing branch
-joins, boxes, arenas, slices, and storage roots not handled by those general
-paths. Those forms remain explicit unsupported compiler capabilities; they are
-not accepted with incomplete loan checking. Unimplemented active-specification families stop
-the same way rather than becoming source-language rejections. Whole-unit ERR-2
-variant-addition edit-list enumeration remains future work.
-Projected array roots, slices, and non-buffer borrow-backed SET-1 targets
-remain unsupported until their place families exist; none of these gaps is
-implied complete by the current gate.
+call. Boxes, direct own-rooted projected arrays, and direct read-only slices
+over arrays, primitive buffers, and immutable const arrays use the same checked
+place, cleanup, and backend paths. The compiler deliberately stops before
+returned borrows, borrow-producing branch joins, arenas, slices formed through
+borrow holders, non-flat slice elements, and non-buffer borrow-backed SET-1
+targets. Direct own returned slices use v0.17's finite-origin rules through the
+normal semantic, lowering, and unchanged slice-descriptor path. A source
+claim belongs to its named data region rather than to one descriptor binding,
+so nested scopes preserve it, control joins take its conservative union, and
+only leaving that named region releases it.
+Non-flat direct slice types likewise retain their language status while the
+compiler lacks their value path. Region-bearing function and nominal generic
+arguments, region-bearing box or arena content, borrow-mode direct-slice
+results, and slice-valued value matches instead receive the specified FN-2,
+STOR-5, FN-1, and OWN-5 source rejections. Unimplemented active-specification
+families stop as unsupported rather than becoming source-language rejections.
+Whole-unit ERR-2 variant-addition edit-list enumeration remains future work.
 
 Compile a source file through the normal path with:
 

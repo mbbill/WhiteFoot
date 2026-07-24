@@ -168,6 +168,28 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         SemanticIssueKind::ReturnMismatch,
                     );
                 }
+                if matches!(function.result, CheckedType::Slice { .. }) {
+                    let origins = value
+                        .slice
+                        .as_ref()
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    if !origins
+                        .origins
+                        .iter()
+                        .all(|origin| function.slice_return_ceiling.contains(origin))
+                    {
+                        return Err(CheckStop::Issue(SemanticIssue {
+                            rule: SemanticRule::Fn1,
+                            location: SemanticLocation::SourceNode(
+                                self.tree.path(node)?.clone(),
+                                self.tree.coordinate(expression_node)?,
+                            ),
+                            kind: SemanticIssueKind::InvalidSliceReturnOrigin {
+                                mechanical_fix: "accept an exact direct input slice in the result region or keep the newly formed view in its caller; do not return a view of raw callee storage",
+                            },
+                        }));
+                    }
+                }
                 Ok(StatementResult {
                     statement: CheckedStatement::Return {
                         value: value.expression,
@@ -353,7 +375,13 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, value_match);
             }
             if matches!(expected, CheckedType::Slice { .. }) {
-                return self.unsupported(UnsupportedSemanticFeature::OwnershipJoin, value_match);
+                return self.issue_node(
+                    SemanticRule::Own5,
+                    value_match,
+                    SemanticIssueKind::SliceValueMatch {
+                        mechanical_fix: "use a match statement whose arms return the slice directly, or call helpers with direct slice results",
+                    },
+                );
             }
             let matched = self.check_match(
                 function,
@@ -383,6 +411,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                             loop_depth: scope.loops.len(),
                             borrow: None,
                             slice: None,
+                            slice_loans: Vec::new(),
                         },
                     )
                     .is_some()
@@ -466,6 +495,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     loop_depth: scope.loops.len(),
                     borrow,
                     slice: value.slice,
+                    slice_loans: Vec::new(),
                 },
             )
             .is_some()
@@ -489,7 +519,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         counters: &mut ControlCounters<'_>,
         scope: ControlScope<'_>,
     ) -> Result<StatementResult, CheckStop> {
-        let _region = self.declaration_at(node, DeclarationRole::LocalRegion)?;
+        let region = self
+            .declaration_at(node, DeclarationRole::LocalRegion)?
+            .id();
         let base_keys = bindings.keys().copied().collect::<HashSet<_>>();
         let statements = self.tree.children_with(node, Production::Stmt)?;
         let mut checked = self.check_block(function, &statements, bindings, counters, scope)?;
@@ -501,11 +533,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if checked.can_continue {
             bindings.retain(|declaration, _| base_keys.contains(declaration));
         }
+        for local in bindings.values_mut() {
+            local.end_slice_region(region);
+        }
         for state in &mut checked.give_states {
             state.retain(|declaration, _| base_keys.contains(declaration));
+            for local in state.values_mut() {
+                local.end_slice_region(region);
+            }
         }
         for state in &mut checked.break_states {
             state.retain_bindings(&base_keys);
+            state.end_slice_region(region);
         }
         Ok(StatementResult {
             statement: CheckedStatement::Region {

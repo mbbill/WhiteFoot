@@ -11,7 +11,7 @@ rule-by-rule check against the paper text is the remaining OBLIGATION-0.
 | Ours | FR mechanism | Relation | Obligation |
 |---|---|---|---|
 | OWN-1 copy/affine + whole-binding kill | FR type-classed copy vs move; partial moves tracked per sub-path | STRICTER (we kill whole binding) | none — restriction preserves soundness |
-| OWN-2 own/&'r/&uniq 'r | FR box T / &(paths) / &mut(paths) | DIFFERENT-SOUND: FR types borrows by the SET of places they may reference; ours by one place + named region | see T-A below |
+| OWN-2 own/&'r/&uniq 'r | FR box T / &(paths) / &mut(paths) | DIFFERENT-SOUND: FR types borrows by the SET of places they may reference; each Whitefoot borrow holder has one resolved place + named region, while a direct slice separately carries a finite static origin set | see T-A below |
 | OWN-3 lexical named regions, total outlives | FR block-scoped lifetimes l with nesting order | EQUIVALENT on lexical fragment; ours adds caller-region incomparability (fail-closed) | none |
 | OWN-4 store/return outlives direction | FR write-compatibility: assigned value's lifetime >= destination slot's | EQUIVALENT (direction verified — this is the rule our critique found inverted in v0; FR agrees with the fix) | none |
 | OWN-5 resolved-place exclusivity | FR read/write-prohibited side conditions computed from borrow types in env | EQUIVALENT intent; ours eager per-place, FR per-judgment | OBL-1: model-check equivalence on shared fragment |
@@ -26,13 +26,35 @@ rule-by-rule check against the paper text is the remaining OBLIGATION-0.
 
 ## Two structural theorems that simplify our obligation set
 
-**T-A (singleton provenance).** FR must type borrows with *sets* of target places because
-FR permits rebinding borrow variables at control-flow merges. Our kernel has NO borrow
-rebinding: `set` on a ref-mode binding writes THROUGH it (OWN-5/6); bindings bind once
-(TYPE-6, OWN-1 reinit-requires-new-let). Therefore every borrow's provenance is a
-singleton for its entire life, FR's path-sets degenerate to our one-place model, and
-merge-point soundness is trivial. This is the load-bearing simplification of the whole
-D1a "frontend-scale checker" bet — and it is a LANGUAGE choice, not a checker shortcut.
+**T-A (borrow-holder singleton; direct-slice finite origins).** FR must type
+borrows with *sets* of target places because FR permits rebinding borrow
+variables at control-flow merges. Whitefoot has no borrow rebinding: `set` on
+a ref-mode binding writes through it (OWN-5/6), and bindings bind once
+(TYPE-6, OWN-1 reinit-requires-new-let). Therefore every borrow holder's
+provenance remains one resolved place for its entire life. FR's path-set and
+retyping machinery still degenerates to the one-place holder model.
+
+v0.17 direct slices are a separate value category, not a relaxation of that
+holder theorem. A slice value carries a finite static set that overapproximates
+its one runtime storage root. Coverage follows by induction over the closed
+slice-producing forms:
+
+1. an incoming direct-slice parameter starts with its one formal-slice origin;
+2. `slice_of` starts with one resolved source place or `immutable-const`;
+3. binding, moving, passing, returning, and resolving through a borrowed
+   descriptor preserve the complete set; and
+4. a call simultaneously substitutes each finite actual set for the finite
+   formal ceiling and takes a finite union.
+
+No other form silently creates a set: slice-valued `value_match` is rejected,
+region-bearing stored and generic leaves are excluded, borrow-mode slice
+results are rejected, and a returned direct slice must stay within its written
+FN-1 ceiling. Recursion reuses that finite written ceiling and therefore needs
+no body fixed point. By induction, the runtime root is always a member of the
+static set. OWN-5/OWN-7 alias checks and EFF-2 effect projection quantify over
+every member, so no runtime choice or traversal order may narrow the
+overapproximation. The holder-singleton simplification and the direct-slice
+set-wide proof are both language rules, not checker shortcuts.
 
 **T-B (arm isolation).** Match arms are alternative blocks with binders scoped per arm;
 no borrow born in an arm can outlive the match without naming an outer region, which
@@ -135,13 +157,15 @@ Bonus exact alignments found:
   conflict", p.21, with field-disjointness noted as the sanctioned extension) —
   our OWN-7 field-prefix precision is along FR's own extension direction.
 
-**The one true permissiveness delta, now precisely located**: FR supports borrow
+**The one true borrow-holder permissiveness delta, now precisely located**: FR supports borrow
 REASSIGNMENT with retyping (T-Assign write⁰ example 17: z retypes &mut y → &mut x,
 p.25) — the exact feature whose absence T-A exploits. FR needs lval-set types and
 retyping machinery to support it; we ban it (R1: serves writer flexibility only)
-and the whole set/retype apparatus collapses to singletons. T-A is thereby
-confirmed as sound-by-subsetting: our checker handles a strict subset of FR's
-state space.
+and its borrow-holder set/retype apparatus collapses to singletons. T-A is
+thereby confirmed as sound-by-subsetting for borrow holders: our checker
+handles a strict subset of FR's holder state space. v0.17's finite direct-slice
+origins do not reintroduce assignment or retyping; they use the separate
+closed-producer and set-wide proof above.
 
 **Status for the M0 ownership fragment: §5 core reconciled. All obligations
 OBL-0..3 discharged** (OBL-1 at fragment scope). Recommendation to owner:

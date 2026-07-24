@@ -562,6 +562,25 @@ pub(crate) struct CheckedSliceRoot {
     pub(crate) element: CheckedFlatElement,
 }
 
+/// One member of the finite static origin set carried by a direct slice value.
+///
+/// The set is a conservative summary: one runtime slice descriptor points at
+/// exactly one source, which must be represented by one member after complete
+/// call substitution.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum CheckedSliceOrigin {
+    SourcePlace {
+        root: DeclarationId,
+        fields: Vec<u32>,
+        origin_region: Option<DeclarationId>,
+    },
+    ImmutableConst,
+    FormalSlice {
+        parameter: DeclarationId,
+        region: DeclarationId,
+    },
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CheckedSliceSource {
     Array {
@@ -577,11 +596,13 @@ pub(crate) enum CheckedExpression {
     Binding {
         binding: BindingId,
         ty: CheckedType,
+        slice_origins: Vec<CheckedSliceOrigin>,
     },
     UserCall {
         function: FunctionId,
         arguments: Vec<CheckedExpression>,
         result: CheckedType,
+        slice_origins: Vec<CheckedSliceOrigin>,
     },
     IntegerOperation {
         operation: CheckedIntegerOperation,
@@ -652,6 +673,7 @@ pub(crate) enum CheckedExpression {
         source: CheckedSliceSource,
         region: DeclarationId,
         element: CheckedFlatElement,
+        origins: Vec<CheckedSliceOrigin>,
     },
     SliceLength {
         root: CheckedSliceRoot,
@@ -920,6 +942,7 @@ pub(crate) struct CheckedParameter {
     pub(crate) binding: BindingId,
     pub(crate) mode: CheckedMode,
     pub(crate) ty: CheckedType,
+    pub(crate) slice_origins: Vec<CheckedSliceOrigin>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -931,6 +954,7 @@ pub(crate) struct CheckedFunction {
     pub(crate) parameters: Vec<CheckedParameter>,
     pub(crate) result_mode: CheckedMode,
     pub(crate) result: CheckedType,
+    pub(crate) slice_return_ceiling: Vec<CheckedSliceOrigin>,
     pub(crate) declared_traps: bool,
     pub(crate) declared_allocates_heap: bool,
     pub(crate) requires: Vec<CheckedStatement>,
@@ -959,6 +983,7 @@ pub(crate) struct CheckedContractMember {
     pub(crate) parameters: Vec<CheckedContractParameter>,
     pub(crate) result_mode: CheckedMode,
     pub(crate) result: CheckedType,
+    pub(crate) slice_return_ceiling: Vec<CheckedSliceOrigin>,
     pub(crate) effects: CheckedEffectCapabilities,
 }
 

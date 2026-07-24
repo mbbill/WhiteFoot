@@ -1,6 +1,6 @@
 use crate::{SemanticIssueKind, SemanticLocation, SemanticOutcome, SemanticRule, lower_checked};
 
-use super::super::model::{CheckedContractLawKind, CheckedIntegerOperation};
+use super::super::model::{CheckedContractLawKind, CheckedIntegerOperation, CheckedSliceOrigin};
 use super::{assert_rule, with_semantics};
 
 fn assert_issue_slice(source: &[u8], rule: SemanticRule, kind: SemanticIssueKind, expected: &[u8]) {
@@ -542,5 +542,41 @@ fn main() -> own unit pure {
         SemanticRule::Fn3,
         SemanticIssueKind::IncompatibleConformanceFunction,
         b"length = second_length;",
+    );
+}
+
+#[test]
+fn contract_slice_results_share_function_signature_formation() {
+    let source = br#"contract SlicePass {
+  fn pass ['r](value: own slice<'r, u8>) -> own slice<'r, u8> pure;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#;
+    with_semantics(source, |outcome| {
+        let SemanticOutcome::Complete(checked) = outcome else {
+            panic!("own direct-slice contract result must check: {outcome:?}");
+        };
+        let ceiling = &checked.data.contracts[0].members[0].slice_return_ceiling;
+        assert_eq!(ceiling.len(), 2);
+        assert!(matches!(ceiling[0], CheckedSliceOrigin::ImmutableConst));
+        assert!(matches!(ceiling[1], CheckedSliceOrigin::FormalSlice { .. }));
+    });
+
+    assert_rule(
+        br#"contract Invalid {
+  fn borrowed ['descriptor, 'data](value: &uniq 'descriptor slice<'data, u8>) -> &uniq 'descriptor slice<'data, u8> pure;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Fn1,
+        SemanticIssueKind::BorrowedSliceResult {
+            mechanical_fix: "return the direct own slice descriptor under its data region; do not return a borrow of a slice descriptor",
+        },
     );
 }

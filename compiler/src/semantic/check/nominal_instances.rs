@@ -156,6 +156,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(node, Production::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            self.reject_region_bearing_storage_type(referent_node, substitution)?;
             let referent = self.parse_type_with(referent_node, substitution)?;
             self.intern_box_nominal(referent)?;
             return Ok(());
@@ -512,6 +513,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 .tree
                 .first_child_with(field, Production::Type)?
                 .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+            self.reject_region_bearing_storage_type(ty, substitution)?;
             self.ensure_nominal_type(ty, substitution)?;
             let parsed = self.parse_type_with(ty, substitution)?;
             fields.push(CheckedField { name, ty: parsed });
@@ -553,6 +555,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         .tree
                         .first_child_with(field, Production::Type)?
                         .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+                    self.reject_region_bearing_storage_type(ty, substitution)?;
                     self.ensure_nominal_type(ty, substitution)?;
                     let parsed = self.parse_type_with(ty, substitution)?;
                     fields.push(CheckedField {

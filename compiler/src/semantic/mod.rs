@@ -61,6 +61,8 @@ pub enum SemanticRule {
     Type7,
     /// Storage-class and affine replacement restrictions.
     Stor1,
+    /// Borrow-free and region-free stored-content formation.
+    Stor5,
     /// Operation-table row selection.
     Op1,
     /// Exact conversion-pair result classification.
@@ -120,6 +122,7 @@ impl SemanticRule {
             Self::Own12 => "OWN-12",
             Self::Type7 => "TYPE-7",
             Self::Stor1 => "STOR-1",
+            Self::Stor5 => "STOR-5",
             Self::Op1 => "OP-1",
             Self::Op6 => "OP-6",
             Self::Op5 => "OP-5",
@@ -220,6 +223,31 @@ pub enum SemanticIssueKind {
     InvalidCheckCondition,
     /// A return expression disagrees with the written function result.
     ReturnMismatch,
+    /// A returned direct slice may originate outside its signature ceiling.
+    InvalidSliceReturnOrigin {
+        /// Required FN-1 restructuring.
+        mechanical_fix: &'static str,
+    },
+    /// A borrow-mode result cannot directly refer to a slice descriptor.
+    BorrowedSliceResult {
+        /// Required FN-1 restructuring.
+        mechanical_fix: &'static str,
+    },
+    /// A generic type argument contains a region-bearing value.
+    RegionBearingGenericArgument {
+        /// Required FN-2 restructuring.
+        mechanical_fix: &'static str,
+    },
+    /// A stored-content position contains a region-bearing value.
+    RegionBearingStorage {
+        /// Required STOR-5 restructuring.
+        mechanical_fix: &'static str,
+    },
+    /// A slice-valued value match would require an unselected origin join.
+    SliceValueMatch {
+        /// Required OWN-5 restructuring.
+        mechanical_fix: &'static str,
+    },
     /// A statement follows a structurally terminating statement.
     UnreachableStatement,
     /// The function body can reach its closing brace.

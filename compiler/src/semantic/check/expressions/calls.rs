@@ -81,6 +81,10 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         if floating::is_float_operation(spelling) {
             return self.check_float_operation(node, spelling, function, bindings, loop_depth);
         }
+        if spelling == "arena_new" {
+            self.reject_region_bearing_storage_operation_argument(node, spelling, function, 2, 1)?;
+            return self.unsupported(UnsupportedSemanticFeature::OperationFamily, node);
+        }
         if spelling == "array_new" {
             return self.check_array_new(node, function, bindings, loop_depth);
         }
@@ -316,6 +320,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
+        self.reject_region_bearing_storage_operation_argument(node, "box_new", function, 1, 0)?;
         let referent = self.operation_type_argument(node, "box_new", function)?;
         let nominal = self
             .box_nominals
@@ -459,6 +464,44 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 self.issue_value(SemanticRule::Op1, node, SemanticIssueKind::InvalidOperation)
             })?;
         self.parse_type_with(ty, &function.substitution)
+    }
+
+    pub(in crate::semantic::check) fn reject_region_bearing_storage_operation_argument(
+        &self,
+        node: NodeId,
+        spelling: &str,
+        function: &FunctionSignature,
+        expected_argument_count: usize,
+        type_argument_index: usize,
+    ) -> Result<(), CheckStop> {
+        if self
+            .tree
+            .first_child_with(node, Production::FieldinitList)?
+            .is_some()
+        {
+            return self.issue_node(
+                SemanticRule::Gram11,
+                node,
+                SemanticIssueKind::InvalidNamedArguments {
+                    callee: spelling.to_owned(),
+                    declared_parameters: Vec::new(),
+                },
+            );
+        }
+        let Some(arguments) = self.tree.first_child_with(node, Production::Targs)? else {
+            return Ok(());
+        };
+        let arguments = self.tree.children_with(arguments, Production::Targ)?;
+        if arguments.len() != expected_argument_count {
+            return Ok(());
+        }
+        let argument = *arguments
+            .get(type_argument_index)
+            .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
+        if let Some(ty) = self.tree.first_child_with(argument, Production::Type)? {
+            self.reject_region_bearing_storage_type(ty, &function.substitution)?;
+        }
+        Ok(())
     }
 
     fn invalid_named_arguments(signature: &FunctionSignature) -> SemanticIssueKind {

@@ -153,4 +153,10 @@ impl BreakState {
         self.bindings
             .retain(|declaration, _| preserved.contains(declaration));
     }
+
+    pub(super) fn end_slice_region(&mut self, region: DeclarationId) {
+        for local in self.bindings.values_mut() {
+            local.end_slice_region(region);
+        }
+    }
 }

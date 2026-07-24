@@ -192,6 +192,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             CheckedExpression::Binding {
                 binding: local.binding,
                 ty,
+                slice_origins: Vec::new(),
             }
         } else {
             CheckedExpression::Project {
@@ -291,6 +292,11 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 expression: CheckedExpression::Binding {
                     binding: local.binding,
                     ty: local.ty,
+                    slice_origins: local
+                        .slice
+                        .as_ref()
+                        .map(|slice| slice.origins.clone())
+                        .unwrap_or_default(),
                 },
                 resolved: local.borrow.map_or_else(
                     || ResolvedPlace {

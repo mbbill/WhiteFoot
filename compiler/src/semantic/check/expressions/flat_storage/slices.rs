@@ -6,8 +6,10 @@ use crate::{
     SemanticCompilerFailure, SemanticIssueKind, SemanticRule, UnsupportedSemanticFeature,
 };
 
-use super::super::super::super::model::{CheckedExpression, CheckedMode, CheckedSliceSource};
-use super::super::super::borrows::{AccessKind, ResolvedPlace, SliceInfo};
+use super::super::super::super::model::{
+    CheckedExpression, CheckedMode, CheckedSliceOrigin, CheckedSliceSource,
+};
+use super::super::super::borrows::{AccessKind, ResolvedPlace, SliceInfo, SliceLoan};
 use super::super::super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, PlaceAccess, TypedExpression,
 };
@@ -164,26 +166,43 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 );
             }
         };
-        self.check_loan_access(bindings, None, &resolved, AccessKind::SharedBorrow, borrow)?;
+        let origin = owner.map_or(CheckedSliceOrigin::ImmutableConst, |_| {
+            CheckedSliceOrigin::SourcePlace {
+                root: resolved.root,
+                fields: resolved.fields.clone(),
+                origin_region: None,
+            }
+        });
+        let origins = vec![origin];
+        let accesses = if let Some(owner) = owner {
+            self.check_loan_access(bindings, None, &resolved, AccessKind::SharedBorrow, borrow)?;
+            bindings
+                .get_mut(&owner)
+                .ok_or(SemanticCompilerFailure::InvalidResolution)?
+                .push_slice_loan(SliceLoan {
+                    region,
+                    place: resolved.clone(),
+                });
+            vec![PlaceAccess {
+                place: resolved,
+                kind: AccessKind::SharedBorrow,
+            }]
+        } else {
+            Vec::new()
+        };
         Ok(TypedExpression {
             expression: CheckedExpression::SliceOf {
                 source,
                 region,
                 element,
+                origins: origins.clone(),
             },
             mode: CheckedMode::Own,
             borrow: None,
-            slice: Some(SliceInfo {
-                region,
-                place: resolved.clone(),
-                origin_region: None,
-            }),
+            slice: Some(SliceInfo { region, origins }),
             holder: None,
             effects: EffectSet::NONE,
-            accesses: vec![PlaceAccess {
-                place: resolved,
-                kind: AccessKind::SharedBorrow,
-            }],
+            accesses,
         })
     }
 }

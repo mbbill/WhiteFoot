@@ -94,3 +94,69 @@ fn slice_index_retains_the_op4_trap_before_address_formation() {
     ));
     assert_eq!(stderr.lines().count(), 1);
 }
+
+#[test]
+fn returned_slice_descriptors_execute_without_transferring_storage() {
+    let source = br#"const fixed: array<u8, 2> = [7_u8, 13_u8];
+
+fn pass ['r](value: own slice<'r, u8>) -> own slice<'r, u8> pure {
+  return move value;
+}
+
+fn choose ['r](take_left: own Bool, left: own slice<'r, u8>, right: own slice<'r, u8>) -> own slice<'r, u8> pure {
+  match take_left {
+    True() => {
+      return move left;
+    }
+    False() => {
+      return move right;
+    }
+  }
+}
+
+fn fixed_view ['r]() -> own slice<'r, u8> pure {
+  return slice_of<'r, u8>(&'r fixed);
+}
+
+fn borrowed_first ['descriptor, 'data](value: &'descriptor slice<'data, u8>) -> own u8 reads('descriptor 'data), traps {
+  return index<u8>(deref(value), 0_u64);
+}
+
+fn main() -> own unit traps {
+  let left: own array<u8, 2> = array_new<u8, 2>(11_u8);
+  let right: own array<u8, 2> = array_new<u8, 2>(29_u8);
+  region 'view {
+    let borrowed_source: own slice<'view, u8> = slice_of<'view, u8>(&'view left);
+    region 'descriptor {
+      let borrowed_value: own u8 = borrowed_first<'descriptor, 'view>(value: &'descriptor borrowed_source);
+      check ieq<u8>(borrowed_value, 11_u8) else trap "borrowed";
+    }
+    let initial: own slice<'view, u8> = slice_of<'view, u8>(&'view left);
+    let passed: own slice<'view, u8> = pass<'view>(value: move initial);
+    let pass_value: own u8 = index<u8>(passed, 0_u64);
+    check ieq<u8>(pass_value, 11_u8) else trap "pass";
+    let left_view: own slice<'view, u8> = slice_of<'view, u8>(&'view left);
+    let right_view: own slice<'view, u8> = slice_of<'view, u8>(&'view right);
+    let take_left: own Bool = False();
+    let selected: own slice<'view, u8> = choose<'view>(take_left: take_left, left: move left_view, right: move right_view);
+    let selected_value: own u8 = index<u8>(selected, 0_u64);
+    check ieq<u8>(selected_value, 29_u8) else trap "choice";
+    let constant: own slice<'view, u8> = fixed_view<'view>();
+    let constant_value: own u8 = index<u8>(constant, 1_u64);
+    check ieq<u8>(constant_value, 13_u8) else trap "const";
+  }
+  return unit;
+}
+"#;
+    let llvm = compile(source);
+    assert!(!emitted_function(&llvm, "pass").contains("call void @free"));
+    assert!(!emitted_function(&llvm, "choose").contains("call void @free"));
+    assert!(!emitted_function(&llvm, "fixed_view").contains("call void @free"));
+    assert!(!emitted_function(&llvm, "borrowed_first").contains("call void @free"));
+    assert!(!emitted_function(&llvm, "main").contains("call void @free"));
+
+    let output = compile_and_run(&llvm);
+    assert!(output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(output.stderr.is_empty());
+}

@@ -6,11 +6,34 @@ use crate::{
     SemanticCompilerFailure, SemanticIssueKind, SemanticRule,
 };
 
-use super::super::super::super::model::{CheckedExpression, CheckedMode, CheckedType};
-use super::super::super::borrows::{AccessKind, BorrowInfo, BorrowKind, places_overlap};
+use super::super::super::super::model::{
+    CheckedExpression, CheckedMode, CheckedSliceOrigin, CheckedType,
+};
+use super::super::super::borrows::{
+    AccessKind, BorrowInfo, BorrowKind, ResolvedPlace, SliceInfo, places_overlap, push_slice_origin,
+};
 use super::super::super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, TypedExpression,
 };
+
+struct CallAccessClaim {
+    kind: BorrowKind,
+    origin: CallClaimOrigin,
+}
+
+enum CallClaimOrigin {
+    Place(ResolvedPlace),
+    FormalSlice,
+}
+
+impl CallClaimOrigin {
+    fn overlaps(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Place(left), Self::Place(right)) => places_overlap(left, right),
+            (Self::FormalSlice, _) | (_, Self::FormalSlice) => true,
+        }
+    }
+}
 
 impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 'source> {
     pub(super) fn check_user_call(
@@ -49,6 +72,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         }
         let mut arguments = Vec::with_capacity(fields.len());
         let mut checked_borrows = Vec::with_capacity(fields.len());
+        let mut checked_slices = Vec::with_capacity(fields.len());
         let mut argument_holders = Vec::with_capacity(fields.len());
         let mut call_scoped_borrows: Vec<BorrowInfo> = Vec::new();
         let mut effects = EffectSet {
@@ -107,43 +131,43 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 return self.issue_node(SemanticRule::Type5, atom, SemanticIssueKind::TypeMismatch);
             }
             let passed_borrow = self.borrow_for_destination(expected_mode, &argument, atom)?;
-            let access_claim = if let Some(slice) = &argument.slice {
-                Some(BorrowInfo {
-                    kind: BorrowKind::Shared,
-                    region: slice.region,
-                    place: slice.place.clone(),
-                    origin_region: slice.origin_region,
-                })
-            } else {
-                passed_borrow
-            };
             if explicit_borrow && let Some(borrow) = &argument.borrow {
                 call_scoped_borrows.push(borrow.clone());
             }
-            checked_borrows.push(access_claim);
+            checked_borrows.push(passed_borrow);
+            checked_slices.push(argument.slice.clone());
             argument_holders.push(argument.holder);
             effects = effects.union(argument.effects);
             arguments.push(argument.expression);
         }
-        self.check_call_borrow_overlap(node, &checked_borrows)?;
+        self.check_call_borrow_overlap(node, &checked_borrows, &checked_slices)?;
         self.project_call_effects(
             node,
             signature,
             &actual_regions,
             &checked_borrows,
+            &checked_slices,
             &argument_holders,
             bindings,
             &mut effects,
         )?;
+        let result =
+            self.substitute_parameter_type(signature.result, signature, &actual_regions)?;
+        let slice = self.substitute_slice_result(signature, result, &checked_slices)?;
+        let slice_origins = slice
+            .as_ref()
+            .map(|slice| slice.origins.clone())
+            .unwrap_or_default();
         Ok(TypedExpression {
             expression: CheckedExpression::UserCall {
                 function: target,
                 arguments,
-                result: signature.result,
+                result,
+                slice_origins,
             },
             mode: signature.result_mode,
             borrow: None,
-            slice: None,
+            slice,
             holder: None,
             effects,
             accesses: Vec::new(),
@@ -236,19 +260,62 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         })
     }
 
+    fn substitute_slice_result(
+        &self,
+        signature: &FunctionSignature,
+        result: CheckedType,
+        arguments: &[Option<SliceInfo>],
+    ) -> Result<Option<SliceInfo>, CheckStop> {
+        let CheckedType::Slice { region, .. } = result else {
+            return Ok(None);
+        };
+        let mut origins = Vec::new();
+        for origin in &signature.slice_return_ceiling {
+            match origin {
+                CheckedSliceOrigin::ImmutableConst => {
+                    push_slice_origin(&mut origins, CheckedSliceOrigin::ImmutableConst);
+                }
+                CheckedSliceOrigin::FormalSlice { parameter, .. } => {
+                    let index = signature
+                        .parameters
+                        .iter()
+                        .position(|candidate| candidate.declaration == *parameter)
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    let actual = arguments
+                        .get(index)
+                        .and_then(Option::as_ref)
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    for actual_origin in &actual.origins {
+                        push_slice_origin(&mut origins, actual_origin.clone());
+                    }
+                }
+                CheckedSliceOrigin::SourcePlace { .. } => {
+                    return Err(SemanticCompilerFailure::InvalidResolution.into());
+                }
+            }
+        }
+        Ok(Some(SliceInfo { region, origins }))
+    }
+
     fn check_call_borrow_overlap(
         &self,
         node: NodeId,
-        arguments: &[Option<BorrowInfo>],
+        borrows: &[Option<BorrowInfo>],
+        slices: &[Option<SliceInfo>],
     ) -> Result<(), CheckStop> {
-        for (index, left) in arguments.iter().enumerate() {
-            let Some(left) = left else {
-                continue;
-            };
-            for right in arguments.iter().skip(index + 1).flatten() {
-                if places_overlap(&left.place, &right.place)
-                    && (left.kind == BorrowKind::Unique || right.kind == BorrowKind::Unique)
-                {
+        let claims = borrows
+            .iter()
+            .zip(slices)
+            .map(|(borrow, slice)| Self::call_claims(borrow.as_ref(), slice.as_ref()))
+            .collect::<Vec<_>>();
+        for (index, left_claims) in claims.iter().enumerate() {
+            for right_claims in claims.iter().skip(index + 1) {
+                if left_claims.iter().any(|left| {
+                    right_claims.iter().any(|right| {
+                        (left.kind == BorrowKind::Unique || right.kind == BorrowKind::Unique)
+                            && left.origin.overlaps(&right.origin)
+                    })
+                }) {
                     return self.issue_node(
                         SemanticRule::Own12,
                         node,
@@ -260,13 +327,43 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         Ok(())
     }
 
+    fn call_claims(borrow: Option<&BorrowInfo>, slice: Option<&SliceInfo>) -> Vec<CallAccessClaim> {
+        let mut claims = Vec::new();
+        if let Some(borrow) = borrow {
+            claims.push(CallAccessClaim {
+                kind: borrow.kind,
+                origin: CallClaimOrigin::Place(borrow.place.clone()),
+            });
+        }
+        if let Some(slice) = slice {
+            for origin in &slice.origins {
+                let origin = match origin {
+                    CheckedSliceOrigin::SourcePlace { root, fields, .. } => {
+                        CallClaimOrigin::Place(ResolvedPlace {
+                            root: *root,
+                            fields: fields.clone(),
+                        })
+                    }
+                    CheckedSliceOrigin::FormalSlice { .. } => CallClaimOrigin::FormalSlice,
+                    CheckedSliceOrigin::ImmutableConst => continue,
+                };
+                claims.push(CallAccessClaim {
+                    kind: BorrowKind::Shared,
+                    origin,
+                });
+            }
+        }
+        claims
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn project_call_effects(
         &self,
         node: NodeId,
         signature: &FunctionSignature,
         actual_regions: &[DeclarationId],
-        arguments: &[Option<BorrowInfo>],
+        borrows: &[Option<BorrowInfo>],
+        slices: &[Option<SliceInfo>],
         holders: &[Option<DeclarationId>],
         bindings: &HashMap<DeclarationId, LocalBinding>,
         effects: &mut EffectSet,
@@ -283,35 +380,50 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     .ok_or(SemanticCompilerFailure::InvalidResolution)?,
             );
         }
-        for (parameter, (argument, holder)) in signature
+        for (parameter, ((borrow, slice), holder)) in signature
             .parameters
             .iter()
-            .zip(arguments.iter().zip(holders))
+            .zip(borrows.iter().zip(slices).zip(holders))
         {
-            let Some(argument) = argument else {
-                continue;
+            let mode_region = match parameter.mode {
+                CheckedMode::Own => None,
+                CheckedMode::Shared(region) | CheckedMode::Unique(region) => Some(region),
             };
-            let formal_region = match (parameter.mode, parameter.ty) {
-                (CheckedMode::Own, CheckedType::Slice { region, .. }) => region,
-                (CheckedMode::Own, _) => continue,
-                (CheckedMode::Shared(region) | CheckedMode::Unique(region), _) => region,
+            let slice_region = match parameter.ty {
+                CheckedType::Slice { region, .. } => Some(region),
+                _ => None,
             };
-            if signature.declared_effects.reads.contains(&formal_region) {
-                self.check_loan_access(bindings, *holder, &argument.place, AccessKind::Read, node)?;
-                if let Some(origin) = argument.origin_region {
-                    effects.add_read(origin);
+            for (access, declared) in [
+                (AccessKind::Read, &signature.declared_effects.reads),
+                (AccessKind::Write, &signature.declared_effects.writes),
+            ] {
+                if mode_region.is_some_and(|region| declared.contains(&region)) {
+                    let borrow = borrow
+                        .as_ref()
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    self.check_loan_access(bindings, *holder, &borrow.place, access, node)?;
+                    if let Some(origin) = borrow.origin_region {
+                        match access {
+                            AccessKind::Read => effects.add_read(origin),
+                            AccessKind::Write => effects.add_write(origin),
+                            _ => return Err(SemanticCompilerFailure::InvalidResolution.into()),
+                        }
+                    }
                 }
-            }
-            if signature.declared_effects.writes.contains(&formal_region) {
-                self.check_loan_access(
-                    bindings,
-                    *holder,
-                    &argument.place,
-                    AccessKind::Write,
-                    node,
-                )?;
-                if let Some(origin) = argument.origin_region {
-                    effects.add_write(origin);
+                if slice_region.is_some_and(|region| declared.contains(&region)) {
+                    let slice = slice
+                        .as_ref()
+                        .ok_or(SemanticCompilerFailure::InvalidResolution)?;
+                    for (place, _) in slice.source_places() {
+                        self.check_loan_access(bindings, *holder, &place, access, node)?;
+                    }
+                    for origin in slice.effect_regions() {
+                        match access {
+                            AccessKind::Read => effects.add_read(origin),
+                            AccessKind::Write => effects.add_write(origin),
+                            _ => return Err(SemanticCompilerFailure::InvalidResolution.into()),
+                        }
+                    }
                 }
             }
         }

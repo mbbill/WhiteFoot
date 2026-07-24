@@ -6,7 +6,7 @@ use crate::{
 };
 
 use super::super::model::{CheckedConst, CheckedType};
-use super::{CheckStop, Checker, FunctionSignature, FunctionTemplate};
+use super::{CheckStop, Checker, FunctionSignature, FunctionTemplate, derive_slice_return_ceiling};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(super) enum GenericBound {
@@ -290,11 +290,18 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             .ok_or(SemanticCompilerFailure::InvalidCanonicalTree)?;
         let (result_mode, result) = self.parse_rtype_with(rtype, &substitution)?;
         if result_mode != super::super::model::CheckedMode::Own {
+            if matches!(result, super::super::model::CheckedType::Slice { .. }) {
+                return self.issue_node(
+                    SemanticRule::Fn1,
+                    rtype,
+                    SemanticIssueKind::BorrowedSliceResult {
+                        mechanical_fix: "return the direct own slice descriptor under its data region; do not return a borrow of a slice descriptor",
+                    },
+                );
+            }
             return self.unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, rtype);
         }
-        if matches!(result, super::super::model::CheckedType::Slice { .. }) {
-            return self.unsupported(UnsupportedSemanticFeature::RegionsAndBorrows, rtype);
-        }
+        let slice_return_ceiling = derive_slice_return_ceiling(&parameters, result_mode, result);
         let effects = self
             .tree
             .first_child_with(template.node, Production::Effects)?
@@ -315,6 +322,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
             parameters,
             result_mode,
             result,
+            slice_return_ceiling,
             effects_node: effects,
             declared_effects,
             substitution,
@@ -543,6 +551,9 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         {
             return self.issue_node(SemanticRule::Type5, node, SemanticIssueKind::TypeMismatch);
         }
+        for argument in arguments.iter().take(parameters.len()) {
+            self.reject_region_bearing_generic_argument(*argument, caller)?;
+        }
         let mut bindings = Vec::with_capacity(parameters.len());
         for (parameter, argument) in parameters.iter().copied().zip(arguments) {
             let value = match parameter {
@@ -555,9 +566,6 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                         );
                     };
                     let ty = self.parse_type_with(ty, caller)?;
-                    if matches!(ty, CheckedType::Slice { .. }) {
-                        return self.unsupported(UnsupportedSemanticFeature::Generics, argument);
-                    }
                     let satisfies_bound = match bound {
                         GenericBound::Unbounded => true,
                         GenericBound::Int => {

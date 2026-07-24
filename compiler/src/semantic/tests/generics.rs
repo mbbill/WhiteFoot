@@ -609,3 +609,71 @@ fn main() -> own unit allocates(heap), traps {
         assert_eq!(checked.function_count(), 6);
     });
 }
+
+#[test]
+fn region_bearing_function_and_nominal_arguments_reject_under_fn2() {
+    let expected = SemanticIssueKind::RegionBearingGenericArgument {
+        mechanical_fix: "make the slice or arena a direct written parameter or result instead of a generic argument",
+    };
+    assert_rule(
+        br#"fn instantiate<T>() -> own unit pure {
+  return unit;
+}
+
+fn invalid ['r]() -> own unit pure {
+  instantiate<slice<'r, u8>>();
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Fn2,
+        expected.clone(),
+    );
+    assert_rule(
+        br#"struct Marker<T> {
+}
+
+fn invalid ['r](value: own Marker<slice<'r, u8>>) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Fn2,
+        expected.clone(),
+    );
+    assert_rule(
+        br#"fn invalid ['r](value: own Option<slice<'r, u8>>) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Fn2,
+        expected.clone(),
+    );
+    assert_rule(
+        br#"fn instantiate<T>() -> own unit pure {
+  return unit;
+}
+
+fn invalid ['r]() -> own unit pure {
+  instantiate<arena<'r, u8>>();
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Fn2,
+        expected,
+    );
+}

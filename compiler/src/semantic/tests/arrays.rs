@@ -328,3 +328,35 @@ fn main() -> own unit traps {
         SemanticIssueKind::BorrowConflict,
     );
 }
+
+#[test]
+fn region_bearing_array_content_rejects_under_stor5() {
+    let expected = SemanticIssueKind::RegionBearingStorage {
+        mechanical_fix: "keep the slice or arena as a direct local, parameter, or result; do not store it inside another value",
+    };
+    assert_rule(
+        br#"fn invalid ['r](value: own array<slice<'r, u8>, 1>) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Stor5,
+        expected.clone(),
+    );
+    assert_rule(
+        br#"fn invalid ['r](value: own slice<'r, u8>) -> own unit pure {
+  array_new<slice<'r, u8>, 1>(move value);
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Stor5,
+        expected,
+    );
+}

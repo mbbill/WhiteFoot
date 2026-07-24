@@ -52,10 +52,10 @@ measurement does.
 
 ## Current state
 
-The active language authority is `spec/kernel-spec-v0.16.md`, SHA-256
-`f93264fb4df6994a408e1327c6e8643c34b4aea55fba4b1a0b3dab3501ceb942`.
+The active language authority is `spec/kernel-spec-v0.17.md`, SHA-256
+`19642ffb0ad9c7146a84762ada192ed2a25dc446a93c4d060aa29d9a99f69c93`.
 Those bytes are immutable and byte-identical to the owner-approved candidate.
-Exact v0.8 through v0.15 remain immutable historical evidence. v0.12 added the
+Exact v0.8 through v0.16 remain immutable historical evidence. v0.12 added the
 SET-1 copy-place assignment judgment, target-before-RHS ordering, post-RHS
 writability revalidation, and ultimate-storage-origin read/write effects.
 v0.13 makes a direct bare affine own-rooted `Result` place a consuming
@@ -76,6 +76,17 @@ applicable law receives FN-4's mandatory closed discharge. This metadata has
 no runtime or lowering representation and its base law evidence grants no
 optimizer authority. Source-contract generic bounds receive an explicit FN-3
 rejection, and contract member calls remain absent from v0.16.
+v0.17 closes direct returned-slice provenance without changing the slice
+descriptor or ABI. Every direct slice carries a finite static set of possible
+storage origins; an `own slice` result gets its finite supplier ceiling from
+the written signature, calls substitute actual origin sets without inspecting
+the body, and ownership overlap and effects quantify over the whole set.
+Region-bearing function and nominal generic arguments now receive FN-2
+rejections, and region-bearing box or arena content receives STOR-5
+rejections. Borrow-mode direct-slice results receive FN-1 rejections because
+their descriptor-place provenance belongs to the separate returned-borrow
+design. Direct nested-slice type formation remains valid but compiler-
+unsupported.
 The compiler keeps that exact version, path, byte content, and digest at one
 active-specification identity boundary. Its stage, syntax, rule, and pipeline
 symbols are stable implementation names rather than `V0_xx` APIs, so a
@@ -157,26 +168,32 @@ trapping and checked negation reuse defined signed-subtraction overflow
 detection. Executable tests cover every signed width, including the minimum
 edge and exact trap record.
 
-This is not a completeness claim. Cyclic and region-bearing generic forms,
+This is not a completeness claim. Cyclic generic forms,
 generic `requires`, general borrow referents and borrowed affine match
 payloads, returned borrows, bound/result-carrying/grandchild reborrows, affine
-moves out through owning indirection, arenas, returned slices,
-non-flat slice elements, slice formation through borrow holders, inline
+moves out through owning indirection, arenas, non-flat slice elements, slice
+formation through borrow holders, inline
 recursive nominal layouts, branch-dependent ownership/loan joins, projected
 array targets reached through borrow holders, and remaining effect-table
 operations are explicit unsupported compiler capabilities rather than
 source-language rejections.
-Generic source contracts and source-contract bounds instead receive v0.16's
-specified FN-3 rejection; contract-member calls have no v0.16 grammar or
-semantic operation.
+Direct own returned slices use v0.17's signature-derived finite-origin path
+through semantic checking, lowering, and the unchanged slice descriptor.
+Region-bearing function and nominal generic arguments, region-bearing box or
+arena content, and borrow-mode direct-slice results receive v0.17's specified
+FN-2, STOR-5, and FN-1 rejections. Generic source contracts and source-contract
+bounds retain FN-3's specified rejection; contract-member calls have no v0.17
+grammar or semantic operation.
 Repeated exhaustive match arms also stop as
-unsupported because v0.16 defines neither duplicate-arm meaning nor a
+unsupported because v0.17 defines neither duplicate-arm meaning nor a
 duplicate-arm rejection rule.
 
-The exact approved v0.16 candidate is installed and every live identity names
-it. The resolver implementation completes Phase 6, the first executable scalar
-slice completes Phase 7, and nominal data, the current SET-1 place family,
-structured loops, and the first Result family advance Phase 8.
+The exact approved v0.17 candidate is installed as the language authority.
+Compiler and conformance identities, the direct returned-slice semantic path,
+and additive evidence are synchronized to that authority. The resolver
+implementation completes Phase 6, the first executable scalar slice completes
+Phase 7, and nominal data, the current SET-1 place family, structured loops,
+and the first Result family advance Phase 8.
 
 The compiler implements the v0.13 consuming context through one general
 expression judgment shared by `match` and `propagate`. A direct bare affine
@@ -949,9 +966,15 @@ sources receive stable stack or static storage, buffer sources reuse their
 owner's allocation, OP-4 guards every element address, and dropping a slice
 never frees its source. The public checksum executes the same consumer over a
 20-byte const header and a runtime buffer and verifies `0xb890` in both cases.
-Returned slices, non-flat slice elements, slice formation through `deref`
-borrow holders, region-bearing generic arguments, and branch-dependent
-slice-provenance joins remain explicit unsupported capability boundaries.
+Direct own returned slices now use v0.17's signature-derived finite-origin
+semantics through the normal compiler path. Region-scoped source claims are
+independent of descriptor bindings, union conservatively across control joins,
+and end only with their named data region. Non-flat slice elements and slice
+formation through `deref` borrow holders remain valid but explicitly
+unsupported compiler capabilities, while branch-dependent slice-value
+provenance joins are specified OWN-5 rejections. Region-bearing function and
+nominal generic arguments are specified FN-2 rejections rather than
+unsupported compiler capabilities.
 
 A precision-polymorphic 3D vector kernel then selected the built-in `Float`
 generic bound. Symbolic checking now distinguishes a `Float`-bounded type
@@ -977,14 +1000,21 @@ truncated inputs execute through the public compiler boundary. This probe
 exposed no new semantic capability gap; it provides composition evidence for
 the existing buffer, Result, box, recursion, borrow, effect, and cleanup paths.
 
-The exact next work remains Phase 9: select another production-shaped dogfood
-target in a real-world domain not exercised by the current programs, observe
-its first real missing language or compiler capability, and implement the
-smallest general semantic family that removes that blocker. Do not preselect a
-speculative family merely because it remains in the specification. Cyclic
-generic calls, region-bearing generic arguments, generic `requires`, and
-type-dependent generic `cvt`/`reinterpret` remain explicit unsupported
-capabilities unless dogfood selects and implements one of them generally.
+The exact next language work is the loan-lifetime and scope amendment as a
+separate v0.18 candidate. Its package must inventory every ownership, cleanup,
+effect, provenance, conformance, and compiler impact and survive multiple
+exact-byte hostile-review rounds, with additional research or tests wherever a
+reviewer exposes a missing premise, before owner review. No lifetime
+implementation begins before exact approval. Do not pull arena cleanup, stored
+slice leaves, borrow-producing branch joins, or another unrelated capability
+into that amendment.
+
+After the owner-directed closures finish, Phase 9 returns to selecting another
+production-shaped dogfood target in a real-world domain not exercised by the
+current programs. Cyclic generic calls, generic `requires`, and type-dependent
+generic `cvt`/`reinterpret` remain explicit unsupported compiler capabilities.
+Region-bearing function and nominal generic arguments are now v0.17 FN-2
+source rejections, not members of that unsupported set.
 
 ## Phase 9: dogfood and language iteration
 

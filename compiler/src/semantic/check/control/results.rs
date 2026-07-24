@@ -71,6 +71,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                     loop_depth: scope.loops.len(),
                     borrow: None,
                     slice: None,
+                    slice_loans: Vec::new(),
                 },
             )
             .is_some()

@@ -16,7 +16,7 @@ use super::super::super::model::{
     CheckedRuntimeTargetObligations, CheckedSetTarget, CheckedSliceRoot,
     CheckedTargetDomainObligation, CheckedType, IntegerType, TrapSite,
 };
-use super::super::borrows::{AccessKind, BorrowKind, ResolvedPlace};
+use super::super::borrows::{AccessKind, BorrowInfo, BorrowKind, ResolvedPlace, SliceInfo};
 use super::super::{
     CheckStop, Checker, EffectSet, FunctionSignature, LocalBinding, PlaceAccess, TypedExpression,
 };
@@ -59,8 +59,8 @@ struct CheckedBufferPlace {
 struct CheckedSlicePlace {
     root: CheckedSliceRoot,
     declaration: DeclarationId,
-    resolved: ResolvedPlace,
-    origin_region: Option<DeclarationId>,
+    descriptor: Option<BorrowInfo>,
+    slice: SliceInfo,
 }
 
 #[derive(Clone)]
@@ -102,6 +102,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 },
             );
         }
+        self.reject_region_bearing_storage_operation_argument(node, "array_new", function, 2, 0)?;
         let targs = self
             .tree
             .first_child_with(node, Production::Targs)?
@@ -174,6 +175,7 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
         bindings: &mut HashMap<DeclarationId, LocalBinding>,
         loop_depth: usize,
     ) -> Result<TypedExpression, CheckStop> {
+        self.reject_region_bearing_storage_operation_argument(node, "buffer_new", function, 1, 0)?;
         let element_type = self.operation_type_argument(node, "buffer_new", function)?;
         let element = match element_type {
             CheckedType::Unit => CheckedFlatElement::Unit,
@@ -261,14 +263,28 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
             }
             CheckedIndexedPlace::Slice(slice) => {
-                self.check_loan_access(
-                    bindings,
-                    Some(slice.declaration),
-                    &slice.resolved,
-                    AccessKind::Read,
-                    atoms[0],
-                )?;
-                if let Some(region) = slice.origin_region {
+                if let Some(descriptor) = &slice.descriptor {
+                    self.check_loan_access(
+                        bindings,
+                        Some(slice.declaration),
+                        &descriptor.place,
+                        AccessKind::Read,
+                        atoms[0],
+                    )?;
+                    if let Some(region) = descriptor.origin_region {
+                        effects.add_read(region);
+                    }
+                }
+                for (place, _) in slice.slice.source_places() {
+                    self.check_loan_access(
+                        bindings,
+                        Some(slice.declaration),
+                        &place,
+                        AccessKind::Read,
+                        atoms[0],
+                    )?;
+                }
+                for region in slice.slice.effect_regions() {
                     effects.add_read(region);
                 }
             }
@@ -344,13 +360,24 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 )?;
             }
             CheckedIndexedPlace::Slice(slice) => {
-                self.check_loan_access(
-                    bindings,
-                    Some(slice.declaration),
-                    &slice.resolved,
-                    AccessKind::Read,
-                    pbase,
-                )?;
+                if let Some(descriptor) = &slice.descriptor {
+                    self.check_loan_access(
+                        bindings,
+                        Some(slice.declaration),
+                        &descriptor.place,
+                        AccessKind::Read,
+                        pbase,
+                    )?;
+                }
+                for (place, _) in slice.slice.source_places() {
+                    self.check_loan_access(
+                        bindings,
+                        Some(slice.declaration),
+                        &place,
+                        AccessKind::Read,
+                        pbase,
+                    )?;
+                }
             }
         }
         let offset = self
@@ -384,10 +411,20 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 place: buffer.resolved.clone(),
                 kind: AccessKind::Read,
             }),
-            CheckedIndexedPlace::Slice(slice) => accesses.push(PlaceAccess {
-                place: slice.resolved.clone(),
-                kind: AccessKind::Read,
-            }),
+            CheckedIndexedPlace::Slice(slice) => {
+                if let Some(descriptor) = &slice.descriptor {
+                    accesses.push(PlaceAccess {
+                        place: descriptor.place.clone(),
+                        kind: AccessKind::Read,
+                    });
+                }
+                accesses.extend(slice.slice.source_places().into_iter().map(|(place, _)| {
+                    PlaceAccess {
+                        place,
+                        kind: AccessKind::Read,
+                    }
+                }));
+            }
         }
         let expression = match indexed {
             CheckedIndexedPlace::Array(array) => CheckedExpression::ArrayIndex {
@@ -410,7 +447,12 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 }
             }
             CheckedIndexedPlace::Slice(slice) => {
-                if let Some(region) = slice.origin_region {
+                if let Some(descriptor) = &slice.descriptor
+                    && let Some(region) = descriptor.origin_region
+                {
+                    effects.add_read(region);
+                }
+                for region in slice.slice.effect_regions() {
                     effects.add_read(region);
                 }
                 CheckedExpression::SliceIndex {
@@ -716,8 +758,8 @@ impl<'unit, 'classified, 'lexed, 'source> Checker<'unit, 'classified, 'lexed, 's
                 Ok(CheckedIndexedPlace::Slice(CheckedSlicePlace {
                     root: CheckedSliceRoot { binding, element },
                     declaration,
-                    resolved: slice.place,
-                    origin_region: slice.origin_region,
+                    descriptor: None,
+                    slice,
                 }))
             }
             _ => self.issue_node(SemanticRule::Type5, node, SemanticIssueKind::TypeMismatch),

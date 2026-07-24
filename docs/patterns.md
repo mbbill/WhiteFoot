@@ -61,16 +61,21 @@ state) out — possession flows like a token. v0 admits only bounded
 statement-scoped reborrowing (OWN-6): a child borrow of a holder is a transient,
 non-escaping call argument that suspends its parent for one statement, so the
 token never silently forks or escapes.
-Fast because: singleton provenance keeps the checker simple; the noalias facts
-hold for usable borrows (a suspended parent yields no usable alias), so channel
-1's soundness rests on T-A plus statement-scoped suspension.
+Fast because: borrow-holder singleton provenance keeps the checker simple; the
+noalias facts
+hold for usable borrow holders (a suspended parent yields no usable alias).
+Direct slices are the separate v0.17 case: they carry a finite static origin
+set, and every alias and effect judgment checks the whole set even though one
+runtime descriptor points to one root. Channel 1's soundness therefore rests
+on T-A's holder-singleton theorem plus the finite-origin coverage proof and
+statement-scoped suspension.
 Replaces: Rust's unbounded implicit `&mut` reborrow chains and aliased mutable
 captures; Whitefoot's reborrow is bounded to one statement and cannot escape.
 
 ## P5. Env-struct behavior parameterization (FN-5)
 
 Problem: callbacks / strategy objects / closures.
-Pattern status: DEFERRED in v0.16. The active specification defines static
+Pattern status: DEFERRED in v0.17. The active specification defines static
 contract, complete-conformance, and checked-law validation, but it rejects
 source-contract generic bounds and defines no member-call operation that could
 select a conformance binding. Therefore contract-driven env-struct behavior is
@@ -78,7 +83,7 @@ not currently a writable Whitefoot pattern. For a closed behavior set, use an
 enum and exhaustive `match`; otherwise use explicitly named direct functions
 and thread the environment struct by value or borrow.
 Candidate direction: an eventual approved form would keep the environment
-explicit and monomorphize a checked member call to a direct call, but v0.16
+explicit and monomorphize a checked member call to a direct call, but v0.17
 does not claim that mechanism or its performance.
 Would replace: closures capturing mutable environments, trait objects, and
 function pointers.
@@ -86,11 +91,11 @@ function pointers.
 ## P6. Checked-law reduction (FN-4)
 
 Problem: custom folds/reductions that a compiler cannot legally reorder.
-Pattern status: validation-only in v0.16. State the admitted algebra
+Pattern status: validation-only in v0.17. State the admitted algebra
 (`law associative/commutative/identity`) in a contract and conform its
 ordinary top-level function. The compiler must discharge the law for source
 acceptance and refutes an invalid or unavailable law at compile time. The
-stored base derivation is not optimizer authority, so v0.16 does not
+stored base derivation is not optimizer authority, so v0.17 does not
 reassociate the sequential fold from that record.
 Potential speed: the archived channel-3 experiment measured 3.3x over the
 serial shape. Shipping that transform requires a separately approved fact
@@ -152,6 +157,27 @@ proofs without weakening OP-4 safety.
 Replaces: per-store bounds checks in fixed-ratio kernels, unconditional
 maximum-size caller allocation, retry-after-partial-token mutation, and using
 `requires` as an optimizer hint.
+
+## P10. Direct returned view
+
+Problem: a helper must pass through or select a read-only slice without moving
+the backing owner or hiding where the result may point.
+Pattern: return `own slice<'r, T>` directly. Every possible parameter supplier
+is also written as exactly `own slice<'r, T>` under the same formal region and
+element type. A function with several such parameters may return any of them,
+but the caller conservatively treats all of them as possible origins. If a
+helper always selects one source and that precision matters, give that source
+the result region and put unrelated slices under distinct formal regions.
+Named constants are also legal suppliers. Do not return a fresh view of local,
+raw-borrowed, or arena storage, and do not return `& slice` or `&uniq slice`;
+those forms need provenance or cleanup semantics that v0.17 deliberately does
+not claim.
+Fast because: the written signature is the complete interprocedural summary.
+Calls substitute finite origin sets and check aliases and effects against the
+whole union without opening bodies, computing recursive fixed points, changing
+the two-word slice descriptor, or adding a runtime tag.
+Replaces: hidden body-derived return-borrow summaries and caller guesses about
+which same-region argument a returned view references.
 
 ## Known gaps (findings, not yet patterns)
 

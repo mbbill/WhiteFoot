@@ -241,3 +241,35 @@ fn main() -> own unit pure {
         assert_eq!(residual_drops[2].fields, [0]);
     });
 }
+
+#[test]
+fn region_bearing_buffer_content_rejects_under_stor5() {
+    let expected = SemanticIssueKind::RegionBearingStorage {
+        mechanical_fix: "keep the slice or arena as a direct local, parameter, or result; do not store it inside another value",
+    };
+    assert_rule(
+        br#"fn invalid ['r](value: own buffer<slice<'r, u8>>) -> own unit pure {
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Stor5,
+        expected.clone(),
+    );
+    assert_rule(
+        br#"fn invalid ['r](value: own slice<'r, u8>) -> own unit allocates(heap), traps {
+  buffer_new<slice<'r, u8>>(1_u64, move value);
+  return unit;
+}
+
+fn main() -> own unit pure {
+  return unit;
+}
+"#,
+        SemanticRule::Stor5,
+        expected,
+    );
+}
